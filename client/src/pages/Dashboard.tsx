@@ -1,150 +1,247 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Button } from "@/components/ui/button";
-import { SeatCard } from "@/components/SeatCard";
+import { CategoryCard } from "@/components/CategoryCard";
 import { BookingTable } from "@/components/BookingTable";
+import { AddBookingDialog } from "@/components/AddBookingDialog";
 import { ExtendSessionDialog } from "@/components/ExtendSessionDialog";
 import { EndSessionDialog } from "@/components/EndSessionDialog";
-import { Filter } from "lucide-react";
+import { Plus, Monitor, Gamepad2, Glasses, Car } from "lucide-react";
+import { useToast } from "@/hooks/use-toast";
 
-//todo: remove mock functionality
-const mockSeats = [
-  { seatName: "PC-1", status: "running" as const, customerName: "John Doe", endTime: new Date(Date.now() + 25 * 60 * 1000) },
-  { seatName: "PC-2", status: "available" as const },
-  { seatName: "PC-3", status: "expired" as const, customerName: "Jane Smith", endTime: new Date(Date.now() - 5 * 60 * 1000) },
-  { seatName: "PS5-1", status: "running" as const, customerName: "Mike Johnson", endTime: new Date(Date.now() + 90 * 60 * 1000) },
-  { seatName: "PS5-2", status: "upcoming" as const, customerName: "Sarah Williams" },
-  { seatName: "VR-1", status: "available" as const },
-];
+type BookingStatus = "available" | "running" | "expired" | "upcoming";
 
-const mockWalkInBookings = [
-  {
-    id: "1",
-    seatName: "PC-1",
-    customerName: "John Doe",
-    startTime: new Date(Date.now() - 35 * 60 * 1000),
-    endTime: new Date(Date.now() + 25 * 60 * 1000),
-    price: 70,
-    status: "running" as const,
-  },
-  {
-    id: "2",
-    seatName: "PS5-1",
-    customerName: "Mike Johnson",
-    startTime: new Date(Date.now() - 30 * 60 * 1000),
-    endTime: new Date(Date.now() + 90 * 60 * 1000),
-    price: 130,
-    status: "running" as const,
-  },
-];
+interface Booking {
+  id: string;
+  category: string;
+  seatNumber: number;
+  seatName: string;
+  customerName: string;
+  startTime: Date;
+  endTime: Date;
+  price: number;
+  status: BookingStatus;
+  bookingType: "walk-in" | "upcoming";
+}
 
-const mockUpcomingBookings = [
-  {
-    id: "3",
-    seatName: "PS5-2",
-    customerName: "Sarah Williams",
-    startTime: new Date(Date.now() + 30 * 60 * 1000),
-    endTime: new Date(Date.now() + 150 * 60 * 1000),
-    price: 130,
-    status: "upcoming" as const,
-  },
+const categories = [
+  { name: "PC", total: 10, icon: Monitor, color: "text-chart-1" },
+  { name: "PS5", total: 5, icon: Gamepad2, color: "text-chart-5" },
+  { name: "VR", total: 3, icon: Glasses, color: "text-chart-2" },
+  { name: "Car", total: 2, icon: Car, color: "text-chart-3" },
 ];
 
 export default function Dashboard() {
-  const [extendDialog, setExtendDialog] = useState({ open: false, seatName: "" });
-  const [endDialog, setEndDialog] = useState({ open: false, seatName: "", customerName: "" });
-  const [activeFilter, setActiveFilter] = useState<string>("all");
+  const { toast } = useToast();
+  const [bookings, setBookings] = useState<Booking[]>([]);
+  const [addDialog, setAddDialog] = useState(false);
+  const [extendDialog, setExtendDialog] = useState({ open: false, bookingId: "" });
+  const [deleteDialog, setDeleteDialog] = useState({ open: false, bookingId: "", seatName: "", customerName: "" });
 
-  const handleExtend = (seatName: string) => {
-    setExtendDialog({ open: true, seatName });
+  const getOccupiedSeats = (category: string) => {
+    return bookings
+      .filter(b => b.category === category && b.status === "running")
+      .map(b => b.seatNumber);
   };
 
-  const handleEnd = (seatName: string, customerName = "") => {
-    setEndDialog({ open: true, seatName, customerName });
+  useEffect(() => {
+    const interval = setInterval(() => {
+      const now = new Date();
+      setBookings(prevBookings => 
+        prevBookings.map(booking => {
+          if (booking.status === "running" && booking.endTime < now) {
+            return { ...booking, status: "expired" as BookingStatus };
+          }
+          if (booking.status === "upcoming" && booking.startTime <= now) {
+            return { ...booking, status: "running" as BookingStatus };
+          }
+          return booking;
+        })
+      );
+    }, 5000);
+
+    return () => clearInterval(interval);
+  }, []);
+
+  const getAvailableSeats = (category: string) => {
+    const cat = categories.find(c => c.name === category);
+    if (!cat) return [];
+    const occupied = getOccupiedSeats(category);
+    return Array.from({ length: cat.total }, (_, i) => i + 1).filter(n => !occupied.includes(n));
+  };
+
+  const availableSeatsData = categories.map(cat => ({
+    category: cat.name,
+    seats: getAvailableSeats(cat.name),
+  }));
+
+  const handleAddBooking = (newBooking: {
+    category: string;
+    seatNumber: number;
+    customerName: string;
+    duration: string;
+    price: number;
+    bookingType: "walk-in" | "upcoming";
+  }) => {
+    const now = new Date();
+    const durationMap: { [key: string]: number } = {
+      "30 mins": 30,
+      "1 hour": 60,
+      "2 hours": 120,
+    };
+    const minutes = durationMap[newBooking.duration] || 60;
+    
+    const startTime = newBooking.bookingType === "walk-in" ? now : new Date(now.getTime() + 30 * 60 * 1000);
+    const endTime = new Date(startTime.getTime() + minutes * 60 * 1000);
+
+    const booking: Booking = {
+      id: Date.now().toString(),
+      category: newBooking.category,
+      seatNumber: newBooking.seatNumber,
+      seatName: `${newBooking.category}-${newBooking.seatNumber}`,
+      customerName: newBooking.customerName,
+      startTime,
+      endTime,
+      price: newBooking.price,
+      status: newBooking.bookingType === "walk-in" ? "running" : "upcoming",
+      bookingType: newBooking.bookingType,
+    };
+
+    setBookings([...bookings, booking]);
+    toast({
+      title: "Booking Added",
+      description: `${booking.seatName} booked for ${newBooking.customerName}`,
+    });
+  };
+
+  const handleExtend = (bookingId: string) => {
+    setExtendDialog({ open: true, bookingId });
   };
 
   const handleConfirmExtend = (duration: string, price: number) => {
-    console.log(`Extended ${extendDialog.seatName} by ${duration} for ₹${price}`);
+    const booking = bookings.find(b => b.id === extendDialog.bookingId);
+    if (booking) {
+      const durationMap: { [key: string]: number } = {
+        "30 mins": 30,
+        "1 hour": 60,
+        "2 hours": 120,
+      };
+      const minutes = durationMap[duration] || 60;
+      
+      setBookings(bookings.map(b => 
+        b.id === extendDialog.bookingId 
+          ? { ...b, endTime: new Date(b.endTime.getTime() + minutes * 60 * 1000), price: b.price + price }
+          : b
+      ));
+      
+      toast({
+        title: "Session Extended",
+        description: `${booking.seatName} extended by ${duration}`,
+      });
+    }
+    setExtendDialog({ open: false, bookingId: "" });
   };
 
-  const handleConfirmEnd = () => {
-    console.log(`Ended session for ${endDialog.seatName}`);
+  const handleDelete = (bookingId: string) => {
+    const booking = bookings.find(b => b.id === bookingId);
+    if (booking) {
+      setDeleteDialog({ 
+        open: true, 
+        bookingId, 
+        seatName: booking.seatName, 
+        customerName: booking.customerName 
+      });
+    }
   };
 
-  const filteredSeats = activeFilter === "all" 
-    ? mockSeats 
-    : mockSeats.filter(seat => seat.status === activeFilter);
+  const handleConfirmDelete = () => {
+    setBookings(bookings.filter(b => b.id !== deleteDialog.bookingId));
+    toast({
+      title: "Booking Deleted",
+      description: `${deleteDialog.seatName} booking removed`,
+      variant: "destructive",
+    });
+    setDeleteDialog({ open: false, bookingId: "", seatName: "", customerName: "" });
+  };
+
+  const walkInBookings = bookings.filter(b => b.bookingType === "walk-in");
+  const upcomingBookings = bookings.filter(b => b.bookingType === "upcoming");
 
   return (
     <div className="space-y-6">
-      <div className="flex items-center justify-between">
+      <div className="flex items-center justify-between flex-wrap gap-4">
         <div>
           <h1 className="text-3xl font-bold text-foreground">Seat Management</h1>
           <p className="text-muted-foreground">Monitor and manage all gaming seats</p>
         </div>
-        <Button variant="outline" data-testid="button-filter">
-          <Filter className="mr-2 h-4 w-4" />
-          Filter
+        <Button onClick={() => setAddDialog(true)} data-testid="button-add-booking">
+          <Plus className="mr-2 h-4 w-4" />
+          Add Booking
         </Button>
       </div>
 
-      <div className="flex gap-2 flex-wrap">
-        {["all", "available", "running", "expired", "upcoming"].map((filter) => (
-          <Button
-            key={filter}
-            variant={activeFilter === filter ? "default" : "outline"}
-            size="sm"
-            onClick={() => setActiveFilter(filter)}
-            data-testid={`button-filter-${filter}`}
-          >
-            {filter.charAt(0).toUpperCase() + filter.slice(1)}
-          </Button>
-        ))}
-      </div>
-
-      <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-6 gap-4">
-        {filteredSeats.map((seat) => (
-          <SeatCard
-            key={seat.seatName}
-            {...seat}
-            onExtend={() => handleExtend(seat.seatName)}
-            onEnd={() => handleEnd(seat.seatName, seat.customerName)}
-          />
-        ))}
+      <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
+        {categories.map((cat) => {
+          const available = getAvailableSeats(cat.name).length;
+          return (
+            <CategoryCard
+              key={cat.name}
+              title={cat.name}
+              icon={cat.icon}
+              available={available}
+              total={cat.total}
+              color={cat.color}
+            />
+          );
+        })}
       </div>
 
       <Tabs defaultValue="walk-in" className="space-y-4">
         <TabsList data-testid="tabs-bookings">
-          <TabsTrigger value="walk-in" data-testid="tab-walk-in">Walk-in List</TabsTrigger>
-          <TabsTrigger value="upcoming" data-testid="tab-upcoming">Upcoming Bookings</TabsTrigger>
+          <TabsTrigger value="walk-in" data-testid="tab-walk-in">
+            Walk-in List ({walkInBookings.length})
+          </TabsTrigger>
+          <TabsTrigger value="upcoming" data-testid="tab-upcoming">
+            Upcoming Bookings ({upcomingBookings.length})
+          </TabsTrigger>
         </TabsList>
 
         <TabsContent value="walk-in" className="space-y-4">
           <BookingTable
-            bookings={mockWalkInBookings}
-            onExtend={(id) => handleExtend(`Booking ${id}`)}
-            onEnd={(id) => handleEnd(`Booking ${id}`)}
+            bookings={walkInBookings}
+            onExtend={handleExtend}
+            onEnd={handleDelete}
           />
         </TabsContent>
 
         <TabsContent value="upcoming" className="space-y-4">
-          <BookingTable bookings={mockUpcomingBookings} />
+          <BookingTable
+            bookings={upcomingBookings}
+            onEnd={handleDelete}
+          />
         </TabsContent>
       </Tabs>
+
+      <AddBookingDialog
+        open={addDialog}
+        onOpenChange={setAddDialog}
+        onConfirm={handleAddBooking}
+        availableSeats={availableSeatsData}
+      />
 
       <ExtendSessionDialog
         open={extendDialog.open}
         onOpenChange={(open) => setExtendDialog({ ...extendDialog, open })}
-        seatName={extendDialog.seatName}
+        seatName={bookings.find(b => b.id === extendDialog.bookingId)?.seatName || ""}
         onConfirm={handleConfirmExtend}
       />
 
       <EndSessionDialog
-        open={endDialog.open}
-        onOpenChange={(open) => setEndDialog({ ...endDialog, open })}
-        seatName={endDialog.seatName}
-        customerName={endDialog.customerName}
-        onConfirm={handleConfirmEnd}
+        open={deleteDialog.open}
+        onOpenChange={(open) => setDeleteDialog({ ...deleteDialog, open })}
+        seatName={deleteDialog.seatName}
+        customerName={deleteDialog.customerName}
+        onConfirm={handleConfirmDelete}
       />
     </div>
   );

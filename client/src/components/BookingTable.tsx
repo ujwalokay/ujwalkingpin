@@ -77,27 +77,29 @@ export function BookingTable({ bookings, onExtend, onEnd }: BookingTableProps) {
                   <StatusBadge status={booking.status} />
                 </TableCell>
                 <TableCell className="text-right">
-                  {booking.status === "running" && (
-                    <div className="flex justify-end gap-2">
+                  <div className="flex justify-end gap-2">
+                    {booking.status === "running" && onExtend && (
                       <Button
                         size="sm"
                         variant="outline"
-                        onClick={() => onExtend?.(booking.id)}
+                        onClick={() => onExtend(booking.id)}
                         data-testid={`button-extend-${booking.id}`}
                       >
                         <Clock className="mr-2 h-4 w-4" />
                         Extend
                       </Button>
+                    )}
+                    {(booking.status === "running" || booking.status === "upcoming") && onEnd && (
                       <Button
                         size="sm"
                         variant="destructive"
-                        onClick={() => onEnd?.(booking.id)}
+                        onClick={() => onEnd(booking.id)}
                         data-testid={`button-end-${booking.id}`}
                       >
                         <X className="h-4 w-4" />
                       </Button>
-                    </div>
-                  )}
+                    )}
+                  </div>
                 </TableCell>
               </TableRow>
             ))
