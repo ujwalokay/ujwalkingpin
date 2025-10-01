@@ -1,0 +1,130 @@
+# Gaming Center POS Admin Panel
+
+## Overview
+
+This is a local admin panel web application for managing a gaming center's Point-of-Sale (POS) system. The application enables real-time tracking of gaming sessions across multiple device types (PC, PS5, VR simulators, and car simulators), manages walk-in and advance bookings, and provides comprehensive reporting capabilities. Built as a full-stack TypeScript application, it runs locally on the shop's computer and features a gaming-themed dark mode interface inspired by Discord and Steam admin panels.
+
+## User Preferences
+
+Preferred communication style: Simple, everyday language.
+
+## System Architecture
+
+### Frontend Architecture
+
+**Technology Stack:**
+- React 18+ with TypeScript for type safety
+- Vite as build tool and development server
+- Wouter for client-side routing (lightweight React Router alternative)
+- TanStack React Query for server state management and caching
+
+**UI Component System:**
+- Radix UI primitives for accessible, unstyled components
+- shadcn/ui component library (New York style variant)
+- Tailwind CSS for styling with custom gaming-themed design tokens
+- Custom color palette optimized for dark mode with gaming aesthetics (cyan/teal accents, status-specific colors)
+
+**State Management:**
+- React Query handles all server state with automatic refetching and caching
+- Local component state with React hooks for UI interactions
+- No global state management library (Redux/Zustand) - keeping architecture simple
+
+**Key Design Patterns:**
+- Component composition with Radix UI slot pattern
+- Custom hooks for reusable logic (use-toast, use-mobile)
+- Real-time timer updates using React useEffect intervals
+- Form validation with React Hook Form and Zod schemas
+
+### Backend Architecture
+
+**Server Framework:**
+- Express.js with TypeScript for REST API
+- Native HTTP server (Node.js http module)
+- Middleware-based request processing pipeline
+
+**API Design:**
+- RESTful endpoints following resource-based URL patterns
+- JSON request/response format
+- Basic CRUD operations for bookings and settings
+- No authentication/authorization (local single-user application)
+
+**Database Layer:**
+- Drizzle ORM for type-safe database operations
+- PostgreSQL as database (Neon serverless provider with websocket support)
+- Schema-first approach with Zod validation
+- Migration support via drizzle-kit
+
+**Data Models:**
+- Users table (minimal - username/password for potential future auth)
+- Bookings table (tracks all gaming sessions with status, timing, pricing)
+- Settings table (stores admin configurations like delete PIN)
+
+**Storage Pattern:**
+- Interface-based storage abstraction (IStorage)
+- DatabaseStorage implementation using Drizzle queries
+- Supports booking CRUD, statistics queries, and history retrieval
+
+### Key Architectural Decisions
+
+**Monorepo Structure:**
+- Shared schema definitions between client and server (`/shared` directory)
+- Type safety across full stack using shared TypeScript types
+- Single package.json with unified dependencies
+
+**Development vs Production:**
+- Vite dev server with HMR in development
+- Static file serving in production
+- Environment-based configuration (NODE_ENV)
+- Custom error overlay and dev tools for Replit environment
+
+**Real-time Features:**
+- Client-side interval timers for countdown displays
+- Polling-based updates (no WebSocket implementation)
+- Status transitions managed through time comparisons
+- Audio/visual notifications for expired sessions
+
+**Styling Architecture:**
+- CSS custom properties for theme tokens
+- Tailwind utility classes for component styling
+- Component-scoped styles using cn() utility (clsx + tailwind-merge)
+- Gaming aesthetic with neon accents and status-based color coding
+
+**Form Handling:**
+- React Hook Form for form state management
+- Zod schemas for validation rules
+- @hookform/resolvers for schema integration
+- Controlled components with validation feedback
+
+## External Dependencies
+
+### Database
+- **Neon PostgreSQL**: Serverless PostgreSQL with websocket support (@neondatabase/serverless)
+- Connection pooling via Neon's Pool implementation
+- Environment variable configuration (DATABASE_URL)
+
+### UI Component Libraries
+- **Radix UI**: Comprehensive suite of unstyled, accessible React primitives (dialog, dropdown, select, tabs, etc.)
+- **shadcn/ui**: Pre-styled component implementations built on Radix UI
+- **Lucide React**: Icon library for consistent iconography
+
+### Development Tools
+- **Drizzle Kit**: Database migration and schema management tool
+- **Replit Plugins**: Custom Vite plugins for Replit-specific development features (error overlay, cartographer, dev banner)
+- **TypeScript**: Full-stack type safety with strict mode enabled
+
+### Validation & Schema
+- **Zod**: Runtime type validation and schema definition
+- **drizzle-zod**: Bridge between Drizzle schema and Zod validators
+
+### Utility Libraries
+- **date-fns**: Date manipulation and formatting
+- **clsx & tailwind-merge**: Conditional className composition
+- **class-variance-authority**: Type-safe variant API for components
+
+### Build & Bundling
+- **Vite**: Frontend build tool and dev server
+- **esbuild**: Backend bundling for production builds
+- **PostCSS**: CSS processing with Tailwind and Autoprefixer
+
+### Session Management
+- **connect-pg-simple**: PostgreSQL session store for Express (prepared for future authentication)
