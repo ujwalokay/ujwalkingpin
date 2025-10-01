@@ -18,13 +18,14 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
+import { Checkbox } from "@/components/ui/checkbox";
 
 interface AddBookingDialogProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
   onConfirm?: (booking: {
     category: string;
-    seatNumber: number;
+    seatNumbers: number[];
     customerName: string;
     duration: string;
     price: number;
@@ -61,7 +62,7 @@ const timeSlots = {
 
 export function AddBookingDialog({ open, onOpenChange, onConfirm, availableSeats }: AddBookingDialogProps) {
   const [category, setCategory] = useState<string>("");
-  const [seatNumber, setSeatNumber] = useState<string>("");
+  const [selectedSeats, setSelectedSeats] = useState<number[]>([]);
   const [customerName, setCustomerName] = useState<string>("");
   const [duration, setDuration] = useState<string>("");
   const [bookingType, setBookingType] = useState<"walk-in" | "upcoming">("walk-in");
@@ -70,23 +71,36 @@ export function AddBookingDialog({ open, onOpenChange, onConfirm, availableSeats
   const slots = category ? timeSlots[category as keyof typeof timeSlots] || [] : [];
   const selectedSlot = slots.find(s => s.duration === duration);
 
+  const toggleSeat = (seatNumber: number) => {
+    setSelectedSeats(prev =>
+      prev.includes(seatNumber)
+        ? prev.filter(s => s !== seatNumber)
+        : [...prev, seatNumber]
+    );
+  };
+
   const handleConfirm = () => {
-    if (category && seatNumber && customerName && duration && selectedSlot) {
+    if (category && selectedSeats.length > 0 && customerName && duration && selectedSlot) {
       onConfirm?.({
         category,
-        seatNumber: parseInt(seatNumber),
+        seatNumbers: selectedSeats,
         customerName,
         duration,
         price: selectedSlot.price,
         bookingType,
       });
       setCategory("");
-      setSeatNumber("");
+      setSelectedSeats([]);
       setCustomerName("");
       setDuration("");
       setBookingType("walk-in");
       onOpenChange(false);
     }
+  };
+
+  const handleCategoryChange = (newCategory: string) => {
+    setCategory(newCategory);
+    setSelectedSeats([]);
   };
 
   return (
@@ -95,7 +109,7 @@ export function AddBookingDialog({ open, onOpenChange, onConfirm, availableSeats
         <DialogHeader>
           <DialogTitle>Add New Booking</DialogTitle>
           <DialogDescription>
-            Create a new walk-in or upcoming booking.
+            Select multiple seats for the same customer and time slot.
           </DialogDescription>
         </DialogHeader>
 
@@ -116,35 +130,46 @@ export function AddBookingDialog({ open, onOpenChange, onConfirm, availableSeats
 
           <div className="space-y-2">
             <Label htmlFor="category">Category</Label>
-            <Select value={category} onValueChange={setCategory}>
+            <Select value={category} onValueChange={handleCategoryChange}>
               <SelectTrigger id="category" data-testid="select-category">
                 <SelectValue placeholder="Select category" />
               </SelectTrigger>
               <SelectContent>
                 {availableSeats.map((cat) => (
                   <SelectItem key={cat.category} value={cat.category} data-testid={`option-${cat.category.toLowerCase()}`}>
-                    {cat.category}
+                    {cat.category} ({cat.seats.length} available)
                   </SelectItem>
                 ))}
               </SelectContent>
             </Select>
           </div>
 
-          {category && selectedCategory && (
+          {category && selectedCategory && selectedCategory.seats.length > 0 && (
             <div className="space-y-2">
-              <Label htmlFor="seat">Seat Number</Label>
-              <Select value={seatNumber} onValueChange={setSeatNumber}>
-                <SelectTrigger id="seat" data-testid="select-seat">
-                  <SelectValue placeholder="Select seat" />
-                </SelectTrigger>
-                <SelectContent>
-                  {selectedCategory.seats.map((seat) => (
-                    <SelectItem key={seat} value={seat.toString()} data-testid={`option-seat-${seat}`}>
+              <Label>
+                Select Seats ({selectedSeats.length} selected)
+              </Label>
+              <div className="grid grid-cols-4 gap-2 max-h-48 overflow-y-auto p-2 border rounded-md">
+                {selectedCategory.seats.map((seat) => (
+                  <div
+                    key={seat}
+                    className="flex items-center space-x-2"
+                    data-testid={`checkbox-seat-${seat}`}
+                  >
+                    <Checkbox
+                      id={`seat-${seat}`}
+                      checked={selectedSeats.includes(seat)}
+                      onCheckedChange={() => toggleSeat(seat)}
+                    />
+                    <Label
+                      htmlFor={`seat-${seat}`}
+                      className="cursor-pointer text-sm font-normal"
+                    >
                       {category}-{seat}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
+                    </Label>
+                  </div>
+                ))}
+              </div>
             </div>
           )}
 
@@ -184,10 +209,10 @@ export function AddBookingDialog({ open, onOpenChange, onConfirm, availableSeats
           </Button>
           <Button 
             onClick={handleConfirm} 
-            disabled={!category || !seatNumber || !customerName || !duration}
+            disabled={!category || selectedSeats.length === 0 || !customerName || !duration}
             data-testid="button-confirm-booking"
           >
-            Add Booking
+            Add Booking {selectedSeats.length > 0 && `(${selectedSeats.length} seats)`}
           </Button>
         </DialogFooter>
       </DialogContent>

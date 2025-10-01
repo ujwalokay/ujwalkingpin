@@ -77,7 +77,7 @@ export default function Dashboard() {
 
   const handleAddBooking = (newBooking: {
     category: string;
-    seatNumber: number;
+    seatNumbers: number[];
     customerName: string;
     duration: string;
     price: number;
@@ -94,23 +94,25 @@ export default function Dashboard() {
     const startTime = newBooking.bookingType === "walk-in" ? now : new Date(now.getTime() + 30 * 60 * 1000);
     const endTime = new Date(startTime.getTime() + minutes * 60 * 1000);
 
-    const booking: Booking = {
-      id: Date.now().toString(),
+    const newBookings: Booking[] = newBooking.seatNumbers.map((seatNumber, index) => ({
+      id: (Date.now() + index).toString(),
       category: newBooking.category,
-      seatNumber: newBooking.seatNumber,
-      seatName: `${newBooking.category}-${newBooking.seatNumber}`,
+      seatNumber,
+      seatName: `${newBooking.category}-${seatNumber}`,
       customerName: newBooking.customerName,
       startTime,
       endTime,
       price: newBooking.price,
       status: newBooking.bookingType === "walk-in" ? "running" : "upcoming",
       bookingType: newBooking.bookingType,
-    };
+    }));
 
-    setBookings([...bookings, booking]);
+    setBookings([...bookings, ...newBookings]);
+    
+    const seatNames = newBookings.map(b => b.seatName).join(", ");
     toast({
       title: "Booking Added",
-      description: `${booking.seatName} booked for ${newBooking.customerName}`,
+      description: `${seatNames} booked for ${newBooking.customerName}`,
     });
   };
 
