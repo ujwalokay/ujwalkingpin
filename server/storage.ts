@@ -1,38 +1,164 @@
-import { type User, type InsertUser } from "@shared/schema";
-import { randomUUID } from "crypto";
+import { drizzle } from "drizzle-orm/neon-serverless";
+import { Pool, neonConfig } from "@neondatabase/serverless";
+import { eq, and, inArray, gte, lte, sql } from "drizzle-orm";
+import { type User, type InsertUser, type Booking, type InsertBooking, users, bookings } from "@shared/schema";
+import ws from "ws";
 
-// modify the interface with any CRUD methods
-// you might need
+neonConfig.webSocketConstructor = ws;
+
+const pool = new Pool({ 
+  connectionString: process.env.DATABASE_URL,
+  connectionTimeoutMillis: 10000,
+});
+const db = drizzle({ client: pool });
+
+export interface BookingStats {
+  totalRevenue: number;
+  totalSessions: number;
+  avgSessionMinutes: number;
+}
+
+export interface BookingHistoryItem {
+  id: string;
+  date: string;
+  seatName: string;
+  customerName: string;
+  duration: string;
+  durationMinutes: number;
+  price: string;
+}
 
 export interface IStorage {
   getUser(id: string): Promise<User | undefined>;
   getUserByUsername(username: string): Promise<User | undefined>;
   createUser(user: InsertUser): Promise<User>;
+  
+  getAllBookings(): Promise<Booking[]>;
+  getBooking(id: string): Promise<Booking | undefined>;
+  getActiveBookings(): Promise<Booking[]>;
+  createBooking(booking: InsertBooking): Promise<Booking>;
+  updateBooking(id: string, data: Partial<InsertBooking>): Promise<Booking | undefined>;
+  deleteBooking(id: string): Promise<boolean>;
+  
+  getBookingStats(startDate: Date, endDate: Date): Promise<BookingStats>;
+  getBookingHistory(startDate: Date, endDate: Date): Promise<BookingHistoryItem[]>;
 }
 
-export class MemStorage implements IStorage {
-  private users: Map<string, User>;
-
-  constructor() {
-    this.users = new Map();
-  }
-
+export class DatabaseStorage implements IStorage {
   async getUser(id: string): Promise<User | undefined> {
-    return this.users.get(id);
+    const result = await db.select().from(users).where(eq(users.id, id));
+    return result[0];
   }
 
   async getUserByUsername(username: string): Promise<User | undefined> {
-    return Array.from(this.users.values()).find(
-      (user) => user.username === username,
-    );
+    const result = await db.select().from(users).where(eq(users.username, username));
+    return result[0];
   }
 
   async createUser(insertUser: InsertUser): Promise<User> {
-    const id = randomUUID();
-    const user: User = { ...insertUser, id };
-    this.users.set(id, user);
-    return user;
+    const result = await db.insert(users).values(insertUser).returning();
+    return result[0];
+  }
+
+  async getAllBookings(): Promise<Booking[]> {
+    return await db.select().from(bookings);
+  }
+
+  async getBooking(id: string): Promise<Booking | undefined> {
+    const result = await db.select().from(bookings).where(eq(bookings.id, id));
+    return result[0];
+  }
+
+  async getActiveBookings(): Promise<Booking[]> {
+    return await db.select().from(bookings).where(
+      inArray(bookings.status, ["running", "upcoming"])
+    );
+  }
+
+  async createBooking(booking: InsertBooking): Promise<Booking> {
+    const result = await db.insert(bookings).values(booking).returning();
+    return result[0];
+  }
+
+  async updateBooking(id: string, data: Partial<InsertBooking>): Promise<Booking | undefined> {
+    const result = await db.update(bookings)
+      .set(data)
+      .where(eq(bookings.id, id))
+      .returning();
+    return result[0];
+  }
+
+  async deleteBooking(id: string): Promise<boolean> {
+    const result = await db.delete(bookings).where(eq(bookings.id, id)).returning();
+    return result.length > 0;
+  }
+
+  async getBookingStats(startDate: Date, endDate: Date): Promise<BookingStats> {
+    const completedBookings = await db.select().from(bookings).where(
+      and(
+        inArray(bookings.status, ["completed", "expired"]),
+        gte(bookings.startTime, startDate),
+        lte(bookings.startTime, endDate)
+      )
+    );
+
+    const totalRevenue = completedBookings.reduce((sum, booking) => {
+      return sum + parseFloat(booking.price);
+    }, 0);
+
+    const totalSessions = completedBookings.length;
+
+    const totalMinutes = completedBookings.reduce((sum, booking) => {
+      const duration = booking.endTime.getTime() - booking.startTime.getTime();
+      return sum + (duration / 1000 / 60);
+    }, 0);
+
+    const avgSessionMinutes = totalSessions > 0 ? Math.round(totalMinutes / totalSessions) : 0;
+
+    return {
+      totalRevenue,
+      totalSessions,
+      avgSessionMinutes
+    };
+  }
+
+  async getBookingHistory(startDate: Date, endDate: Date): Promise<BookingHistoryItem[]> {
+    const completedBookings = await db.select().from(bookings).where(
+      and(
+        inArray(bookings.status, ["completed", "expired"]),
+        gte(bookings.startTime, startDate),
+        lte(bookings.startTime, endDate)
+      )
+    );
+
+    return completedBookings
+      .map(booking => {
+        const durationMs = booking.endTime.getTime() - booking.startTime.getTime();
+        const durationMinutes = Math.round(durationMs / 1000 / 60);
+        const hours = Math.floor(durationMinutes / 60);
+        const mins = durationMinutes % 60;
+        
+        let duration: string;
+        if (hours > 0 && mins > 0) {
+          duration = `${hours} hour${hours > 1 ? 's' : ''} ${mins} mins`;
+        } else if (hours > 0) {
+          duration = `${hours} hour${hours > 1 ? 's' : ''}`;
+        } else {
+          duration = `${mins} mins`;
+        }
+
+        return {
+          id: booking.id,
+          date: booking.startTime.toISOString().split('T')[0],
+          seatName: booking.seatName,
+          customerName: booking.customerName,
+          duration,
+          durationMinutes,
+          price: booking.price
+        };
+      })
+      .sort((a, b) => b.date.localeCompare(a.date));
   }
 }
 
-export const storage = new MemStorage();
+export const storage = new DatabaseStorage();
