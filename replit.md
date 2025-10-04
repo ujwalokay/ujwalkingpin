@@ -8,6 +8,16 @@ This is a local admin panel web application for managing a gaming center's Point
 
 Preferred communication style: Simple, everyday language.
 
+## Recent Changes
+
+**October 4, 2025 - Replit Environment Setup**
+- Successfully imported and configured the Gaming Center POS Admin Panel for Replit
+- Created PostgreSQL database and pushed schema (users, bookings, settings, device_config, pricing_config tables)
+- Configured development workflow to run on port 5000 with Express + Vite
+- Verified frontend is properly connected to backend API
+- Deployment configuration set for autoscale deployment target
+- Application is fully functional with gaming-themed dark mode interface
+
 ## System Architecture
 
 ### Frontend Architecture
