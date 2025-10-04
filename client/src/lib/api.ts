@@ -1,4 +1,4 @@
-import type { Booking, InsertBooking } from "@shared/schema";
+import type { Booking, InsertBooking, DeviceConfig, PricingConfig } from "@shared/schema";
 
 export async function fetchBookings(): Promise<Booking[]> {
   const response = await fetch("/api/bookings");
@@ -39,4 +39,20 @@ export async function deleteBooking(id: string): Promise<void> {
   if (!response.ok) {
     throw new Error("Failed to delete booking");
   }
+}
+
+export async function fetchDeviceConfigs(): Promise<DeviceConfig[]> {
+  const response = await fetch("/api/device-config");
+  if (!response.ok) {
+    throw new Error("Failed to fetch device configs");
+  }
+  return response.json();
+}
+
+export async function fetchPricingConfigs(): Promise<PricingConfig[]> {
+  const response = await fetch("/api/pricing-config");
+  if (!response.ok) {
+    throw new Error("Failed to fetch pricing configs");
+  }
+  return response.json();
 }
