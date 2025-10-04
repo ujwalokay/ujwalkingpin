@@ -98,7 +98,7 @@ export default function Settings() {
   });
 
   const savePricingConfigMutation = useMutation({
-    mutationFn: async (data: { category: string; configs: PricingSlot[] }) => {
+    mutationFn: async (data: { category: string; configs: { duration: string; price: string | number }[] }) => {
       return await apiRequest("/api/pricing-config", "POST", data);
     },
   });
@@ -136,11 +136,11 @@ export default function Settings() {
         }),
         savePricingConfigMutation.mutateAsync({
           category: "PC",
-          configs: pcPricing,
+          configs: pcPricing.map(p => ({ ...p, price: p.price.toString() })),
         }),
         savePricingConfigMutation.mutateAsync({
           category: "PS5",
-          configs: ps5Pricing,
+          configs: ps5Pricing.map(p => ({ ...p, price: p.price.toString() })),
         }),
       ]);
 
