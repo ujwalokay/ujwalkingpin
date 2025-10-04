@@ -41,7 +41,7 @@ export function PricingTable({ category, slots: initialSlots, onUpdateSlots }: P
   };
 
   const getDurationMinutes = (duration: string): number => {
-    const match = duration.match(/(\d+)\s*(min|hour)/i);
+    const match = duration.match(/(\d+)\s*(mins?|hours?)/i);
     if (!match) return 30;
     const value = parseInt(match[1]);
     const unit = match[2].toLowerCase();
@@ -89,7 +89,7 @@ export function PricingTable({ category, slots: initialSlots, onUpdateSlots }: P
         <div className="space-y-2">
           {slots.map((slot, index) => (
             <div
-              key={slot.duration}
+              key={index}
               className="flex items-center justify-between rounded-md border p-3 hover-elevate"
               data-testid={`row-pricing-${category.toLowerCase()}-${index}`}
             >
