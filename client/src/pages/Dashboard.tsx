@@ -9,8 +9,8 @@ import { ExtendSessionDialog } from "@/components/ExtendSessionDialog";
 import { EndSessionDialog } from "@/components/EndSessionDialog";
 import { Plus, Monitor, Gamepad2, Glasses, Car } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
-import { fetchBookings, createBooking, updateBooking, deleteBooking } from "@/lib/api";
-import type { Booking as DBBooking } from "@shared/schema";
+import { fetchBookings, createBooking, updateBooking, deleteBooking, fetchDeviceConfigs } from "@/lib/api";
+import type { Booking as DBBooking, DeviceConfig } from "@shared/schema";
 
 type BookingStatus = "available" | "running" | "expired" | "upcoming";
 
@@ -27,7 +27,21 @@ interface Booking {
   bookingType: "walk-in" | "upcoming";
 }
 
-const categories = [
+const iconMap = {
+  "PC": Monitor,
+  "PS5": Gamepad2,
+  "VR": Glasses,
+  "Car": Car,
+};
+
+const colorMap = {
+  "PC": "text-chart-1",
+  "PS5": "text-chart-5",
+  "VR": "text-chart-2",
+  "Car": "text-chart-3",
+};
+
+const defaultCategories = [
   { name: "PC", total: 10, icon: Monitor, color: "text-chart-1" },
   { name: "PS5", total: 5, icon: Gamepad2, color: "text-chart-5" },
   { name: "VR", total: 3, icon: Glasses, color: "text-chart-2" },
@@ -45,6 +59,23 @@ export default function Dashboard() {
     queryKey: ['bookings'], 
     queryFn: fetchBookings 
   });
+
+  const { data: deviceConfigs = [] } = useQuery<DeviceConfig[]>({ 
+    queryKey: ['device-configs'], 
+    queryFn: fetchDeviceConfigs 
+  });
+
+  const categories = useMemo(() => {
+    if (deviceConfigs.length === 0) {
+      return defaultCategories;
+    }
+    return deviceConfigs.map(config => ({
+      name: config.category,
+      total: config.count,
+      icon: iconMap[config.category as keyof typeof iconMap] || Monitor,
+      color: colorMap[config.category as keyof typeof colorMap] || "text-chart-1",
+    }));
+  }, [deviceConfigs]);
 
   const bookings: Booking[] = useMemo(() => {
     return dbBookings.map((dbBooking: DBBooking) => ({
