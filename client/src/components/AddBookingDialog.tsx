@@ -28,6 +28,7 @@ interface AddBookingDialogProps {
     category: string;
     seatNumbers: number[];
     customerName: string;
+    whatsappNumber?: string;
     duration: string;
     price: number;
     bookingType: "walk-in" | "upcoming";
@@ -65,6 +66,7 @@ export function AddBookingDialog({ open, onOpenChange, onConfirm, availableSeats
   const [category, setCategory] = useState<string>("");
   const [selectedSeats, setSelectedSeats] = useState<number[]>([]);
   const [customerName, setCustomerName] = useState<string>("");
+  const [whatsappNumber, setWhatsappNumber] = useState<string>("");
   const [durationMinutes, setDurationMinutes] = useState<number>(30);
   const [bookingType, setBookingType] = useState<"walk-in" | "upcoming">("walk-in");
 
@@ -91,11 +93,13 @@ export function AddBookingDialog({ open, onOpenChange, onConfirm, availableSeats
   };
 
   const handleConfirm = () => {
-    if (category && selectedSeats.length > 0 && customerName && duration && selectedSlot) {
+    const isWhatsappRequired = bookingType === "upcoming" && !whatsappNumber.trim();
+    if (category && selectedSeats.length > 0 && customerName && duration && selectedSlot && !isWhatsappRequired) {
       onConfirm?.({
         category,
         seatNumbers: selectedSeats,
         customerName,
+        whatsappNumber: whatsappNumber.trim() || undefined,
         duration,
         price: selectedSlot.price,
         bookingType,
@@ -103,6 +107,7 @@ export function AddBookingDialog({ open, onOpenChange, onConfirm, availableSeats
       setCategory("");
       setSelectedSeats([]);
       setCustomerName("");
+      setWhatsappNumber("");
       setDurationMinutes(30);
       setBookingType("walk-in");
       onOpenChange(false);
@@ -203,6 +208,22 @@ export function AddBookingDialog({ open, onOpenChange, onConfirm, availableSeats
             />
           </div>
 
+          <div className="space-y-2">
+            <Label htmlFor="whatsapp">
+              WhatsApp Number {bookingType === "upcoming" && <span className="text-destructive">*</span>}
+            </Label>
+            <Input
+              id="whatsapp"
+              value={whatsappNumber}
+              onChange={(e) => setWhatsappNumber(e.target.value)}
+              placeholder="Enter WhatsApp number"
+              data-testid="input-whatsapp-number"
+            />
+            {bookingType === "upcoming" && (
+              <p className="text-xs text-muted-foreground">Required for upcoming bookings</p>
+            )}
+          </div>
+
           {category && (
             <div className="space-y-2">
               <Label htmlFor="duration">Duration</Label>
@@ -247,7 +268,7 @@ export function AddBookingDialog({ open, onOpenChange, onConfirm, availableSeats
           </Button>
           <Button 
             onClick={handleConfirm} 
-            disabled={!category || selectedSeats.length === 0 || !customerName || !duration}
+            disabled={!category || selectedSeats.length === 0 || !customerName || !duration || (bookingType === "upcoming" && !whatsappNumber.trim())}
             data-testid="button-confirm-booking"
           >
             Add Booking {selectedSeats.length > 0 && `(${selectedSeats.length} seats)`}

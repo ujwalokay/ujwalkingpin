@@ -23,6 +23,7 @@ export const bookings = pgTable("bookings", {
   seatNumber: integer("seat_number").notNull(),
   seatName: text("seat_name").notNull(),
   customerName: text("customer_name").notNull(),
+  whatsappNumber: text("whatsapp_number"),
   startTime: timestamp("start_time").notNull(),
   endTime: timestamp("end_time").notNull(),
   price: decimal("price", { precision: 10, scale: 2 }).notNull(),

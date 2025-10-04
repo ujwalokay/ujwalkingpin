@@ -164,6 +164,7 @@ export default function Dashboard() {
     category: string;
     seatNumbers: number[];
     customerName: string;
+    whatsappNumber?: string;
     duration: string;
     price: number;
     bookingType: "walk-in" | "upcoming";
@@ -190,6 +191,7 @@ export default function Dashboard() {
         seatNumber,
         seatName,
         customerName: newBooking.customerName,
+        whatsappNumber: newBooking.whatsappNumber,
         startTime: startTime.toISOString() as any,
         endTime: endTime.toISOString() as any,
         price: newBooking.price.toString(),
