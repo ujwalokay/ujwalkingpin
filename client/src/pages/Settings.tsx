@@ -1,54 +1,182 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
+import { useQuery, useMutation } from "@tanstack/react-query";
 import { DeviceConfigCard } from "@/components/DeviceConfigCard";
 import { PricingTable } from "@/components/PricingTable";
 import { Button } from "@/components/ui/button";
 import { Save } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
+import { apiRequest, queryClient } from "@/lib/queryClient";
+import { Skeleton } from "@/components/ui/skeleton";
 
-//todo: remove mock functionality
+interface DeviceConfig {
+  id: string;
+  category: string;
+  count: number;
+  seats: string[];
+}
+
+interface PricingConfig {
+  id: string;
+  category: string;
+  duration: string;
+  price: string;
+}
+
+interface PricingSlot {
+  duration: string;
+  price: number;
+}
+
 export default function Settings() {
   const { toast } = useToast();
-  
-  const [pcCount, setPcCount] = useState(5);
-  const [ps5Count, setPs5Count] = useState(3);
-  const [vrCount, setVrCount] = useState(2);
-  const [carCount, setCarCount] = useState(1);
 
-  const [pcSeats, setPcSeats] = useState([
-    { name: "PC-1", visible: true },
-    { name: "PC-2", visible: true },
-    { name: "PC-3", visible: true },
-    { name: "PC-4", visible: false },
-    { name: "PC-5", visible: true },
-  ]);
+  const { data: deviceConfigs, isLoading: deviceLoading } = useQuery<DeviceConfig[]>({
+    queryKey: ["/api/device-config"],
+  });
 
-  const [pcPricing] = useState([
-    { duration: "30 mins", price: 40 },
-    { duration: "1 hour", price: 70 },
-    { duration: "2 hours", price: 130 },
-  ]);
+  const { data: pricingConfigs, isLoading: pricingLoading } = useQuery<PricingConfig[]>({
+    queryKey: ["/api/pricing-config"],
+  });
 
-  const [ps5Pricing] = useState([
-    { duration: "30 mins", price: 60 },
-    { duration: "1 hour", price: 100 },
-    { duration: "2 hours", price: 180 },
-  ]);
+  const [pcCount, setPcCount] = useState(0);
+  const [ps5Count, setPs5Count] = useState(0);
+  const [vrCount, setVrCount] = useState(0);
+  const [carCount, setCarCount] = useState(0);
+  const [pcSeats, setPcSeats] = useState<{ name: string; visible: boolean }[]>([]);
+  const [pcPricing, setPcPricing] = useState<PricingSlot[]>([]);
+  const [ps5Pricing, setPs5Pricing] = useState<PricingSlot[]>([]);
+
+  useEffect(() => {
+    if (deviceConfigs) {
+      const pcConfig = deviceConfigs.find(c => c.category === "PC");
+      const ps5Config = deviceConfigs.find(c => c.category === "PS5");
+      const vrConfig = deviceConfigs.find(c => c.category === "VR");
+      const carConfig = deviceConfigs.find(c => c.category === "Car");
+
+      setPcCount(pcConfig?.count || 0);
+      setPs5Count(ps5Config?.count || 0);
+      setVrCount(vrConfig?.count || 0);
+      setCarCount(carConfig?.count || 0);
+
+      if (pcConfig && pcConfig.seats.length > 0) {
+        setPcSeats(pcConfig.seats.map(seat => ({ name: seat, visible: true })));
+      }
+    }
+  }, [deviceConfigs]);
+
+  useEffect(() => {
+    if (pricingConfigs) {
+      const pcPrices = pricingConfigs
+        .filter(p => p.category === "PC")
+        .map(p => ({ duration: p.duration, price: parseFloat(p.price) }));
+      const ps5Prices = pricingConfigs
+        .filter(p => p.category === "PS5")
+        .map(p => ({ duration: p.duration, price: parseFloat(p.price) }));
+
+      setPcPricing(pcPrices.length > 0 ? pcPrices : [
+        { duration: "30 mins", price: 40 },
+        { duration: "1 hour", price: 70 },
+        { duration: "2 hours", price: 130 },
+      ]);
+      setPs5Pricing(ps5Prices.length > 0 ? ps5Prices : [
+        { duration: "30 mins", price: 60 },
+        { duration: "1 hour", price: 100 },
+        { duration: "2 hours", price: 180 },
+      ]);
+    }
+  }, [pricingConfigs]);
+
+  const saveDeviceConfigMutation = useMutation({
+    mutationFn: async (config: { category: string; count: number; seats: string[] }) => {
+      return await apiRequest("/api/device-config", "POST", config);
+    },
+  });
+
+  const savePricingConfigMutation = useMutation({
+    mutationFn: async (data: { category: string; configs: PricingSlot[] }) => {
+      return await apiRequest("/api/pricing-config", "POST", data);
+    },
+  });
 
   const toggleSeatVisibility = (seatName: string) => {
-    setPcSeats(seats => 
-      seats.map(seat => 
+    setPcSeats(seats =>
+      seats.map(seat =>
         seat.name === seatName ? { ...seat, visible: !seat.visible } : seat
       )
     );
   };
 
-  const handleSave = () => {
-    toast({
-      title: "Settings Saved",
-      description: "Your configuration has been updated successfully.",
-    });
-    console.log("Settings saved:", { pcCount, ps5Count, vrCount, carCount });
+  const handleSave = async () => {
+    try {
+      await Promise.all([
+        saveDeviceConfigMutation.mutateAsync({
+          category: "PC",
+          count: pcCount,
+          seats: pcSeats.filter(s => s.visible).map(s => s.name),
+        }),
+        saveDeviceConfigMutation.mutateAsync({
+          category: "PS5",
+          count: ps5Count,
+          seats: [],
+        }),
+        saveDeviceConfigMutation.mutateAsync({
+          category: "VR",
+          count: vrCount,
+          seats: [],
+        }),
+        saveDeviceConfigMutation.mutateAsync({
+          category: "Car",
+          count: carCount,
+          seats: [],
+        }),
+        savePricingConfigMutation.mutateAsync({
+          category: "PC",
+          configs: pcPricing,
+        }),
+        savePricingConfigMutation.mutateAsync({
+          category: "PS5",
+          configs: ps5Pricing,
+        }),
+      ]);
+
+      queryClient.invalidateQueries({ queryKey: ["/api/device-config"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/pricing-config"] });
+
+      toast({
+        title: "Settings Saved",
+        description: "Your configuration has been updated successfully.",
+      });
+    } catch (error: any) {
+      toast({
+        title: "Error",
+        description: error.message || "Failed to save settings",
+        variant: "destructive",
+      });
+    }
   };
+
+  const handlePcCountChange = (newCount: number) => {
+    setPcCount(newCount);
+    const currentSeats = pcSeats.length;
+    if (newCount > currentSeats) {
+      const newSeats = Array.from({ length: newCount - currentSeats }, (_, i) => ({
+        name: `PC-${currentSeats + i + 1}`,
+        visible: true,
+      }));
+      setPcSeats([...pcSeats, ...newSeats]);
+    } else if (newCount < currentSeats) {
+      setPcSeats(pcSeats.slice(0, newCount));
+    }
+  };
+
+  if (deviceLoading || pricingLoading) {
+    return (
+      <div className="space-y-6">
+        <Skeleton className="h-20 w-full" />
+        <Skeleton className="h-96 w-full" />
+      </div>
+    );
+  }
 
   return (
     <div className="space-y-6">
@@ -57,7 +185,11 @@ export default function Settings() {
           <h1 className="text-3xl font-bold text-foreground">Settings</h1>
           <p className="text-muted-foreground">Configure devices and pricing</p>
         </div>
-        <Button onClick={handleSave} data-testid="button-save-settings">
+        <Button 
+          onClick={handleSave} 
+          data-testid="button-save-settings"
+          disabled={saveDeviceConfigMutation.isPending || savePricingConfigMutation.isPending}
+        >
           <Save className="mr-2 h-4 w-4" />
           Save Changes
         </Button>
@@ -70,7 +202,7 @@ export default function Settings() {
             title="PC Gaming"
             description="Configure PC gaming stations"
             count={pcCount}
-            onCountChange={setPcCount}
+            onCountChange={handlePcCountChange}
             seats={pcSeats}
             onToggleVisibility={toggleSeatVisibility}
           />
@@ -101,12 +233,12 @@ export default function Settings() {
           <PricingTable
             category="PC"
             slots={pcPricing}
-            onUpdateSlots={(slots) => console.log("PC pricing updated:", slots)}
+            onUpdateSlots={setPcPricing}
           />
           <PricingTable
             category="PS5"
             slots={ps5Pricing}
-            onUpdateSlots={(slots) => console.log("PS5 pricing updated:", slots)}
+            onUpdateSlots={setPs5Pricing}
           />
         </div>
       </div>

@@ -1,7 +1,7 @@
 import type { Express } from "express";
 import { createServer, type Server } from "http";
 import { storage } from "./storage";
-import { insertBookingSchema } from "@shared/schema";
+import { insertBookingSchema, insertDeviceConfigSchema, insertPricingConfigSchema } from "@shared/schema";
 
 export async function registerRoutes(app: Express): Promise<Server> {
   app.get("/api/bookings", async (req, res) => {
@@ -117,6 +117,49 @@ export async function registerRoutes(app: Express): Promise<Server> {
       res.json(history);
     } catch (error: any) {
       res.status(500).json({ message: error.message });
+    }
+  });
+
+  app.get("/api/device-config", async (req, res) => {
+    try {
+      const configs = await storage.getAllDeviceConfigs();
+      res.json(configs);
+    } catch (error: any) {
+      res.status(500).json({ message: error.message });
+    }
+  });
+
+  app.post("/api/device-config", async (req, res) => {
+    try {
+      const config = insertDeviceConfigSchema.parse(req.body);
+      const saved = await storage.upsertDeviceConfig(config);
+      res.json(saved);
+    } catch (error: any) {
+      res.status(400).json({ message: error.message });
+    }
+  });
+
+  app.get("/api/pricing-config", async (req, res) => {
+    try {
+      const configs = await storage.getAllPricingConfigs();
+      res.json(configs);
+    } catch (error: any) {
+      res.status(500).json({ message: error.message });
+    }
+  });
+
+  app.post("/api/pricing-config", async (req, res) => {
+    try {
+      const { category, configs } = req.body;
+      if (!category || !Array.isArray(configs)) {
+        return res.status(400).json({ message: "Invalid request format" });
+      }
+      
+      const validatedConfigs = configs.map(c => insertPricingConfigSchema.parse({ ...c, category }));
+      const saved = await storage.upsertPricingConfigs(category, validatedConfigs);
+      res.json(saved);
+    } catch (error: any) {
+      res.status(400).json({ message: error.message });
     }
   });
 

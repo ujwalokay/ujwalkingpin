@@ -55,3 +55,31 @@ export const updateSettingsSchema = createInsertSchema(settings).partial();
 export type InsertSettings = z.infer<typeof insertSettingsSchema>;
 export type UpdateSettings = z.infer<typeof updateSettingsSchema>;
 export type Settings = typeof settings.$inferSelect;
+
+export const deviceConfig = pgTable("device_config", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  category: text("category").notNull().unique(),
+  count: integer("count").notNull().default(0),
+  seats: text("seats").array().notNull().default(sql`ARRAY[]::text[]`),
+});
+
+export const insertDeviceConfigSchema = createInsertSchema(deviceConfig).omit({
+  id: true,
+});
+
+export type InsertDeviceConfig = z.infer<typeof insertDeviceConfigSchema>;
+export type DeviceConfig = typeof deviceConfig.$inferSelect;
+
+export const pricingConfig = pgTable("pricing_config", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  category: text("category").notNull(),
+  duration: text("duration").notNull(),
+  price: decimal("price", { precision: 10, scale: 2 }).notNull(),
+});
+
+export const insertPricingConfigSchema = createInsertSchema(pricingConfig).omit({
+  id: true,
+});
+
+export type InsertPricingConfig = z.infer<typeof insertPricingConfigSchema>;
+export type PricingConfig = typeof pricingConfig.$inferSelect;

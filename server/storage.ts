@@ -1,7 +1,20 @@
 import { drizzle } from "drizzle-orm/neon-serverless";
 import { Pool, neonConfig } from "@neondatabase/serverless";
 import { eq, and, inArray, gte, lte, sql } from "drizzle-orm";
-import { type User, type InsertUser, type Booking, type InsertBooking, users, bookings } from "@shared/schema";
+import { 
+  type User, 
+  type InsertUser, 
+  type Booking, 
+  type InsertBooking, 
+  type DeviceConfig,
+  type InsertDeviceConfig,
+  type PricingConfig,
+  type InsertPricingConfig,
+  users, 
+  bookings,
+  deviceConfig,
+  pricingConfig
+} from "@shared/schema";
 import ws from "ws";
 
 neonConfig.webSocketConstructor = ws;
@@ -42,6 +55,14 @@ export interface IStorage {
   
   getBookingStats(startDate: Date, endDate: Date): Promise<BookingStats>;
   getBookingHistory(startDate: Date, endDate: Date): Promise<BookingHistoryItem[]>;
+  
+  getAllDeviceConfigs(): Promise<DeviceConfig[]>;
+  getDeviceConfig(category: string): Promise<DeviceConfig | undefined>;
+  upsertDeviceConfig(config: InsertDeviceConfig): Promise<DeviceConfig>;
+  
+  getAllPricingConfigs(): Promise<PricingConfig[]>;
+  getPricingConfigsByCategory(category: string): Promise<PricingConfig[]>;
+  upsertPricingConfigs(category: string, configs: InsertPricingConfig[]): Promise<PricingConfig[]>;
 }
 
 export class DatabaseStorage implements IStorage {
@@ -158,6 +179,49 @@ export class DatabaseStorage implements IStorage {
         };
       })
       .sort((a, b) => b.date.localeCompare(a.date));
+  }
+
+  async getAllDeviceConfigs(): Promise<DeviceConfig[]> {
+    return await db.select().from(deviceConfig);
+  }
+
+  async getDeviceConfig(category: string): Promise<DeviceConfig | undefined> {
+    const result = await db.select().from(deviceConfig).where(eq(deviceConfig.category, category));
+    return result[0];
+  }
+
+  async upsertDeviceConfig(config: InsertDeviceConfig): Promise<DeviceConfig> {
+    const existing = await this.getDeviceConfig(config.category);
+    
+    if (existing) {
+      const result = await db.update(deviceConfig)
+        .set(config)
+        .where(eq(deviceConfig.category, config.category))
+        .returning();
+      return result[0];
+    } else {
+      const result = await db.insert(deviceConfig).values(config).returning();
+      return result[0];
+    }
+  }
+
+  async getAllPricingConfigs(): Promise<PricingConfig[]> {
+    return await db.select().from(pricingConfig);
+  }
+
+  async getPricingConfigsByCategory(category: string): Promise<PricingConfig[]> {
+    return await db.select().from(pricingConfig).where(eq(pricingConfig.category, category));
+  }
+
+  async upsertPricingConfigs(category: string, configs: InsertPricingConfig[]): Promise<PricingConfig[]> {
+    await db.delete(pricingConfig).where(eq(pricingConfig.category, category));
+    
+    if (configs.length === 0) {
+      return [];
+    }
+    
+    const result = await db.insert(pricingConfig).values(configs).returning();
+    return result;
   }
 }
 
