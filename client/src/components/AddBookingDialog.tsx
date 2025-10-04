@@ -19,6 +19,7 @@ import {
 } from "@/components/ui/select";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { Checkbox } from "@/components/ui/checkbox";
+import { Plus, Minus } from "lucide-react";
 
 interface AddBookingDialogProps {
   open: boolean;
@@ -64,11 +65,21 @@ export function AddBookingDialog({ open, onOpenChange, onConfirm, availableSeats
   const [category, setCategory] = useState<string>("");
   const [selectedSeats, setSelectedSeats] = useState<number[]>([]);
   const [customerName, setCustomerName] = useState<string>("");
-  const [duration, setDuration] = useState<string>("");
+  const [durationMinutes, setDurationMinutes] = useState<number>(30);
   const [bookingType, setBookingType] = useState<"walk-in" | "upcoming">("walk-in");
 
   const selectedCategory = availableSeats.find(c => c.category === category);
   const slots = category ? timeSlots[category as keyof typeof timeSlots] || [] : [];
+  
+  const getDurationString = (mins: number) => {
+    if (mins < 60) return `${mins} mins`;
+    const hours = Math.floor(mins / 60);
+    const remainingMins = mins % 60;
+    if (remainingMins === 0) return hours === 1 ? "1 hour" : `${hours} hours`;
+    return `${hours} hour${hours > 1 ? 's' : ''} ${remainingMins} mins`;
+  };
+
+  const duration = getDurationString(durationMinutes);
   const selectedSlot = slots.find(s => s.duration === duration);
 
   const toggleSeat = (seatNumber: number) => {
@@ -92,7 +103,7 @@ export function AddBookingDialog({ open, onOpenChange, onConfirm, availableSeats
       setCategory("");
       setSelectedSeats([]);
       setCustomerName("");
-      setDuration("");
+      setDurationMinutes(30);
       setBookingType("walk-in");
       onOpenChange(false);
     }
@@ -101,6 +112,14 @@ export function AddBookingDialog({ open, onOpenChange, onConfirm, availableSeats
   const handleCategoryChange = (newCategory: string) => {
     setCategory(newCategory);
     setSelectedSeats([]);
+  };
+
+  const increaseDuration = () => {
+    setDurationMinutes(prev => prev + 30);
+  };
+
+  const decreaseDuration = () => {
+    setDurationMinutes(prev => Math.max(30, prev - 30));
   };
 
   return (
@@ -187,18 +206,37 @@ export function AddBookingDialog({ open, onOpenChange, onConfirm, availableSeats
           {category && (
             <div className="space-y-2">
               <Label htmlFor="duration">Duration</Label>
-              <Select value={duration} onValueChange={setDuration}>
-                <SelectTrigger id="duration" data-testid="select-duration">
-                  <SelectValue placeholder="Select duration" />
-                </SelectTrigger>
-                <SelectContent>
-                  {slots.map((slot) => (
-                    <SelectItem key={slot.duration} value={slot.duration} data-testid={`option-${slot.duration}`}>
-                      {slot.duration} - ₹{slot.price}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
+              <div className="flex items-center gap-2">
+                <Button 
+                  type="button"
+                  variant="outline" 
+                  size="icon"
+                  onClick={decreaseDuration}
+                  disabled={durationMinutes <= 30}
+                  data-testid="button-decrease-duration"
+                >
+                  <Minus className="h-4 w-4" />
+                </Button>
+                <div className="flex-1 text-center">
+                  <div className="text-lg font-semibold" data-testid="text-duration">
+                    {duration}
+                  </div>
+                  {selectedSlot && (
+                    <div className="text-sm text-muted-foreground" data-testid="text-price">
+                      ₹{selectedSlot.price}
+                    </div>
+                  )}
+                </div>
+                <Button 
+                  type="button"
+                  variant="outline" 
+                  size="icon"
+                  onClick={increaseDuration}
+                  data-testid="button-increase-duration"
+                >
+                  <Plus className="h-4 w-4" />
+                </Button>
+              </div>
             </div>
           )}
         </div>

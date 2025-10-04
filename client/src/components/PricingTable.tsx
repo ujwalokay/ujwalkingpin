@@ -2,7 +2,7 @@ import { useState } from "react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Pencil, Check, X } from "lucide-react";
+import { Pencil, Check, X, Plus, Trash2 } from "lucide-react";
 
 interface PriceSlot {
   duration: string;
@@ -38,6 +38,39 @@ export function PricingTable({ category, slots: initialSlots, onUpdateSlots }: P
   const cancelEdit = () => {
     setEditingIndex(null);
     setEditValue("");
+  };
+
+  const getDurationMinutes = (duration: string): number => {
+    const match = duration.match(/(\d+)\s*(min|hour)/i);
+    if (!match) return 30;
+    const value = parseInt(match[1]);
+    const unit = match[2].toLowerCase();
+    return unit.startsWith('hour') ? value * 60 : value;
+  };
+
+  const getDurationString = (mins: number): string => {
+    if (mins < 60) return `${mins} mins`;
+    const hours = Math.floor(mins / 60);
+    const remainingMins = mins % 60;
+    if (remainingMins === 0) return hours === 1 ? "1 hour" : `${hours} hours`;
+    return `${hours} hour${hours > 1 ? 's' : ''} ${remainingMins} mins`;
+  };
+
+  const addSlot = () => {
+    const lastSlot = slots[slots.length - 1];
+    const lastMins = getDurationMinutes(lastSlot.duration);
+    const newMins = lastMins + 30;
+    const newSlots = [...slots, { duration: getDurationString(newMins), price: 0 }];
+    setSlots(newSlots);
+    onUpdateSlots?.(newSlots);
+  };
+
+  const removeSlot = (index: number) => {
+    if (slots.length > 1) {
+      const newSlots = slots.filter((_, i) => i !== index);
+      setSlots(newSlots);
+      onUpdateSlots?.(newSlots);
+    }
   };
 
   return (
@@ -86,11 +119,31 @@ export function PricingTable({ category, slots: initialSlots, onUpdateSlots }: P
                     >
                       <Pencil className="h-4 w-4" />
                     </Button>
+                    {slots.length > 1 && (
+                      <Button
+                        size="icon"
+                        variant="ghost"
+                        className="h-8 w-8"
+                        onClick={() => removeSlot(index)}
+                        data-testid={`button-remove-${category.toLowerCase()}-${index}`}
+                      >
+                        <Trash2 className="h-4 w-4" />
+                      </Button>
+                    )}
                   </>
                 )}
               </div>
             </div>
           ))}
+          <Button
+            variant="outline"
+            className="w-full"
+            onClick={addSlot}
+            data-testid={`button-add-slot-${category.toLowerCase()}`}
+          >
+            <Plus className="mr-2 h-4 w-4" />
+            Add Time Slot (+30 mins)
+          </Button>
         </div>
       </CardContent>
     </Card>

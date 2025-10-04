@@ -7,6 +7,7 @@ import { Save } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { apiRequest, queryClient } from "@/lib/queryClient";
 import { Skeleton } from "@/components/ui/skeleton";
+import type { Booking } from "@shared/schema";
 
 interface DeviceConfig {
   id: string;
@@ -36,6 +37,10 @@ export default function Settings() {
 
   const { data: pricingConfigs, isLoading: pricingLoading } = useQuery<PricingConfig[]>({
     queryKey: ["/api/pricing-config"],
+  });
+
+  const { data: bookings = [] } = useQuery<Booking[]>({
+    queryKey: ["/api/bookings"],
   });
 
   const [pcCount, setPcCount] = useState(0);
@@ -169,6 +174,13 @@ export default function Settings() {
     }
   };
 
+  const getAvailableCount = (category: string, totalCount: number): number => {
+    const occupied = bookings.filter(
+      b => b.category === category && b.status === "running"
+    ).length;
+    return totalCount - occupied;
+  };
+
   if (deviceLoading || pricingLoading) {
     return (
       <div className="space-y-6">
@@ -200,7 +212,7 @@ export default function Settings() {
         <div className="grid gap-4 md:grid-cols-2">
           <DeviceConfigCard
             title="PC Gaming"
-            description="Configure PC gaming stations"
+            description={`Configure PC gaming stations (${getAvailableCount("PC", pcCount)}/${pcCount} available)`}
             count={pcCount}
             onCountChange={handlePcCountChange}
             seats={pcSeats}
@@ -208,19 +220,19 @@ export default function Settings() {
           />
           <DeviceConfigCard
             title="PS5"
-            description="Configure PlayStation 5 consoles"
+            description={`Configure PlayStation 5 consoles (${getAvailableCount("PS5", ps5Count)}/${ps5Count} available)`}
             count={ps5Count}
             onCountChange={setPs5Count}
           />
           <DeviceConfigCard
             title="VR Simulators"
-            description="Configure VR gaming stations"
+            description={`Configure VR gaming stations (${getAvailableCount("VR", vrCount)}/${vrCount} available)`}
             count={vrCount}
             onCountChange={setVrCount}
           />
           <DeviceConfigCard
             title="Car Simulators"
-            description="Configure racing simulators"
+            description={`Configure racing simulators (${getAvailableCount("Car", carCount)}/${carCount} available)`}
             count={carCount}
             onCountChange={setCarCount}
           />
