@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState } from "react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -15,14 +15,9 @@ interface PricingTableProps {
   onUpdateSlots?: (slots: PriceSlot[]) => void;
 }
 
-export function PricingTable({ category, slots: initialSlots, onUpdateSlots }: PricingTableProps) {
-  const [slots, setSlots] = useState(initialSlots);
+export function PricingTable({ category, slots, onUpdateSlots }: PricingTableProps) {
   const [editingIndex, setEditingIndex] = useState<number | null>(null);
   const [editValue, setEditValue] = useState("");
-
-  useEffect(() => {
-    setSlots(initialSlots);
-  }, [initialSlots]);
 
   const startEdit = (index: number) => {
     setEditingIndex(index);
@@ -33,7 +28,6 @@ export function PricingTable({ category, slots: initialSlots, onUpdateSlots }: P
     if (editingIndex !== null) {
       const newSlots = [...slots];
       newSlots[editingIndex].price = parseInt(editValue) || 0;
-      setSlots(newSlots);
       onUpdateSlots?.(newSlots);
       setEditingIndex(null);
     }
@@ -63,7 +57,6 @@ export function PricingTable({ category, slots: initialSlots, onUpdateSlots }: P
   const addSlot = () => {
     if (slots.length === 0) {
       const newSlots = [{ duration: "30 mins", price: 0 }];
-      setSlots(newSlots);
       onUpdateSlots?.(newSlots);
       return;
     }
@@ -71,14 +64,12 @@ export function PricingTable({ category, slots: initialSlots, onUpdateSlots }: P
     const lastMins = getDurationMinutes(lastSlot.duration);
     const newMins = lastMins + 30;
     const newSlots = [...slots, { duration: getDurationString(newMins), price: 0 }];
-    setSlots(newSlots);
     onUpdateSlots?.(newSlots);
   };
 
   const removeSlot = (index: number) => {
     if (slots.length > 1) {
       const newSlots = slots.filter((_, i) => i !== index);
-      setSlots(newSlots);
       onUpdateSlots?.(newSlots);
     }
   };
