@@ -51,11 +51,112 @@ export default function Reports() {
   });
 
   const handleExportExcel = () => {
-    console.log("Exporting to Excel...");
+    if (!history || history.length === 0) {
+      return;
+    }
+
+    const headers = ["Date", "Seat", "Customer", "Duration", "Revenue (₹)"];
+    const csvContent = [
+      headers.join(","),
+      ...history.map(record => [
+        record.date,
+        record.seatName,
+        record.customerName,
+        record.duration,
+        record.price
+      ].join(","))
+    ].join("\n");
+
+    const blob = new Blob([csvContent], { type: "text/csv;charset=utf-8;" });
+    const link = document.createElement("a");
+    const url = URL.createObjectURL(blob);
+    link.setAttribute("href", url);
+    link.setAttribute("download", `booking_report_${selectedPeriod}_${new Date().toISOString().split('T')[0]}.csv`);
+    link.style.visibility = "hidden";
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
   };
 
   const handleExportPDF = () => {
-    console.log("Exporting to PDF...");
+    if (!history || history.length === 0) {
+      return;
+    }
+
+    const printWindow = window.open('', '_blank');
+    if (!printWindow) return;
+
+    const htmlContent = `
+      <!DOCTYPE html>
+      <html>
+      <head>
+        <title>Booking Report - ${getPeriodLabel()}</title>
+        <style>
+          body { font-family: Arial, sans-serif; padding: 20px; }
+          h1 { color: #333; }
+          .stats { display: flex; gap: 20px; margin: 20px 0; }
+          .stat-card { flex: 1; padding: 15px; border: 1px solid #ddd; border-radius: 8px; }
+          .stat-card h3 { margin: 0 0 10px 0; font-size: 14px; color: #666; }
+          .stat-card .value { font-size: 24px; font-weight: bold; }
+          table { width: 100%; border-collapse: collapse; margin-top: 20px; }
+          th, td { padding: 12px; text-align: left; border-bottom: 1px solid #ddd; }
+          th { background-color: #f5f5f5; font-weight: bold; }
+          .text-right { text-align: right; }
+          @media print {
+            body { padding: 10px; }
+          }
+        </style>
+      </head>
+      <body>
+        <h1>Booking Report - ${getPeriodLabel()}</h1>
+        <div class="stats">
+          <div class="stat-card">
+            <h3>${getPeriodLabel()} Revenue</h3>
+            <div class="value">₹${stats?.totalRevenue.toLocaleString() || 0}</div>
+          </div>
+          <div class="stat-card">
+            <h3>Total Sessions</h3>
+            <div class="value">${stats?.totalSessions || 0}</div>
+          </div>
+          <div class="stat-card">
+            <h3>Avg Session Time</h3>
+            <div class="value">${stats?.avgSessionMinutes || 0} mins</div>
+          </div>
+        </div>
+        <table>
+          <thead>
+            <tr>
+              <th>Date</th>
+              <th>Seat</th>
+              <th>Customer</th>
+              <th>Duration</th>
+              <th class="text-right">Revenue</th>
+            </tr>
+          </thead>
+          <tbody>
+            ${history.map(record => `
+              <tr>
+                <td>${record.date}</td>
+                <td>${record.seatName}</td>
+                <td>${record.customerName}</td>
+                <td>${record.duration}</td>
+                <td class="text-right">₹${record.price}</td>
+              </tr>
+            `).join('')}
+          </tbody>
+        </table>
+        <script>
+          window.onload = () => {
+            window.print();
+            setTimeout(() => window.close(), 100);
+          };
+        </script>
+      </body>
+      </html>
+    `;
+
+    printWindow.document.write(htmlContent);
+    printWindow.document.close();
   };
 
   const getPeriodLabel = () => {
@@ -114,12 +215,15 @@ export default function Reports() {
                   amount={stats?.totalSessions || 0}
                   trend={0}
                   icon={<Users className="h-4 w-4 text-muted-foreground" />}
+                  showCurrency={false}
                 />
                 <RevenueCard
                   title="Avg Session Time"
                   amount={stats?.avgSessionMinutes || 0}
                   trend={0}
                   icon={<Clock className="h-4 w-4 text-muted-foreground" />}
+                  showCurrency={false}
+                  suffix=" mins"
                 />
               </>
             )}

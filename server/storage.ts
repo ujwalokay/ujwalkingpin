@@ -18,10 +18,13 @@ import {
 import ws from "ws";
 
 neonConfig.webSocketConstructor = ws;
+neonConfig.fetchConnectionCache = true;
+neonConfig.pipelineConnect = false;
 
 const pool = new Pool({ 
   connectionString: process.env.DATABASE_URL,
   connectionTimeoutMillis: 10000,
+  ssl: process.env.NODE_ENV === 'production' ? true : { rejectUnauthorized: false }
 });
 const db = drizzle({ client: pool });
 

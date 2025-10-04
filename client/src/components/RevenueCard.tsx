@@ -6,9 +6,11 @@ interface RevenueCardProps {
   amount: number;
   trend?: number;
   icon?: React.ReactNode;
+  showCurrency?: boolean;
+  suffix?: string;
 }
 
-export function RevenueCard({ title, amount, trend = 0, icon }: RevenueCardProps) {
+export function RevenueCard({ title, amount, trend = 0, icon, showCurrency = true, suffix = "" }: RevenueCardProps) {
   const isPositive = trend >= 0;
 
   return (
@@ -19,7 +21,7 @@ export function RevenueCard({ title, amount, trend = 0, icon }: RevenueCardProps
       </CardHeader>
       <CardContent>
         <div className="text-2xl font-bold text-foreground" data-testid={`text-amount-${title.toLowerCase()}`}>
-          ₹{amount.toLocaleString()}
+          {showCurrency && '₹'}{amount.toLocaleString()}{suffix}
         </div>
         {trend !== 0 && (
           <div className="flex items-center gap-1 text-xs text-muted-foreground mt-1">
