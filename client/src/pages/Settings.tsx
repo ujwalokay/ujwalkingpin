@@ -93,13 +93,13 @@ export default function Settings() {
 
   const saveDeviceConfigMutation = useMutation({
     mutationFn: async (config: { category: string; count: number; seats: string[] }) => {
-      return await apiRequest("/api/device-config", "POST", config);
+      return await apiRequest("POST", "/api/device-config", config);
     },
   });
 
   const savePricingConfigMutation = useMutation({
     mutationFn: async (data: { category: string; configs: { duration: string; price: string | number }[] }) => {
-      return await apiRequest("/api/pricing-config", "POST", data);
+      return await apiRequest("POST", "/api/pricing-config", data);
     },
   });
 
