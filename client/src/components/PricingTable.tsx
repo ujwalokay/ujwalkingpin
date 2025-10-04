@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -19,6 +19,10 @@ export function PricingTable({ category, slots: initialSlots, onUpdateSlots }: P
   const [slots, setSlots] = useState(initialSlots);
   const [editingIndex, setEditingIndex] = useState<number | null>(null);
   const [editValue, setEditValue] = useState("");
+
+  useEffect(() => {
+    setSlots(initialSlots);
+  }, [initialSlots]);
 
   const startEdit = (index: number) => {
     setEditingIndex(index);
