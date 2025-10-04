@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { useQuery } from "@tanstack/react-query";
 import { RevenueCard } from "@/components/RevenueCard";
 import { Button } from "@/components/ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
@@ -11,18 +12,43 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
+import { Skeleton } from "@/components/ui/skeleton";
 
-//todo: remove mock functionality
-const mockHistory = [
-  { id: "1", date: "2025-10-01", seat: "PC-1", customer: "John Doe", duration: "2 hours", revenue: 130 },
-  { id: "2", date: "2025-10-01", seat: "PS5-1", customer: "Mike Johnson", duration: "1 hour", revenue: 100 },
-  { id: "3", date: "2025-10-01", seat: "VR-1", customer: "Sarah Williams", duration: "30 mins", revenue: 80 },
-  { id: "4", date: "2025-09-30", seat: "PC-3", customer: "Jane Smith", duration: "1 hour", revenue: 70 },
-  { id: "5", date: "2025-09-30", seat: "Car-1", customer: "Tom Brown", duration: "2 hours", revenue: 200 },
-];
+interface BookingStats {
+  totalRevenue: number;
+  totalSessions: number;
+  avgSessionMinutes: number;
+}
+
+interface BookingHistoryItem {
+  id: string;
+  date: string;
+  seatName: string;
+  customerName: string;
+  duration: string;
+  price: string;
+}
 
 export default function Reports() {
   const [selectedPeriod, setSelectedPeriod] = useState<string>("daily");
+
+  const { data: stats, isLoading: statsLoading } = useQuery<BookingStats>({
+    queryKey: ["/api/reports/stats", selectedPeriod],
+    queryFn: async () => {
+      const response = await fetch(`/api/reports/stats?period=${selectedPeriod}`);
+      if (!response.ok) throw new Error("Failed to fetch stats");
+      return response.json();
+    },
+  });
+
+  const { data: history, isLoading: historyLoading } = useQuery<BookingHistoryItem[]>({
+    queryKey: ["/api/reports/history", selectedPeriod],
+    queryFn: async () => {
+      const response = await fetch(`/api/reports/history?period=${selectedPeriod}`);
+      if (!response.ok) throw new Error("Failed to fetch history");
+      return response.json();
+    },
+  });
 
   const handleExportExcel = () => {
     console.log("Exporting to Excel...");
@@ -30,6 +56,15 @@ export default function Reports() {
 
   const handleExportPDF = () => {
     console.log("Exporting to PDF...");
+  };
+
+  const getPeriodLabel = () => {
+    switch (selectedPeriod) {
+      case "daily": return "Today's";
+      case "weekly": return "This Week's";
+      case "monthly": return "This Month's";
+      default: return "Today's";
+    }
   };
 
   return (
@@ -58,72 +93,36 @@ export default function Reports() {
           <TabsTrigger value="monthly" data-testid="tab-monthly">Monthly</TabsTrigger>
         </TabsList>
 
-        <TabsContent value="daily" className="space-y-4">
+        <TabsContent value={selectedPeriod} className="space-y-4">
           <div className="grid gap-4 md:grid-cols-3">
-            <RevenueCard
-              title="Today's Revenue"
-              amount={5480}
-              trend={12.5}
-              icon={<DollarSign className="h-4 w-4 text-muted-foreground" />}
-            />
-            <RevenueCard
-              title="Total Sessions"
-              amount={24}
-              trend={8.3}
-              icon={<Users className="h-4 w-4 text-muted-foreground" />}
-            />
-            <RevenueCard
-              title="Avg Session Time"
-              amount={95}
-              trend={-3.2}
-              icon={<Clock className="h-4 w-4 text-muted-foreground" />}
-            />
-          </div>
-        </TabsContent>
-
-        <TabsContent value="weekly" className="space-y-4">
-          <div className="grid gap-4 md:grid-cols-3">
-            <RevenueCard
-              title="This Week's Revenue"
-              amount={32450}
-              trend={15.8}
-              icon={<DollarSign className="h-4 w-4 text-muted-foreground" />}
-            />
-            <RevenueCard
-              title="Total Sessions"
-              amount={168}
-              trend={10.2}
-              icon={<Users className="h-4 w-4 text-muted-foreground" />}
-            />
-            <RevenueCard
-              title="Avg Session Time"
-              amount={102}
-              trend={5.1}
-              icon={<Clock className="h-4 w-4 text-muted-foreground" />}
-            />
-          </div>
-        </TabsContent>
-
-        <TabsContent value="monthly" className="space-y-4">
-          <div className="grid gap-4 md:grid-cols-3">
-            <RevenueCard
-              title="This Month's Revenue"
-              amount={128900}
-              trend={22.4}
-              icon={<DollarSign className="h-4 w-4 text-muted-foreground" />}
-            />
-            <RevenueCard
-              title="Total Sessions"
-              amount={672}
-              trend={18.7}
-              icon={<Users className="h-4 w-4 text-muted-foreground" />}
-            />
-            <RevenueCard
-              title="Avg Session Time"
-              amount={98}
-              trend={2.3}
-              icon={<Clock className="h-4 w-4 text-muted-foreground" />}
-            />
+            {statsLoading ? (
+              <>
+                <Skeleton className="h-32" />
+                <Skeleton className="h-32" />
+                <Skeleton className="h-32" />
+              </>
+            ) : (
+              <>
+                <RevenueCard
+                  title={`${getPeriodLabel()} Revenue`}
+                  amount={stats?.totalRevenue || 0}
+                  trend={0}
+                  icon={<DollarSign className="h-4 w-4 text-muted-foreground" />}
+                />
+                <RevenueCard
+                  title="Total Sessions"
+                  amount={stats?.totalSessions || 0}
+                  trend={0}
+                  icon={<Users className="h-4 w-4 text-muted-foreground" />}
+                />
+                <RevenueCard
+                  title="Avg Session Time"
+                  amount={stats?.avgSessionMinutes || 0}
+                  trend={0}
+                  icon={<Clock className="h-4 w-4 text-muted-foreground" />}
+                />
+              </>
+            )}
           </div>
         </TabsContent>
       </Tabs>
@@ -142,19 +141,33 @@ export default function Reports() {
               </TableRow>
             </TableHeader>
             <TableBody>
-              {mockHistory.map((record) => (
-                <TableRow key={record.id} data-testid={`row-history-${record.id}`}>
-                  <TableCell data-testid={`text-date-${record.id}`}>{record.date}</TableCell>
-                  <TableCell className="font-medium" data-testid={`text-seat-${record.id}`}>
-                    {record.seat}
-                  </TableCell>
-                  <TableCell data-testid={`text-customer-${record.id}`}>{record.customer}</TableCell>
-                  <TableCell data-testid={`text-duration-${record.id}`}>{record.duration}</TableCell>
-                  <TableCell className="text-right font-bold text-primary" data-testid={`text-revenue-${record.id}`}>
-                    ₹{record.revenue}
+              {historyLoading ? (
+                <TableRow>
+                  <TableCell colSpan={5}>
+                    <Skeleton className="h-10 w-full" />
                   </TableCell>
                 </TableRow>
-              ))}
+              ) : history && history.length > 0 ? (
+                history.map((record) => (
+                  <TableRow key={record.id} data-testid={`row-history-${record.id}`}>
+                    <TableCell data-testid={`text-date-${record.id}`}>{record.date}</TableCell>
+                    <TableCell className="font-medium" data-testid={`text-seat-${record.id}`}>
+                      {record.seatName}
+                    </TableCell>
+                    <TableCell data-testid={`text-customer-${record.id}`}>{record.customerName}</TableCell>
+                    <TableCell data-testid={`text-duration-${record.id}`}>{record.duration}</TableCell>
+                    <TableCell className="text-right font-bold text-primary" data-testid={`text-revenue-${record.id}`}>
+                      ₹{record.price}
+                    </TableCell>
+                  </TableRow>
+                ))
+              ) : (
+                <TableRow>
+                  <TableCell colSpan={5} className="text-center text-muted-foreground">
+                    No booking history for this period
+                  </TableCell>
+                </TableRow>
+              )}
             </TableBody>
           </Table>
         </div>

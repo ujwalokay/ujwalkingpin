@@ -58,6 +58,68 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  app.get("/api/reports/stats", async (req, res) => {
+    try {
+      const period = req.query.period as string || "daily";
+      const now = new Date();
+      let startDate: Date;
+      let endDate = new Date(now.getFullYear(), now.getMonth(), now.getDate(), 23, 59, 59);
+
+      switch (period) {
+        case "daily":
+          startDate = new Date(now.getFullYear(), now.getMonth(), now.getDate(), 0, 0, 0);
+          break;
+        case "weekly":
+          const dayOfWeek = now.getDay();
+          startDate = new Date(now);
+          startDate.setDate(now.getDate() - dayOfWeek);
+          startDate.setHours(0, 0, 0, 0);
+          break;
+        case "monthly":
+          startDate = new Date(now.getFullYear(), now.getMonth(), 1, 0, 0, 0);
+          break;
+        default:
+          startDate = new Date(now.getFullYear(), now.getMonth(), now.getDate(), 0, 0, 0);
+      }
+
+      const stats = await storage.getBookingStats(startDate, endDate);
+      res.json(stats);
+    } catch (error: any) {
+      res.status(500).json({ message: error.message });
+    }
+  });
+
+  app.get("/api/reports/history", async (req, res) => {
+    try {
+      const period = req.query.period as string || "daily";
+      const now = new Date();
+      let startDate: Date;
+      let endDate = new Date(now.getFullYear(), now.getMonth(), now.getDate(), 23, 59, 59);
+
+      switch (period) {
+        case "daily":
+          startDate = new Date(now.getFullYear(), now.getMonth(), now.getDate(), 0, 0, 0);
+          break;
+        case "weekly":
+          const dayOfWeek = now.getDay();
+          startDate = new Date(now);
+          startDate.setDate(now.getDate() - dayOfWeek);
+          startDate.setHours(0, 0, 0, 0);
+          break;
+        case "monthly":
+          startDate = new Date(now.getFullYear(), now.getMonth(), 1, 0, 0, 0);
+          break;
+        default:
+          startDate = new Date(now.getFullYear(), now.getMonth(), now.getDate(), 0, 0, 0);
+      }
+
+      const history = await storage.getBookingHistory(startDate, endDate);
+      res.json(history);
+    } catch (error: any) {
+      res.status(500).json({ message: error.message });
+    }
+  });
+
   const httpServer = createServer(app);
 
   return httpServer;
