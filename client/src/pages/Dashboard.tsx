@@ -132,8 +132,20 @@ export default function Dashboard() {
   const getAvailableSeats = (category: string) => {
     const cat = categories.find(c => c.name === category);
     if (!cat) return [];
+    
+    const config = deviceConfigs.find(c => c.category === category);
     const occupied = getOccupiedSeats(category);
-    return Array.from({ length: cat.total }, (_, i) => i + 1).filter(n => !occupied.includes(n));
+    
+    if (!config || config.seats.length === 0) {
+      return Array.from({ length: cat.total }, (_, i) => i + 1).filter(n => !occupied.includes(n));
+    }
+    
+    const visibleSeats = config.seats.map(seatName => {
+      const match = seatName.match(/\d+$/);
+      return match ? parseInt(match[0]) : 0;
+    }).filter(n => n > 0);
+    
+    return visibleSeats.filter(n => !occupied.includes(n));
   };
 
   const availableSeatsData = categories.map(cat => ({

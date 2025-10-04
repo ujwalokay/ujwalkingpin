@@ -57,6 +57,12 @@ export function PricingTable({ category, slots: initialSlots, onUpdateSlots }: P
   };
 
   const addSlot = () => {
+    if (slots.length === 0) {
+      const newSlots = [{ duration: "30 mins", price: 0 }];
+      setSlots(newSlots);
+      onUpdateSlots?.(newSlots);
+      return;
+    }
     const lastSlot = slots[slots.length - 1];
     const lastMins = getDurationMinutes(lastSlot.duration);
     const newMins = lastMins + 30;
