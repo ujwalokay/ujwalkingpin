@@ -287,16 +287,17 @@ export default function Settings() {
   }
 
   return (
-    <div className="space-y-6">
-      <div className="flex items-center justify-between">
+    <div className="space-y-6 p-4 sm:p-6">
+      <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
         <div>
-          <h1 className="text-3xl font-bold text-foreground">Settings</h1>
-          <p className="text-muted-foreground">Configure devices and pricing</p>
+          <h1 className="text-2xl font-bold text-foreground sm:text-3xl">Settings</h1>
+          <p className="text-sm text-muted-foreground sm:text-base">Configure devices and pricing</p>
         </div>
         <Button 
           onClick={handleSave} 
           data-testid="button-save-settings"
           disabled={saveDeviceConfigMutation.isPending || savePricingConfigMutation.isPending}
+          className="w-full sm:w-auto"
         >
           <Save className="mr-2 h-4 w-4" />
           Save Changes
@@ -304,18 +305,19 @@ export default function Settings() {
       </div>
 
       <div>
-        <div className="flex items-center justify-between mb-4">
-          <h2 className="text-xl font-semibold">Device Configuration</h2>
+        <div className="flex flex-col gap-3 mb-4 sm:flex-row sm:items-center sm:justify-between">
+          <h2 className="text-lg font-semibold sm:text-xl">Device Configuration</h2>
           <Button 
             variant="outline" 
             onClick={() => setShowAddDialog(true)}
             data-testid="button-add-category"
+            className="w-full sm:w-auto"
           >
             <Plus className="mr-2 h-4 w-4" />
             Add Category
           </Button>
         </div>
-        <div className="grid gap-4 md:grid-cols-2">
+        <div className="grid gap-4 sm:grid-cols-1 lg:grid-cols-2 xl:grid-cols-3">
           {categories.map(cat => (
             <div key={cat.category} className="relative">
               <DeviceConfigCard
@@ -341,8 +343,8 @@ export default function Settings() {
       </div>
 
       <div>
-        <h2 className="text-xl font-semibold mb-4">Pricing Configuration</h2>
-        <div className="grid gap-4 md:grid-cols-2">
+        <h2 className="text-lg font-semibold mb-4 sm:text-xl">Pricing Configuration</h2>
+        <div className="grid gap-4 sm:grid-cols-1 lg:grid-cols-2 xl:grid-cols-3">
           {categories.map(cat => (
             <PricingTable
               key={cat.category}
