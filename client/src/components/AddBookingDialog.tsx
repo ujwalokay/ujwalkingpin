@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { useQuery } from "@tanstack/react-query";
 import {
   Dialog,
   DialogContent,
@@ -39,28 +40,11 @@ interface AddBookingDialogProps {
   }[];
 }
 
-const timeSlots = {
-  PC: [
-    { duration: "30 mins", price: 40 },
-    { duration: "1 hour", price: 70 },
-    { duration: "2 hours", price: 130 },
-  ],
-  PS5: [
-    { duration: "30 mins", price: 60 },
-    { duration: "1 hour", price: 100 },
-    { duration: "2 hours", price: 180 },
-  ],
-  VR: [
-    { duration: "30 mins", price: 80 },
-    { duration: "1 hour", price: 140 },
-    { duration: "2 hours", price: 250 },
-  ],
-  Car: [
-    { duration: "30 mins", price: 100 },
-    { duration: "1 hour", price: 180 },
-    { duration: "2 hours", price: 320 },
-  ],
-};
+interface PricingConfig {
+  category: string;
+  duration: string;
+  price: number;
+}
 
 export function AddBookingDialog({ open, onOpenChange, onConfirm, availableSeats }: AddBookingDialogProps) {
   const [category, setCategory] = useState<string>("");
@@ -70,8 +54,16 @@ export function AddBookingDialog({ open, onOpenChange, onConfirm, availableSeats
   const [durationMinutes, setDurationMinutes] = useState<number>(30);
   const [bookingType, setBookingType] = useState<"walk-in" | "upcoming">("walk-in");
 
+  const { data: pricingConfig = [] } = useQuery<PricingConfig[]>({
+    queryKey: ["/api/pricing-config"],
+  });
+
   const selectedCategory = availableSeats.find(c => c.category === category);
-  const slots = category ? timeSlots[category as keyof typeof timeSlots] || [] : [];
+  const slots = category 
+    ? pricingConfig
+        .filter(config => config.category === category)
+        .map(config => ({ duration: config.duration, price: config.price }))
+    : [];
   
   const getDurationString = (mins: number) => {
     if (mins < 60) return `${mins} mins`;
