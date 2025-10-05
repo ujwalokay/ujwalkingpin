@@ -12,7 +12,7 @@ import { useToast } from "@/hooks/use-toast";
 import { fetchBookings, createBooking, updateBooking, deleteBooking, fetchDeviceConfigs } from "@/lib/api";
 import type { Booking as DBBooking, DeviceConfig } from "@shared/schema";
 
-type BookingStatus = "available" | "running" | "expired" | "upcoming";
+type BookingStatus = "available" | "running" | "expired" | "upcoming" | "completed";
 
 interface Booking {
   id: string;
@@ -20,6 +20,7 @@ interface Booking {
   seatNumber: number;
   seatName: string;
   customerName: string;
+  whatsappNumber?: string;
   startTime: Date;
   endTime: Date;
   price: number;
@@ -84,6 +85,7 @@ export default function Dashboard() {
       seatNumber: dbBooking.seatNumber,
       seatName: dbBooking.seatName,
       customerName: dbBooking.customerName,
+      whatsappNumber: dbBooking.whatsappNumber,
       startTime: new Date(dbBooking.startTime),
       endTime: new Date(dbBooking.endTime),
       price: parseFloat(dbBooking.price),
@@ -273,6 +275,28 @@ export default function Dashboard() {
     setDeleteDialog({ open: false, bookingId: "", seatName: "", customerName: "" });
   };
 
+  const completeBookingMutation = useMutation({
+    mutationFn: ({ id, data }: { id: string; data: Partial<{ status: string }> }) =>
+      updateBooking(id, data),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['bookings'] });
+    },
+  });
+
+  const handleComplete = async (bookingId: string) => {
+    const booking = bookings.find(b => b.id === bookingId);
+    if (booking) {
+      await completeBookingMutation.mutateAsync({
+        id: bookingId,
+        data: { status: "completed" },
+      });
+      toast({
+        title: "Session Completed",
+        description: `${booking.seatName} - ${booking.customerName} session marked as complete`,
+      });
+    }
+  };
+
   const walkInBookings = bookings.filter(b => b.bookingType === "walk-in");
   const upcomingBookings = bookings.filter(b => b.bookingType === "upcoming");
 
@@ -333,6 +357,7 @@ export default function Dashboard() {
             bookings={walkInBookings}
             onExtend={handleExtend}
             onEnd={handleDelete}
+            onComplete={handleComplete}
           />
         </TabsContent>
 
@@ -340,6 +365,7 @@ export default function Dashboard() {
           <BookingTable
             bookings={upcomingBookings}
             onEnd={handleDelete}
+            onComplete={handleComplete}
           />
         </TabsContent>
       </Tabs>

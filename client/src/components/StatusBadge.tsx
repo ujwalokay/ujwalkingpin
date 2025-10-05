@@ -1,7 +1,7 @@
 import { Badge } from "@/components/ui/badge";
 import { Circle } from "lucide-react";
 
-type Status = "available" | "running" | "expired" | "upcoming";
+type Status = "available" | "running" | "expired" | "upcoming" | "completed";
 
 interface StatusBadgeProps {
   status: Status;
@@ -27,6 +27,11 @@ const statusConfig = {
     label: "Upcoming",
     className: "bg-chart-2/20 text-chart-2 border-chart-2/30",
     dotClassName: "text-chart-2",
+  },
+  completed: {
+    label: "Completed",
+    className: "bg-green-500/20 text-green-600 border-green-500/30",
+    dotClassName: "text-green-600",
   },
 };
 

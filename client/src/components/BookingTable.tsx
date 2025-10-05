@@ -9,14 +9,15 @@ import {
 import { Button } from "@/components/ui/button";
 import { StatusBadge } from "./StatusBadge";
 import { SessionTimer } from "./SessionTimer";
-import { Clock, X } from "lucide-react";
+import { Clock, X, Check } from "lucide-react";
 
-type BookingStatus = "available" | "running" | "expired" | "upcoming";
+type BookingStatus = "available" | "running" | "expired" | "upcoming" | "completed";
 
 interface Booking {
   id: string;
   seatName: string;
   customerName: string;
+  whatsappNumber?: string;
   startTime: Date;
   endTime: Date;
   price: number;
@@ -27,9 +28,10 @@ interface BookingTableProps {
   bookings: Booking[];
   onExtend?: (id: string) => void;
   onEnd?: (id: string) => void;
+  onComplete?: (id: string) => void;
 }
 
-export function BookingTable({ bookings, onExtend, onEnd }: BookingTableProps) {
+export function BookingTable({ bookings, onExtend, onEnd, onComplete }: BookingTableProps) {
   return (
     <div className="rounded-md border">
       <Table>
@@ -37,6 +39,7 @@ export function BookingTable({ bookings, onExtend, onEnd }: BookingTableProps) {
           <TableRow>
             <TableHead>Seat</TableHead>
             <TableHead>Customer</TableHead>
+            <TableHead>WhatsApp</TableHead>
             <TableHead>Start Time</TableHead>
             <TableHead>End Time</TableHead>
             <TableHead>Time Left</TableHead>
@@ -48,7 +51,7 @@ export function BookingTable({ bookings, onExtend, onEnd }: BookingTableProps) {
         <TableBody>
           {bookings.length === 0 ? (
             <TableRow>
-              <TableCell colSpan={8} className="text-center text-muted-foreground">
+              <TableCell colSpan={9} className="text-center text-muted-foreground">
                 No bookings found
               </TableCell>
             </TableRow>
@@ -60,6 +63,9 @@ export function BookingTable({ bookings, onExtend, onEnd }: BookingTableProps) {
                 </TableCell>
                 <TableCell data-testid={`text-customer-${booking.id}`}>
                   {booking.customerName}
+                </TableCell>
+                <TableCell data-testid={`text-whatsapp-${booking.id}`}>
+                  {booking.whatsappNumber || "-"}
                 </TableCell>
                 <TableCell data-testid={`text-start-${booking.id}`}>
                   {booking.startTime.toLocaleTimeString()}
@@ -78,6 +84,16 @@ export function BookingTable({ bookings, onExtend, onEnd }: BookingTableProps) {
                 </TableCell>
                 <TableCell className="text-right">
                   <div className="flex justify-end gap-2">
+                    {booking.status === "running" && onComplete && (
+                      <Button
+                        size="sm"
+                        className="bg-green-600 hover:bg-green-700 text-white"
+                        onClick={() => onComplete(booking.id)}
+                        data-testid={`button-complete-${booking.id}`}
+                      >
+                        <Check className="h-4 w-4" />
+                      </Button>
+                    )}
                     {booking.status === "running" && onExtend && (
                       <Button
                         size="sm"
