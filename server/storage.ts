@@ -1,32 +1,11 @@
-import { drizzle } from "drizzle-orm/neon-serverless";
-import { Pool, neonConfig } from "@neondatabase/serverless";
-import { eq, and, inArray, gte, lte, sql } from "drizzle-orm";
 import { 
-  type User, 
-  type InsertUser, 
   type Booking, 
   type InsertBooking, 
   type DeviceConfig,
   type InsertDeviceConfig,
   type PricingConfig,
   type InsertPricingConfig,
-  users, 
-  bookings,
-  deviceConfig,
-  pricingConfig
 } from "@shared/schema";
-import ws from "ws";
-
-neonConfig.webSocketConstructor = ws;
-neonConfig.fetchConnectionCache = true;
-neonConfig.pipelineConnect = false;
-
-const pool = new Pool({ 
-  connectionString: process.env.DATABASE_URL,
-  connectionTimeoutMillis: 10000,
-  ssl: process.env.NODE_ENV === 'production' ? true : { rejectUnauthorized: false }
-});
-const db = drizzle({ client: pool });
 
 export interface BookingStats {
   totalRevenue: number;
@@ -45,10 +24,6 @@ export interface BookingHistoryItem {
 }
 
 export interface IStorage {
-  getUser(id: string): Promise<User | undefined>;
-  getUserByUsername(username: string): Promise<User | undefined>;
-  createUser(user: InsertUser): Promise<User>;
-  
   getAllBookings(): Promise<Booking[]>;
   getBooking(id: string): Promise<Booking | undefined>;
   getActiveBookings(): Promise<Booking[]>;
@@ -68,62 +43,55 @@ export interface IStorage {
   upsertPricingConfigs(category: string, configs: InsertPricingConfig[]): Promise<PricingConfig[]>;
 }
 
-export class DatabaseStorage implements IStorage {
-  async getUser(id: string): Promise<User | undefined> {
-    const result = await db.select().from(users).where(eq(users.id, id));
-    return result[0];
-  }
-
-  async getUserByUsername(username: string): Promise<User | undefined> {
-    const result = await db.select().from(users).where(eq(users.username, username));
-    return result[0];
-  }
-
-  async createUser(insertUser: InsertUser): Promise<User> {
-    const result = await db.insert(users).values(insertUser).returning();
-    return result[0];
-  }
+export class MemStorage implements IStorage {
+  private bookings: Map<string, Booking> = new Map();
+  private deviceConfigs: Map<string, DeviceConfig> = new Map();
+  private pricingConfigs: Map<string, PricingConfig> = new Map();
 
   async getAllBookings(): Promise<Booking[]> {
-    return await db.select().from(bookings);
+    return Array.from(this.bookings.values());
   }
 
   async getBooking(id: string): Promise<Booking | undefined> {
-    const result = await db.select().from(bookings).where(eq(bookings.id, id));
-    return result[0];
+    return this.bookings.get(id);
   }
 
   async getActiveBookings(): Promise<Booking[]> {
-    return await db.select().from(bookings).where(
-      inArray(bookings.status, ["running", "upcoming"])
+    return Array.from(this.bookings.values()).filter(
+      booking => booking.status === "running" || booking.status === "upcoming"
     );
   }
 
   async createBooking(booking: InsertBooking): Promise<Booking> {
-    const result = await db.insert(bookings).values(booking).returning();
-    return result[0];
+    const id = crypto.randomUUID();
+    const newBooking: Booking = {
+      ...booking,
+      id,
+      createdAt: new Date()
+    };
+    this.bookings.set(id, newBooking);
+    return newBooking;
   }
 
   async updateBooking(id: string, data: Partial<InsertBooking>): Promise<Booking | undefined> {
-    const result = await db.update(bookings)
-      .set(data)
-      .where(eq(bookings.id, id))
-      .returning();
-    return result[0];
+    const booking = this.bookings.get(id);
+    if (!booking) return undefined;
+    
+    const updated = { ...booking, ...data };
+    this.bookings.set(id, updated);
+    return updated;
   }
 
   async deleteBooking(id: string): Promise<boolean> {
-    const result = await db.delete(bookings).where(eq(bookings.id, id)).returning();
-    return result.length > 0;
+    return this.bookings.delete(id);
   }
 
   async getBookingStats(startDate: Date, endDate: Date): Promise<BookingStats> {
-    const completedBookings = await db.select().from(bookings).where(
-      and(
-        inArray(bookings.status, ["completed", "expired"]),
-        gte(bookings.startTime, startDate),
-        lte(bookings.startTime, endDate)
-      )
+    const completedBookings = Array.from(this.bookings.values()).filter(
+      booking => 
+        (booking.status === "completed" || booking.status === "expired") &&
+        booking.startTime >= startDate &&
+        booking.startTime <= endDate
     );
 
     const totalRevenue = completedBookings.reduce((sum, booking) => {
@@ -147,12 +115,11 @@ export class DatabaseStorage implements IStorage {
   }
 
   async getBookingHistory(startDate: Date, endDate: Date): Promise<BookingHistoryItem[]> {
-    const completedBookings = await db.select().from(bookings).where(
-      and(
-        inArray(bookings.status, ["completed", "expired"]),
-        gte(bookings.startTime, startDate),
-        lte(bookings.startTime, endDate)
-      )
+    const completedBookings = Array.from(this.bookings.values()).filter(
+      booking => 
+        (booking.status === "completed" || booking.status === "expired") &&
+        booking.startTime >= startDate &&
+        booking.startTime <= endDate
     );
 
     return completedBookings
@@ -185,47 +152,53 @@ export class DatabaseStorage implements IStorage {
   }
 
   async getAllDeviceConfigs(): Promise<DeviceConfig[]> {
-    return await db.select().from(deviceConfig);
+    return Array.from(this.deviceConfigs.values());
   }
 
   async getDeviceConfig(category: string): Promise<DeviceConfig | undefined> {
-    const result = await db.select().from(deviceConfig).where(eq(deviceConfig.category, category));
-    return result[0];
+    return Array.from(this.deviceConfigs.values()).find(c => c.category === category);
   }
 
   async upsertDeviceConfig(config: InsertDeviceConfig): Promise<DeviceConfig> {
     const existing = await this.getDeviceConfig(config.category);
     
     if (existing) {
-      const result = await db.update(deviceConfig)
-        .set(config)
-        .where(eq(deviceConfig.category, config.category))
-        .returning();
-      return result[0];
+      const updated = { ...existing, ...config };
+      this.deviceConfigs.set(existing.id, updated);
+      return updated;
     } else {
-      const result = await db.insert(deviceConfig).values(config).returning();
-      return result[0];
+      const id = crypto.randomUUID();
+      const newConfig: DeviceConfig = { ...config, id };
+      this.deviceConfigs.set(id, newConfig);
+      return newConfig;
     }
   }
 
   async getAllPricingConfigs(): Promise<PricingConfig[]> {
-    return await db.select().from(pricingConfig);
+    return Array.from(this.pricingConfigs.values());
   }
 
   async getPricingConfigsByCategory(category: string): Promise<PricingConfig[]> {
-    return await db.select().from(pricingConfig).where(eq(pricingConfig.category, category));
+    return Array.from(this.pricingConfigs.values()).filter(c => c.category === category);
   }
 
   async upsertPricingConfigs(category: string, configs: InsertPricingConfig[]): Promise<PricingConfig[]> {
-    await db.delete(pricingConfig).where(eq(pricingConfig.category, category));
+    const existing = Array.from(this.pricingConfigs.values()).filter(c => c.category === category);
+    existing.forEach(c => this.pricingConfigs.delete(c.id));
     
     if (configs.length === 0) {
       return [];
     }
     
-    const result = await db.insert(pricingConfig).values(configs).returning();
+    const result = configs.map(config => {
+      const id = crypto.randomUUID();
+      const newConfig: PricingConfig = { ...config, id };
+      this.pricingConfigs.set(id, newConfig);
+      return newConfig;
+    });
+    
     return result;
   }
 }
 
-export const storage = new DatabaseStorage();
+export const storage = new MemStorage();

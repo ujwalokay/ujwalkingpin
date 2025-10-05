@@ -1,86 +1,45 @@
-import { sql } from "drizzle-orm";
-import { pgTable, text, varchar, integer, timestamp, decimal } from "drizzle-orm/pg-core";
-import { createInsertSchema } from "drizzle-zod";
 import { z } from "zod";
 
-export const users = pgTable("users", {
-  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
-  username: text("username").notNull().unique(),
-  password: text("password").notNull(),
-});
-
-export const insertUserSchema = createInsertSchema(users).pick({
-  username: true,
-  password: true,
-});
-
-export type InsertUser = z.infer<typeof insertUserSchema>;
-export type User = typeof users.$inferSelect;
-
-export const bookings = pgTable("bookings", {
-  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
-  category: text("category").notNull(),
-  seatNumber: integer("seat_number").notNull(),
-  seatName: text("seat_name").notNull(),
-  customerName: text("customer_name").notNull(),
-  whatsappNumber: text("whatsapp_number"),
-  startTime: timestamp("start_time").notNull(),
-  endTime: timestamp("end_time").notNull(),
-  price: decimal("price", { precision: 10, scale: 2 }).notNull(),
-  status: text("status").notNull(),
-  bookingType: text("booking_type").notNull(),
-  createdAt: timestamp("created_at").notNull().default(sql`now()`),
-});
-
-export const insertBookingSchema = createInsertSchema(bookings).omit({
-  id: true,
-  createdAt: true,
-}).extend({
+export const insertBookingSchema = z.object({
+  category: z.string(),
+  seatNumber: z.number(),
+  seatName: z.string(),
+  customerName: z.string(),
+  whatsappNumber: z.string().optional(),
   startTime: z.string().or(z.date()).transform(val => typeof val === 'string' ? new Date(val) : val),
   endTime: z.string().or(z.date()).transform(val => typeof val === 'string' ? new Date(val) : val),
+  price: z.string(),
+  status: z.string(),
+  bookingType: z.string(),
 });
 
 export type InsertBooking = z.infer<typeof insertBookingSchema>;
-export type Booking = typeof bookings.$inferSelect;
 
-export const settings = pgTable("settings", {
-  id: text("id").primaryKey().default("global"),
-  adminDeletePinHash: text("admin_delete_pin_hash"),
-  failedAttempts: integer("failed_attempts").notNull().default(0),
-  lockUntil: timestamp("lock_until"),
-});
+export interface Booking extends InsertBooking {
+  id: string;
+  createdAt: Date;
+}
 
-export const insertSettingsSchema = createInsertSchema(settings);
-export const updateSettingsSchema = createInsertSchema(settings).partial();
-
-export type InsertSettings = z.infer<typeof insertSettingsSchema>;
-export type UpdateSettings = z.infer<typeof updateSettingsSchema>;
-export type Settings = typeof settings.$inferSelect;
-
-export const deviceConfig = pgTable("device_config", {
-  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
-  category: text("category").notNull().unique(),
-  count: integer("count").notNull().default(0),
-  seats: text("seats").array().notNull().default(sql`ARRAY[]::text[]`),
-});
-
-export const insertDeviceConfigSchema = createInsertSchema(deviceConfig).omit({
-  id: true,
+export const insertDeviceConfigSchema = z.object({
+  category: z.string(),
+  count: z.number().default(0),
+  seats: z.array(z.string()).default([]),
 });
 
 export type InsertDeviceConfig = z.infer<typeof insertDeviceConfigSchema>;
-export type DeviceConfig = typeof deviceConfig.$inferSelect;
 
-export const pricingConfig = pgTable("pricing_config", {
-  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
-  category: text("category").notNull(),
-  duration: text("duration").notNull(),
-  price: decimal("price", { precision: 10, scale: 2 }).notNull(),
-});
+export interface DeviceConfig extends InsertDeviceConfig {
+  id: string;
+}
 
-export const insertPricingConfigSchema = createInsertSchema(pricingConfig).omit({
-  id: true,
+export const insertPricingConfigSchema = z.object({
+  category: z.string(),
+  duration: z.string(),
+  price: z.string(),
 });
 
 export type InsertPricingConfig = z.infer<typeof insertPricingConfigSchema>;
-export type PricingConfig = typeof pricingConfig.$inferSelect;
+
+export interface PricingConfig extends InsertPricingConfig {
+  id: string;
+}
