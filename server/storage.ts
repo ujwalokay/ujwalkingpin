@@ -37,10 +37,12 @@ export interface IStorage {
   getAllDeviceConfigs(): Promise<DeviceConfig[]>;
   getDeviceConfig(category: string): Promise<DeviceConfig | undefined>;
   upsertDeviceConfig(config: InsertDeviceConfig): Promise<DeviceConfig>;
+  deleteDeviceConfig(category: string): Promise<boolean>;
   
   getAllPricingConfigs(): Promise<PricingConfig[]>;
   getPricingConfigsByCategory(category: string): Promise<PricingConfig[]>;
   upsertPricingConfigs(category: string, configs: InsertPricingConfig[]): Promise<PricingConfig[]>;
+  deletePricingConfig(category: string): Promise<boolean>;
 }
 
 export class MemStorage implements IStorage {
@@ -181,6 +183,15 @@ export class MemStorage implements IStorage {
     }
   }
 
+  async deleteDeviceConfig(category: string): Promise<boolean> {
+    const existing = await this.getDeviceConfig(category);
+    if (existing) {
+      this.deviceConfigs.delete(existing.id);
+      return true;
+    }
+    return false;
+  }
+
   async getAllPricingConfigs(): Promise<PricingConfig[]> {
     return Array.from(this.pricingConfigs.values());
   }
@@ -205,6 +216,15 @@ export class MemStorage implements IStorage {
     });
     
     return result;
+  }
+
+  async deletePricingConfig(category: string): Promise<boolean> {
+    const existing = Array.from(this.pricingConfigs.values()).filter(c => c.category === category);
+    if (existing.length > 0) {
+      existing.forEach(c => this.pricingConfigs.delete(c.id));
+      return true;
+    }
+    return false;
   }
 }
 

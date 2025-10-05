@@ -163,6 +163,26 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  app.delete("/api/device-config/:category", async (req, res) => {
+    try {
+      const { category } = req.params;
+      await storage.deleteDeviceConfig(category);
+      res.json({ success: true, message: `Deleted device config for ${category}` });
+    } catch (error: any) {
+      res.status(500).json({ message: error.message });
+    }
+  });
+
+  app.delete("/api/pricing-config/:category", async (req, res) => {
+    try {
+      const { category } = req.params;
+      await storage.deletePricingConfig(category);
+      res.json({ success: true, message: `Deleted pricing config for ${category}` });
+    } catch (error: any) {
+      res.status(500).json({ message: error.message });
+    }
+  });
+
   const httpServer = createServer(app);
 
   return httpServer;
