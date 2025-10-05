@@ -160,7 +160,7 @@ export default function Settings() {
     ));
   };
 
-  const addCategory = () => {
+  const addCategory = async () => {
     if (!newCategoryName.trim()) return;
     
     const exists = categories.some(c => c.category.toLowerCase() === newCategoryName.trim().toLowerCase());
@@ -173,14 +173,42 @@ export default function Settings() {
       return;
     }
 
-    setCategories(prev => [...prev, {
+    const newCategory = {
       category: newCategoryName.trim(),
       count: 0,
       seats: [],
       pricing: [{ duration: "30 mins", price: 0 }],
-    }]);
-    setNewCategoryName("");
-    setShowAddDialog(false);
+    };
+
+    try {
+      await saveDeviceConfigMutation.mutateAsync({
+        category: newCategory.category,
+        count: 0,
+        seats: [],
+      });
+
+      await savePricingConfigMutation.mutateAsync({
+        category: newCategory.category,
+        configs: [{ duration: "30 mins", price: 0 }],
+      });
+
+      queryClient.invalidateQueries({ queryKey: ["device-configs"] });
+      queryClient.invalidateQueries({ queryKey: ["pricing-configs"] });
+
+      toast({
+        title: "Category added",
+        description: `${newCategory.category} has been created successfully`,
+      });
+
+      setNewCategoryName("");
+      setShowAddDialog(false);
+    } catch (error: any) {
+      toast({
+        title: "Error",
+        description: error.message || "Failed to add category",
+        variant: "destructive",
+      });
+    }
   };
 
   const deleteCategory = async (category: string) => {
@@ -341,6 +369,11 @@ export default function Settings() {
                 id="category-name"
                 value={newCategoryName}
                 onChange={(e) => setNewCategoryName(e.target.value)}
+                onKeyDown={(e) => {
+                  if (e.key === "Enter" && newCategoryName.trim()) {
+                    addCategory();
+                  }
+                }}
                 placeholder="e.g., Xbox, Nintendo Switch"
                 data-testid="input-category-name"
               />
