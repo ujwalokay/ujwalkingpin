@@ -10,6 +10,18 @@ Preferred communication style: Simple, everyday language.
 
 ## Recent Changes
 
+**October 5, 2025 - Dynamic Category Management**
+- Implemented fully dynamic device category system - users can now add/delete any device type
+- Added "Add Category" functionality in Settings with dialog UI for creating new categories
+- Added delete buttons to each category card with active booking validation
+- Refactored Settings from hardcoded PC/PS5/VR/Car to unified dynamic state management
+- Updated Dashboard to dynamically display all categories with auto-assigned icons and colors
+- Standardized React Query cache keys across Dashboard and Settings for proper cache invalidation
+- Added DELETE API endpoints for device-config and pricing-config in backend
+- Implemented storage delete methods (deleteDeviceConfig, deletePricingConfig) in MemStorage
+- Categories now persist across page reloads and sync between all views
+- Pricing configuration automatically adapts to show all active device categories
+
 **October 4, 2025 - Replit Environment Setup**
 - Successfully imported and configured the Gaming Center POS Admin Panel for Replit
 - Created PostgreSQL database and pushed schema (users, bookings, settings, device_config, pricing_config tables)
