@@ -227,37 +227,67 @@ export function AddBookingDialog({ open, onOpenChange, onConfirm, availableSeats
           {category && (
             <div className="space-y-2">
               <Label htmlFor="duration">Duration</Label>
-              <div className="flex items-center gap-2">
-                <Button 
-                  type="button"
-                  variant="outline" 
-                  size="icon"
-                  onClick={decreaseDuration}
-                  disabled={durationMinutes <= 30}
-                  data-testid="button-decrease-duration"
-                >
-                  <Minus className="h-4 w-4" />
-                </Button>
-                <div className="flex-1 text-center">
-                  <div className="text-lg font-semibold" data-testid="text-duration">
-                    {duration}
+              <div className="flex items-center gap-3">
+                <div className="flex items-center gap-2 flex-1">
+                  <div className="flex items-center gap-1">
+                    <Input
+                      type="number"
+                      min="0"
+                      value={Math.floor(durationMinutes / 60)}
+                      onChange={(e) => {
+                        const hours = Math.max(0, parseInt(e.target.value) || 0);
+                        const mins = durationMinutes % 60;
+                        setDurationMinutes(hours * 60 + mins);
+                      }}
+                      className="w-16 text-center"
+                      data-testid="input-hours"
+                    />
+                    <span className="text-sm text-muted-foreground">hr</span>
                   </div>
-                  {selectedSlot && (
-                    <div className="text-sm text-muted-foreground" data-testid="text-price">
-                      ₹{selectedSlot.price}
-                    </div>
-                  )}
+                  <div className="flex items-center gap-1">
+                    <Input
+                      type="number"
+                      min="0"
+                      max="59"
+                      value={durationMinutes % 60}
+                      onChange={(e) => {
+                        const mins = Math.max(0, Math.min(59, parseInt(e.target.value) || 0));
+                        const hours = Math.floor(durationMinutes / 60);
+                        setDurationMinutes(hours * 60 + mins);
+                      }}
+                      className="w-16 text-center"
+                      data-testid="input-minutes"
+                    />
+                    <span className="text-sm text-muted-foreground">min</span>
+                  </div>
                 </div>
-                <Button 
-                  type="button"
-                  variant="outline" 
-                  size="icon"
-                  onClick={increaseDuration}
-                  data-testid="button-increase-duration"
-                >
-                  <Plus className="h-4 w-4" />
-                </Button>
+                <div className="flex gap-1">
+                  <Button 
+                    type="button"
+                    variant="outline" 
+                    size="icon"
+                    onClick={decreaseDuration}
+                    disabled={durationMinutes <= 30}
+                    data-testid="button-decrease-duration"
+                  >
+                    <Minus className="h-4 w-4" />
+                  </Button>
+                  <Button 
+                    type="button"
+                    variant="outline" 
+                    size="icon"
+                    onClick={increaseDuration}
+                    data-testid="button-increase-duration"
+                  >
+                    <Plus className="h-4 w-4" />
+                  </Button>
+                </div>
               </div>
+              {selectedSlot && (
+                <div className="text-sm text-muted-foreground" data-testid="text-price">
+                  Price: ₹{selectedSlot.price}
+                </div>
+              )}
             </div>
           )}
         </div>
