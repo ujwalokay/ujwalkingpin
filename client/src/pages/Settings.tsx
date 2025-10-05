@@ -49,15 +49,15 @@ export default function Settings() {
   const { toast } = useToast();
 
   const { data: deviceConfigs, isLoading: deviceLoading } = useQuery<DeviceConfig[]>({
-    queryKey: ["/api/device-config"],
+    queryKey: ["device-configs"],
   });
 
   const { data: pricingConfigs, isLoading: pricingLoading } = useQuery<PricingConfig[]>({
-    queryKey: ["/api/pricing-config"],
+    queryKey: ["pricing-configs"],
   });
 
   const { data: bookings = [] } = useQuery<Booking[]>({
-    queryKey: ["/api/bookings"],
+    queryKey: ["bookings"],
   });
 
   const [categories, setCategories] = useState<CategoryState[]>([]);
@@ -200,8 +200,8 @@ export default function Settings() {
 
       await Promise.all(savePromises);
 
-      queryClient.invalidateQueries({ queryKey: ["/api/device-config"] });
-      queryClient.invalidateQueries({ queryKey: ["/api/pricing-config"] });
+      queryClient.invalidateQueries({ queryKey: ["device-configs"] });
+      queryClient.invalidateQueries({ queryKey: ["pricing-configs"] });
 
       toast({
         title: "Settings Saved",
