@@ -66,6 +66,8 @@ export class MemStorage implements IStorage {
     const id = crypto.randomUUID();
     const newBooking: Booking = {
       ...booking,
+      startTime: typeof booking.startTime === 'string' ? new Date(booking.startTime) : booking.startTime,
+      endTime: typeof booking.endTime === 'string' ? new Date(booking.endTime) : booking.endTime,
       id,
       createdAt: new Date()
     };
@@ -77,7 +79,12 @@ export class MemStorage implements IStorage {
     const booking = this.bookings.get(id);
     if (!booking) return undefined;
     
-    const updated = { ...booking, ...data };
+    const updated = { 
+      ...booking, 
+      ...data,
+      startTime: data.startTime ? (typeof data.startTime === 'string' ? new Date(data.startTime) : data.startTime) : booking.startTime,
+      endTime: data.endTime ? (typeof data.endTime === 'string' ? new Date(data.endTime) : data.endTime) : booking.endTime,
+    };
     this.bookings.set(id, updated);
     return updated;
   }
