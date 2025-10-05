@@ -108,6 +108,18 @@ export default function Settings() {
     },
   });
 
+  const deleteCategoryMutation = useMutation({
+    mutationFn: async (category: string) => {
+      await apiRequest("DELETE", `/api/device-config/${category}`);
+      await apiRequest("DELETE", `/api/pricing-config/${category}`);
+      return { success: true };
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["device-configs"] });
+      queryClient.invalidateQueries({ queryKey: ["pricing-configs"] });
+    },
+  });
+
   const updateCategoryCount = (category: string, newCount: number) => {
     setCategories(prev => prev.map(cat => {
       if (cat.category !== category) return cat;
@@ -171,7 +183,7 @@ export default function Settings() {
     setShowAddDialog(false);
   };
 
-  const deleteCategory = (category: string) => {
+  const deleteCategory = async (category: string) => {
     const hasBookings = bookings.some(b => b.category === category && b.status === "running");
     if (hasBookings) {
       toast({
@@ -181,7 +193,21 @@ export default function Settings() {
       });
       return;
     }
-    setCategories(prev => prev.filter(c => c.category !== category));
+
+    try {
+      await deleteCategoryMutation.mutateAsync(category);
+      setCategories(prev => prev.filter(c => c.category !== category));
+      toast({
+        title: "Category deleted",
+        description: `${category} has been removed successfully`,
+      });
+    } catch (error: any) {
+      toast({
+        title: "Error",
+        description: error.message || "Failed to delete category",
+        variant: "destructive",
+      });
+    }
   };
 
   const handleSave = async () => {
