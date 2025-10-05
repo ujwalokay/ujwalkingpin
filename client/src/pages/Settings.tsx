@@ -3,10 +3,20 @@ import { useQuery, useMutation } from "@tanstack/react-query";
 import { DeviceConfigCard } from "@/components/DeviceConfigCard";
 import { PricingTable } from "@/components/PricingTable";
 import { Button } from "@/components/ui/button";
-import { Save } from "lucide-react";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { Save, Plus, Trash2 } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { apiRequest, queryClient } from "@/lib/queryClient";
 import { Skeleton } from "@/components/ui/skeleton";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
 import type { Booking } from "@shared/schema";
 
 interface DeviceConfig {
@@ -28,6 +38,13 @@ interface PricingSlot {
   price: number;
 }
 
+interface CategoryState {
+  category: string;
+  count: number;
+  seats: { name: string; visible: boolean }[];
+  pricing: PricingSlot[];
+}
+
 export default function Settings() {
   const { toast } = useToast();
 
@@ -43,53 +60,41 @@ export default function Settings() {
     queryKey: ["/api/bookings"],
   });
 
-  const [pcCount, setPcCount] = useState(0);
-  const [ps5Count, setPs5Count] = useState(0);
-  const [vrCount, setVrCount] = useState(0);
-  const [carCount, setCarCount] = useState(0);
-  const [pcSeats, setPcSeats] = useState<{ name: string; visible: boolean }[]>([]);
-  const [pcPricing, setPcPricing] = useState<PricingSlot[]>([]);
-  const [ps5Pricing, setPs5Pricing] = useState<PricingSlot[]>([]);
+  const [categories, setCategories] = useState<CategoryState[]>([]);
+  const [showAddDialog, setShowAddDialog] = useState(false);
+  const [newCategoryName, setNewCategoryName] = useState("");
 
   useEffect(() => {
-    if (deviceConfigs) {
-      const pcConfig = deviceConfigs.find(c => c.category === "PC");
-      const ps5Config = deviceConfigs.find(c => c.category === "PS5");
-      const vrConfig = deviceConfigs.find(c => c.category === "VR");
-      const carConfig = deviceConfigs.find(c => c.category === "Car");
+    if (deviceConfigs && pricingConfigs) {
+      const categoryMap = new Map<string, CategoryState>();
 
-      setPcCount(pcConfig?.count || 0);
-      setPs5Count(ps5Config?.count || 0);
-      setVrCount(vrConfig?.count || 0);
-      setCarCount(carConfig?.count || 0);
+      deviceConfigs.forEach(config => {
+        const pricing = pricingConfigs
+          .filter(p => p.category === config.category)
+          .map(p => ({ duration: p.duration, price: parseFloat(p.price) }));
 
-      if (pcConfig && pcConfig.seats.length > 0) {
-        setPcSeats(pcConfig.seats.map(seat => ({ name: seat, visible: true })));
-      }
+        categoryMap.set(config.category, {
+          category: config.category,
+          count: config.count,
+          seats: config.seats.map(seat => ({ name: seat, visible: true })),
+          pricing: pricing.length > 0 ? pricing : [{ duration: "30 mins", price: 0 }],
+        });
+      });
+
+      pricingConfigs.forEach(config => {
+        if (!categoryMap.has(config.category)) {
+          categoryMap.set(config.category, {
+            category: config.category,
+            count: 0,
+            seats: [],
+            pricing: [{ duration: config.duration, price: parseFloat(config.price) }],
+          });
+        }
+      });
+
+      setCategories(Array.from(categoryMap.values()));
     }
-  }, [deviceConfigs]);
-
-  useEffect(() => {
-    if (pricingConfigs) {
-      const pcPrices = pricingConfigs
-        .filter(p => p.category === "PC")
-        .map(p => ({ duration: p.duration, price: parseFloat(p.price) }));
-      const ps5Prices = pricingConfigs
-        .filter(p => p.category === "PS5")
-        .map(p => ({ duration: p.duration, price: parseFloat(p.price) }));
-
-      setPcPricing(pcPrices.length > 0 ? pcPrices : [
-        { duration: "30 mins", price: 40 },
-        { duration: "1 hour", price: 70 },
-        { duration: "2 hours", price: 130 },
-      ]);
-      setPs5Pricing(ps5Prices.length > 0 ? ps5Prices : [
-        { duration: "30 mins", price: 60 },
-        { duration: "1 hour", price: 100 },
-        { duration: "2 hours", price: 180 },
-      ]);
-    }
-  }, [pricingConfigs]);
+  }, [deviceConfigs, pricingConfigs]);
 
   const saveDeviceConfigMutation = useMutation({
     mutationFn: async (config: { category: string; count: number; seats: string[] }) => {
@@ -103,46 +108,97 @@ export default function Settings() {
     },
   });
 
-  const toggleSeatVisibility = (seatName: string) => {
-    setPcSeats(seats =>
-      seats.map(seat =>
-        seat.name === seatName ? { ...seat, visible: !seat.visible } : seat
-      )
-    );
+  const updateCategoryCount = (category: string, newCount: number) => {
+    setCategories(prev => prev.map(cat => {
+      if (cat.category !== category) return cat;
+
+      const currentSeats = cat.seats.length;
+      let newSeats = cat.seats;
+
+      if (newCount > currentSeats) {
+        const additional = Array.from({ length: newCount - currentSeats }, (_, i) => ({
+          name: `${category}-${currentSeats + i + 1}`,
+          visible: true,
+        }));
+        newSeats = [...cat.seats, ...additional];
+      } else if (newCount < currentSeats) {
+        newSeats = cat.seats.slice(0, newCount);
+      }
+
+      return { ...cat, count: newCount, seats: newSeats };
+    }));
+  };
+
+  const toggleSeatVisibility = (category: string, seatName: string) => {
+    setCategories(prev => prev.map(cat => 
+      cat.category === category
+        ? {
+            ...cat,
+            seats: cat.seats.map(seat =>
+              seat.name === seatName ? { ...seat, visible: !seat.visible } : seat
+            )
+          }
+        : cat
+    ));
+  };
+
+  const updateCategoryPricing = (category: string, pricing: PricingSlot[]) => {
+    setCategories(prev => prev.map(cat =>
+      cat.category === category ? { ...cat, pricing } : cat
+    ));
+  };
+
+  const addCategory = () => {
+    if (!newCategoryName.trim()) return;
+    
+    const exists = categories.some(c => c.category.toLowerCase() === newCategoryName.trim().toLowerCase());
+    if (exists) {
+      toast({
+        title: "Category exists",
+        description: "A category with this name already exists",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    setCategories(prev => [...prev, {
+      category: newCategoryName.trim(),
+      count: 0,
+      seats: [],
+      pricing: [{ duration: "30 mins", price: 0 }],
+    }]);
+    setNewCategoryName("");
+    setShowAddDialog(false);
+  };
+
+  const deleteCategory = (category: string) => {
+    const hasBookings = bookings.some(b => b.category === category && b.status === "running");
+    if (hasBookings) {
+      toast({
+        title: "Cannot delete",
+        description: "This category has active bookings",
+        variant: "destructive",
+      });
+      return;
+    }
+    setCategories(prev => prev.filter(c => c.category !== category));
   };
 
   const handleSave = async () => {
     try {
-      await Promise.all([
+      const savePromises = categories.flatMap(cat => [
         saveDeviceConfigMutation.mutateAsync({
-          category: "PC",
-          count: pcCount,
-          seats: pcSeats.filter(s => s.visible).map(s => s.name),
-        }),
-        saveDeviceConfigMutation.mutateAsync({
-          category: "PS5",
-          count: ps5Count,
-          seats: [],
-        }),
-        saveDeviceConfigMutation.mutateAsync({
-          category: "VR",
-          count: vrCount,
-          seats: [],
-        }),
-        saveDeviceConfigMutation.mutateAsync({
-          category: "Car",
-          count: carCount,
-          seats: [],
+          category: cat.category,
+          count: cat.count,
+          seats: cat.seats.filter(s => s.visible).map(s => s.name),
         }),
         savePricingConfigMutation.mutateAsync({
-          category: "PC",
-          configs: pcPricing.map(p => ({ ...p, price: p.price.toString() })),
-        }),
-        savePricingConfigMutation.mutateAsync({
-          category: "PS5",
-          configs: ps5Pricing.map(p => ({ ...p, price: p.price.toString() })),
+          category: cat.category,
+          configs: cat.pricing.map(p => ({ ...p, price: p.price.toString() })),
         }),
       ]);
+
+      await Promise.all(savePromises);
 
       queryClient.invalidateQueries({ queryKey: ["/api/device-config"] });
       queryClient.invalidateQueries({ queryKey: ["/api/pricing-config"] });
@@ -157,20 +213,6 @@ export default function Settings() {
         description: error.message || "Failed to save settings",
         variant: "destructive",
       });
-    }
-  };
-
-  const handlePcCountChange = (newCount: number) => {
-    setPcCount(newCount);
-    const currentSeats = pcSeats.length;
-    if (newCount > currentSeats) {
-      const newSeats = Array.from({ length: newCount - currentSeats }, (_, i) => ({
-        name: `PC-${currentSeats + i + 1}`,
-        visible: true,
-      }));
-      setPcSeats([...pcSeats, ...newSeats]);
-    } else if (newCount < currentSeats) {
-      setPcSeats(pcSeats.slice(0, newCount));
     }
   };
 
@@ -208,52 +250,86 @@ export default function Settings() {
       </div>
 
       <div>
-        <h2 className="text-xl font-semibold mb-4">Device Configuration</h2>
+        <div className="flex items-center justify-between mb-4">
+          <h2 className="text-xl font-semibold">Device Configuration</h2>
+          <Button 
+            variant="outline" 
+            onClick={() => setShowAddDialog(true)}
+            data-testid="button-add-category"
+          >
+            <Plus className="mr-2 h-4 w-4" />
+            Add Category
+          </Button>
+        </div>
         <div className="grid gap-4 md:grid-cols-2">
-          <DeviceConfigCard
-            title="PC Gaming"
-            description={`Configure PC gaming stations (${getAvailableCount("PC", pcCount)}/${pcCount} available)`}
-            count={pcCount}
-            onCountChange={handlePcCountChange}
-            seats={pcSeats}
-            onToggleVisibility={toggleSeatVisibility}
-          />
-          <DeviceConfigCard
-            title="PS5"
-            description={`Configure PlayStation 5 consoles (${getAvailableCount("PS5", ps5Count)}/${ps5Count} available)`}
-            count={ps5Count}
-            onCountChange={setPs5Count}
-          />
-          <DeviceConfigCard
-            title="VR Simulators"
-            description={`Configure VR gaming stations (${getAvailableCount("VR", vrCount)}/${vrCount} available)`}
-            count={vrCount}
-            onCountChange={setVrCount}
-          />
-          <DeviceConfigCard
-            title="Car Simulators"
-            description={`Configure racing simulators (${getAvailableCount("Car", carCount)}/${carCount} available)`}
-            count={carCount}
-            onCountChange={setCarCount}
-          />
+          {categories.map(cat => (
+            <div key={cat.category} className="relative">
+              <DeviceConfigCard
+                title={cat.category}
+                description={`Configure ${cat.category} (${getAvailableCount(cat.category, cat.count)}/${cat.count} available)`}
+                count={cat.count}
+                onCountChange={(newCount) => updateCategoryCount(cat.category, newCount)}
+                seats={cat.seats}
+                onToggleVisibility={(seatName) => toggleSeatVisibility(cat.category, seatName)}
+              />
+              <Button
+                variant="ghost"
+                size="icon"
+                className="absolute top-2 right-2"
+                onClick={() => deleteCategory(cat.category)}
+                data-testid={`button-delete-${cat.category.toLowerCase()}`}
+              >
+                <Trash2 className="h-4 w-4" />
+              </Button>
+            </div>
+          ))}
         </div>
       </div>
 
       <div>
         <h2 className="text-xl font-semibold mb-4">Pricing Configuration</h2>
         <div className="grid gap-4 md:grid-cols-2">
-          <PricingTable
-            category="PC"
-            slots={pcPricing}
-            onUpdateSlots={setPcPricing}
-          />
-          <PricingTable
-            category="PS5"
-            slots={ps5Pricing}
-            onUpdateSlots={setPs5Pricing}
-          />
+          {categories.map(cat => (
+            <PricingTable
+              key={cat.category}
+              category={cat.category}
+              slots={cat.pricing}
+              onUpdateSlots={(pricing) => updateCategoryPricing(cat.category, pricing)}
+            />
+          ))}
         </div>
       </div>
+
+      <Dialog open={showAddDialog} onOpenChange={setShowAddDialog}>
+        <DialogContent data-testid="dialog-add-category">
+          <DialogHeader>
+            <DialogTitle>Add New Category</DialogTitle>
+            <DialogDescription>
+              Create a new device category for your gaming center
+            </DialogDescription>
+          </DialogHeader>
+          <div className="space-y-4">
+            <div className="space-y-2">
+              <Label htmlFor="category-name">Category Name</Label>
+              <Input
+                id="category-name"
+                value={newCategoryName}
+                onChange={(e) => setNewCategoryName(e.target.value)}
+                placeholder="e.g., Xbox, Nintendo Switch"
+                data-testid="input-category-name"
+              />
+            </div>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setShowAddDialog(false)}>
+              Cancel
+            </Button>
+            <Button onClick={addCategory} data-testid="button-confirm-add-category">
+              Add Category
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
