@@ -18,16 +18,23 @@ interface PricingTableProps {
 export function PricingTable({ category, slots, onUpdateSlots }: PricingTableProps) {
   const [editingIndex, setEditingIndex] = useState<number | null>(null);
   const [editValue, setEditValue] = useState("");
+  const [editDurationHours, setEditDurationHours] = useState(0);
+  const [editDurationMins, setEditDurationMins] = useState(0);
 
   const startEdit = (index: number) => {
     setEditingIndex(index);
     setEditValue(slots[index].price.toString());
+    const totalMins = getDurationMinutes(slots[index].duration);
+    setEditDurationHours(Math.floor(totalMins / 60));
+    setEditDurationMins(totalMins % 60);
   };
 
   const saveEdit = () => {
     if (editingIndex !== null) {
       const newSlots = [...slots];
+      const totalMins = editDurationHours * 60 + editDurationMins;
       newSlots[editingIndex].price = parseInt(editValue) || 0;
+      newSlots[editingIndex].duration = getDurationString(totalMins);
       onUpdateSlots?.(newSlots);
       setEditingIndex(null);
     }
@@ -36,6 +43,8 @@ export function PricingTable({ category, slots, onUpdateSlots }: PricingTablePro
   const cancelEdit = () => {
     setEditingIndex(null);
     setEditValue("");
+    setEditDurationHours(0);
+    setEditDurationMins(0);
   };
 
   const getDurationMinutes = (duration: string): number => {
@@ -88,7 +97,38 @@ export function PricingTable({ category, slots, onUpdateSlots }: PricingTablePro
               className="flex items-center justify-between rounded-md border p-3 hover-elevate"
               data-testid={`row-pricing-${category.toLowerCase()}-${index}`}
             >
-              <span className="text-sm font-medium">{slot.duration}</span>
+              {editingIndex === index ? (
+                <div className="flex items-center gap-2">
+                  <div className="flex items-center gap-1">
+                    <Input
+                      type="number"
+                      min="0"
+                      value={editDurationHours}
+                      onChange={(e) => setEditDurationHours(Math.max(0, parseInt(e.target.value) || 0))}
+                      className="w-12 h-8 text-center"
+                      data-testid={`input-duration-hours-${category.toLowerCase()}-${index}`}
+                    />
+                    <span className="text-xs text-muted-foreground">hr</span>
+                  </div>
+                  <div className="flex items-center gap-1">
+                    <Input
+                      type="number"
+                      min="0"
+                      step="30"
+                      value={editDurationMins}
+                      onChange={(e) => {
+                        const value = parseInt(e.target.value) || 0;
+                        setEditDurationMins(value >= 30 ? 30 : 0);
+                      }}
+                      className="w-12 h-8 text-center"
+                      data-testid={`input-duration-mins-${category.toLowerCase()}-${index}`}
+                    />
+                    <span className="text-xs text-muted-foreground">min</span>
+                  </div>
+                </div>
+              ) : (
+                <span className="text-sm font-medium">{slot.duration}</span>
+              )}
               <div className="flex items-center gap-2">
                 {editingIndex === index ? (
                   <>

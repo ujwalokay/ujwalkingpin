@@ -248,10 +248,11 @@ export function AddBookingDialog({ open, onOpenChange, onConfirm, availableSeats
                     <Input
                       type="number"
                       min="0"
-                      max="59"
+                      step="30"
                       value={durationMinutes % 60}
                       onChange={(e) => {
-                        const mins = Math.max(0, Math.min(59, parseInt(e.target.value) || 0));
+                        const value = parseInt(e.target.value) || 0;
+                        const mins = value >= 30 ? 30 : 0;
                         const hours = Math.floor(durationMinutes / 60);
                         setDurationMinutes(hours * 60 + mins);
                       }}
