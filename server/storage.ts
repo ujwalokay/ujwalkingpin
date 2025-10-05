@@ -50,6 +50,54 @@ export class MemStorage implements IStorage {
   private deviceConfigs: Map<string, DeviceConfig> = new Map();
   private pricingConfigs: Map<string, PricingConfig> = new Map();
 
+  constructor() {
+    this.initializeDefaults();
+  }
+
+  private initializeDefaults() {
+    const pcId = crypto.randomUUID();
+    const ps5Id = crypto.randomUUID();
+
+    const pcDeviceConfig: DeviceConfig = {
+      id: pcId,
+      category: "PC",
+      count: 5,
+      seats: ["PC-1", "PC-2", "PC-3", "PC-4", "PC-5"]
+    };
+
+    const ps5DeviceConfig: DeviceConfig = {
+      id: ps5Id,
+      category: "PS5",
+      count: 3,
+      seats: ["PS5-1", "PS5-2", "PS5-3"]
+    };
+
+    this.deviceConfigs.set(pcId, pcDeviceConfig);
+    this.deviceConfigs.set(ps5Id, ps5DeviceConfig);
+
+    const pcPricing30Id = crypto.randomUUID();
+    const pcPricing1hId = crypto.randomUUID();
+    const pcPricing2hId = crypto.randomUUID();
+    const ps5Pricing30Id = crypto.randomUUID();
+    const ps5Pricing1hId = crypto.randomUUID();
+    const ps5Pricing2hId = crypto.randomUUID();
+
+    const pcPricingConfigs: PricingConfig[] = [
+      { id: pcPricing30Id, category: "PC", duration: "30 mins", price: "10" },
+      { id: pcPricing1hId, category: "PC", duration: "1 hour", price: "18" },
+      { id: pcPricing2hId, category: "PC", duration: "2 hours", price: "30" }
+    ];
+
+    const ps5PricingConfigs: PricingConfig[] = [
+      { id: ps5Pricing30Id, category: "PS5", duration: "30 mins", price: "15" },
+      { id: ps5Pricing1hId, category: "PS5", duration: "1 hour", price: "25" },
+      { id: ps5Pricing2hId, category: "PS5", duration: "2 hours", price: "45" }
+    ];
+
+    pcPricingConfigs.forEach(config => this.pricingConfigs.set(config.id, config));
+    ps5PricingConfigs.forEach(config => this.pricingConfigs.set(config.id, config));
+  }
+
   async getAllBookings(): Promise<Booking[]> {
     return Array.from(this.bookings.values());
   }

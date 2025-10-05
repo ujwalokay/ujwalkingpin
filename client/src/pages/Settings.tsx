@@ -49,15 +49,15 @@ export default function Settings() {
   const { toast } = useToast();
 
   const { data: deviceConfigs, isLoading: deviceLoading } = useQuery<DeviceConfig[]>({
-    queryKey: ["device-configs"],
+    queryKey: ["/api/device-config"],
   });
 
   const { data: pricingConfigs, isLoading: pricingLoading } = useQuery<PricingConfig[]>({
-    queryKey: ["pricing-configs"],
+    queryKey: ["/api/pricing-config"],
   });
 
   const { data: bookings = [] } = useQuery<Booking[]>({
-    queryKey: ["bookings"],
+    queryKey: ["/api/bookings"],
   });
 
   const [categories, setCategories] = useState<CategoryState[]>([]);
@@ -115,8 +115,8 @@ export default function Settings() {
       return { success: true };
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["device-configs"] });
-      queryClient.invalidateQueries({ queryKey: ["pricing-configs"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/device-config"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/pricing-config"] });
     },
   });
 
@@ -192,8 +192,8 @@ export default function Settings() {
         configs: [{ duration: "30 mins", price: 0 }],
       });
 
-      queryClient.invalidateQueries({ queryKey: ["device-configs"] });
-      queryClient.invalidateQueries({ queryKey: ["pricing-configs"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/device-config"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/pricing-config"] });
 
       toast({
         title: "Category added",
@@ -254,8 +254,8 @@ export default function Settings() {
 
       await Promise.all(savePromises);
 
-      queryClient.invalidateQueries({ queryKey: ["device-configs"] });
-      queryClient.invalidateQueries({ queryKey: ["pricing-configs"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/device-config"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/pricing-config"] });
 
       toast({
         title: "Settings Saved",
