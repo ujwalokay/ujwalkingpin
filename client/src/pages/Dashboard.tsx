@@ -7,7 +7,7 @@ import { BookingTable } from "@/components/BookingTable";
 import { AddBookingDialog } from "@/components/AddBookingDialog";
 import { ExtendSessionDialog } from "@/components/ExtendSessionDialog";
 import { EndSessionDialog } from "@/components/EndSessionDialog";
-import { Plus, Monitor, Gamepad2, Glasses, Car } from "lucide-react";
+import { Plus, Monitor, Gamepad2, Glasses, Car, Cpu, Tv, Radio, Box } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { fetchBookings, createBooking, updateBooking, deleteBooking, fetchDeviceConfigs } from "@/lib/api";
 import type { Booking as DBBooking, DeviceConfig } from "@shared/schema";
@@ -28,26 +28,25 @@ interface Booking {
   bookingType: "walk-in" | "upcoming";
 }
 
-const iconMap = {
-  "PC": Monitor,
-  "PS5": Gamepad2,
-  "VR": Glasses,
-  "Car": Car,
+const availableIcons = [Monitor, Gamepad2, Glasses, Car, Cpu, Tv, Radio, Box];
+const availableColors = ["text-chart-1", "text-chart-2", "text-chart-3", "text-chart-4", "text-chart-5"];
+
+const getIconForCategory = (category: string, index: number) => {
+  const predefinedIcons: Record<string, any> = {
+    "PC": Monitor,
+    "PS5": Gamepad2,
+    "VR": Glasses,
+    "Car": Car,
+    "Xbox": Gamepad2,
+    "Nintendo": Gamepad2,
+    "Switch": Gamepad2,
+  };
+  return predefinedIcons[category] || availableIcons[index % availableIcons.length];
 };
 
-const colorMap = {
-  "PC": "text-chart-1",
-  "PS5": "text-chart-5",
-  "VR": "text-chart-2",
-  "Car": "text-chart-3",
+const getColorForCategory = (index: number) => {
+  return availableColors[index % availableColors.length];
 };
-
-const defaultCategories = [
-  { name: "PC", total: 10, icon: Monitor, color: "text-chart-1" },
-  { name: "PS5", total: 5, icon: Gamepad2, color: "text-chart-5" },
-  { name: "VR", total: 3, icon: Glasses, color: "text-chart-2" },
-  { name: "Car", total: 2, icon: Car, color: "text-chart-3" },
-];
 
 export default function Dashboard() {
   const { toast } = useToast();
@@ -67,14 +66,11 @@ export default function Dashboard() {
   });
 
   const categories = useMemo(() => {
-    if (deviceConfigs.length === 0) {
-      return defaultCategories;
-    }
-    return deviceConfigs.map(config => ({
+    return deviceConfigs.map((config, index) => ({
       name: config.category,
       total: config.count,
-      icon: iconMap[config.category as keyof typeof iconMap] || Monitor,
-      color: colorMap[config.category as keyof typeof colorMap] || "text-chart-1",
+      icon: getIconForCategory(config.category, index),
+      color: getColorForCategory(index),
     }));
   }, [deviceConfigs]);
 
