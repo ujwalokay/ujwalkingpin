@@ -11,6 +11,7 @@ export const insertBookingSchema = z.object({
   price: z.string(),
   status: z.string(),
   bookingType: z.string(),
+  pausedRemainingTime: z.number().optional(),
   foodOrders: z.array(z.object({
     foodId: z.string(),
     foodName: z.string(),
