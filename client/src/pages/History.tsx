@@ -2,14 +2,16 @@ import { useQuery } from "@tanstack/react-query";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
+import { Button } from "@/components/ui/button";
 import { ScrollArea } from "@/components/ui/scroll-area";
-import { Clock, User, Phone, DollarSign, Calendar } from "lucide-react";
+import { Clock, User, Phone, DollarSign, Calendar, Search } from "lucide-react";
 import { useState } from "react";
-import { format, isValid } from "date-fns";
+import { format, isValid, isSameDay, parseISO } from "date-fns";
 import type { Booking } from "@shared/schema";
 
 export default function History() {
   const [searchQuery, setSearchQuery] = useState("");
+  const [selectedDate, setSelectedDate] = useState<string>("");
 
   const { data: bookings = [], isLoading } = useQuery<Booking[]>({
     queryKey: ["/api/bookings"],
@@ -19,12 +21,21 @@ export default function History() {
 
   const filteredBookings = completedBookings.filter(booking => {
     const query = searchQuery.toLowerCase();
-    return (
+    const matchesSearch = 
       booking.customerName.toLowerCase().includes(query) ||
       booking.seatName.toLowerCase().includes(query) ||
       booking.whatsappNumber?.toLowerCase().includes(query) ||
-      booking.category.toLowerCase().includes(query)
-    );
+      booking.category.toLowerCase().includes(query);
+    
+    if (!matchesSearch) return false;
+    
+    if (selectedDate) {
+      const bookingDate = typeof booking.startTime === 'string' ? new Date(booking.startTime) : booking.startTime;
+      const filterDate = new Date(selectedDate);
+      return isValid(bookingDate) && isValid(filterDate) && isSameDay(bookingDate, filterDate);
+    }
+    
+    return true;
   });
 
   const formatDate = (date: Date | string) => {
@@ -82,15 +93,35 @@ export default function History() {
         </div>
       </div>
 
-      <div className="flex gap-4 flex-col sm:flex-row sm:items-center sm:justify-between">
-        <Input
-          placeholder="Search by customer, seat, phone, or category..."
-          value={searchQuery}
-          onChange={(e) => setSearchQuery(e.target.value)}
-          className="max-w-md"
-          data-testid="input-search-history"
-        />
-        <div className="text-sm text-muted-foreground" data-testid="text-booking-count">
+      <div className="flex gap-4 flex-col lg:flex-row lg:items-center lg:justify-between">
+        <div className="flex gap-2 flex-col sm:flex-row flex-1">
+          <Input
+            placeholder="Search by customer, seat, phone, or category..."
+            value={searchQuery}
+            onChange={(e) => setSearchQuery(e.target.value)}
+            className="flex-1 sm:max-w-xs"
+            data-testid="input-search-history"
+          />
+          <div className="flex gap-2">
+            <Input
+              type="date"
+              value={selectedDate}
+              onChange={(e) => setSelectedDate(e.target.value)}
+              className="w-full sm:w-auto"
+              data-testid="input-date-filter"
+            />
+            {selectedDate && (
+              <Button
+                variant="outline"
+                onClick={() => setSelectedDate("")}
+                data-testid="button-clear-date"
+              >
+                Clear
+              </Button>
+            )}
+          </div>
+        </div>
+        <div className="text-sm text-muted-foreground whitespace-nowrap" data-testid="text-booking-count">
           Total: {filteredBookings.length} bookings
         </div>
       </div>
