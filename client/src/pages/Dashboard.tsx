@@ -8,7 +8,7 @@ import { AddBookingDialog } from "@/components/AddBookingDialog";
 import { ExtendSessionDialog } from "@/components/ExtendSessionDialog";
 import { EndSessionDialog } from "@/components/EndSessionDialog";
 import { AddFoodToBookingDialog } from "@/components/AddFoodToBookingDialog";
-import { Plus, Monitor, Gamepad2, Glasses, Car, Cpu, Tv, Radio, Box } from "lucide-react";
+import { Plus, Monitor, Gamepad2, Glasses, Car, Cpu, Tv, Radio, Box, RefreshCw } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { fetchBookings, createBooking, updateBooking, deleteBooking, fetchDeviceConfigs } from "@/lib/api";
 import type { Booking as DBBooking, DeviceConfig } from "@shared/schema";
@@ -64,6 +64,7 @@ export default function Dashboard() {
   const [extendDialog, setExtendDialog] = useState({ open: false, bookingId: "" });
   const [deleteDialog, setDeleteDialog] = useState({ open: false, bookingId: "", seatName: "", customerName: "" });
   const [foodDialog, setFoodDialog] = useState({ open: false, bookingId: "", seatName: "", customerName: "" });
+  const [hideCompleted, setHideCompleted] = useState(false);
 
   const { data: dbBookings = [], isLoading } = useQuery({ 
     queryKey: ['bookings'], 
@@ -421,8 +422,24 @@ export default function Dashboard() {
     });
   };
 
-  const walkInBookings = bookings.filter(b => b.bookingType === "walk-in");
-  const upcomingBookings = bookings.filter(b => b.bookingType === "upcoming");
+  const handleRefresh = () => {
+    setHideCompleted(true);
+    queryClient.invalidateQueries({ queryKey: ['bookings'] });
+    toast({
+      title: "List Refreshed",
+      description: "Completed and expired bookings are now hidden",
+    });
+  };
+
+  const filteredBookings = useMemo(() => {
+    if (hideCompleted) {
+      return bookings.filter(b => b.status !== "completed" && b.status !== "expired");
+    }
+    return bookings;
+  }, [bookings, hideCompleted]);
+
+  const walkInBookings = filteredBookings.filter(b => b.bookingType === "walk-in");
+  const upcomingBookings = filteredBookings.filter(b => b.bookingType === "upcoming");
 
   if (isLoading) {
     return (
@@ -467,14 +484,25 @@ export default function Dashboard() {
       </div>
 
       <Tabs defaultValue="walk-in" className="space-y-4">
-        <TabsList data-testid="tabs-bookings">
-          <TabsTrigger value="walk-in" data-testid="tab-walk-in">
-            Walk-in List ({walkInBookings.length})
-          </TabsTrigger>
-          <TabsTrigger value="upcoming" data-testid="tab-upcoming">
-            Upcoming Bookings ({upcomingBookings.length})
-          </TabsTrigger>
-        </TabsList>
+        <div className="flex items-center justify-between gap-4">
+          <TabsList data-testid="tabs-bookings">
+            <TabsTrigger value="walk-in" data-testid="tab-walk-in">
+              Walk-in List ({walkInBookings.length})
+            </TabsTrigger>
+            <TabsTrigger value="upcoming" data-testid="tab-upcoming">
+              Upcoming Bookings ({upcomingBookings.length})
+            </TabsTrigger>
+          </TabsList>
+          <Button 
+            variant="outline" 
+            size="sm" 
+            onClick={handleRefresh}
+            data-testid="button-refresh-list"
+          >
+            <RefreshCw className="mr-2 h-4 w-4" />
+            Refresh List
+          </Button>
+        </div>
 
         <TabsContent value="walk-in" className="space-y-4">
           <BookingTable

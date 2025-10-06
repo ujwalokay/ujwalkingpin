@@ -353,64 +353,214 @@ export class MemStorage implements IStorage {
   }
 }
 
-export class PersistentStorage extends MemStorage {
-  private dataDir = path.join(process.cwd(), "data");
-  private bookingsFile = path.join(this.dataDir, "bookings.json");
-  private deviceConfigsFile = path.join(this.dataDir, "device-configs.json");
-  private pricingConfigsFile = path.join(this.dataDir, "pricing-configs.json");
-  private foodItemsFile = path.join(this.dataDir, "food-items.json");
-  private initialized = false;
+class PersistentStorage implements IStorage {
+  private memStorage: MemStorage;
+  private dataDir = path.join(process.cwd(), '.data');
+  private bookingsFile = path.join(this.dataDir, 'bookings.json');
+  private deviceConfigsFile = path.join(this.dataDir, 'device-configs.json');
+  private pricingConfigsFile = path.join(this.dataDir, 'pricing-configs.json');
+  private foodItemsFile = path.join(this.dataDir, 'food-items.json');
+  private isInitialized = false;
 
-  async ensureDataDir() {
+  constructor() {
+    this.memStorage = new MemStorage();
+    this.initialize();
+  }
+
+  private async initialize() {
     try {
       await fs.mkdir(this.dataDir, { recursive: true });
+      await this.loadData();
+      this.isInitialized = true;
+      console.log('Persistent storage initialized');
     } catch (error) {
-      console.error("Error creating data directory:", error);
+      console.error('Error initializing persistent storage:', error);
     }
   }
 
-  async loadData() {
-    if (this.initialized) return;
-    
-    await this.ensureDataDir();
-
+  private async loadData() {
     try {
-      const bookingsData = await fs.readFile(this.bookingsFile, "utf-8");
-      const bookings = JSON.parse(bookingsData);
-      this["bookings"] = new Map(
-        bookings.map((b: Booking) => [
-          b.id,
-          {
-            ...b,
-            startTime: new Date(b.startTime),
-            endTime: new Date(b.endTime),
-            createdAt: new Date(b.createdAt),
-          },
-        ])
-      );
-    } catch (error) {
-      console.log("No existing bookings file, starting fresh");
-    }
+      const [bookingsData, deviceConfigsData, pricingConfigsData, foodItemsData] = await Promise.allSettled([
+        fs.readFile(this.bookingsFile, 'utf-8').catch(() => null),
+        fs.readFile(this.deviceConfigsFile, 'utf-8').catch(() => null),
+        fs.readFile(this.pricingConfigsFile, 'utf-8').catch(() => null),
+        fs.readFile(this.foodItemsFile, 'utf-8').catch(() => null),
+      ]);
 
-    try {
-      const deviceConfigsData = await fs.readFile(this.deviceConfigsFile, "utf-8");
-      const deviceConfigs = JSON.parse(deviceConfigsData);
-      if (deviceConfigs.length > 0) {
-        this["deviceConfigs"] = new Map(deviceConfigs.map((c: DeviceConfig) => [c.id, c]));
+      if (bookingsData.status === 'fulfilled' && bookingsData.value) {
+        const bookings: Booking[] = JSON.parse(bookingsData.value);
+        for (const booking of bookings) {
+          booking.startTime = new Date(booking.startTime);
+          booking.endTime = new Date(booking.endTime);
+          booking.createdAt = new Date(booking.createdAt);
+          (this.memStorage as any).bookings.set(booking.id, booking);
+        }
+        console.log(`Loaded ${bookings.length} bookings from disk`);
+      }
+
+      if (deviceConfigsData.status === 'fulfilled' && deviceConfigsData.value) {
+        const deviceConfigs: DeviceConfig[] = JSON.parse(deviceConfigsData.value);
+        if (deviceConfigs.length > 0) {
+          (this.memStorage as any).deviceConfigs.clear();
+          for (const config of deviceConfigs) {
+            (this.memStorage as any).deviceConfigs.set(config.id, config);
+          }
+          console.log(`Loaded ${deviceConfigs.length} device configs from disk`);
+        }
+      }
+
+      if (pricingConfigsData.status === 'fulfilled' && pricingConfigsData.value) {
+        const pricingConfigs: PricingConfig[] = JSON.parse(pricingConfigsData.value);
+        if (pricingConfigs.length > 0) {
+          (this.memStorage as any).pricingConfigs.clear();
+          for (const config of pricingConfigs) {
+            (this.memStorage as any).pricingConfigs.set(config.id, config);
+          }
+          console.log(`Loaded ${pricingConfigs.length} pricing configs from disk`);
+        }
+      }
+
+      if (foodItemsData.status === 'fulfilled' && foodItemsData.value) {
+        const foodItems: FoodItem[] = JSON.parse(foodItemsData.value);
+        if (foodItems.length > 0) {
+          (this.memStorage as any).foodItems.clear();
+          for (const item of foodItems) {
+            (this.memStorage as any).foodItems.set(item.id, item);
+          }
+          console.log(`Loaded ${foodItems.length} food items from disk`);
+        }
       }
     } catch (error) {
-      console.log("No existing device configs file, using defaults");
+      console.error('Error loading data from disk:', error);
+    }
+  }
+
+  private async saveData() {
+    if (!this.isInitialized) {
+      setTimeout(() => this.saveData(), 100);
+      return;
     }
 
     try {
-      const pricingConfigsData = await fs.readFile(this.pricingConfigsFile, "utf-8");
-      const pricingConfigs = JSON.parse(pricingConfigsData);
-      if (pricingConfigs.length > 0) {
-        this["pricingConfigs"] = new Map(pricingConfigs.map((c: PricingConfig) => [c.id, c]));
-      }
+      const bookings = await this.memStorage.getAllBookings();
+      const deviceConfigs = await this.memStorage.getAllDeviceConfigs();
+      const pricingConfigs = await this.memStorage.getAllPricingConfigs();
+      const foodItems = await this.memStorage.getAllFoodItems();
+
+      await Promise.all([
+        fs.writeFile(this.bookingsFile, JSON.stringify(bookings, null, 2)),
+        fs.writeFile(this.deviceConfigsFile, JSON.stringify(deviceConfigs, null, 2)),
+        fs.writeFile(this.pricingConfigsFile, JSON.stringify(pricingConfigs, null, 2)),
+        fs.writeFile(this.foodItemsFile, JSON.stringify(foodItems, null, 2)),
+      ]);
     } catch (error) {
-      console.log("No existing pricing configs file, using defaults");
+      console.error('Error saving data to disk:', error);
     }
+  }
 
-    try {
-      const foodItemsData = await fs.read
+  async getAllBookings(): Promise<Booking[]> {
+    return this.memStorage.getAllBookings();
+  }
+
+  async getBooking(id: string): Promise<Booking | undefined> {
+    return this.memStorage.getBooking(id);
+  }
+
+  async getActiveBookings(): Promise<Booking[]> {
+    return this.memStorage.getActiveBookings();
+  }
+
+  async createBooking(booking: InsertBooking): Promise<Booking> {
+    const result = await this.memStorage.createBooking(booking);
+    await this.saveData();
+    return result;
+  }
+
+  async updateBooking(id: string, data: Partial<InsertBooking>): Promise<Booking | undefined> {
+    const result = await this.memStorage.updateBooking(id, data);
+    await this.saveData();
+    return result;
+  }
+
+  async deleteBooking(id: string): Promise<boolean> {
+    const result = await this.memStorage.deleteBooking(id);
+    await this.saveData();
+    return result;
+  }
+
+  async getBookingStats(startDate: Date, endDate: Date): Promise<BookingStats> {
+    return this.memStorage.getBookingStats(startDate, endDate);
+  }
+
+  async getBookingHistory(startDate: Date, endDate: Date): Promise<BookingHistoryItem[]> {
+    return this.memStorage.getBookingHistory(startDate, endDate);
+  }
+
+  async getAllDeviceConfigs(): Promise<DeviceConfig[]> {
+    return this.memStorage.getAllDeviceConfigs();
+  }
+
+  async getDeviceConfig(category: string): Promise<DeviceConfig | undefined> {
+    return this.memStorage.getDeviceConfig(category);
+  }
+
+  async upsertDeviceConfig(config: InsertDeviceConfig): Promise<DeviceConfig> {
+    const result = await this.memStorage.upsertDeviceConfig(config);
+    await this.saveData();
+    return result;
+  }
+
+  async deleteDeviceConfig(category: string): Promise<boolean> {
+    const result = await this.memStorage.deleteDeviceConfig(category);
+    await this.saveData();
+    return result;
+  }
+
+  async getAllPricingConfigs(): Promise<PricingConfig[]> {
+    return this.memStorage.getAllPricingConfigs();
+  }
+
+  async getPricingConfigsByCategory(category: string): Promise<PricingConfig[]> {
+    return this.memStorage.getPricingConfigsByCategory(category);
+  }
+
+  async upsertPricingConfigs(category: string, configs: InsertPricingConfig[]): Promise<PricingConfig[]> {
+    const result = await this.memStorage.upsertPricingConfigs(category, configs);
+    await this.saveData();
+    return result;
+  }
+
+  async deletePricingConfig(category: string): Promise<boolean> {
+    const result = await this.memStorage.deletePricingConfig(category);
+    await this.saveData();
+    return result;
+  }
+
+  async getAllFoodItems(): Promise<FoodItem[]> {
+    return this.memStorage.getAllFoodItems();
+  }
+
+  async getFoodItem(id: string): Promise<FoodItem | undefined> {
+    return this.memStorage.getFoodItem(id);
+  }
+
+  async createFoodItem(item: InsertFoodItem): Promise<FoodItem> {
+    const result = await this.memStorage.createFoodItem(item);
+    await this.saveData();
+    return result;
+  }
+
+  async updateFoodItem(id: string, item: InsertFoodItem): Promise<FoodItem | undefined> {
+    const result = await this.memStorage.updateFoodItem(id, item);
+    await this.saveData();
+    return result;
+  }
+
+  async deleteFoodItem(id: string): Promise<boolean> {
+    const result = await this.memStorage.deleteFoodItem(id);
+    await this.saveData();
+    return result;
+  }
+}
+
+export const storage = new PersistentStorage();
