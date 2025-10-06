@@ -67,9 +67,19 @@ export default function History() {
 
   return (
     <div className="space-y-6">
-      <div>
-        <h1 className="text-3xl font-bold" data-testid="heading-history">Booking History</h1>
-        <p className="text-muted-foreground mt-2">View all completed bookings</p>
+      <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-2">
+        <div>
+          <h1 className="text-3xl font-bold" data-testid="heading-history">Booking History</h1>
+          <p className="text-muted-foreground mt-2">View all completed bookings</p>
+        </div>
+        <div className="text-sm text-muted-foreground" data-testid="text-current-date">
+          {new Date().toLocaleDateString('en-IN', { 
+            weekday: 'short', 
+            year: 'numeric', 
+            month: 'short', 
+            day: 'numeric' 
+          })}
+        </div>
       </div>
 
       <div className="flex gap-4 flex-col sm:flex-row sm:items-center sm:justify-between">
