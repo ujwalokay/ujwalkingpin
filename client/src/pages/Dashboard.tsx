@@ -7,12 +7,20 @@ import { BookingTable } from "@/components/BookingTable";
 import { AddBookingDialog } from "@/components/AddBookingDialog";
 import { ExtendSessionDialog } from "@/components/ExtendSessionDialog";
 import { EndSessionDialog } from "@/components/EndSessionDialog";
+import { AddFoodToBookingDialog } from "@/components/AddFoodToBookingDialog";
 import { Plus, Monitor, Gamepad2, Glasses, Car, Cpu, Tv, Radio, Box } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { fetchBookings, createBooking, updateBooking, deleteBooking, fetchDeviceConfigs } from "@/lib/api";
 import type { Booking as DBBooking, DeviceConfig } from "@shared/schema";
 
 type BookingStatus = "available" | "running" | "expired" | "upcoming" | "completed";
+
+interface FoodOrder {
+  foodId: string;
+  foodName: string;
+  price: string;
+  quantity: number;
+}
 
 interface Booking {
   id: string;
@@ -26,6 +34,7 @@ interface Booking {
   price: number;
   status: BookingStatus;
   bookingType: "walk-in" | "upcoming";
+  foodOrders?: FoodOrder[];
 }
 
 const availableIcons = [Monitor, Gamepad2, Glasses, Car, Cpu, Tv, Radio, Box];
@@ -54,6 +63,7 @@ export default function Dashboard() {
   const [addDialog, setAddDialog] = useState(false);
   const [extendDialog, setExtendDialog] = useState({ open: false, bookingId: "" });
   const [deleteDialog, setDeleteDialog] = useState({ open: false, bookingId: "", seatName: "", customerName: "" });
+  const [foodDialog, setFoodDialog] = useState({ open: false, bookingId: "", seatName: "", customerName: "" });
 
   const { data: dbBookings = [], isLoading } = useQuery({ 
     queryKey: ['bookings'], 
@@ -87,6 +97,7 @@ export default function Dashboard() {
       price: parseFloat(dbBooking.price),
       status: dbBooking.status as BookingStatus,
       bookingType: dbBooking.bookingType as "walk-in" | "upcoming",
+      foodOrders: dbBooking.foodOrders || [],
     }));
   }, [dbBookings]);
 
@@ -293,6 +304,57 @@ export default function Dashboard() {
     }
   };
 
+  const handleAddFood = (bookingId: string) => {
+    const booking = bookings.find(b => b.id === bookingId);
+    if (booking) {
+      setFoodDialog({ 
+        open: true, 
+        bookingId, 
+        seatName: booking.seatName, 
+        customerName: booking.customerName 
+      });
+    }
+  };
+
+  const addFoodMutation = useMutation({
+    mutationFn: ({ id, foodOrders, additionalCost }: { 
+      id: string; 
+      foodOrders: FoodOrder[];
+      additionalCost: number;
+    }) => {
+      const booking = bookings.find(b => b.id === id);
+      if (!booking) throw new Error("Booking not found");
+      
+      const existingFoodOrders = booking.foodOrders || [];
+      const allFoodOrders = [...existingFoodOrders, ...foodOrders];
+      const newPrice = (parseFloat(booking.price.toString()) + additionalCost).toFixed(2);
+      
+      return updateBooking(id, { 
+        foodOrders: allFoodOrders as any,
+        price: newPrice 
+      });
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['bookings'] });
+    },
+  });
+
+  const handleConfirmAddFood = async (bookingId: string, foodOrders: FoodOrder[]) => {
+    const additionalCost = foodOrders.reduce(
+      (sum, order) => sum + parseFloat(order.price) * order.quantity,
+      0
+    );
+    
+    await addFoodMutation.mutateAsync({ id: bookingId, foodOrders, additionalCost });
+    
+    toast({
+      title: "Food Added",
+      description: `Food items added to ${foodDialog.seatName} - ₹${additionalCost.toFixed(0)}`,
+    });
+    
+    setFoodDialog({ open: false, bookingId: "", seatName: "", customerName: "" });
+  };
+
   const walkInBookings = bookings.filter(b => b.bookingType === "walk-in");
   const upcomingBookings = bookings.filter(b => b.bookingType === "upcoming");
 
@@ -354,6 +416,7 @@ export default function Dashboard() {
             onExtend={handleExtend}
             onEnd={handleDelete}
             onComplete={handleComplete}
+            onAddFood={handleAddFood}
           />
         </TabsContent>
 
@@ -362,6 +425,7 @@ export default function Dashboard() {
             bookings={upcomingBookings}
             onEnd={handleDelete}
             onComplete={handleComplete}
+            onAddFood={handleAddFood}
           />
         </TabsContent>
       </Tabs>
@@ -386,6 +450,15 @@ export default function Dashboard() {
         seatName={deleteDialog.seatName}
         customerName={deleteDialog.customerName}
         onConfirm={handleConfirmDelete}
+      />
+
+      <AddFoodToBookingDialog
+        open={foodDialog.open}
+        onOpenChange={(open) => setFoodDialog({ ...foodDialog, open })}
+        bookingId={foodDialog.bookingId}
+        seatName={foodDialog.seatName}
+        customerName={foodDialog.customerName}
+        onConfirm={handleConfirmAddFood}
       />
     </div>
   );
