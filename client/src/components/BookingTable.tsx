@@ -11,7 +11,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { StatusBadge } from "./StatusBadge";
 import { SessionTimer } from "./SessionTimer";
-import { Clock, X, Check, UtensilsCrossed, Search, Plus, MoreVertical } from "lucide-react";
+import { Clock, X, Check, UtensilsCrossed, Search, Plus, MoreVertical, StopCircle, Trash2 } from "lucide-react";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -51,9 +51,11 @@ interface BookingTableProps {
   onEnd?: (id: string) => void;
   onComplete?: (id: string) => void;
   onAddFood?: (id: string) => void;
+  onStopTimer?: (id: string) => void;
+  onDeleteFood?: (bookingId: string, foodIndex: number) => void;
 }
 
-export function BookingTable({ bookings, onExtend, onEnd, onComplete, onAddFood }: BookingTableProps) {
+export function BookingTable({ bookings, onExtend, onEnd, onComplete, onAddFood, onStopTimer, onDeleteFood }: BookingTableProps) {
   const [searchTerm, setSearchTerm] = useState("");
 
   const filteredBookings = bookings.filter((booking) => {
@@ -162,13 +164,26 @@ export function BookingTable({ bookings, onExtend, onEnd, onComplete, onAddFood 
                                     className="flex justify-between items-center py-1 border-b last:border-0"
                                     data-testid={`food-order-${booking.id}-${index}`}
                                   >
-                                    <div>
+                                    <div className="flex-1">
                                       <p className="text-sm font-medium">{order.foodName}</p>
                                       <p className="text-xs text-muted-foreground">Qty: {order.quantity}</p>
                                     </div>
-                                    <p className="text-sm font-semibold">
-                                      ₹{(parseFloat(order.price) * order.quantity).toFixed(0)}
-                                    </p>
+                                    <div className="flex items-center gap-2">
+                                      <p className="text-sm font-semibold">
+                                        ₹{(parseFloat(order.price) * order.quantity).toFixed(0)}
+                                      </p>
+                                      {onDeleteFood && (
+                                        <Button
+                                          variant="ghost"
+                                          size="icon"
+                                          className="h-6 w-6 text-destructive hover:text-destructive"
+                                          onClick={() => onDeleteFood(booking.id, index)}
+                                          data-testid={`button-delete-food-${booking.id}-${index}`}
+                                        >
+                                          <Trash2 className="h-3 w-3" />
+                                        </Button>
+                                      )}
+                                    </div>
                                   </div>
                                 ))}
                               </div>
@@ -211,6 +226,15 @@ export function BookingTable({ bookings, onExtend, onEnd, onComplete, onAddFood 
                               Extend Time
                             </DropdownMenuItem>
                           )}
+                          {booking.status === "running" && onStopTimer && (
+                            <DropdownMenuItem
+                              onClick={() => onStopTimer(booking.id)}
+                              data-testid={`action-stop-timer-${booking.id}`}
+                            >
+                              <StopCircle className="mr-2 h-4 w-4" />
+                              Stop Timer
+                            </DropdownMenuItem>
+                          )}
                           {booking.status === "running" && onComplete && (
                             <DropdownMenuItem
                               onClick={() => onComplete(booking.id)}
@@ -220,7 +244,7 @@ export function BookingTable({ bookings, onExtend, onEnd, onComplete, onAddFood 
                               Over (Complete)
                             </DropdownMenuItem>
                           )}
-                          {(booking.status === "running" || booking.status === "upcoming") && onEnd && (
+                          {(booking.status === "running" || booking.status === "upcoming" || booking.status === "completed") && onEnd && (
                             <DropdownMenuItem
                               onClick={() => onEnd(booking.id)}
                               className="text-destructive"
