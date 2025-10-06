@@ -121,7 +121,7 @@ export function AddBookingDialog({ open, onOpenChange, onConfirm, availableSeats
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-md" data-testid="dialog-add-booking">
+      <DialogContent className="max-w-md sm:max-w-lg md:max-w-2xl max-h-[90vh] overflow-y-auto" data-testid="dialog-add-booking">
         <DialogHeader>
           <DialogTitle>Add New Booking</DialogTitle>
           <DialogDescription>
@@ -165,7 +165,7 @@ export function AddBookingDialog({ open, onOpenChange, onConfirm, availableSeats
               <Label>
                 Select Seats ({selectedSeats.length} selected)
               </Label>
-              <div className="grid grid-cols-4 gap-2 max-h-48 overflow-y-auto p-2 border rounded-md">
+              <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-2 max-h-48 overflow-y-auto p-2 border rounded-md">
                 {selectedCategory.seats.map((seat) => (
                   <div
                     key={seat}
@@ -219,8 +219,8 @@ export function AddBookingDialog({ open, onOpenChange, onConfirm, availableSeats
           {category && (
             <div className="space-y-2">
               <Label htmlFor="duration">Duration</Label>
-              <div className="flex items-center gap-3">
-                <div className="flex items-center gap-2 flex-1">
+              <div className="flex flex-col sm:flex-row items-start sm:items-center gap-3">
+                <div className="flex items-center gap-2 flex-1 w-full sm:w-auto">
                   <div className="flex items-center gap-1">
                     <Input
                       type="number"
@@ -285,14 +285,15 @@ export function AddBookingDialog({ open, onOpenChange, onConfirm, availableSeats
           )}
         </div>
 
-        <DialogFooter>
-          <Button variant="outline" onClick={() => onOpenChange(false)} data-testid="button-cancel-booking">
+        <DialogFooter className="flex-col sm:flex-row gap-2 sm:gap-0">
+          <Button variant="outline" onClick={() => onOpenChange(false)} data-testid="button-cancel-booking" className="w-full sm:w-auto">
             Cancel
           </Button>
           <Button 
             onClick={handleConfirm} 
             disabled={!category || selectedSeats.length === 0 || !customerName || !duration || (bookingType === "upcoming" && !whatsappNumber.trim())}
             data-testid="button-confirm-booking"
+            className="w-full sm:w-auto"
           >
             Add Booking {selectedSeats.length > 0 && `(${selectedSeats.length} seats)`}
           </Button>
