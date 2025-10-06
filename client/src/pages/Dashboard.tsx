@@ -356,6 +356,49 @@ export default function Dashboard() {
     setFoodDialog({ open: false, bookingId: "", seatName: "", customerName: "" });
   };
 
+  const handleStopTimer = async (bookingId: string) => {
+    const booking = bookings.find(b => b.id === bookingId);
+    if (booking) {
+      const now = new Date();
+      await completeBookingMutation.mutateAsync({
+        id: bookingId,
+        data: { 
+          status: "completed",
+          endTime: now.toISOString() as any
+        },
+      });
+      toast({
+        title: "Timer Stopped",
+        description: `${booking.seatName} - Session stopped and marked complete`,
+      });
+    }
+  };
+
+  const handleDeleteFood = async (bookingId: string, foodIndex: number) => {
+    const booking = bookings.find(b => b.id === bookingId);
+    if (!booking || !booking.foodOrders) return;
+    
+    const foodItem = booking.foodOrders[foodIndex];
+    const foodItemCost = parseFloat(foodItem.price) * foodItem.quantity;
+    
+    const updatedFoodOrders = booking.foodOrders.filter((_, index) => index !== foodIndex);
+    const newPrice = (booking.price - foodItemCost).toString();
+    
+    await completeBookingMutation.mutateAsync({
+      id: bookingId,
+      data: { 
+        foodOrders: updatedFoodOrders as any,
+        price: newPrice
+      },
+    });
+    
+    toast({
+      title: "Food Item Removed",
+      description: `${foodItem.foodName} removed from ${booking.seatName}`,
+      variant: "destructive",
+    });
+  };
+
   const walkInBookings = bookings.filter(b => b.bookingType === "walk-in");
   const upcomingBookings = bookings.filter(b => b.bookingType === "upcoming");
 
@@ -418,6 +461,8 @@ export default function Dashboard() {
             onEnd={handleDelete}
             onComplete={handleComplete}
             onAddFood={handleAddFood}
+            onStopTimer={handleStopTimer}
+            onDeleteFood={handleDeleteFood}
           />
         </TabsContent>
 
@@ -427,6 +472,8 @@ export default function Dashboard() {
             onEnd={handleDelete}
             onComplete={handleComplete}
             onAddFood={handleAddFood}
+            onStopTimer={handleStopTimer}
+            onDeleteFood={handleDeleteFood}
           />
         </TabsContent>
       </Tabs>
