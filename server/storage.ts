@@ -5,6 +5,8 @@ import {
   type InsertDeviceConfig,
   type PricingConfig,
   type InsertPricingConfig,
+  type FoodItem,
+  type InsertFoodItem,
 } from "@shared/schema";
 
 export interface BookingStats {
@@ -43,12 +45,19 @@ export interface IStorage {
   getPricingConfigsByCategory(category: string): Promise<PricingConfig[]>;
   upsertPricingConfigs(category: string, configs: InsertPricingConfig[]): Promise<PricingConfig[]>;
   deletePricingConfig(category: string): Promise<boolean>;
+  
+  getAllFoodItems(): Promise<FoodItem[]>;
+  getFoodItem(id: string): Promise<FoodItem | undefined>;
+  createFoodItem(item: InsertFoodItem): Promise<FoodItem>;
+  updateFoodItem(id: string, item: InsertFoodItem): Promise<FoodItem | undefined>;
+  deleteFoodItem(id: string): Promise<boolean>;
 }
 
 export class MemStorage implements IStorage {
   private bookings: Map<string, Booking> = new Map();
   private deviceConfigs: Map<string, DeviceConfig> = new Map();
   private pricingConfigs: Map<string, PricingConfig> = new Map();
+  private foodItems: Map<string, FoodItem> = new Map();
 
   constructor() {
     this.initializeDefaults();
@@ -96,6 +105,21 @@ export class MemStorage implements IStorage {
 
     pcPricingConfigs.forEach(config => this.pricingConfigs.set(config.id, config));
     ps5PricingConfigs.forEach(config => this.pricingConfigs.set(config.id, config));
+
+    const sampleFoodItems: FoodItem[] = [
+      { id: crypto.randomUUID(), name: "Pizza", price: "8" },
+      { id: crypto.randomUUID(), name: "Burger", price: "6" },
+      { id: crypto.randomUUID(), name: "Fries", price: "3" },
+      { id: crypto.randomUUID(), name: "Soda", price: "2" },
+      { id: crypto.randomUUID(), name: "Water", price: "1" },
+      { id: crypto.randomUUID(), name: "Sandwich", price: "5" },
+      { id: crypto.randomUUID(), name: "Hot Dog", price: "4" },
+      { id: crypto.randomUUID(), name: "Coffee", price: "3" },
+      { id: crypto.randomUUID(), name: "Energy Drink", price: "4" },
+      { id: crypto.randomUUID(), name: "Nachos", price: "5" },
+    ];
+
+    sampleFoodItems.forEach(item => this.foodItems.set(item.id, item));
   }
 
   async getAllBookings(): Promise<Booking[]> {
@@ -118,6 +142,7 @@ export class MemStorage implements IStorage {
       ...booking,
       startTime: typeof booking.startTime === 'string' ? new Date(booking.startTime) : booking.startTime,
       endTime: typeof booking.endTime === 'string' ? new Date(booking.endTime) : booking.endTime,
+      foodOrders: booking.foodOrders || [],
       id,
       createdAt: new Date()
     };
@@ -273,6 +298,34 @@ export class MemStorage implements IStorage {
       return true;
     }
     return false;
+  }
+
+  async getAllFoodItems(): Promise<FoodItem[]> {
+    return Array.from(this.foodItems.values());
+  }
+
+  async getFoodItem(id: string): Promise<FoodItem | undefined> {
+    return this.foodItems.get(id);
+  }
+
+  async createFoodItem(item: InsertFoodItem): Promise<FoodItem> {
+    const id = crypto.randomUUID();
+    const newItem: FoodItem = { ...item, id };
+    this.foodItems.set(id, newItem);
+    return newItem;
+  }
+
+  async updateFoodItem(id: string, item: InsertFoodItem): Promise<FoodItem | undefined> {
+    const existing = this.foodItems.get(id);
+    if (!existing) return undefined;
+    
+    const updated = { ...existing, ...item };
+    this.foodItems.set(id, updated);
+    return updated;
+  }
+
+  async deleteFoodItem(id: string): Promise<boolean> {
+    return this.foodItems.delete(id);
   }
 }
 
