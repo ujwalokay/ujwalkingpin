@@ -284,7 +284,7 @@ export default function Dashboard() {
   };
 
   const completeBookingMutation = useMutation({
-    mutationFn: ({ id, data }: { id: string; data: Partial<{ status: string }> }) =>
+    mutationFn: ({ id, data }: { id: string; data: any }) =>
       updateBooking(id, data),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['bookings'] });
