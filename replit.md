@@ -10,6 +10,17 @@ Preferred communication style: Simple, everyday language.
 
 ## Recent Changes
 
+**October 6, 2025 - Pause/Resume Timer Functionality**
+- Implemented pause/resume toggle for running gaming sessions
+- Added "Pause Timer" button for running bookings to pause the countdown
+- Added "Resume Timer" button for paused bookings to continue from where it left off
+- Introduced "paused" status with yellow badge indicator
+- Added pausedRemainingTime field to booking schema to store remaining time when paused
+- Paused seats are still counted as occupied to prevent double booking
+- Updated UI to show "Paused" indicator in timer column for paused sessions
+- Delete food items functionality - can now remove individual food items from bookings
+- Extended delete capability to completed bookings for better history management
+
 **October 5, 2025 - Dynamic Category Management**
 - Implemented fully dynamic device category system - users can now add/delete any device type
 - Added "Add Category" functionality in Settings with dialog UI for creating new categories
