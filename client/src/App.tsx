@@ -10,6 +10,7 @@ import Settings from "@/pages/Settings";
 import Reports from "@/pages/Reports";
 import Food from "@/pages/Food";
 import Timeline from "@/pages/Timeline";
+import History from "@/pages/History";
 import NotFound from "@/pages/not-found";
 
 function Router() {
@@ -17,9 +18,10 @@ function Router() {
     <Switch>
       <Route path="/" component={Dashboard} />
       <Route path="/timeline" component={Timeline} />
+      <Route path="/history" component={History} />
+      <Route path="/food" component={Food} />
       <Route path="/settings" component={Settings} />
       <Route path="/reports" component={Reports} />
-      <Route path="/food" component={Food} />
       <Route component={NotFound} />
     </Switch>
   );

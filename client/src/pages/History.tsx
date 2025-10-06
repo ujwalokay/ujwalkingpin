@@ -1,0 +1,172 @@
+import { useQuery } from "@tanstack/react-query";
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { Badge } from "@/components/ui/badge";
+import { Input } from "@/components/ui/input";
+import { ScrollArea } from "@/components/ui/scroll-area";
+import { Clock, User, Phone, DollarSign, Calendar } from "lucide-react";
+import { useState } from "react";
+import { format, isValid } from "date-fns";
+import type { Booking } from "@shared/schema";
+
+export default function History() {
+  const [searchQuery, setSearchQuery] = useState("");
+
+  const { data: bookings = [], isLoading } = useQuery<Booking[]>({
+    queryKey: ["/api/bookings"],
+  });
+
+  const completedBookings = bookings.filter(booking => booking.status === "completed");
+
+  const filteredBookings = completedBookings.filter(booking => {
+    const query = searchQuery.toLowerCase();
+    return (
+      booking.customerName.toLowerCase().includes(query) ||
+      booking.seatName.toLowerCase().includes(query) ||
+      booking.whatsappNumber?.toLowerCase().includes(query) ||
+      booking.category.toLowerCase().includes(query)
+    );
+  });
+
+  const formatDate = (date: Date | string) => {
+    const d = typeof date === 'string' ? new Date(date) : date;
+    return isValid(d) ? format(d, 'MMM dd, yyyy hh:mm a') : 'N/A';
+  };
+
+  const calculateDuration = (startTime: Date | string, endTime: Date | string) => {
+    const start = typeof startTime === 'string' ? new Date(startTime) : startTime;
+    const end = typeof endTime === 'string' ? new Date(endTime) : endTime;
+    
+    if (!isValid(start) || !isValid(end)) return 'N/A';
+    
+    const diffMs = end.getTime() - start.getTime();
+    const diffMins = Math.round(diffMs / 60000);
+    const hours = Math.floor(diffMins / 60);
+    const mins = diffMins % 60;
+    
+    if (hours === 0) return `${mins}m`;
+    if (mins === 0) return `${hours}h`;
+    return `${hours}h ${mins}m`;
+  };
+
+  const calculateTotal = (booking: Booking) => {
+    const basePrice = parseFloat(booking.price);
+    const foodTotal = booking.foodOrders?.reduce((sum, order) => sum + (parseFloat(order.price) * order.quantity), 0) || 0;
+    return basePrice + foodTotal;
+  };
+
+  if (isLoading) {
+    return (
+      <div className="space-y-6">
+        <div>
+          <h1 className="text-3xl font-bold">Booking History</h1>
+          <p className="text-muted-foreground mt-2">Loading...</p>
+        </div>
+      </div>
+    );
+  }
+
+  return (
+    <div className="space-y-6">
+      <div>
+        <h1 className="text-3xl font-bold" data-testid="heading-history">Booking History</h1>
+        <p className="text-muted-foreground mt-2">View all completed bookings</p>
+      </div>
+
+      <div className="flex gap-4 flex-col sm:flex-row sm:items-center sm:justify-between">
+        <Input
+          placeholder="Search by customer, seat, phone, or category..."
+          value={searchQuery}
+          onChange={(e) => setSearchQuery(e.target.value)}
+          className="max-w-md"
+          data-testid="input-search-history"
+        />
+        <div className="text-sm text-muted-foreground" data-testid="text-booking-count">
+          Total: {filteredBookings.length} bookings
+        </div>
+      </div>
+
+      <ScrollArea className="h-[calc(100vh-280px)]">
+        {filteredBookings.length === 0 ? (
+          <Card>
+            <CardContent className="flex items-center justify-center py-12">
+              <p className="text-muted-foreground" data-testid="text-no-history">
+                {searchQuery ? "No bookings found matching your search" : "No completed bookings yet"}
+              </p>
+            </CardContent>
+          </Card>
+        ) : (
+          <div className="grid gap-4 sm:grid-cols-1 md:grid-cols-2 lg:grid-cols-3">
+            {filteredBookings.map((booking) => (
+              <Card key={booking.id} className="hover:shadow-lg transition-shadow" data-testid={`card-booking-${booking.id}`}>
+                <CardHeader className="pb-3">
+                  <div className="flex items-start justify-between">
+                    <div>
+                      <CardTitle className="text-lg" data-testid={`text-seat-${booking.id}`}>
+                        {booking.seatName}
+                      </CardTitle>
+                      <CardDescription className="mt-1">
+                        <Badge variant="secondary" className="text-xs">
+                          {booking.category}
+                        </Badge>
+                      </CardDescription>
+                    </div>
+                    <Badge variant="outline" className="bg-green-50 dark:bg-green-950 text-green-700 dark:text-green-300">
+                      Completed
+                    </Badge>
+                  </div>
+                </CardHeader>
+                <CardContent className="space-y-3 text-sm">
+                  <div className="flex items-center gap-2" data-testid={`text-customer-${booking.id}`}>
+                    <User className="h-4 w-4 text-muted-foreground" />
+                    <span className="font-medium">{booking.customerName}</span>
+                  </div>
+                  
+                  {booking.whatsappNumber && (
+                    <div className="flex items-center gap-2" data-testid={`text-phone-${booking.id}`}>
+                      <Phone className="h-4 w-4 text-muted-foreground" />
+                      <span className="text-muted-foreground">{booking.whatsappNumber}</span>
+                    </div>
+                  )}
+                  
+                  <div className="flex items-center gap-2" data-testid={`text-start-time-${booking.id}`}>
+                    <Calendar className="h-4 w-4 text-muted-foreground" />
+                    <span className="text-muted-foreground">{formatDate(booking.startTime)}</span>
+                  </div>
+                  
+                  <div className="flex items-center gap-2" data-testid={`text-duration-${booking.id}`}>
+                    <Clock className="h-4 w-4 text-muted-foreground" />
+                    <span className="text-muted-foreground">
+                      Duration: {calculateDuration(booking.startTime, booking.endTime)}
+                    </span>
+                  </div>
+
+                  {booking.foodOrders && booking.foodOrders.length > 0 && (
+                    <div className="pt-2 border-t">
+                      <p className="text-xs font-medium mb-2">Food Orders:</p>
+                      <div className="space-y-1">
+                        {booking.foodOrders.map((order, idx) => (
+                          <div key={idx} className="text-xs text-muted-foreground flex justify-between">
+                            <span>{order.foodName} x{order.quantity}</span>
+                            <span>₹{parseFloat(order.price) * order.quantity}</span>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+                  
+                  <div className="flex items-center justify-between pt-2 border-t" data-testid={`text-total-${booking.id}`}>
+                    <div className="flex items-center gap-2">
+                      <DollarSign className="h-4 w-4 text-muted-foreground" />
+                      <span className="font-semibold">Total</span>
+                    </div>
+                    <span className="font-bold text-lg">₹{calculateTotal(booking)}</span>
+                  </div>
+                </CardContent>
+              </Card>
+            ))}
+          </div>
+        )}
+      </ScrollArea>
+    </div>
+  );
+}
