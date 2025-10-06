@@ -206,6 +206,7 @@ export default function Dashboard() {
         price: newBooking.price.toString(),
         status: newBooking.bookingType === "walk-in" ? "running" : "upcoming",
         bookingType: newBooking.bookingType,
+        foodOrders: [],
       });
     }
     

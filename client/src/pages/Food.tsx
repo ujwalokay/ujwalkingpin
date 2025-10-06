@@ -6,7 +6,7 @@ import { Plus, Pencil, Trash2, UtensilsCrossed } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Label } from "@/components/ui/label";
-import { queryClient, apiRequest } from "@/lib/queryClient";
+import { queryClient } from "@/lib/queryClient";
 import type { FoodItem } from "@shared/schema";
 
 export default function Food() {
@@ -28,12 +28,15 @@ export default function Food() {
   });
 
   const createMutation = useMutation({
-    mutationFn: (data: { name: string; price: string }) =>
-      apiRequest("/api/food-items", {
+    mutationFn: async (data: { name: string; price: string }) => {
+      const response = await fetch("/api/food-items", {
         method: "POST",
         body: JSON.stringify(data),
         headers: { "Content-Type": "application/json" },
-      }),
+      });
+      if (!response.ok) throw new Error("Failed to create food item");
+      return response.json();
+    },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["/api/food-items"] });
       toast({ title: "Food Item Added", description: "New item has been added to the menu" });
@@ -43,12 +46,15 @@ export default function Food() {
   });
 
   const updateMutation = useMutation({
-    mutationFn: ({ id, data }: { id: string; data: { name: string; price: string } }) =>
-      apiRequest(`/api/food-items/${id}`, {
+    mutationFn: async ({ id, data }: { id: string; data: { name: string; price: string } }) => {
+      const response = await fetch(`/api/food-items/${id}`, {
         method: "PATCH",
         body: JSON.stringify(data),
         headers: { "Content-Type": "application/json" },
-      }),
+      });
+      if (!response.ok) throw new Error("Failed to update food item");
+      return response.json();
+    },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["/api/food-items"] });
       toast({ title: "Food Item Updated", description: "Item has been updated successfully" });
@@ -57,8 +63,11 @@ export default function Food() {
   });
 
   const deleteMutation = useMutation({
-    mutationFn: (id: string) =>
-      apiRequest(`/api/food-items/${id}`, { method: "DELETE" }),
+    mutationFn: async (id: string) => {
+      const response = await fetch(`/api/food-items/${id}`, { method: "DELETE" });
+      if (!response.ok) throw new Error("Failed to delete food item");
+      return response.json();
+    },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["/api/food-items"] });
       toast({ title: "Food Item Deleted", description: "Item has been removed from the menu", variant: "destructive" });

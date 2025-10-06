@@ -9,10 +9,9 @@ import {
 } from "@/components/ui/table";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Checkbox } from "@/components/ui/checkbox";
 import { StatusBadge } from "./StatusBadge";
 import { SessionTimer } from "./SessionTimer";
-import { Clock, X, Check, UtensilsCrossed, Search, Plus } from "lucide-react";
+import { Clock, X, Check, UtensilsCrossed, Search, Plus, MoreVertical } from "lucide-react";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -56,7 +55,6 @@ interface BookingTableProps {
 
 export function BookingTable({ bookings, onExtend, onEnd, onComplete, onAddFood }: BookingTableProps) {
   const [searchTerm, setSearchTerm] = useState("");
-  const [selectedBookings, setSelectedBookings] = useState<Set<string>>(new Set());
 
   const filteredBookings = bookings.filter((booking) => {
     const searchLower = searchTerm.toLowerCase();
@@ -66,41 +64,6 @@ export function BookingTable({ bookings, onExtend, onEnd, onComplete, onAddFood 
       (booking.whatsappNumber && booking.whatsappNumber.includes(searchTerm))
     );
   });
-
-  const toggleSelection = (id: string) => {
-    setSelectedBookings((prev) => {
-      const newSet = new Set(prev);
-      if (newSet.has(id)) {
-        newSet.delete(id);
-      } else {
-        newSet.add(id);
-      }
-      return newSet;
-    });
-  };
-
-  const handleAction = (bookingId: string, action: "extend" | "complete" | "delete" | "addFood") => {
-    setSelectedBookings((prev) => {
-      const newSet = new Set(prev);
-      newSet.delete(bookingId);
-      return newSet;
-    });
-
-    switch (action) {
-      case "extend":
-        if (onExtend) onExtend(bookingId);
-        break;
-      case "complete":
-        if (onComplete) onComplete(bookingId);
-        break;
-      case "delete":
-        if (onEnd) onEnd(bookingId);
-        break;
-      case "addFood":
-        if (onAddFood) onAddFood(bookingId);
-        break;
-    }
-  };
 
   return (
     <div className="space-y-4">
@@ -121,7 +84,6 @@ export function BookingTable({ bookings, onExtend, onEnd, onComplete, onAddFood 
         <Table>
           <TableHeader>
             <TableRow>
-              <TableHead className="w-12"></TableHead>
               <TableHead>Seat</TableHead>
               <TableHead>Customer</TableHead>
               <TableHead>WhatsApp</TableHead>
@@ -137,24 +99,16 @@ export function BookingTable({ bookings, onExtend, onEnd, onComplete, onAddFood 
           <TableBody>
             {filteredBookings.length === 0 ? (
               <TableRow>
-                <TableCell colSpan={11} className="text-center text-muted-foreground">
+                <TableCell colSpan={10} className="text-center text-muted-foreground">
                   No bookings found
                 </TableCell>
               </TableRow>
             ) : (
               filteredBookings.map((booking) => {
-                const isSelected = selectedBookings.has(booking.id);
                 const hasFoodOrders = booking.foodOrders && booking.foodOrders.length > 0;
                 
                 return (
                   <TableRow key={booking.id} data-testid={`row-booking-${booking.id}`}>
-                    <TableCell>
-                      <Checkbox
-                        checked={isSelected}
-                        onCheckedChange={() => toggleSelection(booking.id)}
-                        data-testid={`checkbox-booking-${booking.id}`}
-                      />
-                    </TableCell>
                     <TableCell className="font-medium" data-testid={`text-seat-${booking.id}`}>
                       {booking.seatName}
                     </TableCell>
@@ -233,60 +187,56 @@ export function BookingTable({ bookings, onExtend, onEnd, onComplete, onAddFood 
                       )}
                     </TableCell>
                     <TableCell className="text-right">
-                      {isSelected ? (
-                        <DropdownMenu>
-                          <DropdownMenuTrigger asChild>
-                            <Button
-                              variant="outline"
-                              size="sm"
-                              data-testid={`button-actions-${booking.id}`}
+                      <DropdownMenu>
+                        <DropdownMenuTrigger asChild>
+                          <Button
+                            variant="ghost"
+                            size="icon"
+                            data-testid={`button-actions-${booking.id}`}
+                          >
+                            <MoreVertical className="h-4 w-4" />
+                          </Button>
+                        </DropdownMenuTrigger>
+                        <DropdownMenuContent align="end" data-testid={`dropdown-actions-${booking.id}`}>
+                          {booking.status === "running" && onExtend && (
+                            <DropdownMenuItem
+                              onClick={() => onExtend(booking.id)}
+                              data-testid={`action-extend-${booking.id}`}
                             >
-                              Actions
-                            </Button>
-                          </DropdownMenuTrigger>
-                          <DropdownMenuContent align="end" data-testid={`dropdown-actions-${booking.id}`}>
-                            {booking.status === "running" && onExtend && (
-                              <DropdownMenuItem
-                                onClick={() => handleAction(booking.id, "extend")}
-                                data-testid={`action-extend-${booking.id}`}
-                              >
-                                <Clock className="mr-2 h-4 w-4" />
-                                Extend Time
-                              </DropdownMenuItem>
-                            )}
-                            {booking.status === "running" && onComplete && (
-                              <DropdownMenuItem
-                                onClick={() => handleAction(booking.id, "complete")}
-                                data-testid={`action-complete-${booking.id}`}
-                              >
-                                <Check className="mr-2 h-4 w-4" />
-                                Complete
-                              </DropdownMenuItem>
-                            )}
-                            {(booking.status === "running" || booking.status === "upcoming") && onEnd && (
-                              <DropdownMenuItem
-                                onClick={() => handleAction(booking.id, "delete")}
-                                className="text-destructive"
-                                data-testid={`action-delete-${booking.id}`}
-                              >
-                                <X className="mr-2 h-4 w-4" />
-                                Delete
-                              </DropdownMenuItem>
-                            )}
-                            {(booking.status === "running" || booking.status === "upcoming") && onAddFood && (
-                              <DropdownMenuItem
-                                onClick={() => handleAction(booking.id, "addFood")}
-                                data-testid={`action-add-food-${booking.id}`}
-                              >
-                                <Plus className="mr-2 h-4 w-4" />
-                                Add Food
-                              </DropdownMenuItem>
-                            )}
-                          </DropdownMenuContent>
-                        </DropdownMenu>
-                      ) : (
-                        <span className="text-xs text-muted-foreground">Check to act</span>
-                      )}
+                              <Clock className="mr-2 h-4 w-4" />
+                              Extend Time
+                            </DropdownMenuItem>
+                          )}
+                          {booking.status === "running" && onComplete && (
+                            <DropdownMenuItem
+                              onClick={() => onComplete(booking.id)}
+                              data-testid={`action-complete-${booking.id}`}
+                            >
+                              <Check className="mr-2 h-4 w-4" />
+                              Over (Complete)
+                            </DropdownMenuItem>
+                          )}
+                          {(booking.status === "running" || booking.status === "upcoming") && onEnd && (
+                            <DropdownMenuItem
+                              onClick={() => onEnd(booking.id)}
+                              className="text-destructive"
+                              data-testid={`action-delete-${booking.id}`}
+                            >
+                              <X className="mr-2 h-4 w-4" />
+                              Delete
+                            </DropdownMenuItem>
+                          )}
+                          {(booking.status === "running" || booking.status === "upcoming") && onAddFood && (
+                            <DropdownMenuItem
+                              onClick={() => onAddFood(booking.id)}
+                              data-testid={`action-add-food-${booking.id}`}
+                            >
+                              <Plus className="mr-2 h-4 w-4" />
+                              Add Food
+                            </DropdownMenuItem>
+                          )}
+                        </DropdownMenuContent>
+                      </DropdownMenu>
                     </TableCell>
                   </TableRow>
                 );
