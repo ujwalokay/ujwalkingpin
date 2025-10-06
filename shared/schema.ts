@@ -11,6 +11,12 @@ export const insertBookingSchema = z.object({
   price: z.string(),
   status: z.string(),
   bookingType: z.string(),
+  foodOrders: z.array(z.object({
+    foodId: z.string(),
+    foodName: z.string(),
+    price: z.string(),
+    quantity: z.number(),
+  })).optional().default([]),
 });
 
 export type InsertBooking = z.infer<typeof insertBookingSchema>;
@@ -18,6 +24,17 @@ export type InsertBooking = z.infer<typeof insertBookingSchema>;
 export interface Booking extends InsertBooking {
   id: string;
   createdAt: Date;
+}
+
+export const insertFoodItemSchema = z.object({
+  name: z.string(),
+  price: z.string(),
+});
+
+export type InsertFoodItem = z.infer<typeof insertFoodItemSchema>;
+
+export interface FoodItem extends InsertFoodItem {
+  id: string;
 }
 
 export const insertDeviceConfigSchema = z.object({
