@@ -1,4 +1,4 @@
-import { Settings, LayoutDashboard, FileText, Gamepad2 } from "lucide-react";
+import { Settings, LayoutDashboard, FileText, Gamepad2, UtensilsCrossed } from "lucide-react";
 import { Link, useLocation } from "wouter";
 import {
   Sidebar,
@@ -16,6 +16,11 @@ const menuItems = [
     title: "Dashboard",
     url: "/",
     icon: LayoutDashboard,
+  },
+  {
+    title: "Food",
+    url: "/food",
+    icon: UtensilsCrossed,
   },
   {
     title: "Settings",
