@@ -11,7 +11,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { StatusBadge } from "./StatusBadge";
 import { SessionTimer } from "./SessionTimer";
-import { Clock, X, Check, UtensilsCrossed, Search, Plus, MoreVertical, StopCircle, Trash2 } from "lucide-react";
+import { Clock, X, Check, UtensilsCrossed, Search, Plus, MoreVertical, StopCircle, Trash2, Play, Pause } from "lucide-react";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -24,7 +24,7 @@ import {
   PopoverTrigger,
 } from "@/components/ui/popover";
 
-type BookingStatus = "available" | "running" | "expired" | "upcoming" | "completed";
+type BookingStatus = "available" | "running" | "expired" | "upcoming" | "completed" | "paused";
 
 interface FoodOrder {
   foodId: string;
@@ -133,6 +133,12 @@ export function BookingTable({ bookings, onExtend, onEnd, onComplete, onAddFood,
                     </TableCell>
                     <TableCell>
                       {booking.status === "running" && <SessionTimer endTime={booking.endTime} />}
+                      {booking.status === "paused" && (
+                        <div className="flex items-center gap-2 text-muted-foreground" data-testid="timer-paused">
+                          <Pause className="h-4 w-4" />
+                          <span className="font-mono text-sm">Paused</span>
+                        </div>
+                      )}
                     </TableCell>
                     <TableCell className="font-bold text-primary" data-testid={`text-price-${booking.id}`}>
                       ₹{booking.price}
@@ -229,10 +235,19 @@ export function BookingTable({ bookings, onExtend, onEnd, onComplete, onAddFood,
                           {booking.status === "running" && onStopTimer && (
                             <DropdownMenuItem
                               onClick={() => onStopTimer(booking.id)}
-                              data-testid={`action-stop-timer-${booking.id}`}
+                              data-testid={`action-pause-timer-${booking.id}`}
                             >
-                              <StopCircle className="mr-2 h-4 w-4" />
-                              Stop Timer
+                              <Pause className="mr-2 h-4 w-4" />
+                              Pause Timer
+                            </DropdownMenuItem>
+                          )}
+                          {booking.status === "paused" && onStopTimer && (
+                            <DropdownMenuItem
+                              onClick={() => onStopTimer(booking.id)}
+                              data-testid={`action-resume-timer-${booking.id}`}
+                            >
+                              <Play className="mr-2 h-4 w-4" />
+                              Resume Timer
                             </DropdownMenuItem>
                           )}
                           {booking.status === "running" && onComplete && (
@@ -244,7 +259,7 @@ export function BookingTable({ bookings, onExtend, onEnd, onComplete, onAddFood,
                               Over (Complete)
                             </DropdownMenuItem>
                           )}
-                          {(booking.status === "running" || booking.status === "upcoming" || booking.status === "completed") && onEnd && (
+                          {(booking.status === "running" || booking.status === "paused" || booking.status === "upcoming" || booking.status === "completed") && onEnd && (
                             <DropdownMenuItem
                               onClick={() => onEnd(booking.id)}
                               className="text-destructive"
@@ -254,7 +269,7 @@ export function BookingTable({ bookings, onExtend, onEnd, onComplete, onAddFood,
                               Delete
                             </DropdownMenuItem>
                           )}
-                          {(booking.status === "running" || booking.status === "upcoming") && onAddFood && (
+                          {(booking.status === "running" || booking.status === "paused" || booking.status === "upcoming") && onAddFood && (
                             <DropdownMenuItem
                               onClick={() => onAddFood(booking.id)}
                               data-testid={`action-add-food-${booking.id}`}
