@@ -1,7 +1,7 @@
 import type { Express } from "express";
 import { createServer, type Server } from "http";
 import { storage } from "./storage";
-import { insertBookingSchema, insertDeviceConfigSchema, insertPricingConfigSchema } from "@shared/schema";
+import { insertBookingSchema, insertDeviceConfigSchema, insertPricingConfigSchema, insertFoodItemSchema } from "@shared/schema";
 
 export async function registerRoutes(app: Express): Promise<Server> {
   app.get("/api/bookings", async (req, res) => {
@@ -180,6 +180,52 @@ export async function registerRoutes(app: Express): Promise<Server> {
       res.json({ success: true, message: `Deleted pricing config for ${category}` });
     } catch (error: any) {
       res.status(500).json({ message: error.message });
+    }
+  });
+
+  app.get("/api/food-items", async (req, res) => {
+    try {
+      const items = await storage.getAllFoodItems();
+      res.json(items);
+    } catch (error: any) {
+      res.status(500).json({ message: error.message });
+    }
+  });
+
+  app.post("/api/food-items", async (req, res) => {
+    try {
+      const item = insertFoodItemSchema.parse(req.body);
+      const created = await storage.createFoodItem(item);
+      res.json(created);
+    } catch (error: any) {
+      res.status(400).json({ message: error.message });
+    }
+  });
+
+  app.patch("/api/food-items/:id", async (req, res) => {
+    try {
+      const { id } = req.params;
+      const item = insertFoodItemSchema.parse(req.body);
+      const updated = await storage.updateFoodItem(id, item);
+      if (!updated) {
+        return res.status(404).json({ message: "Food item not found" });
+      }
+      res.json(updated);
+    } catch (error: any) {
+      res.status(400).json({ message: error.message });
+    }
+  });
+
+  app.delete("/api/food-items/:id", async (req, res) => {
+    try {
+      const { id } = req.params;
+      const deleted = await storage.deleteFoodItem(id);
+      if (!deleted) {
+        return res.status(404).json({ message: "Food item not found" });
+      }
+      res.json({ success: true });
+    } catch (error: any) {
+      res.status(400).json({ message: error.message });
     }
   });
 
