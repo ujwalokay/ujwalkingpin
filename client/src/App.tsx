@@ -9,12 +9,14 @@ import Dashboard from "@/pages/Dashboard";
 import Settings from "@/pages/Settings";
 import Reports from "@/pages/Reports";
 import Food from "@/pages/Food";
+import Timeline from "@/pages/Timeline";
 import NotFound from "@/pages/not-found";
 
 function Router() {
   return (
     <Switch>
       <Route path="/" component={Dashboard} />
+      <Route path="/timeline" component={Timeline} />
       <Route path="/settings" component={Settings} />
       <Route path="/reports" component={Reports} />
       <Route path="/food" component={Food} />
