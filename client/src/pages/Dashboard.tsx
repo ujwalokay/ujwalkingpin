@@ -13,7 +13,7 @@ import { useToast } from "@/hooks/use-toast";
 import { fetchBookings, createBooking, updateBooking, deleteBooking, fetchDeviceConfigs } from "@/lib/api";
 import type { Booking as DBBooking, DeviceConfig } from "@shared/schema";
 
-type BookingStatus = "available" | "running" | "expired" | "upcoming" | "completed";
+type BookingStatus = "available" | "running" | "expired" | "upcoming" | "completed" | "paused";
 
 interface FoodOrder {
   foodId: string;
@@ -103,7 +103,7 @@ export default function Dashboard() {
 
   const getOccupiedSeats = (category: string) => {
     return bookings
-      .filter(b => b.category === category && b.status === "running")
+      .filter(b => b.category === category && (b.status === "running" || b.status === "paused"))
       .map(b => b.seatNumber);
   };
 
@@ -358,18 +358,40 @@ export default function Dashboard() {
 
   const handleStopTimer = async (bookingId: string) => {
     const booking = bookings.find(b => b.id === bookingId);
-    if (booking) {
-      const now = new Date();
+    if (!booking) return;
+
+    const now = new Date();
+
+    if (booking.status === "running") {
+      const remainingTime = booking.endTime.getTime() - now.getTime();
+      
       await completeBookingMutation.mutateAsync({
         id: bookingId,
         data: { 
-          status: "completed",
-          endTime: now.toISOString() as any
+          status: "paused",
+          pausedRemainingTime: remainingTime
         },
       });
       toast({
-        title: "Timer Stopped",
-        description: `${booking.seatName} - Session stopped and marked complete`,
+        title: "Timer Paused",
+        description: `${booking.seatName} - Session paused`,
+      });
+    } else if (booking.status === "paused") {
+      const dbBooking = dbBookings.find(b => b.id === bookingId);
+      const remainingTime = dbBooking?.pausedRemainingTime || 0;
+      const newEndTime = new Date(now.getTime() + remainingTime);
+      
+      await completeBookingMutation.mutateAsync({
+        id: bookingId,
+        data: { 
+          status: "running",
+          endTime: newEndTime.toISOString() as any,
+          pausedRemainingTime: undefined
+        },
+      });
+      toast({
+        title: "Timer Resumed",
+        description: `${booking.seatName} - Session resumed`,
       });
     }
   };
