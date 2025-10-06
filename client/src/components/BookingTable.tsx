@@ -93,19 +93,24 @@ export function BookingTable({ bookings, onExtend, onEnd, onComplete, onAddFood 
               <TableHead>Price</TableHead>
               <TableHead>Status</TableHead>
               <TableHead>Food</TableHead>
+              <TableHead>Total</TableHead>
               <TableHead className="text-right">Actions</TableHead>
             </TableRow>
           </TableHeader>
           <TableBody>
             {filteredBookings.length === 0 ? (
               <TableRow>
-                <TableCell colSpan={10} className="text-center text-muted-foreground">
+                <TableCell colSpan={11} className="text-center text-muted-foreground">
                   No bookings found
                 </TableCell>
               </TableRow>
             ) : (
               filteredBookings.map((booking) => {
                 const hasFoodOrders = booking.foodOrders && booking.foodOrders.length > 0;
+                const foodTotal = hasFoodOrders 
+                  ? booking.foodOrders!.reduce((sum, order) => sum + parseFloat(order.price) * order.quantity, 0)
+                  : 0;
+                const totalAmount = booking.price + foodTotal;
                 
                 return (
                   <TableRow key={booking.id} data-testid={`row-booking-${booking.id}`}>
@@ -139,14 +144,12 @@ export function BookingTable({ bookings, onExtend, onEnd, onComplete, onAddFood 
                           <PopoverTrigger asChild>
                             <Button
                               variant="ghost"
-                              size="icon"
-                              className="relative"
+                              size="sm"
+                              className="relative h-auto px-2 py-1"
                               data-testid={`button-view-food-${booking.id}`}
                             >
-                              <UtensilsCrossed className="h-5 w-5 text-primary" />
-                              <span className="absolute -top-1 -right-1 h-4 w-4 rounded-full bg-primary text-xs text-primary-foreground flex items-center justify-center">
-                                {booking.foodOrders!.length}
-                              </span>
+                              <UtensilsCrossed className="h-4 w-4 mr-1 text-primary" />
+                              <span className="text-sm font-medium">₹{foodTotal.toFixed(0)}</span>
                             </Button>
                           </PopoverTrigger>
                           <PopoverContent className="w-80" data-testid={`popover-food-${booking.id}`}>
@@ -171,11 +174,9 @@ export function BookingTable({ bookings, onExtend, onEnd, onComplete, onAddFood 
                               </div>
                               <div className="pt-2 border-t">
                                 <div className="flex justify-between items-center">
-                                  <p className="text-sm font-semibold">Total:</p>
+                                  <p className="text-sm font-semibold">Food Total:</p>
                                   <p className="text-sm font-bold text-primary">
-                                    ₹{booking.foodOrders!.reduce((sum, order) => 
-                                      sum + parseFloat(order.price) * order.quantity, 0
-                                    ).toFixed(0)}
+                                    ₹{foodTotal.toFixed(0)}
                                   </p>
                                 </div>
                               </div>
@@ -185,6 +186,9 @@ export function BookingTable({ bookings, onExtend, onEnd, onComplete, onAddFood 
                       ) : (
                         <span className="text-muted-foreground text-sm">-</span>
                       )}
+                    </TableCell>
+                    <TableCell className="font-bold text-lg text-green-600 dark:text-green-400" data-testid={`text-total-${booking.id}`}>
+                      ₹{totalAmount.toFixed(0)}
                     </TableCell>
                     <TableCell className="text-right">
                       <DropdownMenu>

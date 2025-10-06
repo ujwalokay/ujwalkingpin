@@ -16,6 +16,7 @@ import { Skeleton } from "@/components/ui/skeleton";
 
 interface BookingStats {
   totalRevenue: number;
+  totalFoodRevenue: number;
   totalSessions: number;
   avgSessionMinutes: number;
 }
@@ -27,6 +28,8 @@ interface BookingHistoryItem {
   customerName: string;
   duration: string;
   price: string;
+  foodAmount: number;
+  totalAmount: number;
 }
 
 export default function Reports() {
@@ -55,7 +58,7 @@ export default function Reports() {
       return;
     }
 
-    const headers = ["Date", "Seat", "Customer", "Duration", "Revenue (₹)"];
+    const headers = ["Date", "Seat", "Customer", "Duration", "Session Price (₹)", "Food Amount (₹)", "Total (₹)"];
     const csvContent = [
       headers.join(","),
       ...history.map(record => [
@@ -63,7 +66,9 @@ export default function Reports() {
         record.seatName,
         record.customerName,
         record.duration,
-        record.price
+        record.price,
+        (record.foodAmount || 0).toFixed(0),
+        (record.totalAmount || parseFloat(record.price)).toFixed(0)
       ].join(","))
     ].join("\n");
 
@@ -130,7 +135,9 @@ export default function Reports() {
               <th>Seat</th>
               <th>Customer</th>
               <th>Duration</th>
-              <th class="text-right">Revenue</th>
+              <th class="text-right">Session Price</th>
+              <th class="text-right">Food Amount</th>
+              <th class="text-right">Total</th>
             </tr>
           </thead>
           <tbody>
@@ -141,6 +148,8 @@ export default function Reports() {
                 <td>${record.customerName}</td>
                 <td>${record.duration}</td>
                 <td class="text-right">₹${record.price}</td>
+                <td class="text-right">₹${(record.foodAmount || 0).toFixed(0)}</td>
+                <td class="text-right"><strong>₹${(record.totalAmount || parseFloat(record.price)).toFixed(0)}</strong></td>
               </tr>
             `).join('')}
           </tbody>
@@ -195,9 +204,10 @@ export default function Reports() {
         </TabsList>
 
         <TabsContent value={selectedPeriod} className="space-y-4">
-          <div className="grid gap-4 md:grid-cols-3">
+          <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
             {statsLoading ? (
               <>
+                <Skeleton className="h-32" />
                 <Skeleton className="h-32" />
                 <Skeleton className="h-32" />
                 <Skeleton className="h-32" />
@@ -205,8 +215,14 @@ export default function Reports() {
             ) : (
               <>
                 <RevenueCard
-                  title={`${getPeriodLabel()} Revenue`}
+                  title={`${getPeriodLabel()} Session Revenue`}
                   amount={stats?.totalRevenue || 0}
+                  trend={0}
+                  icon={<DollarSign className="h-4 w-4 text-muted-foreground" />}
+                />
+                <RevenueCard
+                  title={`${getPeriodLabel()} Food Revenue`}
+                  amount={stats?.totalFoodRevenue || 0}
                   trend={0}
                   icon={<DollarSign className="h-4 w-4 text-muted-foreground" />}
                 />
@@ -241,13 +257,15 @@ export default function Reports() {
                 <TableHead>Seat</TableHead>
                 <TableHead>Customer</TableHead>
                 <TableHead>Duration</TableHead>
-                <TableHead className="text-right">Revenue</TableHead>
+                <TableHead className="text-right">Session Price</TableHead>
+                <TableHead className="text-right">Food Amount</TableHead>
+                <TableHead className="text-right">Total</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
               {historyLoading ? (
                 <TableRow>
-                  <TableCell colSpan={5}>
+                  <TableCell colSpan={7}>
                     <Skeleton className="h-10 w-full" />
                   </TableCell>
                 </TableRow>
@@ -260,14 +278,20 @@ export default function Reports() {
                     </TableCell>
                     <TableCell data-testid={`text-customer-${record.id}`}>{record.customerName}</TableCell>
                     <TableCell data-testid={`text-duration-${record.id}`}>{record.duration}</TableCell>
-                    <TableCell className="text-right font-bold text-primary" data-testid={`text-revenue-${record.id}`}>
+                    <TableCell className="text-right" data-testid={`text-session-price-${record.id}`}>
                       ₹{record.price}
+                    </TableCell>
+                    <TableCell className="text-right" data-testid={`text-food-amount-${record.id}`}>
+                      ₹{(record.foodAmount || 0).toFixed(0)}
+                    </TableCell>
+                    <TableCell className="text-right font-bold text-green-600 dark:text-green-400" data-testid={`text-total-${record.id}`}>
+                      ₹{(record.totalAmount || parseFloat(record.price)).toFixed(0)}
                     </TableCell>
                   </TableRow>
                 ))
               ) : (
                 <TableRow>
-                  <TableCell colSpan={5} className="text-center text-muted-foreground">
+                  <TableCell colSpan={7} className="text-center text-muted-foreground">
                     No booking history for this period
                   </TableCell>
                 </TableRow>

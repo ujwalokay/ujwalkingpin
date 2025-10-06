@@ -11,6 +11,7 @@ import {
 
 export interface BookingStats {
   totalRevenue: number;
+  totalFoodRevenue: number;
   totalSessions: number;
   avgSessionMinutes: number;
 }
@@ -23,6 +24,8 @@ export interface BookingHistoryItem {
   duration: string;
   durationMinutes: number;
   price: string;
+  foodAmount: number;
+  totalAmount: number;
 }
 
 export interface IStorage {
@@ -180,6 +183,15 @@ export class MemStorage implements IStorage {
       return sum + parseFloat(booking.price);
     }, 0);
 
+    const totalFoodRevenue = completedBookings.reduce((sum, booking) => {
+      if (booking.foodOrders && booking.foodOrders.length > 0) {
+        return sum + booking.foodOrders.reduce((foodSum, order) => 
+          foodSum + parseFloat(order.price) * order.quantity, 0
+        );
+      }
+      return sum;
+    }, 0);
+
     const totalSessions = completedBookings.length;
 
     const totalMinutes = completedBookings.reduce((sum, booking) => {
@@ -191,6 +203,7 @@ export class MemStorage implements IStorage {
 
     return {
       totalRevenue,
+      totalFoodRevenue,
       totalSessions,
       avgSessionMinutes
     };
@@ -220,6 +233,13 @@ export class MemStorage implements IStorage {
           duration = `${mins} mins`;
         }
 
+        const foodAmount = booking.foodOrders && booking.foodOrders.length > 0
+          ? booking.foodOrders.reduce((sum, order) => sum + parseFloat(order.price) * order.quantity, 0)
+          : 0;
+
+        const sessionPrice = parseFloat(booking.price);
+        const totalAmount = sessionPrice + foodAmount;
+
         return {
           id: booking.id,
           date: booking.startTime.toISOString().split('T')[0],
@@ -227,7 +247,9 @@ export class MemStorage implements IStorage {
           customerName: booking.customerName,
           duration,
           durationMinutes,
-          price: booking.price
+          price: booking.price,
+          foodAmount,
+          totalAmount
         };
       })
       .sort((a, b) => b.date.localeCompare(a.date));
