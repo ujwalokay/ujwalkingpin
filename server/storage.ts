@@ -8,6 +8,8 @@ import {
   type FoodItem,
   type InsertFoodItem,
 } from "@shared/schema";
+import { promises as fs } from "fs";
+import path from "path";
 
 export interface BookingStats {
   totalRevenue: number;
@@ -351,4 +353,64 @@ export class MemStorage implements IStorage {
   }
 }
 
-export const storage = new MemStorage();
+export class PersistentStorage extends MemStorage {
+  private dataDir = path.join(process.cwd(), "data");
+  private bookingsFile = path.join(this.dataDir, "bookings.json");
+  private deviceConfigsFile = path.join(this.dataDir, "device-configs.json");
+  private pricingConfigsFile = path.join(this.dataDir, "pricing-configs.json");
+  private foodItemsFile = path.join(this.dataDir, "food-items.json");
+  private initialized = false;
+
+  async ensureDataDir() {
+    try {
+      await fs.mkdir(this.dataDir, { recursive: true });
+    } catch (error) {
+      console.error("Error creating data directory:", error);
+    }
+  }
+
+  async loadData() {
+    if (this.initialized) return;
+    
+    await this.ensureDataDir();
+
+    try {
+      const bookingsData = await fs.readFile(this.bookingsFile, "utf-8");
+      const bookings = JSON.parse(bookingsData);
+      this["bookings"] = new Map(
+        bookings.map((b: Booking) => [
+          b.id,
+          {
+            ...b,
+            startTime: new Date(b.startTime),
+            endTime: new Date(b.endTime),
+            createdAt: new Date(b.createdAt),
+          },
+        ])
+      );
+    } catch (error) {
+      console.log("No existing bookings file, starting fresh");
+    }
+
+    try {
+      const deviceConfigsData = await fs.readFile(this.deviceConfigsFile, "utf-8");
+      const deviceConfigs = JSON.parse(deviceConfigsData);
+      if (deviceConfigs.length > 0) {
+        this["deviceConfigs"] = new Map(deviceConfigs.map((c: DeviceConfig) => [c.id, c]));
+      }
+    } catch (error) {
+      console.log("No existing device configs file, using defaults");
+    }
+
+    try {
+      const pricingConfigsData = await fs.readFile(this.pricingConfigsFile, "utf-8");
+      const pricingConfigs = JSON.parse(pricingConfigsData);
+      if (pricingConfigs.length > 0) {
+        this["pricingConfigs"] = new Map(pricingConfigs.map((c: PricingConfig) => [c.id, c]));
+      }
+    } catch (error) {
+      console.log("No existing pricing configs file, using defaults");
+    }
+
+    try {
+      const foodItemsData = await fs.read
