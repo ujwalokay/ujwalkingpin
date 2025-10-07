@@ -133,7 +133,7 @@ export class DatabaseStorage implements IStorage {
   }
 
   async createBooking(booking: InsertBooking): Promise<Booking> {
-    const [newBooking] = await db.insert(bookings).values(booking).returning();
+    const [newBooking] = await db.insert(bookings).values(booking as any).returning();
     return newBooking;
   }
 
@@ -367,7 +367,7 @@ export class DatabaseStorage implements IStorage {
       return 0;
     }
 
-    const historyRecords: InsertBookingHistory[] = bookingsToArchive.map(booking => ({
+    const historyRecords = bookingsToArchive.map(booking => ({
       bookingId: booking.id,
       category: booking.category,
       seatNumber: booking.seatNumber,
@@ -380,11 +380,11 @@ export class DatabaseStorage implements IStorage {
       status: booking.status,
       bookingType: booking.bookingType,
       pausedRemainingTime: booking.pausedRemainingTime,
-      foodOrders: booking.foodOrders as any,
+      foodOrders: booking.foodOrders,
       createdAt: booking.createdAt,
     }));
 
-    await db.insert(bookingHistory).values(historyRecords);
+    await db.insert(bookingHistory).values(historyRecords as any);
 
     const bookingIds = bookingsToArchive.map(b => b.id);
     for (const id of bookingIds) {
