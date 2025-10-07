@@ -20,7 +20,10 @@ import {
 } from "@/components/ui/select";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { Checkbox } from "@/components/ui/checkbox";
-import { Plus, Minus } from "lucide-react";
+import { Plus, Minus, CalendarIcon } from "lucide-react";
+import { Calendar } from "@/components/ui/calendar";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
+import { format } from "date-fns";
 
 interface AddBookingDialogProps {
   open: boolean;
@@ -33,6 +36,8 @@ interface AddBookingDialogProps {
     duration: string;
     price: string;
     bookingType: "walk-in" | "upcoming";
+    bookingDate?: Date;
+    timeSlot?: string;
   }) => void;
   availableSeats: {
     category: string;
@@ -53,6 +58,8 @@ export function AddBookingDialog({ open, onOpenChange, onConfirm, availableSeats
   const [whatsappNumber, setWhatsappNumber] = useState<string>("");
   const [durationMinutes, setDurationMinutes] = useState<number>(30);
   const [bookingType, setBookingType] = useState<"walk-in" | "upcoming">("walk-in");
+  const [bookingDate, setBookingDate] = useState<Date>();
+  const [timeSlot, setTimeSlot] = useState<string>("");
 
   const { data: pricingConfig = [] } = useQuery<PricingConfig[]>({
     queryKey: ["/api/pricing-config"],
@@ -86,15 +93,20 @@ export function AddBookingDialog({ open, onOpenChange, onConfirm, availableSeats
 
   const handleConfirm = () => {
     const isWhatsappRequired = bookingType === "upcoming" && !whatsappNumber.trim();
-    if (category && selectedSeats.length > 0 && customerName && duration && selectedSlot && !isWhatsappRequired) {
+    const isDateRequired = bookingType === "upcoming" && !bookingDate;
+    const isTimeSlotRequired = bookingType === "upcoming" && !timeSlot;
+    
+    if (category && selectedSeats.length > 0 && customerName && duration && selectedSlot && !isWhatsappRequired && !isDateRequired && !isTimeSlotRequired) {
       onConfirm?.({
         category,
         seatNumbers: selectedSeats,
         customerName,
         whatsappNumber: whatsappNumber.trim() || undefined,
         duration,
-        price: selectedSlot.price,
+        price: selectedSlot.price.toString(),
         bookingType,
+        bookingDate: bookingType === "upcoming" ? bookingDate : undefined,
+        timeSlot: bookingType === "upcoming" ? timeSlot : undefined,
       });
       setCategory("");
       setSelectedSeats([]);
@@ -102,6 +114,8 @@ export function AddBookingDialog({ open, onOpenChange, onConfirm, availableSeats
       setWhatsappNumber("");
       setDurationMinutes(30);
       setBookingType("walk-in");
+      setBookingDate(undefined);
+      setTimeSlot("");
       onOpenChange(false);
     }
   };
@@ -216,6 +230,61 @@ export function AddBookingDialog({ open, onOpenChange, onConfirm, availableSeats
             )}
           </div>
 
+          {bookingType === "upcoming" && (
+            <>
+              <div className="space-y-2">
+                <Label>
+                  Date <span className="text-destructive">*</span>
+                </Label>
+                <Popover>
+                  <PopoverTrigger asChild>
+                    <Button
+                      variant="outline"
+                      className="w-full justify-start text-left font-normal"
+                      data-testid="button-select-date"
+                    >
+                      <CalendarIcon className="mr-2 h-4 w-4" />
+                      {bookingDate ? format(bookingDate, "PPP") : <span>Pick a date</span>}
+                    </Button>
+                  </PopoverTrigger>
+                  <PopoverContent className="w-auto p-0" align="start">
+                    <Calendar
+                      mode="single"
+                      selected={bookingDate}
+                      onSelect={setBookingDate}
+                      disabled={(date) => date < new Date(new Date().setHours(0, 0, 0, 0))}
+                      initialFocus
+                    />
+                  </PopoverContent>
+                </Popover>
+              </div>
+
+              <div className="space-y-2">
+                <Label htmlFor="timeSlot">
+                  Time Slot <span className="text-destructive">*</span>
+                </Label>
+                <Select value={timeSlot} onValueChange={setTimeSlot}>
+                  <SelectTrigger id="timeSlot" data-testid="select-time-slot">
+                    <SelectValue placeholder="Select time slot" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {Array.from({ length: 24 }, (_, i) => {
+                      const hour = i;
+                      const nextHour = (i + 1) % 24;
+                      const label = `${hour === 0 ? '12' : hour > 12 ? hour - 12 : hour}:00 ${hour < 12 ? 'AM' : 'PM'} - ${nextHour === 0 ? '12' : nextHour > 12 ? nextHour - 12 : nextHour}:00 ${nextHour < 12 ? 'AM' : 'PM'}`;
+                      const value = `${hour.toString().padStart(2, '0')}:00-${nextHour.toString().padStart(2, '0')}:00`;
+                      return (
+                        <SelectItem key={value} value={value} data-testid={`option-timeslot-${hour}`}>
+                          {label}
+                        </SelectItem>
+                      );
+                    })}
+                  </SelectContent>
+                </Select>
+              </div>
+            </>
+          )}
+
           {category && (
             <div className="space-y-2">
               <Label htmlFor="duration">Duration</Label>
@@ -291,7 +360,7 @@ export function AddBookingDialog({ open, onOpenChange, onConfirm, availableSeats
           </Button>
           <Button 
             onClick={handleConfirm} 
-            disabled={!category || selectedSeats.length === 0 || !customerName || !duration || (bookingType === "upcoming" && !whatsappNumber.trim())}
+            disabled={!category || selectedSeats.length === 0 || !customerName || !duration || (bookingType === "upcoming" && (!whatsappNumber.trim() || !bookingDate || !timeSlot))}
             data-testid="button-confirm-booking"
             className="w-full sm:w-auto"
           >

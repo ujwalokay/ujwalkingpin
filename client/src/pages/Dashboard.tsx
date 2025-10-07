@@ -178,6 +178,8 @@ export default function Dashboard() {
     duration: string;
     price: string;
     bookingType: "walk-in" | "upcoming";
+    bookingDate?: Date;
+    timeSlot?: string;
   }) => {
     const now = new Date();
     const durationMap: { [key: string]: number } = {
@@ -187,7 +189,19 @@ export default function Dashboard() {
     };
     const minutes = durationMap[newBooking.duration] || 60;
     
-    const startTime = newBooking.bookingType === "walk-in" ? now : new Date(now.getTime() + 30 * 60 * 1000);
+    let startTime: Date;
+    if (newBooking.bookingType === "walk-in") {
+      startTime = now;
+    } else {
+      if (newBooking.bookingDate && newBooking.timeSlot) {
+        const [startHour] = newBooking.timeSlot.split('-')[0].split(':').map(Number);
+        startTime = new Date(newBooking.bookingDate);
+        startTime.setHours(startHour, 0, 0, 0);
+      } else {
+        startTime = new Date(now.getTime() + 30 * 60 * 1000);
+      }
+    }
+    
     const endTime = new Date(startTime.getTime() + minutes * 60 * 1000);
 
     const seatNames: string[] = [];
