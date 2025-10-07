@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useMemo } from "react";
 import { useQuery } from "@tanstack/react-query";
 import {
   Dialog,
@@ -23,7 +23,7 @@ import { Checkbox } from "@/components/ui/checkbox";
 import { Plus, Minus, CalendarIcon } from "lucide-react";
 import { Calendar } from "@/components/ui/calendar";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
-import { format } from "date-fns";
+import { format, isSameDay } from "date-fns";
 
 interface AddBookingDialogProps {
   open: boolean;
@@ -51,6 +51,28 @@ interface PricingConfig {
   price: number;
 }
 
+interface Booking {
+  id: string;
+  category: string;
+  seatNumber: number;
+  seatName: string;
+  customerName: string;
+  whatsappNumber?: string;
+  startTime: string;
+  endTime: string;
+  price: string;
+  status: string;
+  bookingType: string;
+  pausedRemainingTime?: number;
+  foodOrders: Array<{
+    foodId: string;
+    foodName: string;
+    price: string;
+    quantity: number;
+  }>;
+  createdAt: string;
+}
+
 export function AddBookingDialog({ open, onOpenChange, onConfirm, availableSeats }: AddBookingDialogProps) {
   const [category, setCategory] = useState<string>("");
   const [selectedSeats, setSelectedSeats] = useState<number[]>([]);
@@ -63,6 +85,11 @@ export function AddBookingDialog({ open, onOpenChange, onConfirm, availableSeats
 
   const { data: pricingConfig = [] } = useQuery<PricingConfig[]>({
     queryKey: ["/api/pricing-config"],
+  });
+
+  const { data: allBookings = [] } = useQuery<Booking[]>({
+    queryKey: ["/api/bookings"],
+    enabled: bookingType === "upcoming" && !!bookingDate,
   });
 
   const { data: upcomingAvailableSeats = [], isLoading: isLoadingSeats } = useQuery<{ category: string; seats: number[] }[]>({
@@ -159,11 +186,43 @@ export function AddBookingDialog({ open, onOpenChange, onConfirm, availableSeats
     setDurationMinutes(prev => Math.max(30, prev - 30));
   };
 
+  const latestBookingEndTime = useMemo(() => {
+    if (!bookingDate || !allBookings.length) return null;
+    
+    const isToday = isSameDay(bookingDate, new Date());
+    if (!isToday) return null;
+    
+    const todayBookings = allBookings.filter(booking => {
+      const bookingStart = new Date(booking.startTime);
+      return isSameDay(bookingStart, bookingDate) && 
+             (booking.status === "running" || booking.status === "paused" || booking.status === "upcoming");
+    });
+    
+    if (todayBookings.length === 0) return null;
+    
+    const latestEnd = todayBookings.reduce((latest, booking) => {
+      const endTime = new Date(booking.endTime);
+      return endTime > latest ? endTime : latest;
+    }, new Date(0));
+    
+    return latestEnd;
+  }, [bookingDate, allBookings]);
+
   const generateTimeSlots = () => {
     const slots = [];
     const totalMinutesInDay = 24 * 60;
     
+    let minStartMinutes = 0;
+    
+    if (latestBookingEndTime && bookingDate && isSameDay(bookingDate, new Date())) {
+      const endHour = latestBookingEndTime.getHours();
+      const endMin = latestBookingEndTime.getMinutes();
+      minStartMinutes = endHour * 60 + endMin;
+    }
+    
     for (let startMinutes = 0; startMinutes < totalMinutesInDay; startMinutes += durationMinutes) {
+      if (startMinutes < minStartMinutes) continue;
+      
       const endMinutes = startMinutes + durationMinutes;
       if (endMinutes > totalMinutesInDay) break;
       
