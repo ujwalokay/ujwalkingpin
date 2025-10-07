@@ -63,3 +63,31 @@ export const pricingConfigs = pgTable("pricing_configs", {
 export const insertPricingConfigSchema = createInsertSchema(pricingConfigs).omit({ id: true });
 export type InsertPricingConfig = z.infer<typeof insertPricingConfigSchema>;
 export type PricingConfig = typeof pricingConfigs.$inferSelect;
+
+export const bookingHistory = pgTable("booking_history", {
+  id: varchar("id").primaryKey().$defaultFn(() => crypto.randomUUID()),
+  bookingId: varchar("booking_id").notNull(),
+  category: varchar("category").notNull(),
+  seatNumber: integer("seat_number").notNull(),
+  seatName: varchar("seat_name").notNull(),
+  customerName: varchar("customer_name").notNull(),
+  whatsappNumber: varchar("whatsapp_number"),
+  startTime: timestamp("start_time").notNull(),
+  endTime: timestamp("end_time").notNull(),
+  price: varchar("price").notNull(),
+  status: varchar("status").notNull(),
+  bookingType: varchar("booking_type").notNull(),
+  pausedRemainingTime: integer("paused_remaining_time"),
+  foodOrders: jsonb("food_orders").$type<Array<{
+    foodId: string;
+    foodName: string;
+    price: string;
+    quantity: number;
+  }>>().default([]),
+  createdAt: timestamp("created_at").notNull(),
+  archivedAt: timestamp("archived_at").notNull().defaultNow(),
+});
+
+export const insertBookingHistorySchema = createInsertSchema(bookingHistory).omit({ id: true, archivedAt: true });
+export type InsertBookingHistory = z.infer<typeof insertBookingHistorySchema>;
+export type BookingHistory = typeof bookingHistory.$inferSelect;
