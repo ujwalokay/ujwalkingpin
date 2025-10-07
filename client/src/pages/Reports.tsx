@@ -3,7 +3,7 @@ import { useQuery } from "@tanstack/react-query";
 import { RevenueCard } from "@/components/RevenueCard";
 import { Button } from "@/components/ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Calendar, Download, DollarSign, Users, Clock } from "lucide-react";
+import { Calendar, Download, IndianRupee, Users, Clock } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import {
   Table,
@@ -198,8 +198,12 @@ export default function Reports() {
           </table>
           <script>
             window.onload = () => {
-              window.print();
-              setTimeout(() => window.close(), 100);
+              setTimeout(() => {
+                window.print();
+              }, 500);
+            };
+            window.onafterprint = () => {
+              window.close();
             };
           </script>
         </body>
@@ -208,6 +212,11 @@ export default function Reports() {
 
       printWindow.document.write(htmlContent);
       printWindow.document.close();
+      
+      // Wait for the window to load before triggering print
+      printWindow.onload = () => {
+        printWindow.print();
+      };
       
       toast({
         title: "Print dialog opened",
@@ -263,13 +272,13 @@ export default function Reports() {
                   title={`${getPeriodLabel()} Session Revenue`}
                   amount={stats?.totalRevenue || 0}
                   trend={0}
-                  icon={<DollarSign className="h-4 w-4 text-muted-foreground" />}
+                  icon={<IndianRupee className="h-4 w-4 text-muted-foreground" />}
                 />
                 <RevenueCard
                   title={`${getPeriodLabel()} Food Revenue`}
                   amount={stats?.totalFoodRevenue || 0}
                   trend={0}
-                  icon={<DollarSign className="h-4 w-4 text-muted-foreground" />}
+                  icon={<IndianRupee className="h-4 w-4 text-muted-foreground" />}
                 />
                 <RevenueCard
                   title="Total Sessions"
