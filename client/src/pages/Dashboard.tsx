@@ -194,9 +194,10 @@ export default function Dashboard() {
       startTime = now;
     } else {
       if (newBooking.bookingDate && newBooking.timeSlot) {
-        const [startHour] = newBooking.timeSlot.split('-')[0].split(':').map(Number);
+        const [startTime_str] = newBooking.timeSlot.split('-');
+        const [startHour, startMin] = startTime_str.split(':').map(Number);
         startTime = new Date(newBooking.bookingDate);
-        startTime.setHours(startHour, 0, 0, 0);
+        startTime.setHours(startHour, startMin, 0, 0);
       } else {
         startTime = new Date(now.getTime() + 30 * 60 * 1000);
       }
