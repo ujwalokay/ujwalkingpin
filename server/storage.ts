@@ -142,6 +142,13 @@ export class DatabaseStorage implements IStorage {
     if (data.foodOrders !== undefined) {
       updateData.foodOrders = data.foodOrders;
     }
+    // Convert date strings to Date objects
+    if (data.startTime && typeof data.startTime === 'string') {
+      updateData.startTime = new Date(data.startTime);
+    }
+    if (data.endTime && typeof data.endTime === 'string') {
+      updateData.endTime = new Date(data.endTime);
+    }
     const [updated] = await db
       .update(bookings)
       .set(updateData)
