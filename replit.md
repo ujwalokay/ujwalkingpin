@@ -10,6 +10,16 @@ Preferred communication style: Simple, everyday language.
 
 ## Recent Changes
 
+**October 7, 2025 - Smart Upcoming Booking Flow with Time-Based Seat Availability**
+- Redesigned upcoming booking flow to ask for date/time BEFORE showing available seats
+- New flow: Duration → Date → Time Slot → Category → Seats (instead of showing seats first)
+- Added GET /api/bookings/available-seats endpoint to check seat availability for specific date/time slots
+- Real-time seat availability calculation based on time slot overlaps with existing bookings
+- When creating upcoming booking, system now shows only seats that are free during the requested time
+- Prevents booking conflicts by filtering out seats already booked during the selected time slot
+- Walk-in booking flow remains unchanged (shows currently available seats immediately)
+- Improves customer service - staff can instantly tell customers which seats are free at specific times
+
 **October 7, 2025 - Booking History Archive System**
 - Implemented separate booking history table to store archived completed/expired bookings
 - Added "Refresh List" button functionality to move expired and completed bookings to permanent history
