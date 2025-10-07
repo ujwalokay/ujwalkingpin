@@ -10,6 +10,15 @@ Preferred communication style: Simple, everyday language.
 
 ## Recent Changes
 
+**October 7, 2025 - Date Column for Upcoming Bookings & Date-Specific Conflict Detection**
+- Added date column to upcoming bookings table to display booking dates clearly
+- Date column only appears in "Upcoming Bookings" tab, not in "Walk-in List" tab
+- Date format: DD MMM YYYY (e.g., "07 Oct 2025") for easy readability
+- Verified conflict detection is fully date-specific - bookings on different dates never conflict
+- If PC-2 is booked tomorrow 12:00-12:30, it's available today 12:00-12:30 (different dates)
+- Conflict validation uses full date+time comparison, preventing false conflicts across dates
+- Both POST /api/bookings and GET /api/bookings/available-seats use date-aware overlap detection
+
 **October 7, 2025 - Smart Upcoming Booking Flow with Time-Based Seat Availability**
 - Redesigned upcoming booking flow to ask for date/time BEFORE showing available seats
 - New flow: Duration → Date → Time Slot → Category → Seats (instead of showing seats first)
