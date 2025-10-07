@@ -12,6 +12,18 @@ import Food from "@/pages/Food";
 import Timeline from "@/pages/Timeline";
 import History from "@/pages/History";
 import NotFound from "@/pages/not-found";
+import { useState, useEffect } from "react";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
+import { Input } from "@/components/ui/input";
+import { Button } from "@/components/ui/button";
+import { Label } from "@/components/ui/label";
+import { useToast } from "@/hooks/use-toast";
 
 function Router() {
   return (
@@ -28,9 +40,101 @@ function Router() {
 }
 
 function App() {
+  const [isAuthenticated, setIsAuthenticated] = useState(false);
+  const [showLogin, setShowLogin] = useState(false);
+  const [username, setUsername] = useState("");
+  const [password, setPassword] = useState("");
+  const { toast } = useToast();
+
   const style = {
     "--sidebar-width": "16rem",
   };
+
+  useEffect(() => {
+    const authStatus = localStorage.getItem("isAuthenticated");
+    if (authStatus === "true") {
+      setIsAuthenticated(true);
+    } else {
+      setShowLogin(true);
+    }
+  }, []);
+
+  const handleLogin = () => {
+    if (username === "crossplay" && password === "1234") {
+      localStorage.setItem("isAuthenticated", "true");
+      setIsAuthenticated(true);
+      setShowLogin(false);
+      toast({
+        title: "Login successful",
+        description: "Welcome to Gaming Center Admin Panel",
+      });
+    } else {
+      toast({
+        title: "Login failed",
+        description: "Invalid username or password",
+        variant: "destructive",
+      });
+    }
+  };
+
+  const handleKeyPress = (e: React.KeyboardEvent) => {
+    if (e.key === "Enter") {
+      handleLogin();
+    }
+  };
+
+  if (!isAuthenticated) {
+    return (
+      <QueryClientProvider client={queryClient}>
+        <TooltipProvider>
+          <Dialog open={showLogin} onOpenChange={() => {}}>
+            <DialogContent className="sm:max-w-md" onPointerDownOutside={(e) => e.preventDefault()} onEscapeKeyDown={(e) => e.preventDefault()}>
+              <DialogHeader>
+                <DialogTitle className="text-2xl font-bold">Gaming Center Admin</DialogTitle>
+                <DialogDescription>
+                  Please enter your credentials to access the admin panel
+                </DialogDescription>
+              </DialogHeader>
+              <div className="space-y-4 py-4">
+                <div className="space-y-2">
+                  <Label htmlFor="username">Username</Label>
+                  <Input
+                    id="username"
+                    data-testid="input-username"
+                    type="text"
+                    placeholder="Enter username"
+                    value={username}
+                    onChange={(e) => setUsername(e.target.value)}
+                    onKeyPress={handleKeyPress}
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="password">Password</Label>
+                  <Input
+                    id="password"
+                    data-testid="input-password"
+                    type="password"
+                    placeholder="Enter password"
+                    value={password}
+                    onChange={(e) => setPassword(e.target.value)}
+                    onKeyPress={handleKeyPress}
+                  />
+                </div>
+                <Button 
+                  onClick={handleLogin} 
+                  className="w-full"
+                  data-testid="button-login"
+                >
+                  Login
+                </Button>
+              </div>
+            </DialogContent>
+          </Dialog>
+          <Toaster />
+        </TooltipProvider>
+      </QueryClientProvider>
+    );
+  }
 
   return (
     <QueryClientProvider client={queryClient}>
