@@ -66,7 +66,24 @@ export function AddBookingDialog({ open, onOpenChange, onConfirm, availableSeats
   });
 
   const { data: upcomingAvailableSeats = [], isLoading: isLoadingSeats } = useQuery<{ category: string; seats: number[] }[]>({
-    queryKey: ["/api/bookings/available-seats", bookingDate?.toISOString(), timeSlot, durationMinutes],
+    queryKey: ["/api/bookings/available-seats", { 
+      date: bookingDate?.toISOString(), 
+      timeSlot, 
+      durationMinutes 
+    }],
+    queryFn: async ({ queryKey }) => {
+      const [url, params] = queryKey as [string, { date?: string; timeSlot?: string; durationMinutes?: number }];
+      const searchParams = new URLSearchParams();
+      if (params.date) searchParams.append('date', params.date);
+      if (params.timeSlot) searchParams.append('timeSlot', params.timeSlot);
+      if (params.durationMinutes) searchParams.append('durationMinutes', params.durationMinutes.toString());
+      
+      const response = await fetch(`${url}?${searchParams.toString()}`);
+      if (!response.ok) {
+        throw new Error('Failed to fetch available seats');
+      }
+      return response.json();
+    },
     enabled: bookingType === "upcoming" && !!bookingDate && !!timeSlot && durationMinutes > 0,
   });
 
