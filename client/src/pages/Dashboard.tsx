@@ -35,6 +35,7 @@ interface Booking {
   status: BookingStatus;
   bookingType: "walk-in" | "upcoming";
   foodOrders?: FoodOrder[];
+  pausedRemainingTime?: number;
 }
 
 const availableIcons = [Monitor, Gamepad2, Glasses, Car, Cpu, Tv, Radio, Box];
@@ -99,6 +100,7 @@ export default function Dashboard() {
       status: dbBooking.status as BookingStatus,
       bookingType: dbBooking.bookingType as "walk-in" | "upcoming",
       foodOrders: dbBooking.foodOrders || [],
+      pausedRemainingTime: dbBooking.pausedRemainingTime,
     }));
   }, [dbBookings]);
 
@@ -402,8 +404,7 @@ export default function Dashboard() {
         description: `${booking.seatName} - Session paused`,
       });
     } else if (booking.status === "paused") {
-      const dbBooking = dbBookings.find(b => b.id === bookingId);
-      const remainingTime = dbBooking?.pausedRemainingTime || 0;
+      const remainingTime = booking.pausedRemainingTime || 0;
       const newEndTime = new Date(now.getTime() + remainingTime);
       
       await completeBookingMutation.mutateAsync({
