@@ -422,13 +422,27 @@ export default function Dashboard() {
     });
   };
 
-  const handleRefresh = () => {
-    setHideCompleted(true);
-    queryClient.invalidateQueries({ queryKey: ['bookings'] });
-    toast({
-      title: "List Refreshed",
-      description: "Completed and expired bookings are now hidden",
-    });
+  const handleRefresh = async () => {
+    try {
+      const response = await fetch('/api/bookings/archive', {
+        method: 'POST',
+      });
+      const data = await response.json();
+      
+      setHideCompleted(true);
+      queryClient.invalidateQueries({ queryKey: ['bookings'] });
+      
+      toast({
+        title: "List Refreshed",
+        description: `${data.count} booking(s) moved to history`,
+      });
+    } catch (error) {
+      toast({
+        title: "Error",
+        description: "Failed to archive bookings",
+        variant: "destructive",
+      });
+    }
   };
 
   const filteredBookings = useMemo(() => {
