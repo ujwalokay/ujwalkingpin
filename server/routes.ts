@@ -58,6 +58,24 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  app.post("/api/bookings/archive", async (req, res) => {
+    try {
+      const count = await storage.moveBookingsToHistory();
+      res.json({ success: true, count });
+    } catch (error: any) {
+      res.status(500).json({ message: error.message });
+    }
+  });
+
+  app.get("/api/booking-history", async (req, res) => {
+    try {
+      const history = await storage.getAllBookingHistory();
+      res.json(history);
+    } catch (error: any) {
+      res.status(500).json({ message: error.message });
+    }
+  });
+
   app.get("/api/reports/stats", async (req, res) => {
     try {
       const period = req.query.period as string || "daily";
