@@ -196,6 +196,7 @@ export class DatabaseStorage implements IStorage {
       .from(bookings)
       .where(
         and(
+          eq(bookings.status, "completed"),
           gte(bookings.startTime, startDate),
           lte(bookings.startTime, endDate)
         )
@@ -224,9 +225,16 @@ export class DatabaseStorage implements IStorage {
         const sessionPrice = parseFloat(booking.price);
         const totalAmount = sessionPrice + foodAmount;
 
+        const dateObj = new Date(booking.startTime);
+        const formattedDate = dateObj.toLocaleDateString('en-US', { 
+          month: 'short', 
+          day: 'numeric', 
+          year: 'numeric' 
+        });
+
         return {
           id: booking.id,
-          date: booking.startTime.toISOString().split('T')[0],
+          date: formattedDate,
           seatName: booking.seatName,
           customerName: booking.customerName,
           duration,
