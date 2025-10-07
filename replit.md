@@ -10,6 +10,15 @@ Preferred communication style: Simple, everyday language.
 
 ## Recent Changes
 
+**October 7, 2025 - Pause/Resume Timer Fix, Responsive Food Dialog, and Theme Toggle**
+- Fixed pause/resume timer functionality by properly mapping pausedRemainingTime field from database to frontend
+- Added pausedRemainingTime to Booking interface so timer properly resumes from paused state
+- Improved food add dialog layout responsiveness with better mobile sizing and compact spacing
+- Implemented dark/light theme toggle system with ThemeProvider component
+- Added theme toggle button in header to switch between light and dark modes
+- Theme preference persists in localStorage and syncs across application
+- All components now support seamless theme switching
+
 **October 7, 2025 - Cache Invalidation Fix for Real-Time Seat Availability**
 - Fixed issue where available seats list wouldn't update after creating a booking
 - Added cache invalidation for '/api/bookings/available-seats' query after successful booking creation
