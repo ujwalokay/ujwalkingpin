@@ -10,6 +10,17 @@ Preferred communication style: Simple, everyday language.
 
 ## Recent Changes
 
+**October 7, 2025 - Booking History Archive System**
+- Implemented separate booking history table to store archived completed/expired bookings
+- Added "Refresh List" button functionality to move expired and completed bookings to permanent history
+- Created dedicated history storage with archivedAt timestamp for audit trail
+- Updated History page to display archived bookings from history table with archive dates
+- Backend automatically moves bookings to history table when refresh is clicked
+- History records persist independently from active bookings for long-term tracking
+- Added POST /api/bookings/archive endpoint to handle archival process
+- Added GET /api/booking-history endpoint to fetch archived records
+- Query cache invalidation ensures real-time UI updates across Dashboard and History pages
+
 **October 6, 2025 - Pause/Resume Timer Functionality**
 - Implemented pause/resume toggle for running gaming sessions
 - Added "Pause Timer" button for running bookings to pause the countdown
@@ -89,7 +100,11 @@ Preferred communication style: Simple, everyday language.
 
 **Data Models:**
 - Users table (minimal - username/password for potential future auth)
-- Bookings table (tracks all gaming sessions with status, timing, pricing)
+- Bookings table (tracks all active gaming sessions with status, timing, pricing)
+- Booking History table (stores archived completed/expired bookings with archive timestamp)
+- Device Configs table (stores device categories and their seat configurations)
+- Pricing Configs table (stores pricing rules per category and duration)
+- Food Items table (stores available food/beverage items)
 - Settings table (stores admin configurations like delete PIN)
 
 **Storage Pattern:**
