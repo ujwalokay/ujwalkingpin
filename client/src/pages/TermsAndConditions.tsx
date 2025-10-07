@@ -1,6 +1,8 @@
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Separator } from "@/components/ui/separator";
+import { Button } from "@/components/ui/button";
+import { Instagram, Linkedin, Github, Twitter, Mail } from "lucide-react";
 
 export default function TermsAndConditions() {
   return (
@@ -144,6 +146,89 @@ export default function TermsAndConditions() {
           </ScrollArea>
         </CardContent>
       </Card>
+      
+      <footer className="mt-8 py-6 border-t">
+        <div className="flex flex-col items-center gap-4">
+          <p className="text-lg font-semibold text-foreground">
+            Made by <span className="text-primary">Ujwal Guru</span>
+          </p>
+          <div className="flex items-center gap-3">
+            <Button
+              variant="ghost"
+              size="icon"
+              asChild
+              data-testid="link-instagram"
+            >
+              <a
+                href="https://instagram.com"
+                target="_blank"
+                rel="noopener noreferrer"
+                aria-label="Instagram"
+              >
+                <Instagram className="h-5 w-5" />
+              </a>
+            </Button>
+            <Button
+              variant="ghost"
+              size="icon"
+              asChild
+              data-testid="link-linkedin"
+            >
+              <a
+                href="https://linkedin.com"
+                target="_blank"
+                rel="noopener noreferrer"
+                aria-label="LinkedIn"
+              >
+                <Linkedin className="h-5 w-5" />
+              </a>
+            </Button>
+            <Button
+              variant="ghost"
+              size="icon"
+              asChild
+              data-testid="link-github"
+            >
+              <a
+                href="https://github.com"
+                target="_blank"
+                rel="noopener noreferrer"
+                aria-label="GitHub"
+              >
+                <Github className="h-5 w-5" />
+              </a>
+            </Button>
+            <Button
+              variant="ghost"
+              size="icon"
+              asChild
+              data-testid="link-twitter"
+            >
+              <a
+                href="https://twitter.com"
+                target="_blank"
+                rel="noopener noreferrer"
+                aria-label="Twitter"
+              >
+                <Twitter className="h-5 w-5" />
+              </a>
+            </Button>
+            <Button
+              variant="ghost"
+              size="icon"
+              asChild
+              data-testid="link-email"
+            >
+              <a
+                href="mailto:ujwal@example.com"
+                aria-label="Email"
+              >
+                <Mail className="h-5 w-5" />
+              </a>
+            </Button>
+          </div>
+        </div>
+      </footer>
     </div>
   );
 }
