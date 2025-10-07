@@ -40,11 +40,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
             const bookingStart = new Date(booking.startTime);
             const bookingEnd = new Date(booking.endTime);
             
-            const hasOverlap = (
-              (requestStart >= bookingStart && requestStart < bookingEnd) ||
-              (requestEnd > bookingStart && requestEnd <= bookingEnd) ||
-              (requestStart <= bookingStart && requestEnd >= bookingEnd)
-            );
+            const hasOverlap = requestStart < bookingEnd && requestEnd > bookingStart;
             
             return hasOverlap && (booking.status === "running" || booking.status === "paused" || booking.status === "upcoming");
           })
@@ -101,11 +97,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         const bookingStart = new Date(existingBooking.startTime);
         const bookingEnd = new Date(existingBooking.endTime);
         
-        const hasOverlap = (
-          (requestStart >= bookingStart && requestStart < bookingEnd) ||
-          (requestEnd > bookingStart && requestEnd <= bookingEnd) ||
-          (requestStart <= bookingStart && requestEnd >= bookingEnd)
-        );
+        const hasOverlap = requestStart < bookingEnd && requestEnd > bookingStart;
         
         return hasOverlap;
       });
