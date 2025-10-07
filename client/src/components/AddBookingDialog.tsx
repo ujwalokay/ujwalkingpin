@@ -82,6 +82,7 @@ export function AddBookingDialog({ open, onOpenChange, onConfirm, availableSeats
   const [bookingType, setBookingType] = useState<"walk-in" | "upcoming">("walk-in");
   const [bookingDate, setBookingDate] = useState<Date>();
   const [timeSlot, setTimeSlot] = useState<string>("");
+  const [timePeriodFilter, setTimePeriodFilter] = useState<"all" | "am" | "pm">("all");
 
   const { data: pricingConfig = [] } = useQuery<PricingConfig[]>({
     queryKey: ["/api/pricing-config"],
@@ -209,7 +210,7 @@ export function AddBookingDialog({ open, onOpenChange, onConfirm, availableSeats
   }, [bookingDate, allBookings]);
 
   const generateTimeSlots = () => {
-    const slots = [];
+    const allSlots = [];
     const totalMinutesInDay = 24 * 60;
     
     let startMinutes = 0;
@@ -239,12 +240,18 @@ export function AddBookingDialog({ open, onOpenChange, onConfirm, availableSeats
       const label = `${formatTime(startHour, startMin)} - ${formatTime(endHour, endMin)}`;
       const value = `${startHour.toString().padStart(2, '0')}:${startMin.toString().padStart(2, '0')}-${endHour.toString().padStart(2, '0')}:${endMin.toString().padStart(2, '0')}`;
       
-      slots.push({ label, value });
+      allSlots.push({ label, value, startHour });
       
       startMinutes = endMinutes;
     }
     
-    return slots;
+    if (timePeriodFilter === "am") {
+      return allSlots.filter(slot => slot.startHour < 12);
+    } else if (timePeriodFilter === "pm") {
+      return allSlots.filter(slot => slot.startHour >= 12);
+    }
+    
+    return allSlots;
   };
 
   return (
@@ -366,6 +373,38 @@ export function AddBookingDialog({ open, onOpenChange, onConfirm, availableSeats
                 <Label htmlFor="timeSlot">
                   Time Slot <span className="text-destructive">*</span>
                 </Label>
+                <div className="flex gap-2 mb-2">
+                  <Button
+                    type="button"
+                    variant={timePeriodFilter === "all" ? "default" : "outline"}
+                    size="sm"
+                    onClick={() => setTimePeriodFilter("all")}
+                    data-testid="button-filter-all"
+                    className="flex-1"
+                  >
+                    All Day
+                  </Button>
+                  <Button
+                    type="button"
+                    variant={timePeriodFilter === "am" ? "default" : "outline"}
+                    size="sm"
+                    onClick={() => setTimePeriodFilter("am")}
+                    data-testid="button-filter-am"
+                    className="flex-1"
+                  >
+                    AM
+                  </Button>
+                  <Button
+                    type="button"
+                    variant={timePeriodFilter === "pm" ? "default" : "outline"}
+                    size="sm"
+                    onClick={() => setTimePeriodFilter("pm")}
+                    data-testid="button-filter-pm"
+                    className="flex-1"
+                  >
+                    PM
+                  </Button>
+                </div>
                 <Select value={timeSlot} onValueChange={setTimeSlot}>
                   <SelectTrigger id="timeSlot" data-testid="select-time-slot">
                     <SelectValue placeholder={`Select ${duration} time slot`} />
