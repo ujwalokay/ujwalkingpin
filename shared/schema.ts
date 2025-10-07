@@ -25,7 +25,10 @@ export const bookings = pgTable("bookings", {
   createdAt: timestamp("created_at").notNull().defaultNow(),
 });
 
-export const insertBookingSchema = createInsertSchema(bookings).omit({ id: true, createdAt: true });
+export const insertBookingSchema = createInsertSchema(bookings).omit({ id: true, createdAt: true }).extend({
+  startTime: z.union([z.string(), z.date()]).transform(val => typeof val === 'string' ? new Date(val) : val),
+  endTime: z.union([z.string(), z.date()]).transform(val => typeof val === 'string' ? new Date(val) : val),
+});
 export type InsertBooking = z.infer<typeof insertBookingSchema>;
 export type Booking = typeof bookings.$inferSelect;
 
