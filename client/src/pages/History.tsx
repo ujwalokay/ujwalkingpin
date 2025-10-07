@@ -7,19 +7,17 @@ import { ScrollArea } from "@/components/ui/scroll-area";
 import { Clock, User, Phone, DollarSign, Calendar, Search } from "lucide-react";
 import { useState } from "react";
 import { format, isValid, isSameDay, parseISO } from "date-fns";
-import type { Booking } from "@shared/schema";
+import type { BookingHistory } from "@shared/schema";
 
 export default function History() {
   const [searchQuery, setSearchQuery] = useState("");
   const [selectedDate, setSelectedDate] = useState<string>("");
 
-  const { data: bookings = [], isLoading } = useQuery<Booking[]>({
-    queryKey: ["/api/bookings"],
+  const { data: bookings = [], isLoading } = useQuery<BookingHistory[]>({
+    queryKey: ["/api/booking-history"],
   });
 
-  const completedBookings = bookings.filter(booking => booking.status === "completed");
-
-  const filteredBookings = completedBookings.filter(booking => {
+  const filteredBookings = bookings.filter(booking => {
     const query = searchQuery.toLowerCase();
     const matchesSearch = 
       booking.customerName.toLowerCase().includes(query) ||
@@ -59,7 +57,7 @@ export default function History() {
     return `${hours}h ${mins}m`;
   };
 
-  const calculateTotal = (booking: Booking) => {
+  const calculateTotal = (booking: BookingHistory) => {
     const basePrice = parseFloat(booking.price);
     const foodTotal = booking.foodOrders?.reduce((sum, order) => sum + (parseFloat(order.price) * order.quantity), 0) || 0;
     return basePrice + foodTotal;
@@ -131,7 +129,7 @@ export default function History() {
           <Card>
             <CardContent className="flex items-center justify-center py-12">
               <p className="text-muted-foreground" data-testid="text-no-history">
-                {searchQuery ? "No bookings found matching your search" : "No completed bookings yet"}
+                {searchQuery ? "No bookings found matching your search" : "No booking history yet. Click 'Refresh List' on the Dashboard to archive completed/expired bookings."}
               </p>
             </CardContent>
           </Card>
@@ -172,6 +170,10 @@ export default function History() {
                   <div className="flex items-center gap-2" data-testid={`text-start-time-${booking.id}`}>
                     <Calendar className="h-4 w-4 text-muted-foreground" />
                     <span className="text-muted-foreground">{formatDate(booking.startTime)}</span>
+                  </div>
+                  
+                  <div className="flex items-center gap-2 text-xs text-muted-foreground" data-testid={`text-archived-${booking.id}`}>
+                    <span>Archived: {formatDate(booking.archivedAt)}</span>
                   </div>
                   
                   <div className="flex items-center gap-2" data-testid={`text-duration-${booking.id}`}>
