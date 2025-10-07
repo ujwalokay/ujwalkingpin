@@ -212,17 +212,15 @@ export function AddBookingDialog({ open, onOpenChange, onConfirm, availableSeats
     const slots = [];
     const totalMinutesInDay = 24 * 60;
     
-    let minStartMinutes = 0;
+    let startMinutes = 0;
     
     if (latestBookingEndTime && bookingDate && isSameDay(bookingDate, new Date())) {
       const endHour = latestBookingEndTime.getHours();
       const endMin = latestBookingEndTime.getMinutes();
-      minStartMinutes = endHour * 60 + endMin;
+      startMinutes = endHour * 60 + endMin;
     }
     
-    for (let startMinutes = 0; startMinutes < totalMinutesInDay; startMinutes += durationMinutes) {
-      if (startMinutes < minStartMinutes) continue;
-      
+    while (startMinutes < totalMinutesInDay) {
       const endMinutes = startMinutes + durationMinutes;
       if (endMinutes > totalMinutesInDay) break;
       
@@ -242,6 +240,8 @@ export function AddBookingDialog({ open, onOpenChange, onConfirm, availableSeats
       const value = `${startHour.toString().padStart(2, '0')}:${startMin.toString().padStart(2, '0')}-${endHour.toString().padStart(2, '0')}:${endMin.toString().padStart(2, '0')}`;
       
       slots.push({ label, value });
+      
+      startMinutes = endMinutes;
     }
     
     return slots;
