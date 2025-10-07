@@ -7,10 +7,13 @@ import {
   type InsertPricingConfig,
   type FoodItem,
   type InsertFoodItem,
+  type BookingHistory,
+  type InsertBookingHistory,
   bookings,
   deviceConfigs,
   pricingConfigs,
   foodItems,
+  bookingHistory,
 } from "@shared/schema";
 import { db } from "./db";
 import { eq, and, gte, lte } from "drizzle-orm";
@@ -44,6 +47,9 @@ export interface IStorage {
   
   getBookingStats(startDate: Date, endDate: Date): Promise<BookingStats>;
   getBookingHistory(startDate: Date, endDate: Date): Promise<BookingHistoryItem[]>;
+  
+  moveBookingsToHistory(): Promise<number>;
+  getAllBookingHistory(): Promise<BookingHistory[]>;
   
   getAllDeviceConfigs(): Promise<DeviceConfig[]>;
   getDeviceConfig(category: string): Promise<DeviceConfig | undefined>;
@@ -335,6 +341,62 @@ export class DatabaseStorage implements IStorage {
   async deleteFoodItem(id: string): Promise<boolean> {
     const result = await db.delete(foodItems).where(eq(foodItems.id, id));
     return result.rowCount ? result.rowCount > 0 : false;
+  }
+
+  async moveBookingsToHistory(): Promise<number> {
+    const expiredAndCompleted = await db
+      .select()
+      .from(bookings)
+      .where(
+        and(
+          eq(bookings.status, "expired")
+        )
+      );
+
+    const completed = await db
+      .select()
+      .from(bookings)
+      .where(
+        and(
+          eq(bookings.status, "completed")
+        )
+      );
+
+    const bookingsToArchive = [...expiredAndCompleted, ...completed];
+
+    if (bookingsToArchive.length === 0) {
+      return 0;
+    }
+
+    const historyRecords: InsertBookingHistory[] = bookingsToArchive.map(booking => ({
+      bookingId: booking.id,
+      category: booking.category,
+      seatNumber: booking.seatNumber,
+      seatName: booking.seatName,
+      customerName: booking.customerName,
+      whatsappNumber: booking.whatsappNumber,
+      startTime: booking.startTime,
+      endTime: booking.endTime,
+      price: booking.price,
+      status: booking.status,
+      bookingType: booking.bookingType,
+      pausedRemainingTime: booking.pausedRemainingTime,
+      foodOrders: booking.foodOrders as any,
+      createdAt: booking.createdAt,
+    }));
+
+    await db.insert(bookingHistory).values(historyRecords);
+
+    const bookingIds = bookingsToArchive.map(b => b.id);
+    for (const id of bookingIds) {
+      await db.delete(bookings).where(eq(bookings.id, id));
+    }
+
+    return bookingsToArchive.length;
+  }
+
+  async getAllBookingHistory(): Promise<BookingHistory[]> {
+    return await db.select().from(bookingHistory);
   }
 }
 
