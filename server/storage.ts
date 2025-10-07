@@ -158,11 +158,11 @@ export class DatabaseStorage implements IStorage {
   async getBookingStats(startDate: Date, endDate: Date): Promise<BookingStats> {
     const completedBookings = await db
       .select()
-      .from(bookings)
+      .from(bookingHistory)
       .where(
         and(
-          gte(bookings.startTime, startDate),
-          lte(bookings.startTime, endDate)
+          gte(bookingHistory.startTime, startDate),
+          lte(bookingHistory.startTime, endDate)
         )
       );
 
@@ -199,12 +199,11 @@ export class DatabaseStorage implements IStorage {
   async getBookingHistory(startDate: Date, endDate: Date): Promise<BookingHistoryItem[]> {
     const completedBookings = await db
       .select()
-      .from(bookings)
+      .from(bookingHistory)
       .where(
         and(
-          eq(bookings.status, "completed"),
-          gte(bookings.startTime, startDate),
-          lte(bookings.startTime, endDate)
+          gte(bookingHistory.startTime, startDate),
+          lte(bookingHistory.startTime, endDate)
         )
       );
 
