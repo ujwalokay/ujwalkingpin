@@ -176,7 +176,7 @@ export default function Dashboard() {
     customerName: string;
     whatsappNumber?: string;
     duration: string;
-    price: number;
+    price: string;
     bookingType: "walk-in" | "upcoming";
   }) => {
     const now = new Date();
@@ -204,7 +204,7 @@ export default function Dashboard() {
         whatsappNumber: newBooking.whatsappNumber,
         startTime: startTime.toISOString() as any,
         endTime: endTime.toISOString() as any,
-        price: newBooking.price.toString(),
+        price: newBooking.price,
         status: newBooking.bookingType === "walk-in" ? "running" : "upcoming",
         bookingType: newBooking.bookingType,
         foodOrders: [],
@@ -229,7 +229,7 @@ export default function Dashboard() {
     },
   });
 
-  const handleConfirmExtend = async (duration: string, price: number) => {
+  const handleConfirmExtend = async (duration: string, price: string) => {
     const booking = bookings.find(b => b.id === extendDialog.bookingId);
     if (booking) {
       const durationMap: { [key: string]: number } = {

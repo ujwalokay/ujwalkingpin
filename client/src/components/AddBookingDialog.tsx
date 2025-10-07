@@ -31,7 +31,7 @@ interface AddBookingDialogProps {
     customerName: string;
     whatsappNumber?: string;
     duration: string;
-    price: number;
+    price: string;
     bookingType: "walk-in" | "upcoming";
   }) => void;
   availableSeats: {

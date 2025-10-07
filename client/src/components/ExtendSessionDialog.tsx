@@ -15,8 +15,8 @@ interface ExtendSessionDialogProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
   seatName: string;
-  timeSlots?: { duration: string; price: number }[];
-  onConfirm?: (duration: string, price: number) => void;
+  timeSlots?: { duration: string; price: string }[];
+  onConfirm?: (duration: string, price: string) => void;
 }
 
 export function ExtendSessionDialog({
@@ -24,9 +24,9 @@ export function ExtendSessionDialog({
   onOpenChange,
   seatName,
   timeSlots = [
-    { duration: "30 mins", price: 40 },
-    { duration: "1 hour", price: 70 },
-    { duration: "2 hours", price: 130 },
+    { duration: "30 mins", price: "40" },
+    { duration: "1 hour", price: "70" },
+    { duration: "2 hours", price: "130" },
   ],
   onConfirm,
 }: ExtendSessionDialogProps) {
