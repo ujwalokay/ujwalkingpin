@@ -1,0 +1,61 @@
+==> Exited with status 1
+==> Common ways to troubleshoot your deploy: https://render.com/docs/troubleshooting-deploys
+/opt/render/project/src/node_modules/pg-pool/index.js:45
+    Error.captureStackTrace(err)
+          ^
+error: relation "device_configs" does not exist
+    at /opt/render/project/src/node_modules/pg-pool/index.js:45:11
+    at process.processTicksAndRejections (node:internal/process/task_queues:105:5)
+    at async file:///opt/render/project/src/node_modules/drizzle-orm/node-postgres/session.js:83:22
+    at async DatabaseStorage.initializeDefaults (file:///opt/render/project/src/dist/index.js:83:29)
+    at async file:///opt/render/project/src/dist/index.js:628:3 {
+  length: 113,
+  severity: 'ERROR',
+  code: '42P01',
+  detail: undefined,
+  hint: undefined,
+  position: '48',
+  internalPosition: undefined,
+  internalQuery: undefined,
+  where: undefined,
+  schema: undefined,
+  table: undefined,
+  column: undefined,
+  dataType: undefined,
+  constraint: undefined,
+  file: 'parse_relation.c',
+  line: '1449',
+  routine: 'parserOpenTable'
+}
+Node.js v22.16.0
+==> Running 'npm run start'
+> rest-express@1.0.0 start
+> NODE_ENV=production node dist/index.js
+/opt/render/project/src/node_modules/pg-pool/index.js:45
+    Error.captureStackTrace(err)
+          ^
+error: relation "device_configs" does not exist
+    at /opt/render/project/src/node_modules/pg-pool/index.js:45:11
+    at process.processTicksAndRejections (node:internal/process/task_queues:105:5)
+    at async file:///opt/render/project/src/node_modules/drizzle-orm/node-postgres/session.js:83:22
+    at async DatabaseStorage.initializeDefaults (file:///opt/render/project/src/dist/index.js:83:29)
+    at async file:///opt/render/project/src/dist/index.js:628:3 {
+  length: 113,
+  severity: 'ERROR',
+  code: '42P01',
+  detail: undefined,
+  hint: undefined,
+  position: '48',
+  internalPosition: undefined,
+  internalQuery: undefined,
+  where: undefined,
+  schema: undefined,
+  table: undefined,
+  column: undefined,
+  dataType: undefined,
+  constraint: undefined,
+  file: 'parse_relation.c',
+  line: '1449',
+  routine: 'parserOpenTable'
+}
+Node.js v22.16.0
