@@ -18,6 +18,7 @@ Preferred communication style: Simple, everyday language.
 - Added theme toggle button in header to switch between light and dark modes
 - Theme preference persists in localStorage and syncs across application
 - All components now support seamless theme switching
+- Fixed ThemeProvider context issue by moving it inside App component for proper React context hierarchy
 
 **October 7, 2025 - Cache Invalidation Fix for Real-Time Seat Availability**
 - Fixed issue where available seats list wouldn't update after creating a booking

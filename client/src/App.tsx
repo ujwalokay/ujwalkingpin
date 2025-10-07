@@ -5,6 +5,7 @@ import { Toaster } from "@/components/ui/toaster";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { SidebarProvider, SidebarTrigger } from "@/components/ui/sidebar";
 import { AppSidebar } from "@/components/AppSidebar";
+import { ThemeProvider } from "@/components/ThemeProvider";
 import { ThemeToggle } from "@/components/ThemeToggle";
 import Dashboard from "@/pages/Dashboard";
 import Settings from "@/pages/Settings";
@@ -86,87 +87,91 @@ function App() {
 
   if (!isAuthenticated) {
     return (
-      <QueryClientProvider client={queryClient}>
-        <TooltipProvider>
-          <Dialog open={showLogin} onOpenChange={() => {}}>
-            <DialogContent className="sm:max-w-md" onPointerDownOutside={(e) => e.preventDefault()} onEscapeKeyDown={(e) => e.preventDefault()}>
-              <DialogHeader>
-                <DialogTitle className="text-2xl font-bold">Gaming Center Admin</DialogTitle>
-                <DialogDescription>
-                  Please enter your credentials to access the admin panel
-                </DialogDescription>
-              </DialogHeader>
-              <div className="space-y-4 py-4">
-                <div className="space-y-2">
-                  <Label htmlFor="username">Username</Label>
-                  <Input
-                    id="username"
-                    data-testid="input-username"
-                    type="text"
-                    placeholder="Enter username"
-                    value={username}
-                    onChange={(e) => setUsername(e.target.value)}
-                    onKeyPress={handleKeyPress}
-                  />
+      <ThemeProvider>
+        <QueryClientProvider client={queryClient}>
+          <TooltipProvider>
+            <Dialog open={showLogin} onOpenChange={() => {}}>
+              <DialogContent className="sm:max-w-md" onPointerDownOutside={(e) => e.preventDefault()} onEscapeKeyDown={(e) => e.preventDefault()}>
+                <DialogHeader>
+                  <DialogTitle className="text-2xl font-bold">Gaming Center Admin</DialogTitle>
+                  <DialogDescription>
+                    Please enter your credentials to access the admin panel
+                  </DialogDescription>
+                </DialogHeader>
+                <div className="space-y-4 py-4">
+                  <div className="space-y-2">
+                    <Label htmlFor="username">Username</Label>
+                    <Input
+                      id="username"
+                      data-testid="input-username"
+                      type="text"
+                      placeholder="Enter username"
+                      value={username}
+                      onChange={(e) => setUsername(e.target.value)}
+                      onKeyPress={handleKeyPress}
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="password">Password</Label>
+                    <Input
+                      id="password"
+                      data-testid="input-password"
+                      type="password"
+                      placeholder="Enter password"
+                      value={password}
+                      onChange={(e) => setPassword(e.target.value)}
+                      onKeyPress={handleKeyPress}
+                    />
+                  </div>
+                  <Button 
+                    onClick={handleLogin} 
+                    className="w-full"
+                    data-testid="button-login"
+                  >
+                    Login
+                  </Button>
                 </div>
-                <div className="space-y-2">
-                  <Label htmlFor="password">Password</Label>
-                  <Input
-                    id="password"
-                    data-testid="input-password"
-                    type="password"
-                    placeholder="Enter password"
-                    value={password}
-                    onChange={(e) => setPassword(e.target.value)}
-                    onKeyPress={handleKeyPress}
-                  />
-                </div>
-                <Button 
-                  onClick={handleLogin} 
-                  className="w-full"
-                  data-testid="button-login"
-                >
-                  Login
-                </Button>
-              </div>
-            </DialogContent>
-          </Dialog>
-          <Toaster />
-        </TooltipProvider>
-      </QueryClientProvider>
+              </DialogContent>
+            </Dialog>
+            <Toaster />
+          </TooltipProvider>
+        </QueryClientProvider>
+      </ThemeProvider>
     );
   }
 
   return (
-    <QueryClientProvider client={queryClient}>
-      <TooltipProvider>
-        <SidebarProvider style={style as React.CSSProperties}>
-          <div className="flex h-screen w-full">
-            <AppSidebar />
-            <div className="flex flex-col flex-1">
-              <header className="flex items-center justify-between p-4 border-b sticky top-0 z-50 bg-background">
-                <SidebarTrigger data-testid="button-sidebar-toggle" />
-                <div className="flex items-center gap-4">
-                  <div className="text-sm text-muted-foreground">
-                    {new Date().toLocaleDateString('en-IN', { 
-                      weekday: 'short', 
-                      year: 'numeric', 
-                      month: 'short', 
-                      day: 'numeric' 
-                    })}
+    <ThemeProvider>
+      <QueryClientProvider client={queryClient}>
+        <TooltipProvider>
+          <SidebarProvider style={style as React.CSSProperties}>
+            <div className="flex h-screen w-full">
+              <AppSidebar />
+              <div className="flex flex-col flex-1">
+                <header className="flex items-center justify-between p-4 border-b sticky top-0 z-50 bg-background">
+                  <SidebarTrigger data-testid="button-sidebar-toggle" />
+                  <div className="flex items-center gap-4">
+                    <div className="text-sm text-muted-foreground">
+                      {new Date().toLocaleDateString('en-IN', { 
+                        weekday: 'short', 
+                        year: 'numeric', 
+                        month: 'short', 
+                        day: 'numeric' 
+                      })}
+                    </div>
+                    <ThemeToggle />
                   </div>
-                  <ThemeToggle />
-                </div>
-              </header>
-              <main className="flex-1 overflow-auto p-6">
-                <Router />
-              </main>
+                </header>
+                <main className="flex-1 overflow-auto p-6">
+                  <Router />
+                </main>
+              </div>
             </div>
-          </div>
-        </SidebarProvider>
-        <Toaster />
-      </TooltipProvider>
-    </QueryClientProvider>
+          </SidebarProvider>
+          <Toaster />
+        </TooltipProvider>
+      </QueryClientProvider>
+    </ThemeProvider>
   );
 }
 
