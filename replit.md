@@ -10,6 +10,13 @@ Preferred communication style: Simple, everyday language.
 
 ## Recent Changes
 
+**October 7, 2025 - Cache Invalidation Fix for Real-Time Seat Availability**
+- Fixed issue where available seats list wouldn't update after creating a booking
+- Added cache invalidation for '/api/bookings/available-seats' query after successful booking creation
+- Now when a booking is created, the AddBookingDialog immediately refreshes to show accurate availability
+- Prevents users from seeing stale seat availability data when creating multiple bookings
+- Users can no longer attempt to book already-occupied seats due to cached data
+
 **October 7, 2025 - Date Column for Upcoming Bookings & Date-Specific Conflict Detection**
 - Added date column to upcoming bookings table to display booking dates clearly
 - Date column only appears in "Upcoming Bookings" tab, not in "Walk-in List" tab
