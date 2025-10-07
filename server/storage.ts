@@ -7,9 +7,13 @@ import {
   type InsertPricingConfig,
   type FoodItem,
   type InsertFoodItem,
+  bookings,
+  deviceConfigs,
+  pricingConfigs,
+  foodItems,
 } from "@shared/schema";
-import { promises as fs } from "fs";
-import path from "path";
+import { db } from "./db";
+import { eq, and, gte, lte } from "drizzle-orm";
 
 export interface BookingStats {
   totalRevenue: number;
@@ -56,130 +60,108 @@ export interface IStorage {
   createFoodItem(item: InsertFoodItem): Promise<FoodItem>;
   updateFoodItem(id: string, item: InsertFoodItem): Promise<FoodItem | undefined>;
   deleteFoodItem(id: string): Promise<boolean>;
+  
+  initializeDefaults(): Promise<void>;
 }
 
-export class MemStorage implements IStorage {
-  private bookings: Map<string, Booking> = new Map();
-  private deviceConfigs: Map<string, DeviceConfig> = new Map();
-  private pricingConfigs: Map<string, PricingConfig> = new Map();
-  private foodItems: Map<string, FoodItem> = new Map();
+export class DatabaseStorage implements IStorage {
+  async initializeDefaults(): Promise<void> {
+    // Check if defaults already exist
+    const existingDevices = await db.select().from(deviceConfigs);
+    if (existingDevices.length > 0) {
+      return; // Already initialized
+    }
 
-  constructor() {
-    this.initializeDefaults();
-  }
+    // Initialize default device configs
+    await db.insert(deviceConfigs).values([
+      {
+        category: "PC",
+        count: 5,
+        seats: ["PC-1", "PC-2", "PC-3", "PC-4", "PC-5"]
+      },
+      {
+        category: "PS5",
+        count: 3,
+        seats: ["PS5-1", "PS5-2", "PS5-3"]
+      }
+    ]);
 
-  private initializeDefaults() {
-    const pcId = crypto.randomUUID();
-    const ps5Id = crypto.randomUUID();
+    // Initialize default pricing configs
+    await db.insert(pricingConfigs).values([
+      { category: "PC", duration: "30 mins", price: "10" },
+      { category: "PC", duration: "1 hour", price: "18" },
+      { category: "PC", duration: "2 hours", price: "30" },
+      { category: "PS5", duration: "30 mins", price: "15" },
+      { category: "PS5", duration: "1 hour", price: "25" },
+      { category: "PS5", duration: "2 hours", price: "45" }
+    ]);
 
-    const pcDeviceConfig: DeviceConfig = {
-      id: pcId,
-      category: "PC",
-      count: 5,
-      seats: ["PC-1", "PC-2", "PC-3", "PC-4", "PC-5"]
-    };
+    // Initialize default food items
+    await db.insert(foodItems).values([
+      { name: "Pizza", price: "8" },
+      { name: "Burger", price: "6" },
+      { name: "Fries", price: "3" },
+      { name: "Soda", price: "2" },
+      { name: "Water", price: "1" },
+      { name: "Sandwich", price: "5" },
+      { name: "Hot Dog", price: "4" },
+      { name: "Coffee", price: "3" },
+      { name: "Energy Drink", price: "4" },
+      { name: "Nachos", price: "5" },
+    ]);
 
-    const ps5DeviceConfig: DeviceConfig = {
-      id: ps5Id,
-      category: "PS5",
-      count: 3,
-      seats: ["PS5-1", "PS5-2", "PS5-3"]
-    };
-
-    this.deviceConfigs.set(pcId, pcDeviceConfig);
-    this.deviceConfigs.set(ps5Id, ps5DeviceConfig);
-
-    const pcPricing30Id = crypto.randomUUID();
-    const pcPricing1hId = crypto.randomUUID();
-    const pcPricing2hId = crypto.randomUUID();
-    const ps5Pricing30Id = crypto.randomUUID();
-    const ps5Pricing1hId = crypto.randomUUID();
-    const ps5Pricing2hId = crypto.randomUUID();
-
-    const pcPricingConfigs: PricingConfig[] = [
-      { id: pcPricing30Id, category: "PC", duration: "30 mins", price: "10" },
-      { id: pcPricing1hId, category: "PC", duration: "1 hour", price: "18" },
-      { id: pcPricing2hId, category: "PC", duration: "2 hours", price: "30" }
-    ];
-
-    const ps5PricingConfigs: PricingConfig[] = [
-      { id: ps5Pricing30Id, category: "PS5", duration: "30 mins", price: "15" },
-      { id: ps5Pricing1hId, category: "PS5", duration: "1 hour", price: "25" },
-      { id: ps5Pricing2hId, category: "PS5", duration: "2 hours", price: "45" }
-    ];
-
-    pcPricingConfigs.forEach(config => this.pricingConfigs.set(config.id, config));
-    ps5PricingConfigs.forEach(config => this.pricingConfigs.set(config.id, config));
-
-    const sampleFoodItems: FoodItem[] = [
-      { id: crypto.randomUUID(), name: "Pizza", price: "8" },
-      { id: crypto.randomUUID(), name: "Burger", price: "6" },
-      { id: crypto.randomUUID(), name: "Fries", price: "3" },
-      { id: crypto.randomUUID(), name: "Soda", price: "2" },
-      { id: crypto.randomUUID(), name: "Water", price: "1" },
-      { id: crypto.randomUUID(), name: "Sandwich", price: "5" },
-      { id: crypto.randomUUID(), name: "Hot Dog", price: "4" },
-      { id: crypto.randomUUID(), name: "Coffee", price: "3" },
-      { id: crypto.randomUUID(), name: "Energy Drink", price: "4" },
-      { id: crypto.randomUUID(), name: "Nachos", price: "5" },
-    ];
-
-    sampleFoodItems.forEach(item => this.foodItems.set(item.id, item));
+    console.log('Database initialized with default data');
   }
 
   async getAllBookings(): Promise<Booking[]> {
-    return Array.from(this.bookings.values());
+    return await db.select().from(bookings);
   }
 
   async getBooking(id: string): Promise<Booking | undefined> {
-    return this.bookings.get(id);
+    const [booking] = await db.select().from(bookings).where(eq(bookings.id, id));
+    return booking || undefined;
   }
 
   async getActiveBookings(): Promise<Booking[]> {
-    return Array.from(this.bookings.values()).filter(
-      booking => booking.status === "running" || booking.status === "upcoming"
-    );
+    return await db.select().from(bookings);
   }
 
   async createBooking(booking: InsertBooking): Promise<Booking> {
-    const id = crypto.randomUUID();
-    const newBooking: Booking = {
+    const [newBooking] = await db.insert(bookings).values({
       ...booking,
-      startTime: typeof booking.startTime === 'string' ? new Date(booking.startTime) : booking.startTime,
-      endTime: typeof booking.endTime === 'string' ? new Date(booking.endTime) : booking.endTime,
-      foodOrders: booking.foodOrders || [],
-      id,
-      createdAt: new Date()
-    };
-    this.bookings.set(id, newBooking);
+      foodOrders: booking.foodOrders || []
+    }).returning();
     return newBooking;
   }
 
   async updateBooking(id: string, data: Partial<InsertBooking>): Promise<Booking | undefined> {
-    const booking = this.bookings.get(id);
-    if (!booking) return undefined;
-    
-    const updated = { 
-      ...booking, 
-      ...data,
-      startTime: data.startTime ? (typeof data.startTime === 'string' ? new Date(data.startTime) : data.startTime) : booking.startTime,
-      endTime: data.endTime ? (typeof data.endTime === 'string' ? new Date(data.endTime) : data.endTime) : booking.endTime,
-    };
-    this.bookings.set(id, updated);
-    return updated;
+    const updateData: any = { ...data };
+    if (data.foodOrders !== undefined) {
+      updateData.foodOrders = data.foodOrders;
+    }
+    const [updated] = await db
+      .update(bookings)
+      .set(updateData)
+      .where(eq(bookings.id, id))
+      .returning();
+    return updated || undefined;
   }
 
   async deleteBooking(id: string): Promise<boolean> {
-    return this.bookings.delete(id);
+    const result = await db.delete(bookings).where(eq(bookings.id, id));
+    return result.rowCount ? result.rowCount > 0 : false;
   }
 
   async getBookingStats(startDate: Date, endDate: Date): Promise<BookingStats> {
-    const completedBookings = Array.from(this.bookings.values()).filter(
-      booking => 
-        (booking.status === "completed" || booking.status === "expired") &&
-        booking.startTime >= startDate &&
-        booking.startTime <= endDate
-    );
+    const completedBookings = await db
+      .select()
+      .from(bookings)
+      .where(
+        and(
+          gte(bookings.startTime, startDate),
+          lte(bookings.startTime, endDate)
+        )
+      );
 
     const totalRevenue = completedBookings.reduce((sum, booking) => {
       return sum + parseFloat(booking.price);
@@ -212,12 +194,15 @@ export class MemStorage implements IStorage {
   }
 
   async getBookingHistory(startDate: Date, endDate: Date): Promise<BookingHistoryItem[]> {
-    const completedBookings = Array.from(this.bookings.values()).filter(
-      booking => 
-        (booking.status === "completed" || booking.status === "expired") &&
-        booking.startTime >= startDate &&
-        booking.startTime <= endDate
-    );
+    const completedBookings = await db
+      .select()
+      .from(bookings)
+      .where(
+        and(
+          gte(bookings.startTime, startDate),
+          lte(bookings.startTime, endDate)
+        )
+      );
 
     return completedBookings
       .map(booking => {
@@ -258,309 +243,94 @@ export class MemStorage implements IStorage {
   }
 
   async getAllDeviceConfigs(): Promise<DeviceConfig[]> {
-    return Array.from(this.deviceConfigs.values());
+    return await db.select().from(deviceConfigs);
   }
 
   async getDeviceConfig(category: string): Promise<DeviceConfig | undefined> {
-    return Array.from(this.deviceConfigs.values()).find(c => c.category === category);
+    const [config] = await db
+      .select()
+      .from(deviceConfigs)
+      .where(eq(deviceConfigs.category, category));
+    return config || undefined;
   }
 
   async upsertDeviceConfig(config: InsertDeviceConfig): Promise<DeviceConfig> {
     const existing = await this.getDeviceConfig(config.category);
     
     if (existing) {
-      const updated = { ...existing, ...config };
-      this.deviceConfigs.set(existing.id, updated);
+      const [updated] = await db
+        .update(deviceConfigs)
+        .set(config)
+        .where(eq(deviceConfigs.category, config.category))
+        .returning();
       return updated;
     } else {
-      const id = crypto.randomUUID();
-      const newConfig: DeviceConfig = { ...config, id };
-      this.deviceConfigs.set(id, newConfig);
+      const [newConfig] = await db.insert(deviceConfigs).values(config).returning();
       return newConfig;
     }
   }
 
   async deleteDeviceConfig(category: string): Promise<boolean> {
-    const existing = await this.getDeviceConfig(category);
-    if (existing) {
-      this.deviceConfigs.delete(existing.id);
-      return true;
-    }
-    return false;
+    const result = await db.delete(deviceConfigs).where(eq(deviceConfigs.category, category));
+    return result.rowCount ? result.rowCount > 0 : false;
   }
 
   async getAllPricingConfigs(): Promise<PricingConfig[]> {
-    return Array.from(this.pricingConfigs.values());
+    return await db.select().from(pricingConfigs);
   }
 
   async getPricingConfigsByCategory(category: string): Promise<PricingConfig[]> {
-    return Array.from(this.pricingConfigs.values()).filter(c => c.category === category);
+    return await db
+      .select()
+      .from(pricingConfigs)
+      .where(eq(pricingConfigs.category, category));
   }
 
   async upsertPricingConfigs(category: string, configs: InsertPricingConfig[]): Promise<PricingConfig[]> {
-    const existing = Array.from(this.pricingConfigs.values()).filter(c => c.category === category);
-    existing.forEach(c => this.pricingConfigs.delete(c.id));
+    // Delete existing configs for this category
+    await db.delete(pricingConfigs).where(eq(pricingConfigs.category, category));
     
     if (configs.length === 0) {
       return [];
     }
     
-    const result = configs.map(config => {
-      const id = crypto.randomUUID();
-      const newConfig: PricingConfig = { ...config, id };
-      this.pricingConfigs.set(id, newConfig);
-      return newConfig;
-    });
-    
+    // Insert new configs
+    const result = await db.insert(pricingConfigs).values(configs).returning();
     return result;
   }
 
   async deletePricingConfig(category: string): Promise<boolean> {
-    const existing = Array.from(this.pricingConfigs.values()).filter(c => c.category === category);
-    if (existing.length > 0) {
-      existing.forEach(c => this.pricingConfigs.delete(c.id));
-      return true;
-    }
-    return false;
+    const result = await db.delete(pricingConfigs).where(eq(pricingConfigs.category, category));
+    return result.rowCount ? result.rowCount > 0 : false;
   }
 
   async getAllFoodItems(): Promise<FoodItem[]> {
-    return Array.from(this.foodItems.values());
+    return await db.select().from(foodItems);
   }
 
   async getFoodItem(id: string): Promise<FoodItem | undefined> {
-    return this.foodItems.get(id);
+    const [item] = await db.select().from(foodItems).where(eq(foodItems.id, id));
+    return item || undefined;
   }
 
   async createFoodItem(item: InsertFoodItem): Promise<FoodItem> {
-    const id = crypto.randomUUID();
-    const newItem: FoodItem = { ...item, id };
-    this.foodItems.set(id, newItem);
+    const [newItem] = await db.insert(foodItems).values(item).returning();
     return newItem;
   }
 
   async updateFoodItem(id: string, item: InsertFoodItem): Promise<FoodItem | undefined> {
-    const existing = this.foodItems.get(id);
-    if (!existing) return undefined;
-    
-    const updated = { ...existing, ...item };
-    this.foodItems.set(id, updated);
-    return updated;
+    const [updated] = await db
+      .update(foodItems)
+      .set(item)
+      .where(eq(foodItems.id, id))
+      .returning();
+    return updated || undefined;
   }
 
   async deleteFoodItem(id: string): Promise<boolean> {
-    return this.foodItems.delete(id);
+    const result = await db.delete(foodItems).where(eq(foodItems.id, id));
+    return result.rowCount ? result.rowCount > 0 : false;
   }
 }
 
-class PersistentStorage implements IStorage {
-  private memStorage: MemStorage;
-  private dataDir = path.join(process.cwd(), '.data');
-  private bookingsFile = path.join(this.dataDir, 'bookings.json');
-  private deviceConfigsFile = path.join(this.dataDir, 'device-configs.json');
-  private pricingConfigsFile = path.join(this.dataDir, 'pricing-configs.json');
-  private foodItemsFile = path.join(this.dataDir, 'food-items.json');
-  private isInitialized = false;
-
-  constructor() {
-    this.memStorage = new MemStorage();
-    this.initialize();
-  }
-
-  private async initialize() {
-    try {
-      await fs.mkdir(this.dataDir, { recursive: true });
-      await this.loadData();
-      this.isInitialized = true;
-      console.log('Persistent storage initialized');
-    } catch (error) {
-      console.error('Error initializing persistent storage:', error);
-    }
-  }
-
-  private async loadData() {
-    try {
-      const [bookingsData, deviceConfigsData, pricingConfigsData, foodItemsData] = await Promise.allSettled([
-        fs.readFile(this.bookingsFile, 'utf-8').catch(() => null),
-        fs.readFile(this.deviceConfigsFile, 'utf-8').catch(() => null),
-        fs.readFile(this.pricingConfigsFile, 'utf-8').catch(() => null),
-        fs.readFile(this.foodItemsFile, 'utf-8').catch(() => null),
-      ]);
-
-      if (bookingsData.status === 'fulfilled' && bookingsData.value) {
-        const bookings: Booking[] = JSON.parse(bookingsData.value);
-        for (const booking of bookings) {
-          booking.startTime = new Date(booking.startTime);
-          booking.endTime = new Date(booking.endTime);
-          booking.createdAt = new Date(booking.createdAt);
-          (this.memStorage as any).bookings.set(booking.id, booking);
-        }
-        console.log(`Loaded ${bookings.length} bookings from disk`);
-      }
-
-      if (deviceConfigsData.status === 'fulfilled' && deviceConfigsData.value) {
-        const deviceConfigs: DeviceConfig[] = JSON.parse(deviceConfigsData.value);
-        if (deviceConfigs.length > 0) {
-          (this.memStorage as any).deviceConfigs.clear();
-          for (const config of deviceConfigs) {
-            (this.memStorage as any).deviceConfigs.set(config.id, config);
-          }
-          console.log(`Loaded ${deviceConfigs.length} device configs from disk`);
-        }
-      }
-
-      if (pricingConfigsData.status === 'fulfilled' && pricingConfigsData.value) {
-        const pricingConfigs: PricingConfig[] = JSON.parse(pricingConfigsData.value);
-        if (pricingConfigs.length > 0) {
-          (this.memStorage as any).pricingConfigs.clear();
-          for (const config of pricingConfigs) {
-            (this.memStorage as any).pricingConfigs.set(config.id, config);
-          }
-          console.log(`Loaded ${pricingConfigs.length} pricing configs from disk`);
-        }
-      }
-
-      if (foodItemsData.status === 'fulfilled' && foodItemsData.value) {
-        const foodItems: FoodItem[] = JSON.parse(foodItemsData.value);
-        if (foodItems.length > 0) {
-          (this.memStorage as any).foodItems.clear();
-          for (const item of foodItems) {
-            (this.memStorage as any).foodItems.set(item.id, item);
-          }
-          console.log(`Loaded ${foodItems.length} food items from disk`);
-        }
-      }
-    } catch (error) {
-      console.error('Error loading data from disk:', error);
-    }
-  }
-
-  private async saveData() {
-    if (!this.isInitialized) {
-      setTimeout(() => this.saveData(), 100);
-      return;
-    }
-
-    try {
-      const bookings = await this.memStorage.getAllBookings();
-      const deviceConfigs = await this.memStorage.getAllDeviceConfigs();
-      const pricingConfigs = await this.memStorage.getAllPricingConfigs();
-      const foodItems = await this.memStorage.getAllFoodItems();
-
-      await Promise.all([
-        fs.writeFile(this.bookingsFile, JSON.stringify(bookings, null, 2)),
-        fs.writeFile(this.deviceConfigsFile, JSON.stringify(deviceConfigs, null, 2)),
-        fs.writeFile(this.pricingConfigsFile, JSON.stringify(pricingConfigs, null, 2)),
-        fs.writeFile(this.foodItemsFile, JSON.stringify(foodItems, null, 2)),
-      ]);
-    } catch (error) {
-      console.error('Error saving data to disk:', error);
-    }
-  }
-
-  async getAllBookings(): Promise<Booking[]> {
-    return this.memStorage.getAllBookings();
-  }
-
-  async getBooking(id: string): Promise<Booking | undefined> {
-    return this.memStorage.getBooking(id);
-  }
-
-  async getActiveBookings(): Promise<Booking[]> {
-    return this.memStorage.getActiveBookings();
-  }
-
-  async createBooking(booking: InsertBooking): Promise<Booking> {
-    const result = await this.memStorage.createBooking(booking);
-    await this.saveData();
-    return result;
-  }
-
-  async updateBooking(id: string, data: Partial<InsertBooking>): Promise<Booking | undefined> {
-    const result = await this.memStorage.updateBooking(id, data);
-    await this.saveData();
-    return result;
-  }
-
-  async deleteBooking(id: string): Promise<boolean> {
-    const result = await this.memStorage.deleteBooking(id);
-    await this.saveData();
-    return result;
-  }
-
-  async getBookingStats(startDate: Date, endDate: Date): Promise<BookingStats> {
-    return this.memStorage.getBookingStats(startDate, endDate);
-  }
-
-  async getBookingHistory(startDate: Date, endDate: Date): Promise<BookingHistoryItem[]> {
-    return this.memStorage.getBookingHistory(startDate, endDate);
-  }
-
-  async getAllDeviceConfigs(): Promise<DeviceConfig[]> {
-    return this.memStorage.getAllDeviceConfigs();
-  }
-
-  async getDeviceConfig(category: string): Promise<DeviceConfig | undefined> {
-    return this.memStorage.getDeviceConfig(category);
-  }
-
-  async upsertDeviceConfig(config: InsertDeviceConfig): Promise<DeviceConfig> {
-    const result = await this.memStorage.upsertDeviceConfig(config);
-    await this.saveData();
-    return result;
-  }
-
-  async deleteDeviceConfig(category: string): Promise<boolean> {
-    const result = await this.memStorage.deleteDeviceConfig(category);
-    await this.saveData();
-    return result;
-  }
-
-  async getAllPricingConfigs(): Promise<PricingConfig[]> {
-    return this.memStorage.getAllPricingConfigs();
-  }
-
-  async getPricingConfigsByCategory(category: string): Promise<PricingConfig[]> {
-    return this.memStorage.getPricingConfigsByCategory(category);
-  }
-
-  async upsertPricingConfigs(category: string, configs: InsertPricingConfig[]): Promise<PricingConfig[]> {
-    const result = await this.memStorage.upsertPricingConfigs(category, configs);
-    await this.saveData();
-    return result;
-  }
-
-  async deletePricingConfig(category: string): Promise<boolean> {
-    const result = await this.memStorage.deletePricingConfig(category);
-    await this.saveData();
-    return result;
-  }
-
-  async getAllFoodItems(): Promise<FoodItem[]> {
-    return this.memStorage.getAllFoodItems();
-  }
-
-  async getFoodItem(id: string): Promise<FoodItem | undefined> {
-    return this.memStorage.getFoodItem(id);
-  }
-
-  async createFoodItem(item: InsertFoodItem): Promise<FoodItem> {
-    const result = await this.memStorage.createFoodItem(item);
-    await this.saveData();
-    return result;
-  }
-
-  async updateFoodItem(id: string, item: InsertFoodItem): Promise<FoodItem | undefined> {
-    const result = await this.memStorage.updateFoodItem(id, item);
-    await this.saveData();
-    return result;
-  }
-
-  async deleteFoodItem(id: string): Promise<boolean> {
-    const result = await this.memStorage.deleteFoodItem(id);
-    await this.saveData();
-    return result;
-  }
-}
-
-export const storage = new PersistentStorage();
+export const storage = new DatabaseStorage();
