@@ -13,6 +13,64 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  app.get("/api/bookings/available-seats", async (req, res) => {
+    try {
+      const { date, timeSlot, durationMinutes } = req.query;
+      
+      if (!date || !timeSlot || !durationMinutes) {
+        return res.status(400).json({ message: "Missing required parameters: date, timeSlot, durationMinutes" });
+      }
+
+      const bookingDate = new Date(date as string);
+      const [startTimeStr] = (timeSlot as string).split('-');
+      const [startHour, startMin] = startTimeStr.split(':').map(Number);
+      
+      const requestStart = new Date(bookingDate);
+      requestStart.setHours(startHour, startMin, 0, 0);
+      const requestEnd = new Date(requestStart.getTime() + parseInt(durationMinutes as string) * 60 * 1000);
+
+      const allBookings = await storage.getAllBookings();
+      const deviceConfigs = await storage.getAllDeviceConfigs();
+      
+      const availableSeats = deviceConfigs.map(config => {
+        const occupiedSeats = allBookings
+          .filter(booking => {
+            if (booking.category !== config.category) return false;
+            
+            const bookingStart = new Date(booking.startTime);
+            const bookingEnd = new Date(booking.endTime);
+            
+            const hasOverlap = (
+              (requestStart >= bookingStart && requestStart < bookingEnd) ||
+              (requestEnd > bookingStart && requestEnd <= bookingEnd) ||
+              (requestStart <= bookingStart && requestEnd >= bookingEnd)
+            );
+            
+            return hasOverlap && (booking.status === "running" || booking.status === "paused" || booking.status === "upcoming");
+          })
+          .map(b => b.seatNumber);
+
+        const allSeatNumbers = config.seats.length > 0 
+          ? config.seats.map(seatName => {
+              const match = seatName.match(/\d+$/);
+              return match ? parseInt(match[0]) : 0;
+            }).filter(n => n > 0)
+          : Array.from({ length: config.count }, (_, i) => i + 1);
+
+        const availableSeats = allSeatNumbers.filter(n => !occupiedSeats.includes(n));
+
+        return {
+          category: config.category,
+          seats: availableSeats,
+        };
+      });
+
+      res.json(availableSeats);
+    } catch (error: any) {
+      res.status(500).json({ message: error.message });
+    }
+  });
+
   app.get("/api/bookings/active", async (req, res) => {
     try {
       const bookings = await storage.getActiveBookings();

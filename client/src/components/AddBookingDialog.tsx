@@ -65,7 +65,16 @@ export function AddBookingDialog({ open, onOpenChange, onConfirm, availableSeats
     queryKey: ["/api/pricing-config"],
   });
 
-  const selectedCategory = availableSeats.find(c => c.category === category);
+  const { data: upcomingAvailableSeats = [], isLoading: isLoadingSeats } = useQuery<{ category: string; seats: number[] }[]>({
+    queryKey: ["/api/bookings/available-seats", bookingDate?.toISOString(), timeSlot, durationMinutes],
+    enabled: bookingType === "upcoming" && !!bookingDate && !!timeSlot && durationMinutes > 0,
+  });
+
+  const seatsToDisplay = bookingType === "upcoming" && bookingDate && timeSlot && durationMinutes > 0
+    ? upcomingAvailableSeats
+    : availableSeats;
+
+  const selectedCategory = seatsToDisplay.find(c => c.category === category);
   const slots = category 
     ? pricingConfig
         .filter(config => config.category === category)
@@ -187,21 +196,143 @@ export function AddBookingDialog({ open, onOpenChange, onConfirm, availableSeats
             </RadioGroup>
           </div>
 
-          <div className="space-y-2">
-            <Label htmlFor="category">Category</Label>
-            <Select value={category} onValueChange={handleCategoryChange}>
-              <SelectTrigger id="category" data-testid="select-category">
-                <SelectValue placeholder="Select category" />
-              </SelectTrigger>
-              <SelectContent>
-                {availableSeats.map((cat) => (
-                  <SelectItem key={cat.category} value={cat.category} data-testid={`option-${cat.category.toLowerCase()}`}>
-                    {cat.category} ({cat.seats.length} available)
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-          </div>
+          {bookingType === "upcoming" && (
+            <>
+              <div className="space-y-2">
+                <Label htmlFor="duration">Duration <span className="text-destructive">*</span></Label>
+                <div className="flex flex-col sm:flex-row items-start sm:items-center gap-3">
+                  <div className="flex items-center gap-2 flex-1 w-full sm:w-auto">
+                    <div className="flex items-center gap-1">
+                      <Input
+                        type="number"
+                        min="0"
+                        value={Math.floor(durationMinutes / 60)}
+                        onChange={(e) => {
+                          const hours = Math.max(0, parseInt(e.target.value) || 0);
+                          const mins = durationMinutes % 60;
+                          setDurationMinutes(hours * 60 + mins);
+                        }}
+                        className="w-16 text-center"
+                        data-testid="input-hours"
+                      />
+                      <span className="text-sm text-muted-foreground">hr</span>
+                    </div>
+                    <div className="flex items-center gap-1">
+                      <Input
+                        type="number"
+                        min="0"
+                        step="30"
+                        value={durationMinutes % 60}
+                        onChange={(e) => {
+                          const value = parseInt(e.target.value) || 0;
+                          const mins = value >= 30 ? 30 : 0;
+                          const hours = Math.floor(durationMinutes / 60);
+                          setDurationMinutes(hours * 60 + mins);
+                        }}
+                        className="w-16 text-center"
+                        data-testid="input-minutes"
+                      />
+                      <span className="text-sm text-muted-foreground">min</span>
+                    </div>
+                  </div>
+                  <div className="flex gap-1">
+                    <Button 
+                      type="button"
+                      variant="outline" 
+                      size="icon"
+                      onClick={decreaseDuration}
+                      disabled={durationMinutes <= 30}
+                      data-testid="button-decrease-duration"
+                    >
+                      <Minus className="h-4 w-4" />
+                    </Button>
+                    <Button 
+                      type="button"
+                      variant="outline" 
+                      size="icon"
+                      onClick={increaseDuration}
+                      data-testid="button-increase-duration"
+                    >
+                      <Plus className="h-4 w-4" />
+                    </Button>
+                  </div>
+                </div>
+              </div>
+
+              <div className="space-y-2">
+                <Label>
+                  Date <span className="text-destructive">*</span>
+                </Label>
+                <Popover>
+                  <PopoverTrigger asChild>
+                    <Button
+                      variant="outline"
+                      className="w-full justify-start text-left font-normal"
+                      data-testid="button-select-date"
+                    >
+                      <CalendarIcon className="mr-2 h-4 w-4" />
+                      {bookingDate ? format(bookingDate, "PPP") : <span>Pick a date</span>}
+                    </Button>
+                  </PopoverTrigger>
+                  <PopoverContent className="w-auto p-0" align="start">
+                    <Calendar
+                      mode="single"
+                      selected={bookingDate}
+                      onSelect={setBookingDate}
+                      disabled={(date) => date < new Date(new Date().setHours(0, 0, 0, 0))}
+                      initialFocus
+                    />
+                  </PopoverContent>
+                </Popover>
+              </div>
+
+              <div className="space-y-2">
+                <Label htmlFor="timeSlot">
+                  Time Slot <span className="text-destructive">*</span>
+                </Label>
+                <Select value={timeSlot} onValueChange={setTimeSlot}>
+                  <SelectTrigger id="timeSlot" data-testid="select-time-slot">
+                    <SelectValue placeholder={`Select ${duration} time slot`} />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {generateTimeSlots().map((slot) => (
+                      <SelectItem key={slot.value} value={slot.value} data-testid={`option-timeslot-${slot.value}`}>
+                        {slot.label}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+            </>
+          )}
+
+          {(bookingType === "walk-in" || (bookingType === "upcoming" && bookingDate && timeSlot && durationMinutes > 0)) && (
+            <div className="space-y-2">
+              <Label htmlFor="category">Category</Label>
+              <Select value={category} onValueChange={handleCategoryChange}>
+                <SelectTrigger id="category" data-testid="select-category">
+                  <SelectValue placeholder="Select category" />
+                </SelectTrigger>
+                <SelectContent>
+                  {isLoadingSeats && bookingType === "upcoming" ? (
+                    <SelectItem value="loading" disabled data-testid="option-loading">
+                      Loading available seats...
+                    </SelectItem>
+                  ) : seatsToDisplay.length === 0 ? (
+                    <SelectItem value="none" disabled data-testid="option-no-seats">
+                      No seats available for this time slot
+                    </SelectItem>
+                  ) : (
+                    seatsToDisplay.map((cat) => (
+                      <SelectItem key={cat.category} value={cat.category} data-testid={`option-${cat.category.toLowerCase()}`}>
+                        {cat.category} ({cat.seats.length} available)
+                      </SelectItem>
+                    ))
+                  )}
+                </SelectContent>
+              </Select>
+            </div>
+          )}
 
           {category && selectedCategory && selectedCategory.seats.length > 0 && (
             <div className="space-y-2">
@@ -259,9 +390,9 @@ export function AddBookingDialog({ open, onOpenChange, onConfirm, availableSeats
             )}
           </div>
 
-          {category && (
+          {bookingType === "walk-in" && category && (
             <div className="space-y-2">
-              <Label htmlFor="duration">Duration {bookingType === "upcoming" && <span className="text-destructive">*</span>}</Label>
+              <Label htmlFor="duration">Duration</Label>
               <div className="flex flex-col sm:flex-row items-start sm:items-center gap-3">
                 <div className="flex items-center gap-2 flex-1 w-full sm:w-auto">
                   <div className="flex items-center gap-1">
@@ -327,53 +458,10 @@ export function AddBookingDialog({ open, onOpenChange, onConfirm, availableSeats
             </div>
           )}
 
-          {bookingType === "upcoming" && durationMinutes > 0 && (
-            <>
-              <div className="space-y-2">
-                <Label>
-                  Date <span className="text-destructive">*</span>
-                </Label>
-                <Popover>
-                  <PopoverTrigger asChild>
-                    <Button
-                      variant="outline"
-                      className="w-full justify-start text-left font-normal"
-                      data-testid="button-select-date"
-                    >
-                      <CalendarIcon className="mr-2 h-4 w-4" />
-                      {bookingDate ? format(bookingDate, "PPP") : <span>Pick a date</span>}
-                    </Button>
-                  </PopoverTrigger>
-                  <PopoverContent className="w-auto p-0" align="start">
-                    <Calendar
-                      mode="single"
-                      selected={bookingDate}
-                      onSelect={setBookingDate}
-                      disabled={(date) => date < new Date(new Date().setHours(0, 0, 0, 0))}
-                      initialFocus
-                    />
-                  </PopoverContent>
-                </Popover>
-              </div>
-
-              <div className="space-y-2">
-                <Label htmlFor="timeSlot">
-                  Time Slot <span className="text-destructive">*</span>
-                </Label>
-                <Select value={timeSlot} onValueChange={setTimeSlot}>
-                  <SelectTrigger id="timeSlot" data-testid="select-time-slot">
-                    <SelectValue placeholder={`Select ${duration} time slot`} />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {generateTimeSlots().map((slot) => (
-                      <SelectItem key={slot.value} value={slot.value} data-testid={`option-timeslot-${slot.value}`}>
-                        {slot.label}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              </div>
-            </>
+          {bookingType === "upcoming" && category && selectedSlot && (
+            <div className="text-sm text-muted-foreground" data-testid="text-price">
+              Price: ₹{selectedSlot.price} for {duration}
+            </div>
           )}
         </div>
 
