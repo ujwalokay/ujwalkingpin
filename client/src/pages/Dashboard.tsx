@@ -562,6 +562,7 @@ export default function Dashboard() {
             onAddFood={handleAddFood}
             onStopTimer={handleStopTimer}
             onDeleteFood={handleDeleteFood}
+            showDateColumn={true}
           />
         </TabsContent>
       </Tabs>

@@ -53,9 +53,10 @@ interface BookingTableProps {
   onAddFood?: (id: string) => void;
   onStopTimer?: (id: string) => void;
   onDeleteFood?: (bookingId: string, foodIndex: number) => void;
+  showDateColumn?: boolean;
 }
 
-export function BookingTable({ bookings, onExtend, onEnd, onComplete, onAddFood, onStopTimer, onDeleteFood }: BookingTableProps) {
+export function BookingTable({ bookings, onExtend, onEnd, onComplete, onAddFood, onStopTimer, onDeleteFood, showDateColumn = false }: BookingTableProps) {
   const [searchTerm, setSearchTerm] = useState("");
 
   const filteredBookings = bookings.filter((booking) => {
@@ -89,6 +90,7 @@ export function BookingTable({ bookings, onExtend, onEnd, onComplete, onAddFood,
               <TableHead>Seat</TableHead>
               <TableHead>Customer</TableHead>
               <TableHead>WhatsApp</TableHead>
+              {showDateColumn && <TableHead>Date</TableHead>}
               <TableHead>Start Time</TableHead>
               <TableHead>End Time</TableHead>
               <TableHead>Time Left</TableHead>
@@ -102,7 +104,7 @@ export function BookingTable({ bookings, onExtend, onEnd, onComplete, onAddFood,
           <TableBody>
             {filteredBookings.length === 0 ? (
               <TableRow>
-                <TableCell colSpan={11} className="text-center text-muted-foreground">
+                <TableCell colSpan={showDateColumn ? 12 : 11} className="text-center text-muted-foreground">
                   No bookings found
                 </TableCell>
               </TableRow>
@@ -125,6 +127,15 @@ export function BookingTable({ bookings, onExtend, onEnd, onComplete, onAddFood,
                     <TableCell data-testid={`text-whatsapp-${booking.id}`}>
                       {booking.whatsappNumber || "-"}
                     </TableCell>
+                    {showDateColumn && (
+                      <TableCell data-testid={`text-date-${booking.id}`}>
+                        {booking.startTime.toLocaleDateString('en-GB', { 
+                          day: '2-digit', 
+                          month: 'short', 
+                          year: 'numeric' 
+                        })}
+                      </TableCell>
+                    )}
                     <TableCell data-testid={`text-start-${booking.id}`}>
                       {booking.startTime.toLocaleTimeString()}
                     </TableCell>
