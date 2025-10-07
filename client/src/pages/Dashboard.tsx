@@ -431,6 +431,7 @@ export default function Dashboard() {
       
       setHideCompleted(true);
       queryClient.invalidateQueries({ queryKey: ['bookings'] });
+      queryClient.invalidateQueries({ queryKey: ['/api/booking-history'] });
       
       toast({
         title: "List Refreshed",
