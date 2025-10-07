@@ -35,7 +35,7 @@ interface Booking {
   status: BookingStatus;
   bookingType: "walk-in" | "upcoming";
   foodOrders?: FoodOrder[];
-  pausedRemainingTime?: number;
+  pausedRemainingTime?: number | null;
 }
 
 const availableIcons = [Monitor, Gamepad2, Glasses, Car, Cpu, Tv, Radio, Box];
@@ -412,7 +412,7 @@ export default function Dashboard() {
         data: { 
           status: "running",
           endTime: newEndTime.toISOString() as any,
-          pausedRemainingTime: undefined
+          pausedRemainingTime: null
         },
       });
       toast({

@@ -43,6 +43,7 @@ interface Booking {
   price: number;
   status: BookingStatus;
   foodOrders?: FoodOrder[];
+  pausedRemainingTime?: number | null;
 }
 
 interface BookingTableProps {
@@ -144,12 +145,24 @@ export function BookingTable({ bookings, onExtend, onEnd, onComplete, onAddFood,
                     </TableCell>
                     <TableCell>
                       {booking.status === "running" && <SessionTimer endTime={booking.endTime} />}
-                      {booking.status === "paused" && (
-                        <div className="flex items-center gap-2 text-muted-foreground" data-testid="timer-paused">
-                          <Pause className="h-4 w-4" />
-                          <span className="font-mono text-sm">Paused</span>
-                        </div>
-                      )}
+                      {booking.status === "paused" && booking.pausedRemainingTime && (() => {
+                        const remainingMs = booking.pausedRemainingTime;
+                        const totalSeconds = Math.floor(remainingMs / 1000);
+                        const hours = Math.floor(totalSeconds / 3600);
+                        const minutes = Math.floor((totalSeconds % 3600) / 60);
+                        const seconds = totalSeconds % 60;
+                        
+                        const timeStr = hours > 0 
+                          ? `${hours}:${minutes.toString().padStart(2, '0')}:${seconds.toString().padStart(2, '0')}`
+                          : `${minutes}:${seconds.toString().padStart(2, '0')}`;
+                        
+                        return (
+                          <div className="flex items-center gap-2 text-amber-600 dark:text-amber-500" data-testid="timer-paused">
+                            <Pause className="h-4 w-4" />
+                            <span className="font-mono text-sm font-semibold">{timeStr}</span>
+                          </div>
+                        );
+                      })()}
                     </TableCell>
                     <TableCell className="font-bold text-primary" data-testid={`text-price-${booking.id}`}>
                       ₹{booking.price}
