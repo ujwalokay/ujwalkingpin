@@ -28,7 +28,8 @@ export async function updateBooking(id: string, data: Partial<InsertBooking>): P
     body: JSON.stringify(data),
   });
   if (!response.ok) {
-    throw new Error("Failed to update booking");
+    const errorData = await response.json().catch(() => ({ message: "Failed to update booking" }));
+    throw new Error(errorData.message || "Failed to update booking");
   }
   return response.json();
 }
