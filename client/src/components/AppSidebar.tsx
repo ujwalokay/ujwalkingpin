@@ -1,4 +1,4 @@
-import { Settings, LayoutDashboard, FileText, Gamepad2, UtensilsCrossed, CalendarClock, History } from "lucide-react";
+import { Settings, LayoutDashboard, FileText, Gamepad2, UtensilsCrossed, CalendarClock, History, Scale } from "lucide-react";
 import { Link, useLocation } from "wouter";
 import {
   Sidebar,
@@ -41,6 +41,11 @@ const menuItems = [
     title: "Reports",
     url: "/reports",
     icon: FileText,
+  },
+  {
+    title: "Terms & Conditions",
+    url: "/terms",
+    icon: Scale,
   },
 ];
 

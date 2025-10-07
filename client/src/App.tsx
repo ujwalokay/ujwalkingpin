@@ -13,6 +13,7 @@ import Reports from "@/pages/Reports";
 import Food from "@/pages/Food";
 import Timeline from "@/pages/Timeline";
 import History from "@/pages/History";
+import TermsAndConditions from "@/pages/TermsAndConditions";
 import NotFound from "@/pages/not-found";
 import { useState, useEffect } from "react";
 import {
@@ -36,6 +37,7 @@ function Router() {
       <Route path="/food" component={Food} />
       <Route path="/settings" component={Settings} />
       <Route path="/reports" component={Reports} />
+      <Route path="/terms" component={TermsAndConditions} />
       <Route component={NotFound} />
     </Switch>
   );
