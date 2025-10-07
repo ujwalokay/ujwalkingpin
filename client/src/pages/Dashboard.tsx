@@ -92,7 +92,7 @@ export default function Dashboard() {
       seatNumber: dbBooking.seatNumber,
       seatName: dbBooking.seatName,
       customerName: dbBooking.customerName,
-      whatsappNumber: dbBooking.whatsappNumber,
+      whatsappNumber: dbBooking.whatsappNumber || undefined,
       startTime: new Date(dbBooking.startTime),
       endTime: new Date(dbBooking.endTime),
       price: parseFloat(dbBooking.price),
