@@ -15,7 +15,8 @@ export async function createBooking(booking: InsertBooking): Promise<Booking> {
     body: JSON.stringify(booking),
   });
   if (!response.ok) {
-    throw new Error("Failed to create booking");
+    const errorData = await response.json().catch(() => ({ message: "Failed to create booking" }));
+    throw new Error(errorData.message || "Failed to create booking");
   }
   return response.json();
 }

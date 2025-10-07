@@ -181,55 +181,63 @@ export default function Dashboard() {
     bookingDate?: Date;
     timeSlot?: string;
   }) => {
-    const now = new Date();
-    const durationMap: { [key: string]: number } = {
-      "30 mins": 30,
-      "1 hour": 60,
-      "2 hours": 120,
-    };
-    const minutes = durationMap[newBooking.duration] || 60;
-    
-    let startTime: Date;
-    if (newBooking.bookingType === "walk-in") {
-      startTime = now;
-    } else {
-      if (newBooking.bookingDate && newBooking.timeSlot) {
-        const [startTime_str] = newBooking.timeSlot.split('-');
-        const [startHour, startMin] = startTime_str.split(':').map(Number);
-        startTime = new Date(newBooking.bookingDate);
-        startTime.setHours(startHour, startMin, 0, 0);
-      } else {
-        startTime = new Date(now.getTime() + 30 * 60 * 1000);
-      }
-    }
-    
-    const endTime = new Date(startTime.getTime() + minutes * 60 * 1000);
-
-    const seatNames: string[] = [];
-    
-    for (const seatNumber of newBooking.seatNumbers) {
-      const seatName = `${newBooking.category}-${seatNumber}`;
-      seatNames.push(seatName);
+    try {
+      const now = new Date();
+      const durationMap: { [key: string]: number } = {
+        "30 mins": 30,
+        "1 hour": 60,
+        "2 hours": 120,
+      };
+      const minutes = durationMap[newBooking.duration] || 60;
       
-      await addBookingMutation.mutateAsync({
-        category: newBooking.category,
-        seatNumber,
-        seatName,
-        customerName: newBooking.customerName,
-        whatsappNumber: newBooking.whatsappNumber,
-        startTime: startTime.toISOString() as any,
-        endTime: endTime.toISOString() as any,
-        price: newBooking.price,
-        status: newBooking.bookingType === "walk-in" ? "running" : "upcoming",
-        bookingType: newBooking.bookingType,
-        foodOrders: [],
+      let startTime: Date;
+      if (newBooking.bookingType === "walk-in") {
+        startTime = now;
+      } else {
+        if (newBooking.bookingDate && newBooking.timeSlot) {
+          const [startTime_str] = newBooking.timeSlot.split('-');
+          const [startHour, startMin] = startTime_str.split(':').map(Number);
+          startTime = new Date(newBooking.bookingDate);
+          startTime.setHours(startHour, startMin, 0, 0);
+        } else {
+          startTime = new Date(now.getTime() + 30 * 60 * 1000);
+        }
+      }
+      
+      const endTime = new Date(startTime.getTime() + minutes * 60 * 1000);
+
+      const seatNames: string[] = [];
+      
+      for (const seatNumber of newBooking.seatNumbers) {
+        const seatName = `${newBooking.category}-${seatNumber}`;
+        seatNames.push(seatName);
+        
+        await addBookingMutation.mutateAsync({
+          category: newBooking.category,
+          seatNumber,
+          seatName,
+          customerName: newBooking.customerName,
+          whatsappNumber: newBooking.whatsappNumber,
+          startTime: startTime.toISOString() as any,
+          endTime: endTime.toISOString() as any,
+          price: newBooking.price,
+          status: newBooking.bookingType === "walk-in" ? "running" : "upcoming",
+          bookingType: newBooking.bookingType,
+          foodOrders: [],
+        });
+      }
+      
+      toast({
+        title: "Booking Added",
+        description: `${seatNames.join(", ")} booked for ${newBooking.customerName}`,
+      });
+    } catch (error: any) {
+      toast({
+        title: "Booking Failed",
+        description: error.message || "Failed to create booking. The seat may already be booked for this time slot.",
+        variant: "destructive",
       });
     }
-    
-    toast({
-      title: "Booking Added",
-      description: `${seatNames.join(", ")} booked for ${newBooking.customerName}`,
-    });
   };
 
   const handleExtend = (bookingId: string) => {

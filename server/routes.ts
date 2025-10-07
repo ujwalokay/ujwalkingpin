@@ -83,6 +83,39 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.post("/api/bookings", async (req, res) => {
     try {
       const booking = insertBookingSchema.parse(req.body);
+      
+      // Validate that the seat is not already booked for this time slot
+      const allBookings = await storage.getAllBookings();
+      const requestStart = new Date(booking.startTime);
+      const requestEnd = new Date(booking.endTime);
+      
+      const hasConflict = allBookings.some(existingBooking => {
+        if (existingBooking.category !== booking.category || existingBooking.seatNumber !== booking.seatNumber) {
+          return false;
+        }
+        
+        if (existingBooking.status !== "running" && existingBooking.status !== "paused" && existingBooking.status !== "upcoming") {
+          return false;
+        }
+        
+        const bookingStart = new Date(existingBooking.startTime);
+        const bookingEnd = new Date(existingBooking.endTime);
+        
+        const hasOverlap = (
+          (requestStart >= bookingStart && requestStart < bookingEnd) ||
+          (requestEnd > bookingStart && requestEnd <= bookingEnd) ||
+          (requestStart <= bookingStart && requestEnd >= bookingEnd)
+        );
+        
+        return hasOverlap;
+      });
+      
+      if (hasConflict) {
+        return res.status(409).json({ 
+          message: `Seat ${booking.category}-${booking.seatNumber} is already booked for this time slot. Please select a different seat or time.` 
+        });
+      }
+      
       const created = await storage.createBooking(booking);
       res.json(created);
     } catch (error: any) {
