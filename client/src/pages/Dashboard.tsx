@@ -167,6 +167,7 @@ export default function Dashboard() {
     mutationFn: createBooking,
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['bookings'] });
+      queryClient.invalidateQueries({ queryKey: ['/api/bookings/available-seats'] });
     },
   });
 
