@@ -270,7 +270,7 @@ export default function Dashboard() {
       
       await extendBookingMutation.mutateAsync({
         id: extendDialog.bookingId,
-        data: { endTime: newEndTime.toISOString() as any, price: newPrice },
+        data: { endTime: newEndTime as any, price: newPrice },
       });
       
       toast({
@@ -411,7 +411,7 @@ export default function Dashboard() {
         id: bookingId,
         data: { 
           status: "running",
-          endTime: newEndTime.toISOString() as any,
+          endTime: newEndTime as any,
           pausedRemainingTime: null
         },
       });
