@@ -122,7 +122,7 @@ export default function Timeline() {
         </div>
       </div>
 
-      <Card className="p-6 bg-gradient-to-br from-card to-card/50">
+      <Card className="p-6 glass-card">
         <div className="flex items-center gap-3 mb-6 pb-4 border-b">
           <div className="h-12 w-12 rounded-lg bg-primary/10 flex items-center justify-center">
             <Calendar className="h-6 w-6 text-primary" />
@@ -251,7 +251,7 @@ export default function Timeline() {
         )}
       </Card>
 
-      <Card className="p-6">
+      <Card className="p-6 glass-card">
         <h3 className="font-bold mb-4 flex items-center gap-2">
           <div className="h-6 w-1 bg-primary rounded-full"></div>
           Status Legend

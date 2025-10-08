@@ -84,7 +84,7 @@ export function PricingTable({ category, slots, onUpdateSlots }: PricingTablePro
   };
 
   return (
-    <Card data-testid={`card-pricing-${category.toLowerCase()}`}>
+    <Card className="glass-card" data-testid={`card-pricing-${category.toLowerCase()}`}>
       <CardHeader>
         <CardTitle>{category} Pricing</CardTitle>
         <CardDescription>Set pricing for different time slots</CardDescription>

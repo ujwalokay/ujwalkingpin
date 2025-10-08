@@ -81,13 +81,13 @@ export function BookingTable({ bookings, onExtend, onEnd, onComplete, onAddFood,
             placeholder="Search by seat, customer name, or phone..."
             value={searchTerm}
             onChange={(e) => setSearchTerm(e.target.value)}
-            className="pl-9"
+            className="pl-9 glass-input"
             data-testid="input-search-bookings"
           />
         </div>
       </div>
 
-      <div className="rounded-md border">
+      <div className="rounded-md border glass-card">
         <Table>
           <TableHeader>
             <TableRow>

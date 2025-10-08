@@ -22,7 +22,7 @@ export function DeviceConfigCard({
   onToggleVisibility,
 }: DeviceConfigCardProps) {
   return (
-    <Card data-testid={`card-${title.toLowerCase().replace(/\s/g, '-')}`}>
+    <Card className="glass-card" data-testid={`card-${title.toLowerCase().replace(/\s/g, '-')}`}>
       <CardHeader>
         <CardTitle>{title}</CardTitle>
         <CardDescription>{description}</CardDescription>

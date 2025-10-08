@@ -126,7 +126,7 @@ export default function History() {
 
       <ScrollArea className="h-[calc(100vh-280px)]">
         {filteredBookings.length === 0 ? (
-          <Card>
+          <Card className="glass-card">
             <CardContent className="flex items-center justify-center py-12">
               <p className="text-muted-foreground" data-testid="text-no-history">
                 {searchQuery ? "No bookings found matching your search" : "No booking history yet. Click 'Refresh List' on the Dashboard to archive completed/expired bookings."}
@@ -136,7 +136,7 @@ export default function History() {
         ) : (
           <div className="grid gap-4 sm:grid-cols-1 md:grid-cols-2 lg:grid-cols-3">
             {filteredBookings.map((booking) => (
-              <Card key={booking.id} className="hover:shadow-lg transition-shadow" data-testid={`card-booking-${booking.id}`}>
+              <Card key={booking.id} className="glass-card" data-testid={`card-booking-${booking.id}`}>
                 <CardHeader className="pb-3">
                   <div className="flex items-start justify-between">
                     <div>

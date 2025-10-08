@@ -127,7 +127,7 @@ export default function Food() {
         {foodItems.map((item) => (
           <div
             key={item.id}
-            className="border rounded-lg p-4 space-y-3 hover:shadow-md transition-shadow"
+            className="glass-card rounded-lg p-4 space-y-3"
             data-testid={`card-food-${item.id}`}
           >
             <div className="flex items-start justify-between">
