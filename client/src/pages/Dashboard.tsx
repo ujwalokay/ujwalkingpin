@@ -8,7 +8,7 @@ import { AddBookingDialog } from "@/components/AddBookingDialog";
 import { ExtendSessionDialog } from "@/components/ExtendSessionDialog";
 import { EndSessionDialog } from "@/components/EndSessionDialog";
 import { AddFoodToBookingDialog } from "@/components/AddFoodToBookingDialog";
-import { Plus, Monitor, Gamepad2, Glasses, Car, Cpu, Tv, Radio, Box, RefreshCw } from "lucide-react";
+import { Plus, Monitor, Gamepad2, Glasses, Car, Cpu, Tv, Radio, Box, RefreshCw, Calculator } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { fetchBookings, createBooking, updateBooking, deleteBooking, fetchDeviceConfigs } from "@/lib/api";
 import type { Booking as DBBooking, DeviceConfig } from "@shared/schema";
@@ -66,6 +66,7 @@ export default function Dashboard() {
   const [deleteDialog, setDeleteDialog] = useState({ open: false, bookingId: "", seatName: "", customerName: "" });
   const [foodDialog, setFoodDialog] = useState({ open: false, bookingId: "", seatName: "", customerName: "" });
   const [hideCompleted, setHideCompleted] = useState(false);
+  const [selectedBookings, setSelectedBookings] = useState<Set<string>>(new Set());
 
   const { data: dbBookings = [], isLoading } = useQuery({ 
     queryKey: ['bookings'], 
@@ -471,6 +472,42 @@ export default function Dashboard() {
     }
   };
 
+  const handleCalculate = () => {
+    if (selectedBookings.size === 0) {
+      toast({
+        title: "No Bookings Selected",
+        description: "Please select bookings from the list to calculate the total",
+        variant: "destructive",
+      });
+      return;
+    }
+    
+    const selectedBookingsList = filteredBookings.filter(b => selectedBookings.has(b.id));
+    const totalAmount = selectedBookingsList.reduce((sum, booking) => {
+      const foodTotal = booking.foodOrders 
+        ? booking.foodOrders.reduce((fSum, order) => fSum + parseFloat(order.price) * order.quantity, 0)
+        : 0;
+      return sum + booking.price + foodTotal;
+    }, 0);
+    
+    toast({
+      title: "Total Amount Calculated",
+      description: `Total: ₹${totalAmount.toFixed(2)} from ${selectedBookings.size} selected booking(s)`,
+    });
+  };
+
+  const handleToggleSelection = (bookingId: string) => {
+    setSelectedBookings(prev => {
+      const newSet = new Set(prev);
+      if (newSet.has(bookingId)) {
+        newSet.delete(bookingId);
+      } else {
+        newSet.add(bookingId);
+      }
+      return newSet;
+    });
+  };
+
   const filteredBookings = useMemo(() => {
     if (hideCompleted) {
       return bookings.filter(b => b.status !== "completed" && b.status !== "expired");
@@ -533,15 +570,26 @@ export default function Dashboard() {
               Upcoming Bookings ({upcomingBookings.length})
             </TabsTrigger>
           </TabsList>
-          <Button 
-            variant="outline" 
-            size="sm" 
-            onClick={handleRefresh}
-            data-testid="button-refresh-list"
-          >
-            <RefreshCw className="mr-2 h-4 w-4" />
-            Refresh List
-          </Button>
+          <div className="flex gap-2">
+            <Button 
+              variant="outline" 
+              size="sm" 
+              onClick={handleCalculate}
+              data-testid="button-calculate"
+            >
+              <Calculator className="mr-2 h-4 w-4" />
+              Calculate ({selectedBookings.size})
+            </Button>
+            <Button 
+              variant="outline" 
+              size="sm" 
+              onClick={handleRefresh}
+              data-testid="button-refresh-list"
+            >
+              <RefreshCw className="mr-2 h-4 w-4" />
+              Refresh List
+            </Button>
+          </div>
         </div>
 
         <TabsContent value="walk-in" className="space-y-4">
@@ -553,6 +601,8 @@ export default function Dashboard() {
             onAddFood={handleAddFood}
             onStopTimer={handleStopTimer}
             onDeleteFood={handleDeleteFood}
+            selectedBookings={selectedBookings}
+            onToggleSelection={handleToggleSelection}
           />
         </TabsContent>
 
@@ -565,6 +615,8 @@ export default function Dashboard() {
             onStopTimer={handleStopTimer}
             onDeleteFood={handleDeleteFood}
             showDateColumn={true}
+            selectedBookings={selectedBookings}
+            onToggleSelection={handleToggleSelection}
           />
         </TabsContent>
       </Tabs>

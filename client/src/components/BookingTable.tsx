@@ -12,6 +12,7 @@ import { Input } from "@/components/ui/input";
 import { StatusBadge } from "./StatusBadge";
 import { SessionTimer } from "./SessionTimer";
 import { Clock, X, Check, UtensilsCrossed, Search, Plus, MoreVertical, StopCircle, Trash2, Play, Pause } from "lucide-react";
+import { Checkbox } from "@/components/ui/checkbox";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -55,9 +56,11 @@ interface BookingTableProps {
   onStopTimer?: (id: string) => void;
   onDeleteFood?: (bookingId: string, foodIndex: number) => void;
   showDateColumn?: boolean;
+  selectedBookings?: Set<string>;
+  onToggleSelection?: (bookingId: string) => void;
 }
 
-export function BookingTable({ bookings, onExtend, onEnd, onComplete, onAddFood, onStopTimer, onDeleteFood, showDateColumn = false }: BookingTableProps) {
+export function BookingTable({ bookings, onExtend, onEnd, onComplete, onAddFood, onStopTimer, onDeleteFood, showDateColumn = false, selectedBookings, onToggleSelection }: BookingTableProps) {
   const [searchTerm, setSearchTerm] = useState("");
 
   const filteredBookings = bookings.filter((booking) => {
@@ -88,6 +91,7 @@ export function BookingTable({ bookings, onExtend, onEnd, onComplete, onAddFood,
         <Table>
           <TableHeader>
             <TableRow>
+              <TableHead className="w-12"></TableHead>
               <TableHead>Seat</TableHead>
               <TableHead>Customer</TableHead>
               <TableHead>WhatsApp</TableHead>
@@ -105,7 +109,7 @@ export function BookingTable({ bookings, onExtend, onEnd, onComplete, onAddFood,
           <TableBody>
             {filteredBookings.length === 0 ? (
               <TableRow>
-                <TableCell colSpan={showDateColumn ? 12 : 11} className="text-center text-muted-foreground">
+                <TableCell colSpan={showDateColumn ? 13 : 12} className="text-center text-muted-foreground">
                   No bookings found
                 </TableCell>
               </TableRow>
@@ -119,6 +123,13 @@ export function BookingTable({ bookings, onExtend, onEnd, onComplete, onAddFood,
                 
                 return (
                   <TableRow key={booking.id} data-testid={`row-booking-${booking.id}`}>
+                    <TableCell>
+                      <Checkbox
+                        checked={selectedBookings?.has(booking.id) || false}
+                        onCheckedChange={() => onToggleSelection?.(booking.id)}
+                        data-testid={`checkbox-booking-${booking.id}`}
+                      />
+                    </TableCell>
                     <TableCell className="font-medium" data-testid={`text-seat-${booking.id}`}>
                       {booking.seatName}
                     </TableCell>
