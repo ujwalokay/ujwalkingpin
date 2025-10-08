@@ -13,21 +13,21 @@ export function CategoryCard({ title, icon: Icon, available, total, color }: Cat
   const percentage = total > 0 ? (available / total) * 100 : 0;
   
   return (
-    <Card className="hover-elevate transition-all" data-testid={`card-category-${title.toLowerCase()}`}>
+    <Card className="group hover:scale-105 transition-all duration-300 cursor-pointer" data-testid={`card-category-${title.toLowerCase()}`}>
       <CardHeader className="flex flex-row items-center justify-between gap-2 space-y-0 pb-2">
-        <CardTitle className="text-sm font-medium">{title}</CardTitle>
-        <Icon className={`h-5 w-5 ${color}`} />
+        <CardTitle className="text-sm font-semibold text-foreground">{title}</CardTitle>
+        <Icon className={`h-6 w-6 ${color} group-hover:scale-110 transition-transform duration-300`} />
       </CardHeader>
       <CardContent>
-        <div className="text-2xl font-bold text-foreground" data-testid={`text-availability-${title.toLowerCase()}`}>
-          {available}/{total}
+        <div className="text-3xl font-bold text-foreground" data-testid={`text-availability-${title.toLowerCase()}`}>
+          {available}<span className="text-lg text-muted-foreground">/{total}</span>
         </div>
-        <p className="text-xs text-muted-foreground mt-1">
+        <p className="text-xs text-muted-foreground mt-1 font-medium">
           Available seats
         </p>
-        <div className="mt-3 h-2 rounded-full bg-muted overflow-hidden">
+        <div className="mt-4 h-2 rounded-full glass overflow-hidden">
           <div 
-            className={`h-full ${color} bg-current transition-all`}
+            className={`h-full ${color} bg-current transition-all duration-500 ease-out`}
             style={{ width: `${percentage}%` }}
           />
         </div>
