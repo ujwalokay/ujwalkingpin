@@ -7,6 +7,7 @@ import { SidebarProvider, SidebarTrigger } from "@/components/ui/sidebar";
 import { AppSidebar } from "@/components/AppSidebar";
 import { ThemeProvider } from "@/components/ThemeProvider";
 import { ThemeToggle } from "@/components/ThemeToggle";
+import { Lock } from "lucide-react";
 import Dashboard from "@/pages/Dashboard";
 import Settings from "@/pages/Settings";
 import Reports from "@/pages/Reports";
@@ -87,6 +88,18 @@ function App() {
     }
   };
 
+  const handleLock = () => {
+    localStorage.removeItem("isAuthenticated");
+    setIsAuthenticated(false);
+    setShowLogin(true);
+    setUsername("");
+    setPassword("");
+    toast({
+      title: "Locked",
+      description: "Please login again to continue",
+    });
+  };
+
   if (!isAuthenticated) {
     return (
       <ThemeProvider>
@@ -162,6 +175,15 @@ function App() {
                       })}
                     </div>
                     <ThemeToggle />
+                    <Button
+                      variant="ghost"
+                      size="icon"
+                      onClick={handleLock}
+                      data-testid="button-lock"
+                      aria-label="Lock screen"
+                    >
+                      <Lock className="h-5 w-5" />
+                    </Button>
                   </div>
                 </header>
                 <main className="flex-1 overflow-auto p-6">
