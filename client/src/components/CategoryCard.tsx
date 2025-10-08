@@ -13,7 +13,7 @@ export function CategoryCard({ title, icon: Icon, available, total, color }: Cat
   const percentage = total > 0 ? (available / total) * 100 : 0;
   
   return (
-    <Card className="group hover:scale-105 transition-all duration-300 cursor-pointer" data-testid={`card-category-${title.toLowerCase()}`}>
+    <Card className="glass-card group cursor-pointer" data-testid={`card-category-${title.toLowerCase()}`}>
       <CardHeader className="flex flex-row items-center justify-between gap-2 space-y-0 pb-2">
         <CardTitle className="text-sm font-semibold text-foreground">{title}</CardTitle>
         <Icon className={`h-6 w-6 ${color} group-hover:scale-110 transition-transform duration-300`} />

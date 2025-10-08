@@ -53,11 +53,11 @@ export function AppSidebar() {
   const [location] = useLocation();
 
   return (
-    <Sidebar>
+    <Sidebar className="glass border-r">
       <SidebarContent>
         <SidebarGroup>
           <div className="flex items-center gap-2 px-4 py-6">
-            <div className="flex h-10 w-10 items-center justify-center rounded-md bg-primary">
+            <div className="flex h-10 w-10 items-center justify-center rounded-md bg-primary backdrop-blur-sm shadow-lg">
               <Gamepad2 className="h-6 w-6 text-primary-foreground" />
             </div>
             <div>
