@@ -71,7 +71,7 @@ function App() {
       setShowLogin(false);
       toast({
         title: "Login successful",
-        description: "Welcome to Gaming Center Admin Panel",
+        description: "Welcome to Ankylo Gaming Admin Panel",
       });
     } else {
       toast({
@@ -108,7 +108,7 @@ function App() {
             <Dialog open={showLogin} onOpenChange={() => {}}>
               <DialogContent className="sm:max-w-md" onPointerDownOutside={(e) => e.preventDefault()} onEscapeKeyDown={(e) => e.preventDefault()}>
                 <DialogHeader>
-                  <DialogTitle className="text-2xl font-bold">Gaming Center Admin</DialogTitle>
+                  <DialogTitle className="text-2xl font-bold">Ankylo Gaming Admin</DialogTitle>
                   <DialogDescription>
                     Please enter your credentials to access the admin panel
                   </DialogDescription>

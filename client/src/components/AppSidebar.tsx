@@ -61,7 +61,7 @@ export function AppSidebar() {
               <Gamepad2 className="h-6 w-6 text-primary-foreground" />
             </div>
             <div>
-              <h2 className="text-lg font-bold text-foreground">Gaming Center</h2>
+              <h2 className="text-lg font-bold text-foreground">Ankylo Gaming</h2>
               <p className="text-xs text-muted-foreground">Admin Panel</p>
             </div>
           </div>
