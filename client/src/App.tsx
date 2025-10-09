@@ -12,6 +12,7 @@ import Dashboard from "@/pages/Dashboard";
 import Settings from "@/pages/Settings";
 import Reports from "@/pages/Reports";
 import Food from "@/pages/Food";
+import Expenses from "@/pages/Expenses";
 import Timeline from "@/pages/Timeline";
 import History from "@/pages/History";
 import TermsAndConditions from "@/pages/TermsAndConditions";
@@ -36,6 +37,7 @@ function Router() {
       <Route path="/timeline" component={Timeline} />
       <Route path="/history" component={History} />
       <Route path="/food" component={Food} />
+      <Route path="/expenses" component={Expenses} />
       <Route path="/settings" component={Settings} />
       <Route path="/reports" component={Reports} />
       <Route path="/terms" component={TermsAndConditions} />
