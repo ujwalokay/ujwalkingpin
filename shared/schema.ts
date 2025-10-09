@@ -111,3 +111,18 @@ export const loginSchema = z.object({
   username: z.string().min(1, "Username is required"),
   password: z.string().min(1, "Password is required"),
 });
+
+export const expenses = pgTable("expenses", {
+  id: varchar("id").primaryKey().$defaultFn(() => crypto.randomUUID()),
+  category: varchar("category").notNull(),
+  description: text("description").notNull(),
+  amount: varchar("amount").notNull(),
+  date: timestamp("date").notNull(),
+  createdAt: timestamp("created_at").notNull().defaultNow(),
+});
+
+export const insertExpenseSchema = createInsertSchema(expenses).omit({ id: true, createdAt: true }).extend({
+  date: z.union([z.string(), z.date()]).transform(val => typeof val === 'string' ? new Date(val) : val),
+});
+export type InsertExpense = z.infer<typeof insertExpenseSchema>;
+export type Expense = typeof expenses.$inferSelect;
