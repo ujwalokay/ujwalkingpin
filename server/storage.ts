@@ -9,14 +9,18 @@ import {
   type InsertFoodItem,
   type BookingHistory,
   type InsertBookingHistory,
+  type User,
+  type InsertUser,
   bookings,
   deviceConfigs,
   pricingConfigs,
   foodItems,
   bookingHistory,
+  users,
 } from "@shared/schema";
 import { db } from "./db";
 import { eq, and, gte, lte } from "drizzle-orm";
+import bcrypt from "bcrypt";
 
 export interface BookingStats {
   totalRevenue: number;
@@ -67,6 +71,10 @@ export interface IStorage {
   updateFoodItem(id: string, item: InsertFoodItem): Promise<FoodItem | undefined>;
   deleteFoodItem(id: string): Promise<boolean>;
   
+  getUserByUsername(username: string): Promise<User | undefined>;
+  createUser(user: InsertUser): Promise<User>;
+  validatePassword(username: string, password: string): Promise<User | null>;
+  
   initializeDefaults(): Promise<void>;
 }
 
@@ -74,7 +82,9 @@ export class DatabaseStorage implements IStorage {
   async initializeDefaults(): Promise<void> {
     // Check if defaults already exist
     const existingDevices = await db.select().from(deviceConfigs);
-    if (existingDevices.length > 0) {
+    const existingUsers = await db.select().from(users);
+    
+    if (existingDevices.length > 0 && existingUsers.length > 0) {
       return; // Already initialized
     }
 
@@ -115,6 +125,20 @@ export class DatabaseStorage implements IStorage {
       { name: "Energy Drink", price: "4" },
       { name: "Nachos", price: "5" },
     ]);
+
+    // Initialize default admin user if no users exist
+    if (existingUsers.length === 0) {
+      const defaultUsername = process.env.ADMIN_USERNAME || "admin";
+      const defaultPassword = process.env.ADMIN_PASSWORD || "admin123";
+      
+      await this.createUser({
+        username: defaultUsername,
+        password: defaultPassword,
+        role: "admin"
+      });
+      
+      console.log(`Default admin user created with username: ${defaultUsername}`);
+    }
 
     console.log('Database initialized with default data');
   }
@@ -403,6 +427,40 @@ export class DatabaseStorage implements IStorage {
 
   async getAllBookingHistory(): Promise<BookingHistory[]> {
     return await db.select().from(bookingHistory);
+  }
+
+  async getUserByUsername(username: string): Promise<User | undefined> {
+    const [user] = await db.select().from(users).where(eq(users.username, username));
+    return user || undefined;
+  }
+
+  async createUser(user: InsertUser): Promise<User> {
+    const saltRounds = 10;
+    const passwordHash = await bcrypt.hash(user.password, saltRounds);
+    
+    const [newUser] = await db.insert(users).values({
+      username: user.username,
+      passwordHash,
+      role: user.role || "admin",
+    }).returning();
+    
+    return newUser;
+  }
+
+  async validatePassword(username: string, password: string): Promise<User | null> {
+    const user = await this.getUserByUsername(username);
+    
+    if (!user) {
+      return null;
+    }
+    
+    const isValid = await bcrypt.compare(password, user.passwordHash);
+    
+    if (!isValid) {
+      return null;
+    }
+    
+    return user;
   }
 }
 
