@@ -1,10 +1,11 @@
 import type { Express } from "express";
 import { createServer, type Server } from "http";
 import { storage } from "./storage";
+import { requireAuth } from "./auth";
 import { insertBookingSchema, insertDeviceConfigSchema, insertPricingConfigSchema, insertFoodItemSchema } from "@shared/schema";
 
 export async function registerRoutes(app: Express): Promise<Server> {
-  app.get("/api/bookings", async (req, res) => {
+  app.get("/api/bookings", requireAuth, async (req, res) => {
     try {
       const bookings = await storage.getAllBookings();
       res.json(bookings);
@@ -13,7 +14,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  app.get("/api/bookings/available-seats", async (req, res) => {
+  app.get("/api/bookings/available-seats", requireAuth, async (req, res) => {
     try {
       const { date, timeSlot, durationMinutes } = req.query;
       
@@ -67,7 +68,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  app.get("/api/bookings/active", async (req, res) => {
+  app.get("/api/bookings/active", requireAuth, async (req, res) => {
     try {
       const bookings = await storage.getActiveBookings();
       res.json(bookings);
@@ -76,7 +77,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  app.post("/api/bookings", async (req, res) => {
+  app.post("/api/bookings", requireAuth, async (req, res) => {
     try {
       const booking = insertBookingSchema.parse(req.body);
       
@@ -115,7 +116,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  app.patch("/api/bookings/:id", async (req, res) => {
+  app.patch("/api/bookings/:id", requireAuth, async (req, res) => {
     try {
       const { id } = req.params;
       console.log('PATCH /api/bookings/:id - Request body:', JSON.stringify(req.body, null, 2));
@@ -130,7 +131,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  app.delete("/api/bookings/:id", async (req, res) => {
+  app.delete("/api/bookings/:id", requireAuth, async (req, res) => {
     try {
       const { id } = req.params;
       const deleted = await storage.deleteBooking(id);
@@ -143,7 +144,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  app.post("/api/bookings/archive", async (req, res) => {
+  app.post("/api/bookings/archive", requireAuth, async (req, res) => {
     try {
       const count = await storage.moveBookingsToHistory();
       res.json({ success: true, count });
@@ -152,7 +153,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  app.get("/api/booking-history", async (req, res) => {
+  app.get("/api/booking-history", requireAuth, async (req, res) => {
     try {
       const history = await storage.getAllBookingHistory();
       res.json(history);
@@ -161,7 +162,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  app.get("/api/reports/stats", async (req, res) => {
+  app.get("/api/reports/stats", requireAuth, async (req, res) => {
     try {
       const period = req.query.period as string || "daily";
       const now = new Date();
@@ -192,7 +193,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  app.get("/api/reports/history", async (req, res) => {
+  app.get("/api/reports/history", requireAuth, async (req, res) => {
     try {
       const period = req.query.period as string || "daily";
       const now = new Date();
@@ -223,7 +224,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  app.get("/api/device-config", async (req, res) => {
+  app.get("/api/device-config", requireAuth, async (req, res) => {
     try {
       const configs = await storage.getAllDeviceConfigs();
       res.json(configs);
@@ -232,7 +233,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  app.post("/api/device-config", async (req, res) => {
+  app.post("/api/device-config", requireAuth, async (req, res) => {
     try {
       const config = insertDeviceConfigSchema.parse(req.body);
       const saved = await storage.upsertDeviceConfig(config);
@@ -242,7 +243,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  app.get("/api/pricing-config", async (req, res) => {
+  app.get("/api/pricing-config", requireAuth, async (req, res) => {
     try {
       const configs = await storage.getAllPricingConfigs();
       res.json(configs);
@@ -251,7 +252,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  app.post("/api/pricing-config", async (req, res) => {
+  app.post("/api/pricing-config", requireAuth, async (req, res) => {
     try {
       const { category, configs } = req.body;
       if (!category || !Array.isArray(configs)) {
@@ -266,7 +267,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  app.delete("/api/device-config/:category", async (req, res) => {
+  app.delete("/api/device-config/:category", requireAuth, async (req, res) => {
     try {
       const { category } = req.params;
       await storage.deleteDeviceConfig(category);
@@ -276,7 +277,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  app.delete("/api/pricing-config/:category", async (req, res) => {
+  app.delete("/api/pricing-config/:category", requireAuth, async (req, res) => {
     try {
       const { category } = req.params;
       await storage.deletePricingConfig(category);
@@ -286,7 +287,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  app.get("/api/food-items", async (req, res) => {
+  app.get("/api/food-items", requireAuth, async (req, res) => {
     try {
       const items = await storage.getAllFoodItems();
       res.json(items);
@@ -295,7 +296,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  app.post("/api/food-items", async (req, res) => {
+  app.post("/api/food-items", requireAuth, async (req, res) => {
     try {
       const item = insertFoodItemSchema.parse(req.body);
       const created = await storage.createFoodItem(item);
@@ -305,7 +306,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  app.patch("/api/food-items/:id", async (req, res) => {
+  app.patch("/api/food-items/:id", requireAuth, async (req, res) => {
     try {
       const { id } = req.params;
       const item = insertFoodItemSchema.parse(req.body);
@@ -319,7 +320,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  app.delete("/api/food-items/:id", async (req, res) => {
+  app.delete("/api/food-items/:id", requireAuth, async (req, res) => {
     try {
       const { id } = req.params;
       const deleted = await storage.deleteFoodItem(id);
