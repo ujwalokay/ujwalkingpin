@@ -84,52 +84,61 @@ export class DatabaseStorage implements IStorage {
     const existingDevices = await db.select().from(deviceConfigs);
     const existingUsers = await db.select().from(users);
     
-    if (existingDevices.length > 0 && existingUsers.length > 0) {
-      return; // Already initialized
+    // Initialize default device configs if not exist
+    if (existingDevices.length === 0) {
+      await db.insert(deviceConfigs).values([
+        {
+          category: "PC",
+          count: 5,
+          seats: ["PC-1", "PC-2", "PC-3", "PC-4", "PC-5"]
+        },
+        {
+          category: "PS5",
+          count: 3,
+          seats: ["PS5-1", "PS5-2", "PS5-3"]
+        }
+      ]);
+
+      // Initialize default pricing configs
+      await db.insert(pricingConfigs).values([
+        { category: "PC", duration: "30 mins", price: "10" },
+        { category: "PC", duration: "1 hour", price: "18" },
+        { category: "PC", duration: "2 hours", price: "30" },
+        { category: "PS5", duration: "30 mins", price: "15" },
+        { category: "PS5", duration: "1 hour", price: "25" },
+        { category: "PS5", duration: "2 hours", price: "45" }
+      ]);
+
+      // Initialize default food items
+      await db.insert(foodItems).values([
+        { name: "Pizza", price: "8" },
+        { name: "Burger", price: "6" },
+        { name: "Fries", price: "3" },
+        { name: "Soda", price: "2" },
+        { name: "Water", price: "1" },
+        { name: "Sandwich", price: "5" },
+        { name: "Hot Dog", price: "4" },
+        { name: "Coffee", price: "3" },
+        { name: "Energy Drink", price: "4" },
+        { name: "Nachos", price: "5" },
+      ]);
     }
-
-    // Initialize default device configs
-    await db.insert(deviceConfigs).values([
-      {
-        category: "PC",
-        count: 5,
-        seats: ["PC-1", "PC-2", "PC-3", "PC-4", "PC-5"]
-      },
-      {
-        category: "PS5",
-        count: 3,
-        seats: ["PS5-1", "PS5-2", "PS5-3"]
-      }
-    ]);
-
-    // Initialize default pricing configs
-    await db.insert(pricingConfigs).values([
-      { category: "PC", duration: "30 mins", price: "10" },
-      { category: "PC", duration: "1 hour", price: "18" },
-      { category: "PC", duration: "2 hours", price: "30" },
-      { category: "PS5", duration: "30 mins", price: "15" },
-      { category: "PS5", duration: "1 hour", price: "25" },
-      { category: "PS5", duration: "2 hours", price: "45" }
-    ]);
-
-    // Initialize default food items
-    await db.insert(foodItems).values([
-      { name: "Pizza", price: "8" },
-      { name: "Burger", price: "6" },
-      { name: "Fries", price: "3" },
-      { name: "Soda", price: "2" },
-      { name: "Water", price: "1" },
-      { name: "Sandwich", price: "5" },
-      { name: "Hot Dog", price: "4" },
-      { name: "Coffee", price: "3" },
-      { name: "Energy Drink", price: "4" },
-      { name: "Nachos", price: "5" },
-    ]);
 
     // Initialize default admin user if no users exist
     if (existingUsers.length === 0) {
-      const defaultUsername = process.env.ADMIN_USERNAME || "admin";
-      const defaultPassword = process.env.ADMIN_PASSWORD || "admin123";
+      const defaultUsername = process.env.ADMIN_USERNAME;
+      const defaultPassword = process.env.ADMIN_PASSWORD;
+      
+      if (!defaultUsername || !defaultPassword) {
+        console.error('❌ ERROR: No admin user exists and ADMIN_USERNAME/ADMIN_PASSWORD environment variables are not set!');
+        console.error('❌ Please set ADMIN_USERNAME and ADMIN_PASSWORD to create an admin user.');
+        console.error('❌ The application will continue without an admin user.');
+        return;
+      }
+      
+      if (defaultPassword.length < 8) {
+        throw new Error('ADMIN_PASSWORD must be at least 8 characters long. Please set a stronger password and restart.');
+      }
       
       await this.createUser({
         username: defaultUsername,
@@ -137,7 +146,7 @@ export class DatabaseStorage implements IStorage {
         role: "admin"
       });
       
-      console.log(`Default admin user created with username: ${defaultUsername}`);
+      console.log(`✅ Admin user created with username: ${defaultUsername}`);
     }
 
     console.log('Database initialized with default data');

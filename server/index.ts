@@ -8,6 +8,9 @@ import { storage } from "./storage";
 
 const app = express();
 
+// Trust proxy - required for rate limiting behind reverse proxy
+app.set('trust proxy', 1);
+
 // Security headers
 app.use(
   helmet({
@@ -18,10 +21,17 @@ app.use(
 app.use(express.json());
 app.use(express.urlencoded({ extended: false }));
 
+// Validate session secret in production
+if (process.env.NODE_ENV === "production" && !process.env.SESSION_SECRET) {
+  console.error('❌ FATAL ERROR: SESSION_SECRET environment variable is required in production!');
+  console.error('❌ Generate a secure secret: node -e "console.log(require(\'crypto\').randomBytes(32).toString(\'hex\'))"');
+  process.exit(1);
+}
+
 // Session configuration
 app.use(
   session({
-    secret: process.env.SESSION_SECRET || "ankylo-gaming-secret-key-change-in-production",
+    secret: process.env.SESSION_SECRET || "dev-secret-DO-NOT-USE-IN-PRODUCTION",
     resave: false,
     saveUninitialized: false,
     cookie: {
