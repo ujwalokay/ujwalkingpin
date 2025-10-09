@@ -2,7 +2,7 @@ import { useState } from "react";
 import { useQuery, useMutation } from "@tanstack/react-query";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Plus, Pencil, Trash2, DollarSign, Calendar as CalendarIcon } from "lucide-react";
+import { Plus, Pencil, Trash2, DollarSign, Calendar as CalendarIcon, Download, FileSpreadsheet, FileText } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Label } from "@/components/ui/label";
@@ -142,6 +142,153 @@ export default function Expenses() {
     setDeleteDialog({ open: true, id, description });
   };
 
+  const handleExportExcel = () => {
+    if (!expenses || expenses.length === 0) {
+      toast({
+        title: "No data to export",
+        description: "There are no expenses to export.",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    try {
+      const headers = ["Date", "Category", "Description", "Amount (₹)"];
+      const csvContent = [
+        headers.join(","),
+        ...sortedExpenses.map(expense => [
+          format(new Date(expense.date), "MMM dd, yyyy"),
+          expense.category,
+          `"${expense.description.replace(/"/g, '""')}"`, // Escape quotes in description
+          parseFloat(expense.amount).toFixed(2)
+        ].join(","))
+      ].join("\n");
+
+      const blob = new Blob([csvContent], { type: "text/csv;charset=utf-8;" });
+      const link = document.createElement("a");
+      const url = URL.createObjectURL(blob);
+      link.setAttribute("href", url);
+      link.setAttribute("download", `expenses_${new Date().toISOString().split('T')[0]}.csv`);
+      link.style.visibility = "hidden";
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+      
+      toast({
+        title: "Export successful",
+        description: "Excel file has been downloaded.",
+      });
+    } catch (error) {
+      toast({
+        title: "Export failed",
+        description: "Failed to export Excel file. Please try again.",
+        variant: "destructive",
+      });
+    }
+  };
+
+  const handleExportPDF = () => {
+    if (!expenses || expenses.length === 0) {
+      toast({
+        title: "No data to export",
+        description: "There are no expenses to export.",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    try {
+      const printWindow = window.open('', '_blank');
+      if (!printWindow) {
+        toast({
+          title: "Popup blocked",
+          description: "Please allow popups for this site to export PDF.",
+          variant: "destructive",
+        });
+        return;
+      }
+
+      const htmlContent = `
+        <!DOCTYPE html>
+        <html>
+        <head>
+          <title>Expense Report</title>
+          <style>
+            body { font-family: Arial, sans-serif; padding: 20px; }
+            h1 { color: #333; margin-bottom: 10px; }
+            .summary { margin: 20px 0; padding: 15px; background-color: #f5f5f5; border-radius: 8px; }
+            .summary h3 { margin: 0 0 10px 0; font-size: 14px; color: #666; }
+            .summary .value { font-size: 24px; font-weight: bold; color: #dc2626; }
+            table { width: 100%; border-collapse: collapse; margin-top: 20px; }
+            th, td { padding: 12px; text-align: left; border-bottom: 1px solid #ddd; }
+            th { background-color: #f5f5f5; font-weight: bold; }
+            .text-right { text-align: right; }
+            .category-badge { 
+              display: inline-block; 
+              padding: 4px 8px; 
+              background-color: #e0e7ff; 
+              border-radius: 9999px; 
+              font-size: 12px;
+            }
+            @media print {
+              body { padding: 10px; }
+            }
+          </style>
+        </head>
+        <body>
+          <h1>Expense Report</h1>
+          <p>Generated on ${new Date().toLocaleDateString()}</p>
+          <div class="summary">
+            <h3>Total Expenses</h3>
+            <div class="value">₹${totalExpenses.toFixed(2)}</div>
+          </div>
+          <table>
+            <thead>
+              <tr>
+                <th>Date</th>
+                <th>Category</th>
+                <th>Description</th>
+                <th class="text-right">Amount</th>
+              </tr>
+            </thead>
+            <tbody>
+              ${sortedExpenses.map(expense => `
+                <tr>
+                  <td>${format(new Date(expense.date), "MMM dd, yyyy")}</td>
+                  <td><span class="category-badge">${expense.category}</span></td>
+                  <td>${expense.description}</td>
+                  <td class="text-right">₹${parseFloat(expense.amount).toFixed(2)}</td>
+                </tr>
+              `).join('')}
+            </tbody>
+          </table>
+        </body>
+        </html>
+      `;
+
+      printWindow.document.write(htmlContent);
+      printWindow.document.close();
+      
+      printWindow.onload = () => {
+        printWindow.print();
+        setTimeout(() => {
+          printWindow.close();
+        }, 100);
+      };
+
+      toast({
+        title: "PDF export ready",
+        description: "Print dialog opened. Save as PDF to download.",
+      });
+    } catch (error) {
+      toast({
+        title: "Export failed",
+        description: "Failed to export PDF. Please try again.",
+        variant: "destructive",
+      });
+    }
+  };
+
   const totalExpenses = expenses.reduce((sum, expense) => {
     const amount = parseFloat(expense.amount);
     return sum + (isNaN(amount) ? 0 : amount);
@@ -165,10 +312,28 @@ export default function Expenses() {
           <h1 className="text-3xl font-bold text-foreground">Expense Tracker</h1>
           <p className="text-muted-foreground">Track and manage operational expenses</p>
         </div>
-        <Button onClick={() => setAddDialog(true)} data-testid="button-add-expense">
-          <Plus className="mr-2 h-4 w-4" />
-          Add Expense
-        </Button>
+        <div className="flex gap-2">
+          <Button 
+            variant="outline" 
+            onClick={handleExportExcel} 
+            data-testid="button-export-excel"
+          >
+            <FileSpreadsheet className="mr-2 h-4 w-4" />
+            Export Excel
+          </Button>
+          <Button 
+            variant="outline" 
+            onClick={handleExportPDF} 
+            data-testid="button-export-pdf"
+          >
+            <FileText className="mr-2 h-4 w-4" />
+            Export PDF
+          </Button>
+          <Button onClick={() => setAddDialog(true)} data-testid="button-add-expense">
+            <Plus className="mr-2 h-4 w-4" />
+            Add Expense
+          </Button>
+        </div>
       </div>
 
       <div className="glass-card rounded-lg p-6">
