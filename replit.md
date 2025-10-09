@@ -10,6 +10,20 @@ Preferred communication style: Simple, everyday language.
 
 ## Recent Changes
 
+**October 9, 2025 - Expense Tracker Feature**
+- Implemented comprehensive expense tracking system for operational costs
+- Added expenses table to database with category, description, amount, and date fields
+- Created expense CRUD operations in storage interface (create, read, update, delete)
+- Added secure API routes for expense management (GET/POST/PATCH/DELETE /api/expenses)
+- Built expense tracker page with table view showing all expenses sorted by date
+- Included expense categories: Equipment Maintenance/Purchase, Food/Beverage Purchase, Utilities, Staff Salary, Game Licenses, Marketing, Rent, Repairs, Supplies, Other
+- Added date picker for selecting expense dates and category dropdown for easy selection
+- Implemented robust validation: frontend validates positive numeric amounts, backend uses Zod schema refinement
+- Total expenses calculation with NaN-safe logic to prevent data corruption
+- Added "Expenses" menu item to sidebar navigation with wallet icon
+- All operations protected by authentication (requireAuth middleware)
+- Helps track operational costs and calculate profit margins (revenue minus expenses)
+
 **October 7, 2025 - Pause/Resume Timer Fix, Responsive Food Dialog, and Theme Toggle**
 - Fixed pause/resume timer functionality by properly mapping pausedRemainingTime field from database to frontend
 - Added pausedRemainingTime to Booking interface so timer properly resumes from paused state
