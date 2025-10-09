@@ -11,12 +11,15 @@ import {
   type InsertBookingHistory,
   type User,
   type InsertUser,
+  type Expense,
+  type InsertExpense,
   bookings,
   deviceConfigs,
   pricingConfigs,
   foodItems,
   bookingHistory,
   users,
+  expenses,
 } from "@shared/schema";
 import { db } from "./db";
 import { eq, and, gte, lte } from "drizzle-orm";
@@ -74,6 +77,13 @@ export interface IStorage {
   getUserByUsername(username: string): Promise<User | undefined>;
   createUser(user: InsertUser): Promise<User>;
   validatePassword(username: string, password: string): Promise<User | null>;
+  
+  getAllExpenses(): Promise<Expense[]>;
+  getExpense(id: string): Promise<Expense | undefined>;
+  createExpense(expense: InsertExpense): Promise<Expense>;
+  updateExpense(id: string, expense: InsertExpense): Promise<Expense | undefined>;
+  deleteExpense(id: string): Promise<boolean>;
+  getExpensesByDateRange(startDate: Date, endDate: Date): Promise<Expense[]>;
   
   initializeDefaults(): Promise<void>;
 }
@@ -470,6 +480,50 @@ export class DatabaseStorage implements IStorage {
     }
     
     return user;
+  }
+
+  async getAllExpenses(): Promise<Expense[]> {
+    return await db.select().from(expenses);
+  }
+
+  async getExpense(id: string): Promise<Expense | undefined> {
+    const [expense] = await db.select().from(expenses).where(eq(expenses.id, id));
+    return expense || undefined;
+  }
+
+  async createExpense(expense: InsertExpense): Promise<Expense> {
+    const [newExpense] = await db.insert(expenses).values(expense as any).returning();
+    return newExpense;
+  }
+
+  async updateExpense(id: string, expense: InsertExpense): Promise<Expense | undefined> {
+    const updateData: any = { ...expense };
+    if (expense.date && typeof expense.date === 'string') {
+      updateData.date = new Date(expense.date);
+    }
+    const [updated] = await db
+      .update(expenses)
+      .set(updateData)
+      .where(eq(expenses.id, id))
+      .returning();
+    return updated || undefined;
+  }
+
+  async deleteExpense(id: string): Promise<boolean> {
+    const result = await db.delete(expenses).where(eq(expenses.id, id));
+    return result.rowCount ? result.rowCount > 0 : false;
+  }
+
+  async getExpensesByDateRange(startDate: Date, endDate: Date): Promise<Expense[]> {
+    return await db
+      .select()
+      .from(expenses)
+      .where(
+        and(
+          gte(expenses.date, startDate),
+          lte(expenses.date, endDate)
+        )
+      );
   }
 }
 
