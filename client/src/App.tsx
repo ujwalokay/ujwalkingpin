@@ -49,6 +49,7 @@ function App() {
   const [showLogin, setShowLogin] = useState(false);
   const [username, setUsername] = useState("");
   const [password, setPassword] = useState("");
+  const [isLoggingIn, setIsLoggingIn] = useState(false);
   const { toast } = useToast();
 
   const style = {
@@ -56,48 +57,83 @@ function App() {
   };
 
   useEffect(() => {
-    const authStatus = localStorage.getItem("isAuthenticated");
-    if (authStatus === "true") {
-      setIsAuthenticated(true);
-    } else {
-      setShowLogin(true);
-    }
+    // Check if user is already authenticated via session
+    const checkAuth = async () => {
+      try {
+        const response = await fetch("/api/auth/me");
+        if (response.ok) {
+          setIsAuthenticated(true);
+        } else {
+          setShowLogin(true);
+        }
+      } catch (error) {
+        setShowLogin(true);
+      }
+    };
+    checkAuth();
   }, []);
 
-  const handleLogin = () => {
-    if (username === "crossplay" && password === "1234") {
-      localStorage.setItem("isAuthenticated", "true");
-      setIsAuthenticated(true);
-      setShowLogin(false);
-      toast({
-        title: "Login successful",
-        description: "Welcome to Ankylo Gaming Admin Panel",
+  const handleLogin = async () => {
+    setIsLoggingIn(true);
+    try {
+      const response = await fetch("/api/auth/login", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({ username, password }),
       });
-    } else {
+
+      if (response.ok) {
+        setIsAuthenticated(true);
+        setShowLogin(false);
+        toast({
+          title: "Login successful",
+          description: "Welcome to Ankylo Gaming Admin Panel",
+        });
+      } else {
+        const data = await response.json();
+        toast({
+          title: "Login failed",
+          description: data.message || "Invalid username or password",
+          variant: "destructive",
+        });
+      }
+    } catch (error) {
       toast({
         title: "Login failed",
-        description: "Invalid username or password",
+        description: "An error occurred. Please try again.",
         variant: "destructive",
       });
+    } finally {
+      setIsLoggingIn(false);
     }
   };
 
   const handleKeyPress = (e: React.KeyboardEvent) => {
-    if (e.key === "Enter") {
+    if (e.key === "Enter" && !isLoggingIn) {
       handleLogin();
     }
   };
 
-  const handleLock = () => {
-    localStorage.removeItem("isAuthenticated");
-    setIsAuthenticated(false);
-    setShowLogin(true);
-    setUsername("");
-    setPassword("");
-    toast({
-      title: "Locked",
-      description: "Please login again to continue",
-    });
+  const handleLock = async () => {
+    try {
+      await fetch("/api/auth/logout", { method: "POST" });
+      setIsAuthenticated(false);
+      setShowLogin(true);
+      setUsername("");
+      setPassword("");
+      toast({
+        title: "Locked",
+        description: "Please login again to continue",
+      });
+    } catch (error) {
+      toast({
+        title: "Error",
+        description: "Failed to logout",
+        variant: "destructive",
+      });
+    }
   };
 
   if (!isAuthenticated) {
@@ -142,8 +178,9 @@ function App() {
                     onClick={handleLogin} 
                     className="w-full"
                     data-testid="button-login"
+                    disabled={isLoggingIn}
                   >
-                    Login
+                    {isLoggingIn ? "Logging in..." : "Login"}
                   </Button>
                 </div>
               </DialogContent>
