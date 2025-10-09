@@ -106,6 +106,11 @@ export default function Expenses() {
       toast({ title: "Error", description: "Please fill in all fields", variant: "destructive" });
       return;
     }
+    const amount = parseFloat(formData.amount);
+    if (isNaN(amount) || amount <= 0) {
+      toast({ title: "Error", description: "Please enter a valid positive amount", variant: "destructive" });
+      return;
+    }
     createMutation.mutate(formData);
   };
 
@@ -113,6 +118,11 @@ export default function Expenses() {
     if (!editDialog.item) return;
     if (!formData.category || !formData.description || !formData.amount || !formData.date) {
       toast({ title: "Error", description: "Please fill in all fields", variant: "destructive" });
+      return;
+    }
+    const amount = parseFloat(formData.amount);
+    if (isNaN(amount) || amount <= 0) {
+      toast({ title: "Error", description: "Please enter a valid positive amount", variant: "destructive" });
       return;
     }
     updateMutation.mutate({ id: editDialog.item.id, data: formData });
@@ -132,7 +142,10 @@ export default function Expenses() {
     setDeleteDialog({ open: true, id, description });
   };
 
-  const totalExpenses = expenses.reduce((sum, expense) => sum + parseFloat(expense.amount), 0);
+  const totalExpenses = expenses.reduce((sum, expense) => {
+    const amount = parseFloat(expense.amount);
+    return sum + (isNaN(amount) ? 0 : amount);
+  }, 0);
 
   if (isLoading) {
     return (

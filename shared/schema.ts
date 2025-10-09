@@ -123,6 +123,9 @@ export const expenses = pgTable("expenses", {
 
 export const insertExpenseSchema = createInsertSchema(expenses).omit({ id: true, createdAt: true }).extend({
   date: z.union([z.string(), z.date()]).transform(val => typeof val === 'string' ? new Date(val) : val),
+  amount: z.string().refine(val => !isNaN(parseFloat(val)) && parseFloat(val) > 0, {
+    message: "Amount must be a valid positive number"
+  }),
 });
 export type InsertExpense = z.infer<typeof insertExpenseSchema>;
 export type Expense = typeof expenses.$inferSelect;
