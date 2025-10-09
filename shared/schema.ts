@@ -92,3 +92,22 @@ export const bookingHistory = pgTable("booking_history", {
 export const insertBookingHistorySchema = createInsertSchema(bookingHistory).omit({ id: true, archivedAt: true });
 export type InsertBookingHistory = z.infer<typeof insertBookingHistorySchema>;
 export type BookingHistory = typeof bookingHistory.$inferSelect;
+
+export const users = pgTable("users", {
+  id: varchar("id").primaryKey().$defaultFn(() => crypto.randomUUID()),
+  username: varchar("username").notNull().unique(),
+  passwordHash: varchar("password_hash").notNull(),
+  role: varchar("role").notNull().default("admin"),
+  createdAt: timestamp("created_at").notNull().defaultNow(),
+});
+
+export const insertUserSchema = createInsertSchema(users).omit({ id: true, createdAt: true, passwordHash: true }).extend({
+  password: z.string().min(6, "Password must be at least 6 characters"),
+});
+export type InsertUser = z.infer<typeof insertUserSchema>;
+export type User = typeof users.$inferSelect;
+
+export const loginSchema = z.object({
+  username: z.string().min(1, "Username is required"),
+  password: z.string().min(1, "Password is required"),
+});
