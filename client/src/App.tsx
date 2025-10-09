@@ -51,6 +51,9 @@ function App() {
   const [password, setPassword] = useState("");
   const [isLoggingIn, setIsLoggingIn] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
+  const [failedAttempts, setFailedAttempts] = useState(0);
+  const [lockoutTime, setLockoutTime] = useState<number | null>(null);
+  const [remainingTime, setRemainingTime] = useState(0);
   const { toast } = useToast();
 
   const style = {
@@ -74,7 +77,37 @@ function App() {
     checkAuth();
   }, []);
 
+  // Handle lockout countdown
+  useEffect(() => {
+    if (lockoutTime) {
+      const interval = setInterval(() => {
+        const now = Date.now();
+        const timeLeft = Math.ceil((lockoutTime - now) / 1000);
+        
+        if (timeLeft <= 0) {
+          setLockoutTime(null);
+          setFailedAttempts(0);
+          setRemainingTime(0);
+        } else {
+          setRemainingTime(timeLeft);
+        }
+      }, 1000);
+
+      return () => clearInterval(interval);
+    }
+  }, [lockoutTime]);
+
   const handleLogin = async () => {
+    // Check if locked out
+    if (lockoutTime && Date.now() < lockoutTime) {
+      toast({
+        title: "Too many attempts",
+        description: `Please wait ${remainingTime} seconds before trying again`,
+        variant: "destructive",
+      });
+      return;
+    }
+
     setIsLoggingIn(true);
     try {
       const response = await fetch("/api/auth/login", {
@@ -88,17 +121,33 @@ function App() {
       if (response.ok) {
         setIsAuthenticated(true);
         setShowLogin(false);
+        setFailedAttempts(0);
+        setLockoutTime(null);
         toast({
           title: "Login successful",
           description: "Welcome to Ankylo Gaming Admin Panel",
         });
       } else {
         const data = await response.json();
-        toast({
-          title: "Login failed",
-          description: data.message || "Invalid username or password",
-          variant: "destructive",
-        });
+        const newFailedAttempts = failedAttempts + 1;
+        setFailedAttempts(newFailedAttempts);
+
+        if (newFailedAttempts >= 3) {
+          const lockTime = Date.now() + 30000; // 30 seconds
+          setLockoutTime(lockTime);
+          setRemainingTime(30);
+          toast({
+            title: "Login failed",
+            description: "Too many failed attempts. Please wait 30 seconds.",
+            variant: "destructive",
+          });
+        } else {
+          toast({
+            title: "Login failed",
+            description: `${data.message || "Invalid username or password"}. ${3 - newFailedAttempts} attempts remaining.`,
+            variant: "destructive",
+          });
+        }
       }
     } catch (error) {
       toast({
@@ -112,10 +161,12 @@ function App() {
   };
 
   const handleKeyPress = (e: React.KeyboardEvent) => {
-    if (e.key === "Enter" && !isLoggingIn) {
+    if (e.key === "Enter" && !isLoggingIn && !(lockoutTime && Date.now() < lockoutTime)) {
       handleLogin();
     }
   };
+
+  const isLockedOut = !!(lockoutTime && Date.now() < lockoutTime);
 
   const handleLock = async () => {
     try {
@@ -161,6 +212,7 @@ function App() {
                       value={username}
                       onChange={(e) => setUsername(e.target.value)}
                       onKeyPress={handleKeyPress}
+                      disabled={isLockedOut}
                     />
                   </div>
                   <div className="space-y-2">
@@ -175,6 +227,7 @@ function App() {
                         onChange={(e) => setPassword(e.target.value)}
                         onKeyPress={handleKeyPress}
                         className="pr-10"
+                        disabled={isLockedOut}
                       />
                       <button
                         type="button"
@@ -182,6 +235,7 @@ function App() {
                         className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground transition-colors"
                         data-testid="button-toggle-password"
                         aria-label={showPassword ? "Hide password" : "Show password"}
+                        disabled={isLockedOut}
                       >
                         {showPassword ? (
                           <EyeOff className="h-4 w-4" />
@@ -195,9 +249,9 @@ function App() {
                     onClick={handleLogin} 
                     className="w-full"
                     data-testid="button-login"
-                    disabled={isLoggingIn}
+                    disabled={isLoggingIn || isLockedOut}
                   >
-                    {isLoggingIn ? "Logging in..." : "Login"}
+                    {isLoggingIn ? "Logging in..." : isLockedOut ? `Wait ${remainingTime}s` : "Login"}
                   </Button>
                 </div>
               </DialogContent>
