@@ -2,7 +2,7 @@ import type { Express } from "express";
 import { createServer, type Server } from "http";
 import { storage } from "./storage";
 import { requireAuth } from "./auth";
-import { insertBookingSchema, insertDeviceConfigSchema, insertPricingConfigSchema, insertFoodItemSchema } from "@shared/schema";
+import { insertBookingSchema, insertDeviceConfigSchema, insertPricingConfigSchema, insertFoodItemSchema, insertExpenseSchema } from "@shared/schema";
 
 export async function registerRoutes(app: Express): Promise<Server> {
   app.get("/api/bookings", requireAuth, async (req, res) => {
@@ -326,6 +326,52 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const deleted = await storage.deleteFoodItem(id);
       if (!deleted) {
         return res.status(404).json({ message: "Food item not found" });
+      }
+      res.json({ success: true });
+    } catch (error: any) {
+      res.status(400).json({ message: error.message });
+    }
+  });
+
+  app.get("/api/expenses", requireAuth, async (req, res) => {
+    try {
+      const expenses = await storage.getAllExpenses();
+      res.json(expenses);
+    } catch (error: any) {
+      res.status(500).json({ message: error.message });
+    }
+  });
+
+  app.post("/api/expenses", requireAuth, async (req, res) => {
+    try {
+      const expense = insertExpenseSchema.parse(req.body);
+      const created = await storage.createExpense(expense);
+      res.json(created);
+    } catch (error: any) {
+      res.status(400).json({ message: error.message });
+    }
+  });
+
+  app.patch("/api/expenses/:id", requireAuth, async (req, res) => {
+    try {
+      const { id } = req.params;
+      const expense = insertExpenseSchema.parse(req.body);
+      const updated = await storage.updateExpense(id, expense);
+      if (!updated) {
+        return res.status(404).json({ message: "Expense not found" });
+      }
+      res.json(updated);
+    } catch (error: any) {
+      res.status(400).json({ message: error.message });
+    }
+  });
+
+  app.delete("/api/expenses/:id", requireAuth, async (req, res) => {
+    try {
+      const { id } = req.params;
+      const deleted = await storage.deleteExpense(id);
+      if (!deleted) {
+        return res.status(404).json({ message: "Expense not found" });
       }
       res.json({ success: true });
     } catch (error: any) {
