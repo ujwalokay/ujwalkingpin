@@ -10,7 +10,7 @@ Preferred communication style: Simple, everyday language.
 
 ## Recent Changes
 
-**October 9, 2025 - Expense Tracker Feature**
+**October 9, 2025 - Expense Tracker Feature with Export Capabilities**
 - Implemented comprehensive expense tracking system for operational costs
 - Added expenses table to database with category, description, amount, and date fields
 - Created expense CRUD operations in storage interface (create, read, update, delete)
@@ -22,6 +22,9 @@ Preferred communication style: Simple, everyday language.
 - Total expenses calculation with NaN-safe logic to prevent data corruption
 - Added "Expenses" menu item to sidebar navigation with wallet icon
 - All operations protected by authentication (requireAuth middleware)
+- **Export to Excel (CSV)**: Download expenses as CSV file with proper formatting and quote escaping
+- **Export to PDF**: Generate printable PDF report with total expenses summary and detailed table
+- Both export functions include empty data validation and user-friendly error messages
 - Helps track operational costs and calculate profit margins (revenue minus expenses)
 
 **October 7, 2025 - Pause/Resume Timer Fix, Responsive Food Dialog, and Theme Toggle**
