@@ -1,7 +1,7 @@
 import type { Express } from "express";
 import { createServer, type Server } from "http";
 import { storage } from "./storage";
-import { requireAuth } from "./auth";
+import { requireAuth, requireAdmin } from "./auth";
 import { insertBookingSchema, insertDeviceConfigSchema, insertPricingConfigSchema, insertFoodItemSchema, insertExpenseSchema } from "@shared/schema";
 
 export async function registerRoutes(app: Express): Promise<Server> {
@@ -131,7 +131,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  app.delete("/api/bookings/:id", requireAuth, async (req, res) => {
+  app.delete("/api/bookings/:id", requireAdmin, async (req, res) => {
     try {
       const { id } = req.params;
       const deleted = await storage.deleteBooking(id);
@@ -233,7 +233,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  app.post("/api/device-config", requireAuth, async (req, res) => {
+  app.post("/api/device-config", requireAdmin, async (req, res) => {
     try {
       const config = insertDeviceConfigSchema.parse(req.body);
       const saved = await storage.upsertDeviceConfig(config);
@@ -252,7 +252,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  app.post("/api/pricing-config", requireAuth, async (req, res) => {
+  app.post("/api/pricing-config", requireAdmin, async (req, res) => {
     try {
       const { category, configs } = req.body;
       if (!category || !Array.isArray(configs)) {
@@ -267,7 +267,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  app.delete("/api/device-config/:category", requireAuth, async (req, res) => {
+  app.delete("/api/device-config/:category", requireAdmin, async (req, res) => {
     try {
       const { category } = req.params;
       await storage.deleteDeviceConfig(category);
@@ -277,7 +277,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  app.delete("/api/pricing-config/:category", requireAuth, async (req, res) => {
+  app.delete("/api/pricing-config/:category", requireAdmin, async (req, res) => {
     try {
       const { category } = req.params;
       await storage.deletePricingConfig(category);
@@ -296,7 +296,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  app.post("/api/food-items", requireAuth, async (req, res) => {
+  app.post("/api/food-items", requireAdmin, async (req, res) => {
     try {
       const item = insertFoodItemSchema.parse(req.body);
       const created = await storage.createFoodItem(item);
@@ -306,7 +306,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  app.patch("/api/food-items/:id", requireAuth, async (req, res) => {
+  app.patch("/api/food-items/:id", requireAdmin, async (req, res) => {
     try {
       const { id } = req.params;
       const item = insertFoodItemSchema.parse(req.body);
@@ -320,7 +320,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  app.delete("/api/food-items/:id", requireAuth, async (req, res) => {
+  app.delete("/api/food-items/:id", requireAdmin, async (req, res) => {
     try {
       const { id } = req.params;
       const deleted = await storage.deleteFoodItem(id);
@@ -342,7 +342,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  app.post("/api/expenses", requireAuth, async (req, res) => {
+  app.post("/api/expenses", requireAdmin, async (req, res) => {
     try {
       const expense = insertExpenseSchema.parse(req.body);
       const created = await storage.createExpense(expense);
@@ -352,7 +352,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  app.patch("/api/expenses/:id", requireAuth, async (req, res) => {
+  app.patch("/api/expenses/:id", requireAdmin, async (req, res) => {
     try {
       const { id } = req.params;
       const expense = insertExpenseSchema.parse(req.body);

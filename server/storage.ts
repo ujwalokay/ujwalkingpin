@@ -134,29 +134,47 @@ export class DatabaseStorage implements IStorage {
       ]);
     }
 
-    // Initialize default admin user if no users exist
+    // Initialize default users if no users exist
     if (existingUsers.length === 0) {
-      const defaultUsername = process.env.ADMIN_USERNAME;
-      const defaultPassword = process.env.ADMIN_PASSWORD;
+      const adminUsername = process.env.ADMIN_USERNAME;
+      const adminPassword = process.env.ADMIN_PASSWORD;
+      const staffUsername = process.env.STAFF_USERNAME;
+      const staffPassword = process.env.STAFF_PASSWORD;
       
-      if (!defaultUsername || !defaultPassword) {
+      if (!adminUsername || !adminPassword) {
         console.error('❌ ERROR: No admin user exists and ADMIN_USERNAME/ADMIN_PASSWORD environment variables are not set!');
         console.error('❌ Please set ADMIN_USERNAME and ADMIN_PASSWORD to create an admin user.');
-        console.error('❌ The application will continue without an admin user.');
+        console.error('❌ The application will continue without users.');
         return;
       }
       
-      if (defaultPassword.length < 8) {
+      if (adminPassword.length < 8) {
         throw new Error('ADMIN_PASSWORD must be at least 8 characters long. Please set a stronger password and restart.');
       }
       
+      // Create admin user
       await this.createUser({
-        username: defaultUsername,
-        password: defaultPassword,
+        username: adminUsername,
+        password: adminPassword,
         role: "admin"
       });
+      console.log(`✅ Admin user created with username: ${adminUsername}`);
       
-      console.log(`✅ Admin user created with username: ${defaultUsername}`);
+      // Create staff user if credentials provided
+      if (staffUsername && staffPassword) {
+        if (staffPassword.length < 8) {
+          console.error('❌ WARNING: STAFF_PASSWORD must be at least 8 characters long. Staff user not created.');
+        } else {
+          await this.createUser({
+            username: staffUsername,
+            password: staffPassword,
+            role: "staff"
+          });
+          console.log(`✅ Staff user created with username: ${staffUsername}`);
+        }
+      } else {
+        console.log('ℹ️  No staff user created. Set STAFF_USERNAME and STAFF_PASSWORD to create a staff user.');
+      }
     }
 
     console.log('Database initialized with default data');
