@@ -129,3 +129,19 @@ export const insertExpenseSchema = createInsertSchema(expenses).omit({ id: true,
 });
 export type InsertExpense = z.infer<typeof insertExpenseSchema>;
 export type Expense = typeof expenses.$inferSelect;
+
+export const activityLogs = pgTable("activity_logs", {
+  id: varchar("id").primaryKey().$defaultFn(() => crypto.randomUUID()),
+  userId: varchar("user_id").notNull(),
+  username: varchar("username").notNull(),
+  userRole: varchar("user_role").notNull(),
+  action: varchar("action").notNull(), // 'create', 'update', 'delete', 'login'
+  entityType: varchar("entity_type"), // 'booking', 'food', 'config', etc.
+  entityId: varchar("entity_id"),
+  details: text("details"),
+  createdAt: timestamp("created_at").notNull().defaultNow(),
+});
+
+export const insertActivityLogSchema = createInsertSchema(activityLogs).omit({ id: true, createdAt: true });
+export type InsertActivityLog = z.infer<typeof insertActivityLogSchema>;
+export type ActivityLog = typeof activityLogs.$inferSelect;

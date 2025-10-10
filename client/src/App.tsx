@@ -16,6 +16,7 @@ import Food from "@/pages/Food";
 import Expenses from "@/pages/Expenses";
 import Timeline from "@/pages/Timeline";
 import History from "@/pages/History";
+import ActivityLogs from "@/pages/ActivityLogs";
 import TermsAndConditions from "@/pages/TermsAndConditions";
 import NotFound from "@/pages/not-found";
 import { useState, useEffect } from "react";
@@ -37,6 +38,7 @@ function Router() {
       <Route path="/" component={Dashboard} />
       <Route path="/timeline" component={Timeline} />
       <Route path="/history" component={History} />
+      <Route path="/activity-logs" component={ActivityLogs} />
       <Route path="/food" component={Food} />
       <Route path="/expenses" component={Expenses} />
       <Route path="/settings" component={Settings} />

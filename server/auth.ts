@@ -28,6 +28,17 @@ export async function loginHandler(req: Request, res: Response) {
     req.session.username = user.username;
     req.session.role = user.role;
     
+    // Log login activity
+    await storage.createActivityLog({
+      userId: user.id,
+      username: user.username,
+      userRole: user.role,
+      action: 'login',
+      entityType: null,
+      entityId: null,
+      details: `${user.role} logged in`
+    });
+    
     res.json({
       id: user.id,
       username: user.username,

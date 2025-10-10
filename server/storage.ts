@@ -13,6 +13,8 @@ import {
   type InsertUser,
   type Expense,
   type InsertExpense,
+  type ActivityLog,
+  type InsertActivityLog,
   bookings,
   deviceConfigs,
   pricingConfigs,
@@ -20,6 +22,7 @@ import {
   bookingHistory,
   users,
   expenses,
+  activityLogs,
 } from "@shared/schema";
 import { db } from "./db";
 import { eq, and, gte, lte } from "drizzle-orm";
@@ -84,6 +87,10 @@ export interface IStorage {
   updateExpense(id: string, expense: InsertExpense): Promise<Expense | undefined>;
   deleteExpense(id: string): Promise<boolean>;
   getExpensesByDateRange(startDate: Date, endDate: Date): Promise<Expense[]>;
+  
+  getAllActivityLogs(): Promise<ActivityLog[]>;
+  createActivityLog(log: InsertActivityLog): Promise<ActivityLog>;
+  getActivityLogsByDateRange(startDate: Date, endDate: Date): Promise<ActivityLog[]>;
   
   initializeDefaults(): Promise<void>;
 }
@@ -542,6 +549,28 @@ export class DatabaseStorage implements IStorage {
           lte(expenses.date, endDate)
         )
       );
+  }
+
+  async getAllActivityLogs(): Promise<ActivityLog[]> {
+    return await db.select().from(activityLogs).orderBy(activityLogs.createdAt);
+  }
+
+  async createActivityLog(log: InsertActivityLog): Promise<ActivityLog> {
+    const [newLog] = await db.insert(activityLogs).values(log).returning();
+    return newLog;
+  }
+
+  async getActivityLogsByDateRange(startDate: Date, endDate: Date): Promise<ActivityLog[]> {
+    return await db
+      .select()
+      .from(activityLogs)
+      .where(
+        and(
+          gte(activityLogs.createdAt, startDate),
+          lte(activityLogs.createdAt, endDate)
+        )
+      )
+      .orderBy(activityLogs.createdAt);
   }
 }
 

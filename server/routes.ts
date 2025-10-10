@@ -134,7 +134,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.delete("/api/bookings/:id", requireAuth, async (req, res) => {
     try {
       const { id } = req.params;
-      const user = req.user!;
+      const userRole = req.session.role;
+      const userId = req.session.userId;
+      const username = req.session.username;
       
       // Get the booking to check its status
       const bookings = await storage.getAllBookings();
@@ -146,7 +148,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       
       // Staff cannot delete active bookings (running, paused, upcoming), only admin can
       const activeStatuses = ["running", "paused", "upcoming"];
-      if (activeStatuses.includes(booking.status) && user.role !== "admin") {
+      if (activeStatuses.includes(booking.status) && userRole !== "admin") {
         return res.status(403).json({ message: "Only administrators can delete active bookings" });
       }
       
@@ -154,6 +156,20 @@ export async function registerRoutes(app: Express): Promise<Server> {
       if (!deleted) {
         return res.status(404).json({ message: "Booking not found" });
       }
+      
+      // Log the deletion activity
+      if (userId && username && userRole) {
+        await storage.createActivityLog({
+          userId,
+          username,
+          userRole,
+          action: 'delete',
+          entityType: 'booking',
+          entityId: id,
+          details: `Deleted ${booking.status} booking for ${booking.customerName} at ${booking.seatName}`
+        });
+      }
+      
       res.json({ success: true });
     } catch (error: any) {
       res.status(400).json({ message: error.message });
@@ -253,6 +269,20 @@ export async function registerRoutes(app: Express): Promise<Server> {
     try {
       const config = insertDeviceConfigSchema.parse(req.body);
       const saved = await storage.upsertDeviceConfig(config);
+      
+      // Log the admin activity
+      if (req.session.userId && req.session.username && req.session.role) {
+        await storage.createActivityLog({
+          userId: req.session.userId,
+          username: req.session.username,
+          userRole: req.session.role,
+          action: 'update',
+          entityType: 'device-config',
+          entityId: saved.id,
+          details: `Updated device config for ${config.category} - ${config.count} seats`
+        });
+      }
+      
       res.json(saved);
     } catch (error: any) {
       res.status(400).json({ message: error.message });
@@ -277,6 +307,20 @@ export async function registerRoutes(app: Express): Promise<Server> {
       
       const validatedConfigs = configs.map(c => insertPricingConfigSchema.parse({ ...c, category }));
       const saved = await storage.upsertPricingConfigs(category, validatedConfigs);
+      
+      // Log the admin activity
+      if (req.session.userId && req.session.username && req.session.role) {
+        await storage.createActivityLog({
+          userId: req.session.userId,
+          username: req.session.username,
+          userRole: req.session.role,
+          action: 'update',
+          entityType: 'pricing-config',
+          entityId: category,
+          details: `Updated pricing config for ${category} - ${configs.length} price tiers`
+        });
+      }
+      
       res.json(saved);
     } catch (error: any) {
       res.status(400).json({ message: error.message });
@@ -316,6 +360,20 @@ export async function registerRoutes(app: Express): Promise<Server> {
     try {
       const item = insertFoodItemSchema.parse(req.body);
       const created = await storage.createFoodItem(item);
+      
+      // Log the admin activity
+      if (req.session.userId && req.session.username && req.session.role) {
+        await storage.createActivityLog({
+          userId: req.session.userId,
+          username: req.session.username,
+          userRole: req.session.role,
+          action: 'create',
+          entityType: 'food-item',
+          entityId: created.id,
+          details: `Created food item: ${item.name} - ₹${item.price}`
+        });
+      }
+      
       res.json(created);
     } catch (error: any) {
       res.status(400).json({ message: error.message });
@@ -330,6 +388,20 @@ export async function registerRoutes(app: Express): Promise<Server> {
       if (!updated) {
         return res.status(404).json({ message: "Food item not found" });
       }
+      
+      // Log the admin activity
+      if (req.session.userId && req.session.username && req.session.role) {
+        await storage.createActivityLog({
+          userId: req.session.userId,
+          username: req.session.username,
+          userRole: req.session.role,
+          action: 'update',
+          entityType: 'food-item',
+          entityId: id,
+          details: `Updated food item: ${item.name} - ₹${item.price}`
+        });
+      }
+      
       res.json(updated);
     } catch (error: any) {
       res.status(400).json({ message: error.message });
@@ -339,10 +411,27 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.delete("/api/food-items/:id", requireAdmin, async (req, res) => {
     try {
       const { id } = req.params;
+      const items = await storage.getAllFoodItems();
+      const foodItem = items.find(f => f.id === id);
+      
       const deleted = await storage.deleteFoodItem(id);
       if (!deleted) {
         return res.status(404).json({ message: "Food item not found" });
       }
+      
+      // Log the admin activity
+      if (req.session.userId && req.session.username && req.session.role && foodItem) {
+        await storage.createActivityLog({
+          userId: req.session.userId,
+          username: req.session.username,
+          userRole: req.session.role,
+          action: 'delete',
+          entityType: 'food-item',
+          entityId: id,
+          details: `Deleted food item: ${foodItem.name}`
+        });
+      }
+      
       res.json({ success: true });
     } catch (error: any) {
       res.status(400).json({ message: error.message });
@@ -392,6 +481,16 @@ export async function registerRoutes(app: Express): Promise<Server> {
       res.json({ success: true });
     } catch (error: any) {
       res.status(400).json({ message: error.message });
+    }
+  });
+
+  // Activity Logs Routes
+  app.get("/api/activity-logs", requireAuth, async (req, res) => {
+    try {
+      const logs = await storage.getAllActivityLogs();
+      res.json(logs);
+    } catch (error: any) {
+      res.status(500).json({ message: error.message });
     }
   });
 
