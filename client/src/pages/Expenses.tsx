@@ -13,6 +13,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { queryClient } from "@/lib/queryClient";
 import type { Expense } from "@shared/schema";
 import { format } from "date-fns";
+import { useAuth } from "@/contexts/AuthContext";
 
 const EXPENSE_CATEGORIES = [
   "Equipment Maintenance",
@@ -32,6 +33,7 @@ const EXPENSE_CATEGORIES = [
 
 export default function Expenses() {
   const { toast } = useToast();
+  const { isAdmin } = useAuth();
   const [addDialog, setAddDialog] = useState(false);
   const [editDialog, setEditDialog] = useState<{ open: boolean; item: Expense | null }>({
     open: false,
@@ -310,7 +312,7 @@ export default function Expenses() {
       <div className="flex items-center justify-between flex-wrap gap-4">
         <div>
           <h1 className="text-3xl font-bold text-foreground">Expense Tracker</h1>
-          <p className="text-muted-foreground">Track and manage operational expenses</p>
+          <p className="text-muted-foreground">Track and manage operational expenses{!isAdmin && " (Add/Edit: Admin Only)"}</p>
         </div>
         <div className="flex gap-2">
           <Button 
@@ -329,10 +331,12 @@ export default function Expenses() {
             <FileText className="mr-2 h-4 w-4" />
             Export PDF
           </Button>
-          <Button onClick={() => setAddDialog(true)} data-testid="button-add-expense">
-            <Plus className="mr-2 h-4 w-4" />
-            Add Expense
-          </Button>
+          {isAdmin && (
+            <Button onClick={() => setAddDialog(true)} data-testid="button-add-expense">
+              <Plus className="mr-2 h-4 w-4" />
+              Add Expense
+            </Button>
+          )}
         </div>
       </div>
 
@@ -395,14 +399,16 @@ export default function Expenses() {
                     </td>
                     <td className="p-4">
                       <div className="flex gap-1">
-                        <Button
-                          variant="ghost"
-                          size="icon"
-                          onClick={() => openEditDialog(expense)}
-                          data-testid={`button-edit-expense-${expense.id}`}
-                        >
-                          <Pencil className="h-4 w-4" />
-                        </Button>
+                        {isAdmin && (
+                          <Button
+                            variant="ghost"
+                            size="icon"
+                            onClick={() => openEditDialog(expense)}
+                            data-testid={`button-edit-expense-${expense.id}`}
+                          >
+                            <Pencil className="h-4 w-4" />
+                          </Button>
+                        )}
                         <Button
                           variant="ghost"
                           size="icon"

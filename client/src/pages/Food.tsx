@@ -8,9 +8,11 @@ import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, D
 import { Label } from "@/components/ui/label";
 import { queryClient } from "@/lib/queryClient";
 import type { FoodItem } from "@shared/schema";
+import { useAuth } from "@/contexts/AuthContext";
 
 export default function Food() {
   const { toast } = useToast();
+  const { isAdmin } = useAuth();
   const [addDialog, setAddDialog] = useState(false);
   const [editDialog, setEditDialog] = useState<{ open: boolean; item: FoodItem | null }>({
     open: false,
@@ -115,12 +117,14 @@ export default function Food() {
       <div className="flex items-center justify-between flex-wrap gap-4">
         <div>
           <h1 className="text-3xl font-bold text-foreground">Food Management</h1>
-          <p className="text-muted-foreground">Manage food items available for customers</p>
+          <p className="text-muted-foreground">Manage food items available for customers{!isAdmin && " (View Only)"}</p>
         </div>
-        <Button onClick={() => setAddDialog(true)} data-testid="button-add-food">
-          <Plus className="mr-2 h-4 w-4" />
-          Add Food Item
-        </Button>
+        {isAdmin && (
+          <Button onClick={() => setAddDialog(true)} data-testid="button-add-food">
+            <Plus className="mr-2 h-4 w-4" />
+            Add Food Item
+          </Button>
+        )}
       </div>
 
       <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
@@ -144,24 +148,26 @@ export default function Food() {
                   </p>
                 </div>
               </div>
-              <div className="flex gap-1">
-                <Button
-                  variant="ghost"
-                  size="icon"
-                  onClick={() => openEditDialog(item)}
-                  data-testid={`button-edit-food-${item.id}`}
-                >
-                  <Pencil className="h-4 w-4" />
-                </Button>
-                <Button
-                  variant="ghost"
-                  size="icon"
-                  onClick={() => openDeleteDialog(item.id, item.name)}
-                  data-testid={`button-delete-food-${item.id}`}
-                >
-                  <Trash2 className="h-4 w-4 text-destructive" />
-                </Button>
-              </div>
+              {isAdmin && (
+                <div className="flex gap-1">
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    onClick={() => openEditDialog(item)}
+                    data-testid={`button-edit-food-${item.id}`}
+                  >
+                    <Pencil className="h-4 w-4" />
+                  </Button>
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    onClick={() => openDeleteDialog(item.id, item.name)}
+                    data-testid={`button-delete-food-${item.id}`}
+                  >
+                    <Trash2 className="h-4 w-4 text-destructive" />
+                  </Button>
+                </div>
+              )}
             </div>
           </div>
         ))}

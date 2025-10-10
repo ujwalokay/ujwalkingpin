@@ -24,6 +24,7 @@ import {
   PopoverContent,
   PopoverTrigger,
 } from "@/components/ui/popover";
+import { useAuth } from "@/contexts/AuthContext";
 
 type BookingStatus = "available" | "running" | "expired" | "upcoming" | "completed" | "paused";
 
@@ -62,6 +63,7 @@ interface BookingTableProps {
 
 export function BookingTable({ bookings, onExtend, onEnd, onComplete, onAddFood, onStopTimer, onDeleteFood, showDateColumn = false, selectedBookings, onToggleSelection }: BookingTableProps) {
   const [searchTerm, setSearchTerm] = useState("");
+  const { isAdmin } = useAuth();
 
   const filteredBookings = bookings.filter((booking) => {
     const searchLower = searchTerm.toLowerCase();
@@ -294,7 +296,7 @@ export function BookingTable({ bookings, onExtend, onEnd, onComplete, onAddFood,
                               Over (Complete)
                             </DropdownMenuItem>
                           )}
-                          {(booking.status === "running" || booking.status === "paused" || booking.status === "upcoming" || booking.status === "completed") && onEnd && (
+                          {(booking.status === "running" || booking.status === "paused" || booking.status === "upcoming" || booking.status === "completed") && onEnd && isAdmin && (
                             <DropdownMenuItem
                               onClick={() => onEnd(booking.id)}
                               className="text-destructive"

@@ -18,6 +18,7 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 import type { Booking } from "@shared/schema";
+import { useAuth } from "@/contexts/AuthContext";
 
 interface DeviceConfig {
   id: string;
@@ -47,6 +48,7 @@ interface CategoryState {
 
 export default function Settings() {
   const { toast } = useToast();
+  const { isAdmin } = useAuth();
 
   const { data: deviceConfigs, isLoading: deviceLoading } = useQuery<DeviceConfig[]>({
     queryKey: ["/api/device-config"],
@@ -291,31 +293,35 @@ export default function Settings() {
       <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
         <div>
           <h1 className="text-2xl font-bold text-foreground sm:text-3xl">Settings</h1>
-          <p className="text-sm text-muted-foreground sm:text-base">Configure devices and pricing</p>
+          <p className="text-sm text-muted-foreground sm:text-base">Configure devices and pricing{!isAdmin && " (View Only)"}</p>
         </div>
-        <Button 
-          onClick={handleSave} 
-          data-testid="button-save-settings"
-          disabled={saveDeviceConfigMutation.isPending || savePricingConfigMutation.isPending}
-          className="w-full sm:w-auto"
-        >
-          <Save className="mr-2 h-4 w-4" />
-          Save Changes
-        </Button>
+        {isAdmin && (
+          <Button 
+            onClick={handleSave} 
+            data-testid="button-save-settings"
+            disabled={saveDeviceConfigMutation.isPending || savePricingConfigMutation.isPending}
+            className="w-full sm:w-auto"
+          >
+            <Save className="mr-2 h-4 w-4" />
+            Save Changes
+          </Button>
+        )}
       </div>
 
       <div>
         <div className="flex flex-col gap-3 mb-4 sm:flex-row sm:items-center sm:justify-between">
           <h2 className="text-lg font-semibold sm:text-xl">Device Configuration</h2>
-          <Button 
-            variant="outline" 
-            onClick={() => setShowAddDialog(true)}
-            data-testid="button-add-category"
-            className="w-full sm:w-auto"
-          >
-            <Plus className="mr-2 h-4 w-4" />
-            Add Category
-          </Button>
+          {isAdmin && (
+            <Button 
+              variant="outline" 
+              onClick={() => setShowAddDialog(true)}
+              data-testid="button-add-category"
+              className="w-full sm:w-auto"
+            >
+              <Plus className="mr-2 h-4 w-4" />
+              Add Category
+            </Button>
+          )}
         </div>
         <div className="grid gap-4 sm:grid-cols-1 lg:grid-cols-2 xl:grid-cols-3">
           {categories.map(cat => (
@@ -324,19 +330,21 @@ export default function Settings() {
                 title={cat.category}
                 description={`Configure ${cat.category} (${getAvailableCount(cat.category, cat.count)}/${cat.count} available)`}
                 count={cat.count}
-                onCountChange={(newCount) => updateCategoryCount(cat.category, newCount)}
+                onCountChange={isAdmin ? (newCount) => updateCategoryCount(cat.category, newCount) : () => {}}
                 seats={cat.seats}
-                onToggleVisibility={(seatName) => toggleSeatVisibility(cat.category, seatName)}
+                onToggleVisibility={isAdmin ? (seatName) => toggleSeatVisibility(cat.category, seatName) : () => {}}
               />
-              <Button
-                variant="ghost"
-                size="icon"
-                className="absolute top-2 right-2"
-                onClick={() => deleteCategory(cat.category)}
-                data-testid={`button-delete-${cat.category.toLowerCase()}`}
-              >
-                <Trash2 className="h-4 w-4" />
-              </Button>
+              {isAdmin && (
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  className="absolute top-2 right-2"
+                  onClick={() => deleteCategory(cat.category)}
+                  data-testid={`button-delete-${cat.category.toLowerCase()}`}
+                >
+                  <Trash2 className="h-4 w-4" />
+                </Button>
+              )}
             </div>
           ))}
         </div>
@@ -350,7 +358,7 @@ export default function Settings() {
               key={cat.category}
               category={cat.category}
               slots={cat.pricing}
-              onUpdateSlots={(pricing) => updateCategoryPricing(cat.category, pricing)}
+              onUpdateSlots={isAdmin ? (pricing) => updateCategoryPricing(cat.category, pricing) : () => {}}
             />
           ))}
         </div>

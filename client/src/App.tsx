@@ -7,6 +7,7 @@ import { SidebarProvider, SidebarTrigger } from "@/components/ui/sidebar";
 import { AppSidebar } from "@/components/AppSidebar";
 import { ThemeProvider } from "@/components/ThemeProvider";
 import { ThemeToggle } from "@/components/ThemeToggle";
+import { AuthProvider } from "@/contexts/AuthContext";
 import { Lock, Eye, EyeOff } from "lucide-react";
 import Dashboard from "@/pages/Dashboard";
 import Settings from "@/pages/Settings";
@@ -46,8 +47,15 @@ function Router() {
   );
 }
 
+interface User {
+  id: string;
+  username: string;
+  role: "admin" | "staff";
+}
+
 function App() {
   const [isAuthenticated, setIsAuthenticated] = useState(false);
+  const [user, setUser] = useState<User | null>(null);
   const [showLogin, setShowLogin] = useState(false);
   const [username, setUsername] = useState("");
   const [password, setPassword] = useState("");
@@ -68,6 +76,8 @@ function App() {
       try {
         const response = await fetch("/api/auth/me");
         if (response.ok) {
+          const userData = await response.json();
+          setUser(userData);
           setIsAuthenticated(true);
         } else {
           setShowLogin(true);
@@ -121,13 +131,15 @@ function App() {
       });
 
       if (response.ok) {
+        const userData = await response.json();
+        setUser(userData);
         setIsAuthenticated(true);
         setShowLogin(false);
         setFailedAttempts(0);
         setLockoutTime(null);
         toast({
           title: "Login successful",
-          description: "Welcome to Ankylo Gaming Admin Panel",
+          description: `Welcome ${userData.username} (${userData.role})`,
         });
       } else {
         const data = await response.json();
@@ -173,6 +185,7 @@ function App() {
   const handleLock = async () => {
     try {
       await fetch("/api/auth/logout", { method: "POST" });
+      setUser(null);
       setIsAuthenticated(false);
       setShowLogin(true);
       setUsername("");
@@ -268,42 +281,49 @@ function App() {
   return (
     <ThemeProvider>
       <QueryClientProvider client={queryClient}>
-        <TooltipProvider>
-          <SidebarProvider style={style as React.CSSProperties}>
-            <div className="flex h-screen w-full">
-              <AppSidebar />
-              <div className="flex flex-col flex-1">
-                <header className="flex items-center justify-between p-4 border-b sticky top-0 z-50 glass">
-                  <SidebarTrigger data-testid="button-sidebar-toggle" />
-                  <div className="flex items-center gap-4">
-                    <div className="text-sm text-muted-foreground">
-                      {new Date().toLocaleDateString('en-IN', { 
-                        weekday: 'short', 
-                        year: 'numeric', 
-                        month: 'short', 
-                        day: 'numeric' 
-                      })}
+        <AuthProvider user={user}>
+          <TooltipProvider>
+            <SidebarProvider style={style as React.CSSProperties}>
+              <div className="flex h-screen w-full">
+                <AppSidebar />
+                <div className="flex flex-col flex-1">
+                  <header className="flex items-center justify-between p-4 border-b sticky top-0 z-50 glass">
+                    <SidebarTrigger data-testid="button-sidebar-toggle" />
+                    <div className="flex items-center gap-4">
+                      {user && (
+                        <div className="text-sm font-medium" data-testid="text-user-info">
+                          {user.username} <span className="text-xs text-muted-foreground">({user.role})</span>
+                        </div>
+                      )}
+                      <div className="text-sm text-muted-foreground">
+                        {new Date().toLocaleDateString('en-IN', { 
+                          weekday: 'short', 
+                          year: 'numeric', 
+                          month: 'short', 
+                          day: 'numeric' 
+                        })}
+                      </div>
+                      <ThemeToggle />
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        onClick={handleLock}
+                        data-testid="button-lock"
+                        aria-label="Lock screen"
+                      >
+                        <Lock className="h-5 w-5" />
+                      </Button>
                     </div>
-                    <ThemeToggle />
-                    <Button
-                      variant="ghost"
-                      size="icon"
-                      onClick={handleLock}
-                      data-testid="button-lock"
-                      aria-label="Lock screen"
-                    >
-                      <Lock className="h-5 w-5" />
-                    </Button>
-                  </div>
-                </header>
-                <main className="flex-1 overflow-auto p-6">
-                  <Router />
-                </main>
+                  </header>
+                  <main className="flex-1 overflow-auto p-6">
+                    <Router />
+                  </main>
+                </div>
               </div>
-            </div>
-          </SidebarProvider>
-          <Toaster />
-        </TooltipProvider>
+            </SidebarProvider>
+            <Toaster />
+          </TooltipProvider>
+        </AuthProvider>
       </QueryClientProvider>
     </ThemeProvider>
   );
