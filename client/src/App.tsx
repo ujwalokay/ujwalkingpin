@@ -64,6 +64,7 @@ function App() {
   const [failedAttempts, setFailedAttempts] = useState(0);
   const [lockoutTime, setLockoutTime] = useState<number | null>(null);
   const [remainingTime, setRemainingTime] = useState(0);
+  const [isAdminLogin, setIsAdminLogin] = useState(false);
   const { toast } = useToast();
 
   const style = {
@@ -211,9 +212,11 @@ function App() {
             <Dialog open={showLogin} onOpenChange={() => {}}>
               <DialogContent className="sm:max-w-md" onPointerDownOutside={(e) => e.preventDefault()} onEscapeKeyDown={(e) => e.preventDefault()}>
                 <DialogHeader>
-                  <DialogTitle className="text-2xl font-bold">Ankylo Gaming Admin</DialogTitle>
+                  <DialogTitle className="text-2xl font-bold">
+                    Ankylo Gaming {isAdminLogin ? "Admin" : "Staff"}
+                  </DialogTitle>
                   <DialogDescription>
-                    Please enter your credentials to access the admin panel
+                    Please enter your credentials to access the {isAdminLogin ? "admin" : "staff"} panel
                   </DialogDescription>
                 </DialogHeader>
                 <div className="space-y-4 py-4">
@@ -268,6 +271,21 @@ function App() {
                   >
                     {isLoggingIn ? "Logging in..." : isLockedOut ? `Wait ${remainingTime}s` : "Login"}
                   </Button>
+                  <div className="text-center">
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setIsAdminLogin(!isAdminLogin);
+                        setUsername("");
+                        setPassword("");
+                      }}
+                      className="text-sm text-primary hover:underline transition-all"
+                      data-testid="button-toggle-login-type"
+                      disabled={isLockedOut}
+                    >
+                      Login as {isAdminLogin ? "Staff" : "Admin"}
+                    </button>
+                  </div>
                 </div>
               </DialogContent>
             </Dialog>
