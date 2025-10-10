@@ -312,7 +312,7 @@ export default function Expenses() {
       <div className="flex items-center justify-between flex-wrap gap-4">
         <div>
           <h1 className="text-3xl font-bold text-foreground">Expense Tracker</h1>
-          <p className="text-muted-foreground">Track and manage operational expenses{!isAdmin && " (Add/Edit: Admin Only)"}</p>
+          <p className="text-muted-foreground">Track and manage operational expenses</p>
         </div>
         <div className="flex gap-2">
           <Button 
@@ -331,12 +331,10 @@ export default function Expenses() {
             <FileText className="mr-2 h-4 w-4" />
             Export PDF
           </Button>
-          {isAdmin && (
-            <Button onClick={() => setAddDialog(true)} data-testid="button-add-expense">
-              <Plus className="mr-2 h-4 w-4" />
-              Add Expense
-            </Button>
-          )}
+          <Button onClick={() => setAddDialog(true)} data-testid="button-add-expense">
+            <Plus className="mr-2 h-4 w-4" />
+            Add Expense
+          </Button>
         </div>
       </div>
 
@@ -399,16 +397,14 @@ export default function Expenses() {
                     </td>
                     <td className="p-4">
                       <div className="flex gap-1">
-                        {isAdmin && (
-                          <Button
-                            variant="ghost"
-                            size="icon"
-                            onClick={() => openEditDialog(expense)}
-                            data-testid={`button-edit-expense-${expense.id}`}
-                          >
-                            <Pencil className="h-4 w-4" />
-                          </Button>
-                        )}
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          onClick={() => openEditDialog(expense)}
+                          data-testid={`button-edit-expense-${expense.id}`}
+                        >
+                          <Pencil className="h-4 w-4" />
+                        </Button>
                         <Button
                           variant="ghost"
                           size="icon"

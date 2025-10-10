@@ -296,7 +296,7 @@ export function BookingTable({ bookings, onExtend, onEnd, onComplete, onAddFood,
                               Over (Complete)
                             </DropdownMenuItem>
                           )}
-                          {(booking.status === "running" || booking.status === "paused" || booking.status === "upcoming" || booking.status === "completed") && onEnd && isAdmin && (
+                          {(booking.status === "running" || booking.status === "paused" || booking.status === "upcoming" || booking.status === "completed") && onEnd && (
                             <DropdownMenuItem
                               onClick={() => onEnd(booking.id)}
                               className="text-destructive"

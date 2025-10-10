@@ -117,14 +117,12 @@ export default function Food() {
       <div className="flex items-center justify-between flex-wrap gap-4">
         <div>
           <h1 className="text-3xl font-bold text-foreground">Food Management</h1>
-          <p className="text-muted-foreground">Manage food items available for customers{!isAdmin && " (View Only)"}</p>
+          <p className="text-muted-foreground">Manage food items available for customers</p>
         </div>
-        {isAdmin && (
-          <Button onClick={() => setAddDialog(true)} data-testid="button-add-food">
-            <Plus className="mr-2 h-4 w-4" />
-            Add Food Item
-          </Button>
-        )}
+        <Button onClick={() => setAddDialog(true)} data-testid="button-add-food">
+          <Plus className="mr-2 h-4 w-4" />
+          Add Food Item
+        </Button>
       </div>
 
       <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
@@ -148,26 +146,24 @@ export default function Food() {
                   </p>
                 </div>
               </div>
-              {isAdmin && (
-                <div className="flex gap-1">
-                  <Button
-                    variant="ghost"
-                    size="icon"
-                    onClick={() => openEditDialog(item)}
-                    data-testid={`button-edit-food-${item.id}`}
-                  >
-                    <Pencil className="h-4 w-4" />
-                  </Button>
-                  <Button
-                    variant="ghost"
-                    size="icon"
-                    onClick={() => openDeleteDialog(item.id, item.name)}
-                    data-testid={`button-delete-food-${item.id}`}
-                  >
-                    <Trash2 className="h-4 w-4 text-destructive" />
-                  </Button>
-                </div>
-              )}
+              <div className="flex gap-1">
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  onClick={() => openEditDialog(item)}
+                  data-testid={`button-edit-food-${item.id}`}
+                >
+                  <Pencil className="h-4 w-4" />
+                </Button>
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  onClick={() => openDeleteDialog(item.id, item.name)}
+                  data-testid={`button-delete-food-${item.id}`}
+                >
+                  <Trash2 className="h-4 w-4 text-destructive" />
+                </Button>
+              </div>
             </div>
           </div>
         ))}

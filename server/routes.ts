@@ -116,7 +116,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  app.patch("/api/bookings/:id", requireAdmin, async (req, res) => {
+  app.patch("/api/bookings/:id", requireAuth, async (req, res) => {
     try {
       const { id } = req.params;
       console.log('PATCH /api/bookings/:id - Request body:', JSON.stringify(req.body, null, 2));
@@ -138,7 +138,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const userId = req.session.userId;
       const username = req.session.username;
       
-      // Get the booking to check its status
+      // Get the booking for logging
       const bookings = await storage.getAllBookings();
       const booking = bookings.find(b => b.id === id);
       
@@ -146,19 +146,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(404).json({ message: "Booking not found" });
       }
       
-      // Admin can delete any booking
-      // Staff can delete "upcoming" bookings and active "walk-in" bookings (not completed/expired)
-      if (userRole !== "admin") {
-        const isUpcoming = booking.status === "upcoming";
-        const isActiveWalkIn = booking.bookingType === "walk-in" && 
-                               booking.status !== "completed" && 
-                               booking.status !== "expired";
-        
-        if (!isUpcoming && !isActiveWalkIn) {
-          return res.status(403).json({ message: "Staff can only delete upcoming bookings and active walk-in bookings" });
-        }
-      }
-      
+      // Both admin and staff can delete any booking
       const deleted = await storage.deleteBooking(id);
       if (!deleted) {
         return res.status(404).json({ message: "Booking not found" });
@@ -363,7 +351,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  app.post("/api/food-items", requireAdmin, async (req, res) => {
+  app.post("/api/food-items", requireAuth, async (req, res) => {
     try {
       const item = insertFoodItemSchema.parse(req.body);
       const created = await storage.createFoodItem(item);
@@ -387,7 +375,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  app.patch("/api/food-items/:id", requireAdmin, async (req, res) => {
+  app.patch("/api/food-items/:id", requireAuth, async (req, res) => {
     try {
       const { id } = req.params;
       const item = insertFoodItemSchema.parse(req.body);
@@ -415,7 +403,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  app.delete("/api/food-items/:id", requireAdmin, async (req, res) => {
+  app.delete("/api/food-items/:id", requireAuth, async (req, res) => {
     try {
       const { id } = req.params;
       const items = await storage.getAllFoodItems();
@@ -454,7 +442,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  app.post("/api/expenses", requireAdmin, async (req, res) => {
+  app.post("/api/expenses", requireAuth, async (req, res) => {
     try {
       const expense = insertExpenseSchema.parse(req.body);
       const created = await storage.createExpense(expense);
@@ -464,7 +452,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  app.patch("/api/expenses/:id", requireAdmin, async (req, res) => {
+  app.patch("/api/expenses/:id", requireAuth, async (req, res) => {
     try {
       const { id } = req.params;
       const expense = insertExpenseSchema.parse(req.body);
@@ -478,7 +466,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  app.delete("/api/expenses/:id", requireAdmin, async (req, res) => {
+  app.delete("/api/expenses/:id", requireAuth, async (req, res) => {
     try {
       const { id } = req.params;
       const deleted = await storage.deleteExpense(id);
