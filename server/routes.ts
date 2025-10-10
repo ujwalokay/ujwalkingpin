@@ -116,7 +116,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  app.patch("/api/bookings/:id", requireAuth, async (req, res) => {
+  app.patch("/api/bookings/:id", requireAdmin, async (req, res) => {
     try {
       const { id } = req.params;
       console.log('PATCH /api/bookings/:id - Request body:', JSON.stringify(req.body, null, 2));
@@ -146,10 +146,12 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(404).json({ message: "Booking not found" });
       }
       
-      // Staff cannot delete active bookings (running, paused, upcoming), only admin can
-      const activeStatuses = ["running", "paused", "upcoming"];
-      if (activeStatuses.includes(booking.status) && userRole !== "admin") {
-        return res.status(403).json({ message: "Only administrators can delete active bookings" });
+      // Admin can delete any booking
+      // Staff can ONLY delete "upcoming" bookings
+      if (userRole !== "admin") {
+        if (booking.status !== "upcoming") {
+          return res.status(403).json({ message: "Staff can only delete upcoming bookings" });
+        }
       }
       
       const deleted = await storage.deleteBooking(id);
@@ -471,7 +473,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  app.delete("/api/expenses/:id", requireAuth, async (req, res) => {
+  app.delete("/api/expenses/:id", requireAdmin, async (req, res) => {
     try {
       const { id } = req.params;
       const deleted = await storage.deleteExpense(id);
