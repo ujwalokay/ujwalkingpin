@@ -147,10 +147,15 @@ export async function registerRoutes(app: Express): Promise<Server> {
       }
       
       // Admin can delete any booking
-      // Staff can ONLY delete "upcoming" bookings
+      // Staff can delete "upcoming" bookings and active "walk-in" bookings (not completed/expired)
       if (userRole !== "admin") {
-        if (booking.status !== "upcoming") {
-          return res.status(403).json({ message: "Staff can only delete upcoming bookings" });
+        const isUpcoming = booking.status === "upcoming";
+        const isActiveWalkIn = booking.bookingType === "walk-in" && 
+                               booking.status !== "completed" && 
+                               booking.status !== "expired";
+        
+        if (!isUpcoming && !isActiveWalkIn) {
+          return res.status(403).json({ message: "Staff can only delete upcoming bookings and active walk-in bookings" });
         }
       }
       
