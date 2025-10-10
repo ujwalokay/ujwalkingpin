@@ -1,0 +1,35 @@
+2025-10-10T17:01:45.24037185Z ==> Deploying...
+2025-10-10T17:02:05.521131893Z ==> Running 'npm run start'
+2025-10-10T17:02:06.52730774Z 
+2025-10-10T17:02:06.527345222Z > rest-express@1.0.0 start
+2025-10-10T17:02:06.527351472Z > npx drizzle-kit push && NODE_ENV=production node dist/index.js
+2025-10-10T17:02:06.527354952Z 
+2025-10-10T17:02:11.225530324Z No config path provided, using default 'drizzle.config.ts'
+2025-10-10T17:02:11.225764131Z Reading config file '/opt/render/project/src/drizzle.config.ts'
+2025-10-10T17:02:17.521304205Z Using 'pg' driver for database querying
+2025-10-10T17:02:20.319741012Z [⣷] Pulling schema from database...
+2025-10-10T17:02:20.524049979Z [⣯] Pulling schema from database...
+2025-10-10T17:02:20.652578152Z [⣟] Pulling schema from database...
+2025-10-10T17:02:20.779883768Z [⡿] Pulling schema from database...
+2025-10-10T17:02:20.908465073Z [⢿] Pulling schema from database...
+2025-10-10T17:02:20.925598852Z [✓] Pulling schema from database...
+2025-10-10T17:02:21.026654238Z [✓] Changes applied
+2025-10-10T17:02:28.326682192Z Warning: connect.session() MemoryStore is not
+2025-10-10T17:02:28.326697493Z designed for a production environment, as it will leak
+2025-10-10T17:02:28.326702953Z memory, and will not scale past a single process.
+2025-10-10T17:02:28.822942924Z Database initialized with default data
+2025-10-10T17:02:28.923600367Z 5:02:28 PM [express] serving on port 10000
+2025-10-10T17:02:36.315399644Z ==> Your service is live 🎉
+2025-10-10T17:02:36.387451989Z ==> 
+2025-10-10T17:02:36.433956776Z ==> ///////////////////////////////////////////////////////////
+2025-10-10T17:02:36.516788861Z ==> 
+2025-10-10T17:02:36.545594999Z ==> Available at your primary URL https://ujwalproject1.onrender.com
+2025-10-10T17:02:36.571799707Z ==> 
+2025-10-10T17:02:36.597986186Z ==> ///////////////////////////////////////////////////////////
+2025-10-10T17:02:43.53847288Z 5:02:43 PM [express] POST /api/auth/login 200 in 504ms :: {"id":"cf308733-0bb6-4d70-adc1-97c70cf09d4…
+2025-10-10T17:02:44.736384351Z 5:02:44 PM [express] GET /api/bookings 304 in 7ms :: []
+2025-10-10T17:02:45.231477398Z 5:02:45 PM [express] GET /api/device-config 200 in 4ms :: [{"id":"2fcfd19e-91eb-4683-89c1-39034a870f…
+2025-10-10T17:02:45.69786549Z 5:02:45 PM [express] GET /api/food-items 304 in 6ms :: [{"id":"5df02dd9-8f26-4728-836b-306dfe8846be"…
+2025-10-10T17:02:45.733271394Z 5:02:45 PM [express] GET /api/pricing-config 200 in 6ms :: [{"id":"db99d6aa-1736-4660-91ae-ffa8db9af…
+2025-10-10T17:02:48.576394102Z 5:02:48 PM [express] GET /api/activity-logs 200 in 6ms :: [{"id":"f63bd393-2036-44a5-9493-51b62411d2…
+2025-10-10T17:02:54.776538514Z 5:02:54 PM [express] GET /api/auth/me 401 in 1ms :: {"message":"Not authenticated"}
