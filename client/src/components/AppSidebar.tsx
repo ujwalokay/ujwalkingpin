@@ -1,5 +1,6 @@
-import { Settings, LayoutDashboard, FileText, Gamepad2, UtensilsCrossed, CalendarClock, History, Scale, Wallet, ScrollText } from "lucide-react";
+import { Settings, LayoutDashboard, FileText, UtensilsCrossed, CalendarClock, History, Scale, Wallet, ScrollText } from "lucide-react";
 import { Link, useLocation } from "wouter";
+import { useTheme } from "@/components/ThemeProvider";
 import {
   Sidebar,
   SidebarContent,
@@ -10,6 +11,8 @@ import {
   SidebarMenuButton,
   SidebarMenuItem,
 } from "@/components/ui/sidebar";
+import logoDark from "@assets/WhatsApp Image 2025-10-10 at 18.33.50_a4a3fc99_1760107172482.jpg";
+import logoLight from "@assets/WhatsApp Image 2025-10-10 at 18.33.50_d321359c_1760107172482.jpg";
 
 const menuItems = [
   {
@@ -61,15 +64,18 @@ const menuItems = [
 
 export function AppSidebar() {
   const [location] = useLocation();
+  const { theme } = useTheme();
 
   return (
     <Sidebar className="glass border-r">
       <SidebarContent>
         <SidebarGroup>
-          <div className="flex items-center gap-2 px-4 py-6">
-            <div className="flex h-10 w-10 items-center justify-center rounded-md bg-primary backdrop-blur-sm shadow-lg">
-              <Gamepad2 className="h-6 w-6 text-primary-foreground" />
-            </div>
+          <div className="flex items-center gap-3 px-4 py-6">
+            <img 
+              src={theme === "dark" ? logoDark : logoLight} 
+              alt="Ankylo Gaming Logo" 
+              className="h-12 w-12 object-contain"
+            />
             <div>
               <h2 className="text-lg font-bold text-foreground">Ankylo Gaming</h2>
               <p className="text-xs text-muted-foreground">Admin Panel</p>
