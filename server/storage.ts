@@ -182,6 +182,27 @@ export class DatabaseStorage implements IStorage {
       } else {
         console.log('ℹ️  No staff user created. Set STAFF_USERNAME and STAFF_PASSWORD to create a staff user.');
       }
+    } else {
+      // Check if staff user needs to be created (even if admin exists)
+      const staffUsername = process.env.STAFF_USERNAME;
+      const staffPassword = process.env.STAFF_PASSWORD;
+      
+      if (staffUsername && staffPassword) {
+        const staffUserExists = existingUsers.some(u => u.username === staffUsername);
+        
+        if (!staffUserExists) {
+          if (staffPassword.length < 8) {
+            console.error('❌ WARNING: STAFF_PASSWORD must be at least 8 characters long. Staff user not created.');
+          } else {
+            await this.createUser({
+              username: staffUsername,
+              password: staffPassword,
+              role: "staff"
+            });
+            console.log(`✅ Staff user created with username: ${staffUsername}`);
+          }
+        }
+      }
     }
 
     console.log('Database initialized with default data');
