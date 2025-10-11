@@ -195,3 +195,22 @@ export const games = pgTable("games", {
 export const insertGameSchema = createInsertSchema(games).omit({ id: true });
 export type InsertGame = z.infer<typeof insertGameSchema>;
 export type Game = typeof games.$inferSelect;
+
+export const webviewSettings = pgTable("webview_settings", {
+  id: varchar("id").primaryKey().$defaultFn(() => crypto.randomUUID()),
+  businessName: varchar("business_name").notNull().default("Ankylo Gaming"),
+  logoUrl: text("logo_url"),
+  headerTitle: varchar("header_title").notNull().default("Live Availability"),
+  headerSubtitle: varchar("header_subtitle").notNull().default("Real-time status updated every 5 seconds"),
+  updateInterval: integer("update_interval").notNull().default(5),
+  showPricing: integer("show_pricing").notNull().default(1),
+  showAddress: integer("show_address").notNull().default(1),
+  address: text("address").default("123 Gaming Street, Tech District, City"),
+  primaryColor: varchar("primary_color").notNull().default("#a855f7"),
+  accentColor: varchar("accent_color").notNull().default("#8b5cf6"),
+  updatedAt: timestamp("updated_at").notNull().defaultNow(),
+});
+
+export const insertWebviewSettingsSchema = createInsertSchema(webviewSettings).omit({ id: true, updatedAt: true });
+export type InsertWebviewSettings = z.infer<typeof insertWebviewSettingsSchema>;
+export type WebviewSettings = typeof webviewSettings.$inferSelect;
