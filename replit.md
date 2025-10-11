@@ -73,7 +73,8 @@ Preferred communication style: Simple, everyday language.
 - Pause/Resume Timer Functionality: For active gaming sessions.
 - Expense Tracker: Comprehensive system for operational costs with CSV/PDF export.
 - WhatsApp Bot Integration: Automated device availability queries via Twilio WhatsApp API.
-- Public Status Board: Customer-facing real-time availability display at `/status` route (no authentication required). Auto-refreshes every 30 seconds with visual indicators.
+- Public Status Board: Customer-facing real-time availability display at `/status` route (no authentication required). Auto-refreshes with visual indicators.
+- Mini Webview Customization: Admin panel at `/mini-webview` for customizing the public status page including branding (business name, logo, colors), header text, contact information, display toggles for pricing/facilities/contact sections, and update intervals. Changes are stored in database and applied dynamically to the consumer-facing page.
 
 ## External Dependencies
 
