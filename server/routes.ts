@@ -489,6 +489,97 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // WhatsApp Bot Routes
+  app.get("/api/whatsapp/availability", async (req, res) => {
+    try {
+      const allBookings = await storage.getAllBookings();
+      const deviceConfigs = await storage.getAllDeviceConfigs();
+      
+      const now = new Date();
+      
+      const availability = deviceConfigs.map(config => {
+        const activeBookings = allBookings.filter(booking => 
+          booking.category === config.category && 
+          (booking.status === "running" || booking.status === "paused")
+        );
+        
+        const totalSeats = config.count;
+        const occupiedSeats = activeBookings.length;
+        const availableSeats = totalSeats - occupiedSeats;
+        
+        return {
+          category: config.category,
+          total: totalSeats,
+          available: availableSeats,
+          occupied: occupiedSeats
+        };
+      });
+      
+      res.json(availability);
+    } catch (error: any) {
+      res.status(500).json({ message: error.message });
+    }
+  });
+
+  app.post("/api/whatsapp/webhook", async (req, res) => {
+    try {
+      const { Body, From } = req.body;
+      
+      if (!Body || !From) {
+        return res.status(400).json({ message: "Missing required fields" });
+      }
+      
+      const message = Body.toLowerCase().trim();
+      const phoneNumber = From.replace('whatsapp:', '');
+      
+      const keywords = ['available', 'availability', 'how many', 'pc', 'ps5', 'vr', 'free', 'check'];
+      const isAvailabilityQuery = keywords.some(keyword => message.includes(keyword));
+      
+      if (isAvailabilityQuery) {
+        const allBookings = await storage.getAllBookings();
+        const deviceConfigs = await storage.getAllDeviceConfigs();
+        
+        const availability = deviceConfigs.map(config => {
+          const activeBookings = allBookings.filter(booking => 
+            booking.category === config.category && 
+            (booking.status === "running" || booking.status === "paused")
+          );
+          
+          const totalSeats = config.count;
+          const occupiedSeats = activeBookings.length;
+          const availableSeats = totalSeats - occupiedSeats;
+          
+          return {
+            category: config.category,
+            total: totalSeats,
+            available: availableSeats,
+            occupied: occupiedSeats
+          };
+        });
+        
+        let responseMessage = "📊 *Current Availability*\n\n";
+        
+        availability.forEach(item => {
+          const percentage = item.total > 0 ? Math.round((item.available / item.total) * 100) : 0;
+          const status = item.available > 0 ? '✅' : '❌';
+          responseMessage += `${status} *${item.category}*: ${item.available}/${item.total} available (${percentage}%)\n`;
+        });
+        
+        responseMessage += `\n_Updated: ${new Date().toLocaleString()}_`;
+        
+        const { sendWhatsAppMessage } = await import('./twilio');
+        await sendWhatsAppMessage(phoneNumber, responseMessage);
+        
+        return res.status(200).json({ success: true, message: "Availability sent" });
+      }
+      
+      return res.status(200).json({ success: true, message: "Message received but not an availability query" });
+    } catch (error: any) {
+      console.error('WhatsApp webhook error:', error);
+      res.status(500).json({ message: error.message });
+    }
+  });
+
   const httpServer = createServer(app);
 
   return httpServer;
