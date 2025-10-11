@@ -1,4 +1,4 @@
-import { Settings, LayoutDashboard, FileText, UtensilsCrossed, CalendarClock, History, Scale, Wallet, ScrollText, Smartphone } from "lucide-react";
+import { Settings, LayoutDashboard, FileText, UtensilsCrossed, CalendarClock, History, Scale, Wallet, ScrollText, Smartphone, TrendingUp, Trophy } from "lucide-react";
 import { Link, useLocation } from "wouter";
 import { useTheme } from "@/components/ThemeProvider";
 import {
@@ -44,6 +44,16 @@ const menuItems = [
     title: "Expenses",
     url: "/expenses",
     icon: Wallet,
+  },
+  {
+    title: "AI Analytics",
+    url: "/ai-analytics",
+    icon: TrendingUp,
+  },
+  {
+    title: "AI Loyalty",
+    url: "/ai-loyalty",
+    icon: Trophy,
   },
   {
     title: "Settings",

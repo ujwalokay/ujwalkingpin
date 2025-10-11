@@ -221,3 +221,61 @@ export const webviewSettings = pgTable("webview_settings", {
 export const insertWebviewSettingsSchema = createInsertSchema(webviewSettings).omit({ id: true, updatedAt: true });
 export type InsertWebviewSettings = z.infer<typeof insertWebviewSettingsSchema>;
 export type WebviewSettings = typeof webviewSettings.$inferSelect;
+
+export const loadMetrics = pgTable("load_metrics", {
+  id: varchar("id").primaryKey().$defaultFn(() => crypto.randomUUID()),
+  timestamp: timestamp("timestamp").notNull().defaultNow(),
+  activeSessions: integer("active_sessions").notNull().default(0),
+  avgSessionLength: integer("avg_session_length").notNull().default(0),
+  foodOrders: integer("food_orders").notNull().default(0),
+  capacityUtilization: integer("capacity_utilization").notNull().default(0),
+});
+
+export const insertLoadMetricSchema = createInsertSchema(loadMetrics).omit({ id: true, timestamp: true });
+export type InsertLoadMetric = z.infer<typeof insertLoadMetricSchema>;
+export type LoadMetric = typeof loadMetrics.$inferSelect;
+
+export const loadPredictions = pgTable("load_predictions", {
+  id: varchar("id").primaryKey().$defaultFn(() => crypto.randomUUID()),
+  timestamp: timestamp("timestamp").notNull().defaultNow(),
+  horizon: varchar("horizon").notNull(),
+  predictedLoad: integer("predicted_load").notNull(),
+  modelVersion: varchar("model_version").notNull(),
+  features: jsonb("features").$type<Record<string, any>>().default({}),
+});
+
+export const insertLoadPredictionSchema = createInsertSchema(loadPredictions).omit({ id: true, timestamp: true });
+export type InsertLoadPrediction = z.infer<typeof insertLoadPredictionSchema>;
+export type LoadPrediction = typeof loadPredictions.$inferSelect;
+
+export const loyaltyMembers = pgTable("loyalty_members", {
+  id: varchar("id").primaryKey().$defaultFn(() => crypto.randomUUID()),
+  userId: varchar("user_id"),
+  customerName: varchar("customer_name").notNull(),
+  whatsappNumber: varchar("whatsapp_number").notNull().unique(),
+  tier: varchar("tier").notNull().default("bronze"),
+  points: integer("points").notNull().default(0),
+  redemptionHistory: jsonb("redemption_history").$type<Array<{
+    date: string;
+    points: number;
+    reward: string;
+  }>>().default([]),
+  createdAt: timestamp("created_at").notNull().defaultNow(),
+});
+
+export const insertLoyaltyMemberSchema = createInsertSchema(loyaltyMembers).omit({ id: true, createdAt: true });
+export type InsertLoyaltyMember = z.infer<typeof insertLoyaltyMemberSchema>;
+export type LoyaltyMember = typeof loyaltyMembers.$inferSelect;
+
+export const loyaltyEvents = pgTable("loyalty_events", {
+  id: varchar("id").primaryKey().$defaultFn(() => crypto.randomUUID()),
+  memberId: varchar("member_id").notNull(),
+  type: varchar("type").notNull(),
+  deltaPoints: integer("delta_points").notNull(),
+  metadata: jsonb("metadata").$type<Record<string, any>>().default({}),
+  createdAt: timestamp("created_at").notNull().defaultNow(),
+});
+
+export const insertLoyaltyEventSchema = createInsertSchema(loyaltyEvents).omit({ id: true, createdAt: true });
+export type InsertLoyaltyEvent = z.infer<typeof insertLoyaltyEventSchema>;
+export type LoyaltyEvent = typeof loyaltyEvents.$inferSelect;

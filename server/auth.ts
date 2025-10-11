@@ -88,6 +88,16 @@ export function requireAdmin(req: Request, res: Response, next: NextFunction) {
   next();
 }
 
+export function requireAdminOrStaff(req: Request, res: Response, next: NextFunction) {
+  if (!req.session.userId) {
+    return res.status(401).json({ message: "Authentication required" });
+  }
+  if (req.session.role !== "admin" && req.session.role !== "staff") {
+    return res.status(403).json({ message: "Admin or staff access required" });
+  }
+  next();
+}
+
 export function registerAuthRoutes(app: Express) {
   app.post("/api/auth/login", loginLimiter, loginHandler);
   app.post("/api/auth/logout", logoutHandler);

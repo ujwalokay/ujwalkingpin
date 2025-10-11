@@ -103,4 +103,4 @@ waitForPort = 5000
 
 [agent]
 expertMode = true
-integrations = ["javascript_database:1.0.0", "twilio:1.0.0"]
+integrations = ["javascript_database:1.0.0", "twilio:1.0.0", "javascript_openai:1.0.0"]

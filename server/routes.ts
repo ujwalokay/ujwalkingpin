@@ -1,7 +1,7 @@
 import type { Express } from "express";
 import { createServer, type Server } from "http";
 import { storage } from "./storage";
-import { requireAuth, requireAdmin } from "./auth";
+import { requireAuth, requireAdmin, requireAdminOrStaff } from "./auth";
 import { 
   insertBookingSchema, 
   insertDeviceConfigSchema, 
@@ -12,7 +12,11 @@ import {
   insertGalleryImageSchema,
   insertFacilitySchema,
   insertGameSchema,
-  insertWebviewSettingsSchema
+  insertWebviewSettingsSchema,
+  insertLoadMetricSchema,
+  insertLoadPredictionSchema,
+  insertLoyaltyMemberSchema,
+  insertLoyaltyEventSchema
 } from "@shared/schema";
 
 export async function registerRoutes(app: Express): Promise<Server> {
@@ -732,6 +736,137 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const validated = insertWebviewSettingsSchema.parse(req.body);
       const settings = await storage.upsertWebviewSettings(validated);
       res.json(settings);
+    } catch (error: any) {
+      res.status(400).json({ message: error.message });
+    }
+  });
+
+  app.get("/api/load-metrics", requireAdminOrStaff, async (req, res) => {
+    try {
+      const limit = req.query.limit ? parseInt(req.query.limit as string) : undefined;
+      const metrics = limit 
+        ? await storage.getRecentLoadMetrics(limit)
+        : await storage.getAllLoadMetrics();
+      res.json(metrics);
+    } catch (error: any) {
+      res.status(500).json({ message: error.message });
+    }
+  });
+
+  app.get("/api/load-metrics/current", requireAdminOrStaff, async (req, res) => {
+    try {
+      const currentLoad = await storage.getCurrentLoad();
+      res.json(currentLoad || null);
+    } catch (error: any) {
+      res.status(500).json({ message: error.message });
+    }
+  });
+
+  app.post("/api/load-metrics", requireAuth, async (req, res) => {
+    try {
+      const validated = insertLoadMetricSchema.parse(req.body);
+      const metric = await storage.createLoadMetric(validated);
+      res.json(metric);
+    } catch (error: any) {
+      res.status(400).json({ message: error.message });
+    }
+  });
+
+  app.get("/api/load-predictions", requireAdminOrStaff, async (req, res) => {
+    try {
+      const limit = req.query.limit ? parseInt(req.query.limit as string) : undefined;
+      const predictions = limit
+        ? await storage.getRecentLoadPredictions(limit)
+        : await storage.getAllLoadPredictions();
+      res.json(predictions);
+    } catch (error: any) {
+      res.status(500).json({ message: error.message });
+    }
+  });
+
+  app.post("/api/load-predictions", requireAdmin, async (req, res) => {
+    try {
+      const validated = insertLoadPredictionSchema.parse(req.body);
+      const prediction = await storage.createLoadPrediction(validated);
+      res.json(prediction);
+    } catch (error: any) {
+      res.status(400).json({ message: error.message });
+    }
+  });
+
+  app.get("/api/loyalty-members", requireAdminOrStaff, async (req, res) => {
+    try {
+      const members = await storage.getAllLoyaltyMembers();
+      res.json(members);
+    } catch (error: any) {
+      res.status(500).json({ message: error.message });
+    }
+  });
+
+  app.get("/api/loyalty-members/:id", requireAdminOrStaff, async (req, res) => {
+    try {
+      const member = await storage.getLoyaltyMember(req.params.id);
+      if (!member) {
+        return res.status(404).json({ message: "Loyalty member not found" });
+      }
+      res.json(member);
+    } catch (error: any) {
+      res.status(500).json({ message: error.message });
+    }
+  });
+
+  app.post("/api/loyalty-members", requireAdmin, async (req, res) => {
+    try {
+      const validated = insertLoyaltyMemberSchema.parse(req.body);
+      const member = await storage.createLoyaltyMember(validated);
+      res.json(member);
+    } catch (error: any) {
+      res.status(400).json({ message: error.message });
+    }
+  });
+
+  app.put("/api/loyalty-members/:id", requireAdmin, async (req, res) => {
+    try {
+      const validated = insertLoyaltyMemberSchema.partial().parse(req.body);
+      const member = await storage.updateLoyaltyMember(req.params.id, validated);
+      if (!member) {
+        return res.status(404).json({ message: "Loyalty member not found" });
+      }
+      res.json(member);
+    } catch (error: any) {
+      res.status(400).json({ message: error.message });
+    }
+  });
+
+  app.delete("/api/loyalty-members/:id", requireAdmin, async (req, res) => {
+    try {
+      const success = await storage.deleteLoyaltyMember(req.params.id);
+      if (!success) {
+        return res.status(404).json({ message: "Loyalty member not found" });
+      }
+      res.json({ message: "Loyalty member deleted successfully" });
+    } catch (error: any) {
+      res.status(500).json({ message: error.message });
+    }
+  });
+
+  app.get("/api/loyalty-events", requireAdminOrStaff, async (req, res) => {
+    try {
+      const memberId = req.query.memberId as string;
+      const events = memberId
+        ? await storage.getLoyaltyEventsByMember(memberId)
+        : await storage.getAllLoyaltyEvents();
+      res.json(events);
+    } catch (error: any) {
+      res.status(500).json({ message: error.message });
+    }
+  });
+
+  app.post("/api/loyalty-events", requireAdmin, async (req, res) => {
+    try {
+      const validated = insertLoyaltyEventSchema.parse(req.body);
+      const event = await storage.createLoyaltyEvent(validated);
+      res.json(event);
     } catch (error: any) {
       res.status(400).json({ message: error.message });
     }

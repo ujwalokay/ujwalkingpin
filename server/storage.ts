@@ -25,6 +25,14 @@ import {
   type InsertGame,
   type WebviewSettings,
   type InsertWebviewSettings,
+  type LoadMetric,
+  type InsertLoadMetric,
+  type LoadPrediction,
+  type InsertLoadPrediction,
+  type LoyaltyMember,
+  type InsertLoyaltyMember,
+  type LoyaltyEvent,
+  type InsertLoyaltyEvent,
   bookings,
   deviceConfigs,
   pricingConfigs,
@@ -38,9 +46,13 @@ import {
   facilities,
   games,
   webviewSettings,
+  loadMetrics,
+  loadPredictions,
+  loyaltyMembers,
+  loyaltyEvents,
 } from "@shared/schema";
 import { db } from "./db";
-import { eq, and, gte, lte } from "drizzle-orm";
+import { eq, and, gte, lte, desc } from "drizzle-orm";
 import bcrypt from "bcrypt";
 
 export interface BookingStats {
@@ -131,6 +143,26 @@ export interface IStorage {
   
   getWebviewSettings(): Promise<WebviewSettings | undefined>;
   upsertWebviewSettings(settings: InsertWebviewSettings): Promise<WebviewSettings>;
+  
+  getAllLoadMetrics(): Promise<LoadMetric[]>;
+  getRecentLoadMetrics(limit: number): Promise<LoadMetric[]>;
+  createLoadMetric(metric: InsertLoadMetric): Promise<LoadMetric>;
+  getCurrentLoad(): Promise<LoadMetric | undefined>;
+  
+  getAllLoadPredictions(): Promise<LoadPrediction[]>;
+  getRecentLoadPredictions(limit: number): Promise<LoadPrediction[]>;
+  createLoadPrediction(prediction: InsertLoadPrediction): Promise<LoadPrediction>;
+  
+  getAllLoyaltyMembers(): Promise<LoyaltyMember[]>;
+  getLoyaltyMember(id: string): Promise<LoyaltyMember | undefined>;
+  getLoyaltyMemberByWhatsapp(whatsappNumber: string): Promise<LoyaltyMember | undefined>;
+  createLoyaltyMember(member: InsertLoyaltyMember): Promise<LoyaltyMember>;
+  updateLoyaltyMember(id: string, member: Partial<InsertLoyaltyMember>): Promise<LoyaltyMember | undefined>;
+  deleteLoyaltyMember(id: string): Promise<boolean>;
+  
+  getAllLoyaltyEvents(): Promise<LoyaltyEvent[]>;
+  getLoyaltyEventsByMember(memberId: string): Promise<LoyaltyEvent[]>;
+  createLoyaltyEvent(event: InsertLoyaltyEvent): Promise<LoyaltyEvent>;
   
   initializeDefaults(): Promise<void>;
 }
@@ -762,6 +794,98 @@ export class DatabaseStorage implements IStorage {
       const [created] = await db.insert(webviewSettings).values(settings).returning();
       return created;
     }
+  }
+
+  async getAllLoadMetrics(): Promise<LoadMetric[]> {
+    return await db.select().from(loadMetrics);
+  }
+
+  async getRecentLoadMetrics(limit: number): Promise<LoadMetric[]> {
+    return await db.select()
+      .from(loadMetrics)
+      .orderBy(desc(loadMetrics.timestamp))
+      .limit(limit);
+  }
+
+  async createLoadMetric(metric: InsertLoadMetric): Promise<LoadMetric> {
+    const [created] = await db.insert(loadMetrics).values(metric).returning();
+    return created;
+  }
+
+  async getCurrentLoad(): Promise<LoadMetric | undefined> {
+    const [metric] = await db.select()
+      .from(loadMetrics)
+      .orderBy(desc(loadMetrics.timestamp))
+      .limit(1);
+    return metric;
+  }
+
+  async getAllLoadPredictions(): Promise<LoadPrediction[]> {
+    return await db.select().from(loadPredictions);
+  }
+
+  async getRecentLoadPredictions(limit: number): Promise<LoadPrediction[]> {
+    return await db.select()
+      .from(loadPredictions)
+      .orderBy(desc(loadPredictions.timestamp))
+      .limit(limit);
+  }
+
+  async createLoadPrediction(prediction: InsertLoadPrediction): Promise<LoadPrediction> {
+    const [created] = await db.insert(loadPredictions).values(prediction).returning();
+    return created;
+  }
+
+  async getAllLoyaltyMembers(): Promise<LoyaltyMember[]> {
+    return await db.select().from(loyaltyMembers);
+  }
+
+  async getLoyaltyMember(id: string): Promise<LoyaltyMember | undefined> {
+    const [member] = await db.select()
+      .from(loyaltyMembers)
+      .where(eq(loyaltyMembers.id, id));
+    return member;
+  }
+
+  async getLoyaltyMemberByWhatsapp(whatsappNumber: string): Promise<LoyaltyMember | undefined> {
+    const [member] = await db.select()
+      .from(loyaltyMembers)
+      .where(eq(loyaltyMembers.whatsappNumber, whatsappNumber));
+    return member;
+  }
+
+  async createLoyaltyMember(member: InsertLoyaltyMember): Promise<LoyaltyMember> {
+    const [created] = await db.insert(loyaltyMembers).values(member as any).returning();
+    return created;
+  }
+
+  async updateLoyaltyMember(id: string, member: Partial<InsertLoyaltyMember>): Promise<LoyaltyMember | undefined> {
+    const [updated] = await db
+      .update(loyaltyMembers)
+      .set(member as any)
+      .where(eq(loyaltyMembers.id, id))
+      .returning();
+    return updated;
+  }
+
+  async deleteLoyaltyMember(id: string): Promise<boolean> {
+    const result = await db.delete(loyaltyMembers).where(eq(loyaltyMembers.id, id));
+    return result.rowCount ? result.rowCount > 0 : false;
+  }
+
+  async getAllLoyaltyEvents(): Promise<LoyaltyEvent[]> {
+    return await db.select().from(loyaltyEvents);
+  }
+
+  async getLoyaltyEventsByMember(memberId: string): Promise<LoyaltyEvent[]> {
+    return await db.select()
+      .from(loyaltyEvents)
+      .where(eq(loyaltyEvents.memberId, memberId));
+  }
+
+  async createLoyaltyEvent(event: InsertLoyaltyEvent): Promise<LoyaltyEvent> {
+    const [created] = await db.insert(loyaltyEvents).values(event).returning();
+    return created;
   }
 }
 
