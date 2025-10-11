@@ -33,14 +33,14 @@ export function AIChatbot() {
 
   const sendMessageMutation = useMutation({
     mutationFn: async (content: string) => {
-      const response = await apiRequest("/api/ai/chat", {
+      const response = await apiRequest<ChatResponse>("/api/ai/chat", {
         method: "POST",
         body: JSON.stringify({
           sessionId: currentSessionId,
           message: content,
         }),
       });
-      return response as ChatResponse;
+      return response;
     },
     onSuccess: (data) => {
       setCurrentSessionId(data.sessionId);
@@ -59,11 +59,11 @@ export function AIChatbot() {
 
   const newChatMutation = useMutation({
     mutationFn: async () => {
-      const response = await apiRequest("/api/ai/chat/sessions", {
+      const response = await apiRequest<ChatSession>("/api/ai/chat/sessions", {
         method: "POST",
         body: JSON.stringify({ title: "New Chat" }),
       });
-      return response as ChatSession;
+      return response;
     },
     onSuccess: (session) => {
       setCurrentSessionId(session.id);
@@ -113,7 +113,7 @@ export function AIChatbot() {
         <SheetHeader className="p-4 border-b">
           <SheetTitle className="flex items-center gap-2">
             <Bot className="h-5 w-5" />
-            AI Assistant
+            Ankylo AI Assistant
           </SheetTitle>
         </SheetHeader>
 
@@ -121,7 +121,7 @@ export function AIChatbot() {
           {!currentSessionId ? (
             <div className="flex-1 flex flex-col items-center justify-center p-6 gap-4">
               <Bot className="h-16 w-16 text-muted-foreground" />
-              <h3 className="text-lg font-semibold">Welcome to AI Assistant</h3>
+              <h3 className="text-lg font-semibold">Welcome to Ankylo AI Assistant</h3>
               <p className="text-sm text-muted-foreground text-center">
                 Ask me anything about bookings, pricing, loyalty programs, or operations.
               </p>

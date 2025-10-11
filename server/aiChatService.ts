@@ -1,7 +1,9 @@
 import OpenAI from "openai";
 
 // the newest OpenAI model is "gpt-5" which was released August 7, 2025. do not change this unless explicitly requested by the user
-const openai = new OpenAI({ apiKey: process.env.OPENAI_API_KEY });
+const openai = process.env.OPENAI_API_KEY 
+  ? new OpenAI({ apiKey: process.env.OPENAI_API_KEY })
+  : null;
 
 const SYSTEM_PROMPT = `You are a helpful AI assistant for a gaming center management system. You help staff with:
 
@@ -18,6 +20,10 @@ export async function generateChatResponse(
   userMessage: string,
   conversationHistory: Array<{ role: "user" | "assistant"; content: string }> = []
 ): Promise<string> {
+  if (!openai) {
+    throw new Error("AI chat is not configured. Please set the OPENAI_API_KEY environment variable.");
+  }
+
   try {
     const messages: OpenAI.Chat.ChatCompletionMessageParam[] = [
       { role: "system", content: SYSTEM_PROMPT },
