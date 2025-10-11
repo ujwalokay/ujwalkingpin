@@ -153,15 +153,15 @@ function App() {
               <div className="flex h-screen w-full">
                 <AppSidebar />
                 <div className="flex flex-col flex-1">
-                  <header className="flex items-center justify-between p-4 border-b sticky top-0 z-50 glass">
+                  <header className="flex items-center justify-between p-3 md:p-4 border-b sticky top-0 z-50 glass">
                     <SidebarTrigger data-testid="button-sidebar-toggle" />
-                    <div className="flex items-center gap-4">
+                    <div className="flex items-center gap-2 md:gap-4">
                       {user && (
-                        <div className="text-sm font-medium" data-testid="text-user-info">
-                          {user.username} <span className="text-xs text-muted-foreground">({user.role})</span>
+                        <div className="text-xs md:text-sm font-medium hidden sm:block" data-testid="text-user-info">
+                          {user.username} <span className="text-xs text-muted-foreground hidden md:inline">({user.role})</span>
                         </div>
                       )}
-                      <div className="text-sm text-muted-foreground">
+                      <div className="text-xs md:text-sm text-muted-foreground hidden md:block">
                         {new Date().toLocaleDateString('en-IN', { 
                           weekday: 'short', 
                           year: 'numeric', 
@@ -176,12 +176,13 @@ function App() {
                         onClick={handleLock}
                         data-testid="button-lock"
                         aria-label="Lock screen"
+                        className="h-8 w-8 md:h-10 md:w-10"
                       >
-                        <Lock className="h-5 w-5" />
+                        <Lock className="h-4 w-4 md:h-5 md:w-5" />
                       </Button>
                     </div>
                   </header>
-                  <main className="flex-1 overflow-auto p-6">
+                  <main className="flex-1 overflow-auto p-3 sm:p-4 md:p-6">
                     <Router />
                   </main>
                 </div>

@@ -232,33 +232,33 @@ export default function Reports() {
   };
 
   return (
-    <div className="space-y-6">
-      <div className="flex items-center justify-between">
+    <div className="space-y-4 md:space-y-6">
+      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
         <div>
-          <h1 className="text-3xl font-bold text-foreground">Reports</h1>
-          <p className="text-muted-foreground">Track revenue and booking history</p>
+          <h1 className="text-2xl sm:text-3xl font-bold text-foreground">Reports</h1>
+          <p className="text-sm sm:text-base text-muted-foreground">Track revenue and booking history</p>
         </div>
         <div className="flex gap-2">
-          <Button variant="outline" onClick={handleExportExcel} data-testid="button-export-excel">
-            <Download className="mr-2 h-4 w-4" />
-            Export Excel
+          <Button variant="outline" onClick={handleExportExcel} data-testid="button-export-excel" size="sm" className="flex-1 sm:flex-none">
+            <Download className="mr-1 sm:mr-2 h-4 w-4" />
+            <span className="hidden sm:inline">Export </span>Excel
           </Button>
-          <Button variant="outline" onClick={handleExportPDF} data-testid="button-export-pdf">
-            <Download className="mr-2 h-4 w-4" />
-            Export PDF
+          <Button variant="outline" onClick={handleExportPDF} data-testid="button-export-pdf" size="sm" className="flex-1 sm:flex-none">
+            <Download className="mr-1 sm:mr-2 h-4 w-4" />
+            <span className="hidden sm:inline">Export </span>PDF
           </Button>
         </div>
       </div>
 
       <Tabs defaultValue="daily" value={selectedPeriod} onValueChange={setSelectedPeriod}>
-        <TabsList data-testid="tabs-period">
+        <TabsList data-testid="tabs-period" className="w-full sm:w-auto grid grid-cols-3 sm:inline-flex">
           <TabsTrigger value="daily" data-testid="tab-daily">Daily</TabsTrigger>
           <TabsTrigger value="weekly" data-testid="tab-weekly">Weekly</TabsTrigger>
           <TabsTrigger value="monthly" data-testid="tab-monthly">Monthly</TabsTrigger>
         </TabsList>
 
         <TabsContent value={selectedPeriod} className="space-y-4">
-          <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
+          <div className="grid gap-3 grid-cols-1 sm:grid-cols-2 lg:grid-cols-4">
             {statsLoading ? (
               <>
                 <Skeleton className="h-32" />
@@ -302,8 +302,8 @@ export default function Reports() {
       </Tabs>
 
       <div className="space-y-4">
-        <h2 className="text-xl font-semibold">Booking History</h2>
-        <div className="rounded-md border">
+        <h2 className="text-lg sm:text-xl font-semibold">Booking History</h2>
+        <div className="rounded-md border overflow-x-auto">
           <Table>
             <TableHeader>
               <TableRow>

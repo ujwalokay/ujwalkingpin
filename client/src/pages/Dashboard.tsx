@@ -532,19 +532,19 @@ export default function Dashboard() {
   }
 
   return (
-    <div className="space-y-6">
-      <div className="flex items-center justify-between flex-wrap gap-4">
+    <div className="space-y-4 md:space-y-6">
+      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 sm:gap-4">
         <div>
-          <h1 className="text-3xl font-bold text-foreground">Seat Management</h1>
-          <p className="text-muted-foreground">Monitor and manage all gaming seats</p>
+          <h1 className="text-2xl sm:text-3xl font-bold text-foreground">Seat Management</h1>
+          <p className="text-sm sm:text-base text-muted-foreground">Monitor and manage all gaming seats</p>
         </div>
-        <Button onClick={() => setAddDialog(true)} data-testid="button-add-booking">
+        <Button onClick={() => setAddDialog(true)} data-testid="button-add-booking" className="w-full sm:w-auto">
           <Plus className="mr-2 h-4 w-4" />
           Add Booking
         </Button>
       </div>
 
-      <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
+      <div className="grid gap-3 grid-cols-2 md:grid-cols-2 lg:grid-cols-4">
         {categories.map((cat) => {
           const available = getAvailableSeats(cat.name).length;
           return (
@@ -560,14 +560,16 @@ export default function Dashboard() {
         })}
       </div>
 
-      <Tabs defaultValue="walk-in" className="space-y-4">
-        <div className="flex items-center justify-between gap-4">
-          <TabsList data-testid="tabs-bookings">
-            <TabsTrigger value="walk-in" data-testid="tab-walk-in">
-              Walk-in List ({walkInBookings.length})
+      <Tabs defaultValue="walk-in" className="space-y-3 md:space-y-4">
+        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
+          <TabsList data-testid="tabs-bookings" className="w-full sm:w-auto">
+            <TabsTrigger value="walk-in" data-testid="tab-walk-in" className="flex-1 sm:flex-none">
+              <span className="hidden sm:inline">Walk-in List</span>
+              <span className="sm:hidden">Walk-in</span> ({walkInBookings.length})
             </TabsTrigger>
-            <TabsTrigger value="upcoming" data-testid="tab-upcoming">
-              Upcoming Bookings ({upcomingBookings.length})
+            <TabsTrigger value="upcoming" data-testid="tab-upcoming" className="flex-1 sm:flex-none">
+              <span className="hidden sm:inline">Upcoming Bookings</span>
+              <span className="sm:hidden">Upcoming</span> ({upcomingBookings.length})
             </TabsTrigger>
           </TabsList>
           <div className="flex gap-2">
@@ -576,18 +578,21 @@ export default function Dashboard() {
               size="sm" 
               onClick={handleCalculate}
               data-testid="button-calculate"
+              className="flex-1 sm:flex-none"
             >
-              <Calculator className="mr-2 h-4 w-4" />
-              Calculate ({selectedBookings.size})
+              <Calculator className="mr-1 sm:mr-2 h-4 w-4" />
+              <span className="hidden sm:inline">Calculate</span> ({selectedBookings.size})
             </Button>
             <Button 
               variant="outline" 
               size="sm" 
               onClick={handleRefresh}
               data-testid="button-refresh-list"
+              className="flex-1 sm:flex-none"
             >
-              <RefreshCw className="mr-2 h-4 w-4" />
-              Refresh List
+              <RefreshCw className="mr-1 sm:mr-2 h-4 w-4" />
+              <span className="hidden sm:inline">Refresh List</span>
+              <span className="sm:hidden">Refresh</span>
             </Button>
           </div>
         </div>
