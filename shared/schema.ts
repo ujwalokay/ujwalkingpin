@@ -1,5 +1,5 @@
 import { z } from "zod";
-import { pgTable, varchar, integer, timestamp, text, jsonb } from "drizzle-orm/pg-core";
+import { pgTable, varchar, integer, timestamp, text, jsonb, real } from "drizzle-orm/pg-core";
 import { createInsertSchema } from "drizzle-zod";
 
 // Drizzle table definitions
@@ -253,3 +253,20 @@ export const loyaltyEvents = pgTable("loyalty_events", {
 export const insertLoyaltyEventSchema = createInsertSchema(loyaltyEvents).omit({ id: true, createdAt: true });
 export type InsertLoyaltyEvent = z.infer<typeof insertLoyaltyEventSchema>;
 export type LoyaltyEvent = typeof loyaltyEvents.$inferSelect;
+
+export const loyaltyConfig = pgTable("loyalty_config", {
+  id: varchar("id").primaryKey().$defaultFn(() => crypto.randomUUID()),
+  pointsPerCurrency: real("points_per_currency").notNull().default(1),
+  currencySymbol: varchar("currency_symbol").notNull().default("$"),
+  tierThresholds: jsonb("tier_thresholds").$type<{
+    bronze: number;
+    silver: number;
+    gold: number;
+    platinum: number;
+  }>().default({ bronze: 0, silver: 100, gold: 500, platinum: 1000 }),
+  updatedAt: timestamp("updated_at").notNull().defaultNow(),
+});
+
+export const insertLoyaltyConfigSchema = createInsertSchema(loyaltyConfig).omit({ id: true, updatedAt: true });
+export type InsertLoyaltyConfig = z.infer<typeof insertLoyaltyConfigSchema>;
+export type LoyaltyConfig = typeof loyaltyConfig.$inferSelect;

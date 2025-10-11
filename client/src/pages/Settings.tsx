@@ -46,6 +46,18 @@ interface CategoryState {
   pricing: PricingSlot[];
 }
 
+interface LoyaltyConfig {
+  id?: string;
+  pointsPerCurrency: number;
+  currencySymbol: string;
+  tierThresholds: {
+    bronze: number;
+    silver: number;
+    gold: number;
+    platinum: number;
+  };
+}
+
 export default function Settings() {
   const { toast } = useToast();
   const { isAdmin } = useAuth();
@@ -62,9 +74,23 @@ export default function Settings() {
     queryKey: ["/api/bookings"],
   });
 
+  const { data: loyaltyConfig, isLoading: loyaltyConfigLoading } = useQuery<LoyaltyConfig>({
+    queryKey: ["/api/loyalty-config"],
+  });
+
   const [categories, setCategories] = useState<CategoryState[]>([]);
   const [showAddDialog, setShowAddDialog] = useState(false);
   const [newCategoryName, setNewCategoryName] = useState("");
+  const [loyaltySettings, setLoyaltySettings] = useState<LoyaltyConfig>({
+    pointsPerCurrency: 1,
+    currencySymbol: "$",
+    tierThresholds: {
+      bronze: 0,
+      silver: 100,
+      gold: 500,
+      platinum: 1000,
+    },
+  });
 
   useEffect(() => {
     if (deviceConfigs && pricingConfigs) {
@@ -98,6 +124,12 @@ export default function Settings() {
     }
   }, [deviceConfigs, pricingConfigs]);
 
+  useEffect(() => {
+    if (loyaltyConfig) {
+      setLoyaltySettings(loyaltyConfig);
+    }
+  }, [loyaltyConfig]);
+
   const saveDeviceConfigMutation = useMutation({
     mutationFn: async (config: { category: string; count: number; seats: string[] }) => {
       return await apiRequest("POST", "/api/device-config", config);
@@ -119,6 +151,15 @@ export default function Settings() {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["/api/device-config"] });
       queryClient.invalidateQueries({ queryKey: ["/api/pricing-config"] });
+    },
+  });
+
+  const saveLoyaltyConfigMutation = useMutation({
+    mutationFn: async (config: Omit<LoyaltyConfig, "id">) => {
+      return await apiRequest("PUT", "/api/loyalty-config", config);
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/loyalty-config"] });
     },
   });
 
@@ -241,6 +282,15 @@ export default function Settings() {
   };
 
   const handleSave = async () => {
+    if (loyaltyConfigLoading) {
+      toast({
+        title: "Please wait",
+        description: "Loading loyalty configuration...",
+        variant: "destructive",
+      });
+      return;
+    }
+
     try {
       const savePromises = categories.flatMap(cat => [
         saveDeviceConfigMutation.mutateAsync({
@@ -253,6 +303,12 @@ export default function Settings() {
           configs: cat.pricing.map(p => ({ ...p, price: p.price.toString() })),
         }),
       ]);
+
+      savePromises.push(saveLoyaltyConfigMutation.mutateAsync({
+        pointsPerCurrency: loyaltySettings.pointsPerCurrency,
+        currencySymbol: loyaltySettings.currencySymbol,
+        tierThresholds: loyaltySettings.tierThresholds,
+      }));
 
       await Promise.all(savePromises);
 
@@ -299,7 +355,7 @@ export default function Settings() {
           <Button 
             onClick={handleSave} 
             data-testid="button-save-settings"
-            disabled={saveDeviceConfigMutation.isPending || savePricingConfigMutation.isPending}
+            disabled={saveDeviceConfigMutation.isPending || savePricingConfigMutation.isPending || loyaltyConfigLoading}
             className="w-full sm:w-auto"
           >
             <Save className="mr-2 h-4 w-4" />
@@ -361,6 +417,131 @@ export default function Settings() {
               onUpdateSlots={isAdmin ? (pricing) => updateCategoryPricing(cat.category, pricing) : () => {}}
             />
           ))}
+        </div>
+      </div>
+
+      <div>
+        <h2 className="text-lg font-semibold mb-4 sm:text-xl">Loyalty Program Configuration</h2>
+        <div className="bg-card border rounded-lg p-6 space-y-6">
+          <div className="grid gap-6 sm:grid-cols-2">
+            <div className="space-y-2">
+              <Label htmlFor="points-per-currency">Points Per Currency Unit</Label>
+              <Input
+                id="points-per-currency"
+                type="number"
+                min="0.1"
+                step="0.1"
+                value={loyaltySettings.pointsPerCurrency}
+                onChange={(e) => setLoyaltySettings({
+                  ...loyaltySettings,
+                  pointsPerCurrency: parseFloat(e.target.value) || 1,
+                })}
+                disabled={!isAdmin}
+                data-testid="input-points-per-currency"
+              />
+              <p className="text-sm text-muted-foreground">
+                How many loyalty points customers earn per currency unit spent (can be decimal)
+              </p>
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="currency-symbol">Currency Symbol</Label>
+              <Input
+                id="currency-symbol"
+                value={loyaltySettings.currencySymbol}
+                onChange={(e) => setLoyaltySettings({
+                  ...loyaltySettings,
+                  currencySymbol: e.target.value,
+                })}
+                disabled={!isAdmin}
+                data-testid="input-currency-symbol"
+              />
+              <p className="text-sm text-muted-foreground">
+                Symbol used for currency display
+              </p>
+            </div>
+          </div>
+          
+          <div className="space-y-4">
+            <h3 className="font-medium">Tier Thresholds</h3>
+            <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+              <div className="space-y-2">
+                <Label htmlFor="tier-bronze">Bronze Tier</Label>
+                <Input
+                  id="tier-bronze"
+                  type="number"
+                  min="0"
+                  value={loyaltySettings.tierThresholds.bronze}
+                  onChange={(e) => setLoyaltySettings({
+                    ...loyaltySettings,
+                    tierThresholds: {
+                      ...loyaltySettings.tierThresholds,
+                      bronze: parseInt(e.target.value) || 0,
+                    },
+                  })}
+                  disabled={!isAdmin}
+                  data-testid="input-tier-bronze"
+                />
+                <p className="text-xs text-muted-foreground">Starting points</p>
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="tier-silver">Silver Tier</Label>
+                <Input
+                  id="tier-silver"
+                  type="number"
+                  min="0"
+                  value={loyaltySettings.tierThresholds.silver}
+                  onChange={(e) => setLoyaltySettings({
+                    ...loyaltySettings,
+                    tierThresholds: {
+                      ...loyaltySettings.tierThresholds,
+                      silver: parseInt(e.target.value) || 0,
+                    },
+                  })}
+                  disabled={!isAdmin}
+                  data-testid="input-tier-silver"
+                />
+                <p className="text-xs text-muted-foreground">Minimum points</p>
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="tier-gold">Gold Tier</Label>
+                <Input
+                  id="tier-gold"
+                  type="number"
+                  min="0"
+                  value={loyaltySettings.tierThresholds.gold}
+                  onChange={(e) => setLoyaltySettings({
+                    ...loyaltySettings,
+                    tierThresholds: {
+                      ...loyaltySettings.tierThresholds,
+                      gold: parseInt(e.target.value) || 0,
+                    },
+                  })}
+                  disabled={!isAdmin}
+                  data-testid="input-tier-gold"
+                />
+                <p className="text-xs text-muted-foreground">Minimum points</p>
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="tier-platinum">Platinum Tier</Label>
+                <Input
+                  id="tier-platinum"
+                  type="number"
+                  min="0"
+                  value={loyaltySettings.tierThresholds.platinum}
+                  onChange={(e) => setLoyaltySettings({
+                    ...loyaltySettings,
+                    tierThresholds: {
+                      ...loyaltySettings.tierThresholds,
+                      platinum: parseInt(e.target.value) || 0,
+                    },
+                  })}
+                  disabled={!isAdmin}
+                  data-testid="input-tier-platinum"
+                />
+                <p className="text-xs text-muted-foreground">Minimum points</p>
+              </div>
+            </div>
+          </div>
         </div>
       </div>
 

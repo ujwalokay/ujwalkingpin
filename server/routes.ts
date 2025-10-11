@@ -15,7 +15,8 @@ import {
   insertLoadMetricSchema,
   insertLoadPredictionSchema,
   insertLoyaltyMemberSchema,
-  insertLoyaltyEventSchema
+  insertLoyaltyEventSchema,
+  insertLoyaltyConfigSchema
 } from "@shared/schema";
 
 export async function registerRoutes(app: Express): Promise<Server> {
@@ -825,6 +826,32 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const validated = insertLoyaltyEventSchema.parse(req.body);
       const event = await storage.createLoyaltyEvent(validated);
       res.json(event);
+    } catch (error: any) {
+      res.status(400).json({ message: error.message });
+    }
+  });
+
+  app.get("/api/loyalty-config", requireAdminOrStaff, async (req, res) => {
+    try {
+      const config = await storage.getLoyaltyConfig();
+      if (!config) {
+        return res.json({
+          pointsPerCurrency: 1,
+          currencySymbol: "$",
+          tierThresholds: { bronze: 0, silver: 100, gold: 500, platinum: 1000 }
+        });
+      }
+      res.json(config);
+    } catch (error: any) {
+      res.status(500).json({ message: error.message });
+    }
+  });
+
+  app.put("/api/loyalty-config", requireAdmin, async (req, res) => {
+    try {
+      const validated = insertLoyaltyConfigSchema.parse(req.body);
+      const config = await storage.upsertLoyaltyConfig(validated);
+      res.json(config);
     } catch (error: any) {
       res.status(400).json({ message: error.message });
     }

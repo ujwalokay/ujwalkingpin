@@ -31,6 +31,8 @@ import {
   type InsertLoyaltyMember,
   type LoyaltyEvent,
   type InsertLoyaltyEvent,
+  type LoyaltyConfig,
+  type InsertLoyaltyConfig,
   bookings,
   deviceConfigs,
   pricingConfigs,
@@ -47,6 +49,7 @@ import {
   loadPredictions,
   loyaltyMembers,
   loyaltyEvents,
+  loyaltyConfig,
 } from "@shared/schema";
 import { db } from "./db";
 import { eq, and, gte, lte, desc } from "drizzle-orm";
@@ -157,6 +160,10 @@ export interface IStorage {
   getAllLoyaltyEvents(): Promise<LoyaltyEvent[]>;
   getLoyaltyEventsByMember(memberId: string): Promise<LoyaltyEvent[]>;
   createLoyaltyEvent(event: InsertLoyaltyEvent): Promise<LoyaltyEvent>;
+  
+  getLoyaltyConfig(): Promise<LoyaltyConfig | undefined>;
+  upsertLoyaltyConfig(config: InsertLoyaltyConfig): Promise<LoyaltyConfig>;
+  awardLoyaltyPoints(whatsappNumber: string, customerName: string, amount: number): Promise<void>;
   
   initializeDefaults(): Promise<void>;
 }
@@ -553,6 +560,34 @@ export class DatabaseStorage implements IStorage {
       await db.delete(bookings).where(eq(bookings.id, id));
     }
 
+    for (const booking of completed) {
+      if (booking.whatsappNumber) {
+        const totalAmount = parseFloat(booking.price);
+        if (isNaN(totalAmount) || !isFinite(totalAmount)) {
+          continue;
+        }
+        
+        const foodTotal = (booking.foodOrders || []).reduce((sum, order) => {
+          const orderPrice = parseFloat(order.price);
+          if (isNaN(orderPrice) || !isFinite(orderPrice)) {
+            return sum;
+          }
+          return sum + (orderPrice * order.quantity);
+        }, 0);
+        
+        const grandTotal = totalAmount + foodTotal;
+        if (isNaN(grandTotal) || !isFinite(grandTotal) || grandTotal <= 0) {
+          continue;
+        }
+        
+        await this.awardLoyaltyPoints(
+          booking.whatsappNumber,
+          booking.customerName,
+          grandTotal
+        );
+      }
+    }
+
     return bookingsToArchive.length;
   }
 
@@ -859,6 +894,82 @@ export class DatabaseStorage implements IStorage {
   async createLoyaltyEvent(event: InsertLoyaltyEvent): Promise<LoyaltyEvent> {
     const [created] = await db.insert(loyaltyEvents).values(event).returning();
     return created;
+  }
+
+  async getLoyaltyConfig(): Promise<LoyaltyConfig | undefined> {
+    const [config] = await db.select().from(loyaltyConfig).limit(1);
+    return config;
+  }
+
+  async upsertLoyaltyConfig(config: InsertLoyaltyConfig): Promise<LoyaltyConfig> {
+    const existing = await this.getLoyaltyConfig();
+    
+    if (existing) {
+      const [updated] = await db
+        .update(loyaltyConfig)
+        .set({ ...config, updatedAt: new Date() } as any)
+        .where(eq(loyaltyConfig.id, existing.id))
+        .returning();
+      return updated;
+    } else {
+      const [created] = await db.insert(loyaltyConfig).values(config as any).returning();
+      return created;
+    }
+  }
+
+  async awardLoyaltyPoints(whatsappNumber: string, customerName: string, amount: number): Promise<void> {
+    if (isNaN(amount) || !isFinite(amount) || amount <= 0) {
+      return;
+    }
+
+    const config = await this.getLoyaltyConfig();
+    if (!config) {
+      return;
+    }
+
+    const pointsToAward = Math.floor(amount * config.pointsPerCurrency);
+    if (isNaN(pointsToAward) || !isFinite(pointsToAward) || pointsToAward <= 0) {
+      return;
+    }
+
+    let member = await this.getLoyaltyMemberByWhatsapp(whatsappNumber);
+    
+    if (!member) {
+      member = await this.createLoyaltyMember({
+        customerName,
+        whatsappNumber,
+        tier: "bronze",
+        points: 0,
+        redemptionHistory: [],
+      });
+    }
+
+    const newPoints = member.points + pointsToAward;
+    
+    const tierThresholds = config.tierThresholds || { bronze: 0, silver: 100, gold: 500, platinum: 1000 };
+    let newTier = "bronze";
+    if (newPoints >= tierThresholds.platinum) {
+      newTier = "platinum";
+    } else if (newPoints >= tierThresholds.gold) {
+      newTier = "gold";
+    } else if (newPoints >= tierThresholds.silver) {
+      newTier = "silver";
+    }
+
+    await this.updateLoyaltyMember(member.id, {
+      points: newPoints,
+      tier: newTier,
+    });
+
+    await this.createLoyaltyEvent({
+      memberId: member.id,
+      type: "booking_completed",
+      deltaPoints: pointsToAward,
+      metadata: {
+        bookingAmount: amount.toString(),
+        currencySymbol: config.currencySymbol || "$",
+      } as any,
+    });
   }
 }
 
