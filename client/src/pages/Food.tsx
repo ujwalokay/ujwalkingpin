@@ -113,19 +113,19 @@ export default function Food() {
   }
 
   return (
-    <div className="space-y-6">
-      <div className="flex items-center justify-between flex-wrap gap-4">
+    <div className="space-y-4 md:space-y-6">
+      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
         <div>
-          <h1 className="text-3xl font-bold text-foreground">Food Management</h1>
-          <p className="text-muted-foreground">Manage food items available for customers</p>
+          <h1 className="text-2xl sm:text-3xl font-bold text-foreground">Food Management</h1>
+          <p className="text-sm sm:text-base text-muted-foreground">Manage food items available for customers</p>
         </div>
-        <Button onClick={() => setAddDialog(true)} data-testid="button-add-food">
+        <Button onClick={() => setAddDialog(true)} data-testid="button-add-food" className="w-full sm:w-auto">
           <Plus className="mr-2 h-4 w-4" />
           Add Food Item
         </Button>
       </div>
 
-      <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
+      <div className="grid gap-3 grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
         {foodItems.map((item) => (
           <div
             key={item.id}

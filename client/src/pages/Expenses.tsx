@@ -308,37 +308,43 @@ export default function Expenses() {
   const sortedExpenses = [...expenses].sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
 
   return (
-    <div className="space-y-6">
-      <div className="flex items-center justify-between flex-wrap gap-4">
+    <div className="space-y-4 md:space-y-6">
+      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
         <div>
-          <h1 className="text-3xl font-bold text-foreground">Expense Tracker</h1>
-          <p className="text-muted-foreground">Track and manage operational expenses</p>
+          <h1 className="text-2xl sm:text-3xl font-bold text-foreground">Expense Tracker</h1>
+          <p className="text-sm sm:text-base text-muted-foreground">Track and manage operational expenses</p>
         </div>
-        <div className="flex gap-2">
-          <Button 
-            variant="outline" 
-            onClick={handleExportExcel} 
-            data-testid="button-export-excel"
-          >
-            <FileSpreadsheet className="mr-2 h-4 w-4" />
-            Export Excel
-          </Button>
-          <Button 
-            variant="outline" 
-            onClick={handleExportPDF} 
-            data-testid="button-export-pdf"
-          >
-            <FileText className="mr-2 h-4 w-4" />
-            Export PDF
-          </Button>
-          <Button onClick={() => setAddDialog(true)} data-testid="button-add-expense">
+        <div className="flex flex-col sm:flex-row gap-2">
+          <div className="flex gap-2">
+            <Button 
+              variant="outline" 
+              onClick={handleExportExcel} 
+              data-testid="button-export-excel"
+              size="sm"
+              className="flex-1 sm:flex-none"
+            >
+              <FileSpreadsheet className="mr-1 sm:mr-2 h-4 w-4" />
+              <span className="hidden sm:inline">Export </span>Excel
+            </Button>
+            <Button 
+              variant="outline" 
+              onClick={handleExportPDF} 
+              data-testid="button-export-pdf"
+              size="sm"
+              className="flex-1 sm:flex-none"
+            >
+              <FileText className="mr-1 sm:mr-2 h-4 w-4" />
+              <span className="hidden sm:inline">Export </span>PDF
+            </Button>
+          </div>
+          <Button onClick={() => setAddDialog(true)} data-testid="button-add-expense" className="w-full sm:w-auto">
             <Plus className="mr-2 h-4 w-4" />
             Add Expense
           </Button>
         </div>
       </div>
 
-      <div className="glass-card rounded-lg p-6">
+      <div className="glass-card rounded-lg p-4 sm:p-6">
         <div className="flex items-center gap-3">
           <div className="h-12 w-12 rounded-full bg-destructive/10 flex items-center justify-center">
             <DollarSign className="h-6 w-6 text-destructive" />
