@@ -10,6 +10,19 @@ Preferred communication style: Simple, everyday language.
 
 ## Recent Changes
 
+**October 11, 2025 - WhatsApp Bot Integration for Device Availability**
+- Integrated Twilio WhatsApp API for automated availability notifications
+- Created Twilio client utility (`server/twilio.ts`) with WhatsApp message sending capability
+- Added GET `/api/whatsapp/availability` endpoint for programmatic availability queries
+- Implemented POST `/api/whatsapp/webhook` endpoint to receive and process WhatsApp messages
+- Smart message parsing detects availability queries using keywords: 'available', 'availability', 'how many', 'pc', 'ps5', 'vr', 'free', 'check'
+- Bot automatically responds with real-time device availability across all categories
+- Response format shows available/total devices with percentage and visual status indicators (✅/❌)
+- Availability calculation based on current active bookings (running/paused status)
+- No booking functionality - read-only availability information for customer convenience
+- Webhook requires Twilio configuration: set webhook URL in Twilio console to `https://your-app-url.com/api/whatsapp/webhook`
+- Example query: "How many PCs are available?" → Bot replies with current availability for all device types
+
 **October 9, 2025 - Expense Tracker Feature with Export Capabilities**
 - Implemented comprehensive expense tracking system for operational costs
 - Added expenses table to database with category, description, amount, and date fields
