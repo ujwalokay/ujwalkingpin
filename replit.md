@@ -51,6 +51,8 @@ Preferred communication style: Simple, everyday language.
 - `Loyalty Members`: Customer loyalty program membership data.
 - `Loyalty Events`: Historical record of loyalty points and rewards.
 - `Loyalty Config`: Stores loyalty program configuration (points rate, currency symbol, tier thresholds).
+- `Chat Sessions`: Stores AI chatbot conversation sessions for each user.
+- `Chat Messages`: Stores individual messages within chat sessions (user and assistant messages).
 
 ### Key Architectural Decisions
 
@@ -82,6 +84,7 @@ Preferred communication style: Simple, everyday language.
 - **AI Load Analytics**: Real-time dashboard showing current system usage and AI-powered predictions for future load at `/ai-load-analytics`. Features live metrics, utilization charts, and OpenAI GPT-5 forecasts. Accessible to all authenticated users with real-time updates via React Query polling.
 - **AI Loyalty System**: Customer loyalty management at `/ai-loyalty`. Admin-only interface for adding/editing members and managing points/rewards. Staff have read-only access to view member information. Uses role-based access control via `requireAdmin` and `requireAdminOrStaff` middleware.
 - **Automatic Loyalty Point Awarding**: When bookings are completed and moved to history, the system automatically awards loyalty points to customers with WhatsApp numbers. Points are calculated based on the total booking amount (session price + food orders) multiplied by the configurable points-per-currency rate. Members are automatically assigned to tiers (bronze, silver, gold, platinum) based on their total points. All point transactions are logged in loyalty events for audit purposes. Configurable via Settings page with support for decimal earn rates and customizable tier thresholds.
+- **AI Staff Assistant Chatbot**: Floating chatbot accessible from a bottom-right button for authenticated staff members. Powered by OpenAI GPT-5, it provides intelligent assistance with bookings, pricing, loyalty programs, and operational questions. Features persistent chat sessions stored in the database, quick-prompt suggestions, and error handling with toast notifications. All conversations are scoped to the logged-in user and accessible via API routes under `/api/ai/chat`.
 
 ## External Dependencies
 
@@ -111,7 +114,7 @@ Preferred communication style: Simple, everyday language.
 - **Twilio**: For WhatsApp bot integration (sending and receiving messages).
 
 ### AI Services
-- **OpenAI GPT-5**: For AI-powered load predictions and analytics.
+- **OpenAI GPT-5**: For AI-powered load predictions, analytics, and staff assistant chatbot.
 
 ## Setup Requirements
 
