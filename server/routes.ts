@@ -489,6 +489,36 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Public Status Route (No Auth Required)
+  app.get("/api/public/status", async (req, res) => {
+    try {
+      const allBookings = await storage.getAllBookings();
+      const deviceConfigs = await storage.getAllDeviceConfigs();
+      
+      const availability = deviceConfigs.map(config => {
+        const activeBookings = allBookings.filter(booking => 
+          booking.category === config.category && 
+          (booking.status === "running" || booking.status === "paused")
+        );
+        
+        const totalSeats = config.count;
+        const occupiedSeats = activeBookings.length;
+        const availableSeats = totalSeats - occupiedSeats;
+        
+        return {
+          category: config.category,
+          total: totalSeats,
+          available: availableSeats,
+          occupied: occupiedSeats
+        };
+      });
+      
+      res.json(availability);
+    } catch (error: any) {
+      res.status(500).json({ message: error.message });
+    }
+  });
+
   // WhatsApp Bot Routes
   app.get("/api/whatsapp/availability", async (req, res) => {
     try {
