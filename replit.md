@@ -46,13 +46,6 @@ Preferred communication style: Simple, everyday language.
 - `Food Items`: Stores available food and beverage options.
 - `Settings`: General admin configurations (e.g., delete PIN).
 - `Expenses`: Tracks operational costs by category, description, amount, and date.
-- `Load Metrics`: Real-time system usage data (total capacity, active devices, utilization rate).
-- `Load Predictions`: AI-generated forecasts for future system load using OpenAI GPT-5.
-- `Loyalty Members`: Customer loyalty program membership data.
-- `Loyalty Events`: Historical record of loyalty points and rewards.
-- `Loyalty Config`: Stores loyalty program configuration (points rate, currency symbol, tier thresholds).
-- `Chat Sessions`: Stores AI chatbot conversation sessions for each user.
-- `Chat Messages`: Stores individual messages within chat sessions (user and assistant messages).
 
 ### Key Architectural Decisions
 
@@ -81,10 +74,6 @@ Preferred communication style: Simple, everyday language.
 - Expense Tracker: Comprehensive system for operational costs with CSV/PDF export.
 - WhatsApp Bot Integration: Automated device availability queries via Twilio WhatsApp API.
 - Public Status Board: Customer-facing real-time availability display at `/status` route (no authentication required). Auto-refreshes with visual indicators.
-- **AI Load Analytics**: Real-time dashboard showing current system usage and AI-powered predictions for future load at `/ai-load-analytics`. Features live metrics, utilization charts, and OpenAI GPT-5 forecasts. Accessible to all authenticated users with real-time updates via React Query polling.
-- **AI Loyalty System**: Customer loyalty management at `/ai-loyalty`. Admin-only interface for adding/editing members and managing points/rewards. Staff have read-only access to view member information. Uses role-based access control via `requireAdmin` and `requireAdminOrStaff` middleware.
-- **Automatic Loyalty Point Awarding**: When bookings are completed and moved to history, the system automatically awards loyalty points to customers with WhatsApp numbers. Points are calculated based on the total booking amount (session price + food orders) multiplied by the configurable points-per-currency rate. Members are automatically assigned to tiers (bronze, silver, gold, platinum) based on their total points. All point transactions are logged in loyalty events for audit purposes. Configurable via Settings page with support for decimal earn rates and customizable tier thresholds.
-- **AI Staff Assistant Chatbot**: Floating chatbot accessible from a bottom-right button for authenticated staff members. Powered by OpenAI GPT-5, it provides intelligent assistance with bookings, pricing, loyalty programs, and operational questions. Features persistent chat sessions stored in the database, quick-prompt suggestions, and error handling with toast notifications. All conversations are scoped to the logged-in user and accessible via API routes under `/api/ai/chat`.
 
 ## External Dependencies
 
@@ -113,21 +102,10 @@ Preferred communication style: Simple, everyday language.
 ### Communication
 - **Twilio**: For WhatsApp bot integration (sending and receiving messages).
 
-### AI Services
-- **OpenAI GPT-5**: For AI-powered load predictions, analytics, and staff assistant chatbot.
-
 ## Setup Requirements
 
 ### Environment Variables
 The following environment variables need to be configured:
-- `OPENAI_API_KEY`: Required for AI load prediction service
 - `ADMIN_USERNAME`: Initial admin account username
 - `ADMIN_PASSWORD`: Initial admin account password
 - `DATABASE_URL`: PostgreSQL connection string (auto-configured by Replit)
-
-### AI Prediction Service
-To generate load predictions:
-1. Ensure `OPENAI_API_KEY` is set in environment variables
-2. The prediction service can be triggered via the `/api/load-predictions/generate` endpoint (admin-only)
-3. Predictions are based on historical load metrics and displayed in the AI Load Analytics dashboard
-4. Consider setting up a cron job or scheduled task to run predictions periodically
