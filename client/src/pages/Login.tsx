@@ -122,8 +122,8 @@ export default function Login({ onLoginSuccess }: LoginProps) {
               <div className="flex items-center gap-3">
                 <img 
                   src={logoDark} 
-                  alt="Ankylo Gaming" 
-                  className="h-14 w-14 object-contain rounded-2xl shadow-lg ring-2 ring-purple-500/20"
+                  alt="Ankylo Gaming"
+                  className="h-14 w-14 object-cover rounded-2xl shadow-lg ring-2 ring-purple-500/20"
                 />
                 <div>
                   <h1 className="text-xl font-bold text-gray-900 dark:text-white">Ankylo Gaming</h1>
