@@ -50,6 +50,7 @@ Preferred communication style: Simple, everyday language.
 - `Load Predictions`: AI-generated forecasts for future system load using OpenAI GPT-5.
 - `Loyalty Members`: Customer loyalty program membership data.
 - `Loyalty Events`: Historical record of loyalty points and rewards.
+- `Loyalty Config`: Stores loyalty program configuration (points rate, currency symbol, tier thresholds).
 
 ### Key Architectural Decisions
 
@@ -80,6 +81,7 @@ Preferred communication style: Simple, everyday language.
 - Public Status Board: Customer-facing real-time availability display at `/status` route (no authentication required). Auto-refreshes with visual indicators.
 - **AI Load Analytics**: Real-time dashboard showing current system usage and AI-powered predictions for future load at `/ai-load-analytics`. Features live metrics, utilization charts, and OpenAI GPT-5 forecasts. Accessible to all authenticated users with real-time updates via React Query polling.
 - **AI Loyalty System**: Customer loyalty management at `/ai-loyalty`. Admin-only interface for adding/editing members and managing points/rewards. Staff have read-only access to view member information. Uses role-based access control via `requireAdmin` and `requireAdminOrStaff` middleware.
+- **Automatic Loyalty Point Awarding**: When bookings are completed and moved to history, the system automatically awards loyalty points to customers with WhatsApp numbers. Points are calculated based on the total booking amount (session price + food orders) multiplied by the configurable points-per-currency rate. Members are automatically assigned to tiers (bronze, silver, gold, platinum) based on their total points. All point transactions are logged in loyalty events for audit purposes. Configurable via Settings page with support for decimal earn rates and customizable tier thresholds.
 
 ## External Dependencies
 
