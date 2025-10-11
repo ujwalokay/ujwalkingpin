@@ -1,15 +1,36 @@
 import { useQuery } from "@tanstack/react-query";
 import { useEffect, useState } from "react";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { Monitor, Gamepad2, Glasses, Car, Cpu, RefreshCw } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { Monitor, Gamepad2, Glasses, Car, Cpu, RefreshCw, Phone, MapPin, Clock, Mail, ChevronDown, ChevronUp, Wifi, Wind, Armchair, Pizza } from "lucide-react";
+import type { WebviewSettings } from "@shared/schema";
+import {
+  Collapsible,
+  CollapsibleContent,
+  CollapsibleTrigger,
+} from "@/components/ui/collapsible";
 
 interface DeviceAvailability {
   category: string;
   total: number;
   available: number;
   occupied: number;
+  percentage: number;
+}
+
+interface PricingConfig {
+  id: string;
+  category: string;
+  duration: string;
+  price: string;
+}
+
+interface Facility {
+  id: string;
+  name: string;
+  description: string;
+  icon: string;
 }
 
 const getIconForCategory = (category: string) => {
@@ -24,12 +45,45 @@ const getIconForCategory = (category: string) => {
   return icons[category] || Cpu;
 };
 
+const getFacilityIcon = (iconName: string) => {
+  const icons: Record<string, any> = {
+    "wifi": Wifi,
+    "air-conditioning": Wind,
+    "gaming-chair": Armchair,
+    "refreshments": Pizza,
+    "monitor": Monitor,
+    "gamepad": Gamepad2,
+  };
+  return icons[iconName] || Cpu;
+};
+
+const getProgressBarColor = (percentage: number) => {
+  if (percentage >= 60) return "#22c55e";
+  if (percentage >= 40) return "#eab308";
+  return "#ef4444";
+};
+
 export default function PublicStatus() {
   const [lastUpdate, setLastUpdate] = useState(new Date());
+  const [isPricingOpen, setIsPricingOpen] = useState(false);
+
+  const { data: settings } = useQuery<WebviewSettings>({
+    queryKey: ["/api/webview-settings"],
+  });
 
   const { data: availability = [], isLoading, refetch, dataUpdatedAt } = useQuery<DeviceAvailability[]>({
     queryKey: ["/api/public/status"],
-    refetchInterval: 30000,
+    refetchInterval: (settings?.updateInterval || 5) * 1000,
+  });
+
+  const { data: pricing = [] } = useQuery<PricingConfig[]>({
+    queryKey: ["/api/consumer/pricing"],
+    enabled: settings?.showPricing === 1,
+  });
+
+  const { data: facilities = [] } = useQuery<Facility[]>({
+    queryKey: ["/api/consumer/facilities"],
+    enabled: settings?.showFacilities === 1,
   });
 
   useEffect(() => {
@@ -38,130 +92,292 @@ export default function PublicStatus() {
     }
   }, [dataUpdatedAt]);
 
-  const handleRefresh = () => {
-    refetch();
-  };
+  const primaryColor = settings?.primaryColor || "#a855f7";
+  const accentColor = settings?.accentColor || "#8b5cf6";
 
-  if (isLoading) {
+  if (isLoading || !settings) {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-background to-muted flex items-center justify-center p-6">
+      <div className="min-h-screen bg-gray-50 dark:bg-gray-50 flex items-center justify-center p-6">
         <div className="text-center">
-          <RefreshCw className="h-12 w-12 animate-spin mx-auto mb-4 text-primary" />
-          <p className="text-xl text-muted-foreground">Loading availability...</p>
+          <RefreshCw className="h-12 w-12 animate-spin mx-auto mb-4" style={{ color: primaryColor }} />
+          <p className="text-xl text-gray-600 dark:text-gray-600">Loading availability...</p>
         </div>
       </div>
     );
   }
 
+  const groupedPricing = pricing.reduce((acc, item) => {
+    if (!acc[item.category]) {
+      acc[item.category] = [];
+    }
+    acc[item.category].push(item);
+    return acc;
+  }, {} as Record<string, PricingConfig[]>);
+
   return (
-    <div className="min-h-screen bg-gradient-to-br from-background to-muted p-6">
-      <div className="max-w-7xl mx-auto space-y-6">
-        <div className="text-center space-y-2">
-          <h1 className="text-5xl font-bold bg-gradient-to-r from-primary to-cyan-500 bg-clip-text text-transparent" data-testid="text-status-title">
-            Gaming Center Status
-          </h1>
-          <p className="text-xl text-muted-foreground">Real-time device availability</p>
-          <div className="flex items-center justify-center gap-2 text-sm text-muted-foreground">
-            <span>Last updated: {lastUpdate.toLocaleTimeString()}</span>
-            <Button 
-              variant="ghost" 
-              size="sm" 
-              onClick={handleRefresh}
-              className="h-7"
-              data-testid="button-refresh"
-            >
-              <RefreshCw className="h-4 w-4" />
-            </Button>
+    <div className="min-h-screen bg-gray-50 dark:bg-gray-50 pb-8">
+      <div className="max-w-md mx-auto px-4 py-6 space-y-6">
+        <div className="flex items-center justify-between bg-white dark:bg-white rounded-2xl p-4 shadow-sm">
+          <div className="flex items-center gap-3">
+            {settings.logoUrl ? (
+              <img src={settings.logoUrl} alt="Logo" className="w-10 h-10 rounded-lg" />
+            ) : (
+              <div 
+                className="w-10 h-10 rounded-lg flex items-center justify-center text-white dark:text-white font-bold"
+                style={{ backgroundColor: primaryColor }}
+              >
+                {settings.businessName.charAt(0)}
+              </div>
+            )}
+            <div>
+              <h2 className="font-bold text-gray-900 dark:text-gray-900" data-testid="text-business-name">
+                {settings.businessName}
+              </h2>
+              <p className="text-sm text-gray-500 dark:text-gray-500">
+                Updated {lastUpdate.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' })}
+              </p>
+            </div>
           </div>
+          <Button
+            variant="ghost"
+            size="icon"
+            onClick={() => refetch()}
+            className="rounded-full"
+            data-testid="button-refresh"
+          >
+            <RefreshCw className="h-5 w-5 text-gray-600 dark:text-gray-600" />
+          </Button>
         </div>
 
-        {availability.length === 0 ? (
-          <Card className="border-2">
-            <CardContent className="p-12 text-center">
-              <p className="text-xl text-muted-foreground">No devices configured yet</p>
-            </CardContent>
-          </Card>
-        ) : (
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
-            {availability.map((device) => {
-              const Icon = getIconForCategory(device.category);
-              const percentage = device.total > 0 ? Math.round((device.available / device.total) * 100) : 0;
-              const isAvailable = device.available > 0;
-              
-              return (
-                <Card 
-                  key={device.category} 
-                  className={`border-2 transition-all hover:scale-105 ${
-                    isAvailable 
-                      ? 'border-green-500/50 bg-green-500/5' 
-                      : 'border-red-500/50 bg-red-500/5'
-                  }`}
-                  data-testid={`card-device-${device.category}`}
-                >
-                  <CardHeader className="pb-3">
-                    <CardTitle className="flex items-center justify-between">
-                      <div className="flex items-center gap-2">
-                        <Icon className={`h-6 w-6 ${isAvailable ? 'text-green-500' : 'text-red-500'}`} />
-                        <span className="text-2xl" data-testid={`text-category-${device.category}`}>{device.category}</span>
-                      </div>
-                      <Badge 
-                        variant={isAvailable ? "default" : "destructive"}
-                        className={isAvailable ? "bg-green-600 hover:bg-green-700" : ""}
-                        data-testid={`badge-status-${device.category}`}
+        <div className="text-center space-y-2">
+          <h1 
+            className="text-3xl font-bold"
+            style={{ color: primaryColor }}
+            data-testid="text-header-title"
+          >
+            {settings.headerTitle}
+          </h1>
+          <p className="text-sm text-gray-600 dark:text-gray-600" data-testid="text-header-subtitle">
+            {settings.headerSubtitle}
+          </p>
+        </div>
+
+        <div className="space-y-3">
+          {availability.map((device) => {
+            const Icon = getIconForCategory(device.category);
+            const isAvailable = device.available > 0;
+            const progressColor = getProgressBarColor(device.percentage);
+            
+            return (
+              <Card 
+                key={device.category}
+                className="bg-white dark:bg-white border-gray-200 dark:border-gray-200 rounded-2xl overflow-hidden"
+                data-testid={`card-device-${device.category}`}
+              >
+                <CardContent className="p-4">
+                  <div className="flex items-start justify-between mb-3">
+                    <div className="flex items-center gap-3">
+                      <div 
+                        className="w-12 h-12 rounded-xl flex items-center justify-center"
+                        style={{ backgroundColor: `${primaryColor}15` }}
                       >
-                        {isAvailable ? "Available" : "Full"}
-                      </Badge>
-                    </CardTitle>
-                  </CardHeader>
-                  <CardContent className="space-y-4">
-                    <div className="space-y-2">
-                      <div className="flex justify-between items-center">
-                        <span className="text-sm text-muted-foreground">Available</span>
-                        <span className="text-3xl font-bold text-green-500" data-testid={`text-available-${device.category}`}>
-                          {device.available}
-                        </span>
+                        <Icon className="w-6 h-6" style={{ color: primaryColor }} />
                       </div>
-                      <div className="flex justify-between items-center">
-                        <span className="text-sm text-muted-foreground">Occupied</span>
-                        <span className="text-3xl font-bold text-red-500" data-testid={`text-occupied-${device.category}`}>
-                          {device.occupied}
-                        </span>
-                      </div>
-                      <div className="flex justify-between items-center">
-                        <span className="text-sm text-muted-foreground">Total</span>
-                        <span className="text-2xl font-semibold" data-testid={`text-total-${device.category}`}>
-                          {device.total}
-                        </span>
+                      <div>
+                        <h3 className="font-bold text-gray-900 dark:text-gray-900" data-testid={`text-category-${device.category}`}>
+                          {device.category}
+                        </h3>
+                        <p className="text-sm text-gray-500 dark:text-gray-500">
+                          {device.total} Total Stations
+                        </p>
                       </div>
                     </div>
+                    <div className="text-right">
+                      <div className="text-3xl font-bold text-gray-900 dark:text-gray-900" data-testid={`text-available-${device.category}`}>
+                        {device.available}
+                      </div>
+                      <div className="text-sm text-gray-500 dark:text-gray-500">Available</div>
+                    </div>
+                  </div>
 
+                  <div className="space-y-2">
+                    <div className="flex justify-between text-sm">
+                      <span className="text-gray-600 dark:text-gray-600">Availability</span>
+                      <span className="font-semibold text-gray-900 dark:text-gray-900">{device.percentage}%</span>
+                    </div>
+                    <div className="w-full bg-gray-200 dark:bg-gray-200 rounded-full h-2 overflow-hidden">
+                      <div 
+                        className="h-full transition-all duration-500 rounded-full"
+                        style={{ 
+                          width: `${device.percentage}%`,
+                          backgroundColor: progressColor
+                        }}
+                        data-testid={`progress-${device.category}`}
+                      />
+                    </div>
+                  </div>
+
+                  <div className="flex items-center gap-2 mt-3">
+                    <div className="flex items-center gap-1">
+                      <div className="w-2 h-2 rounded-full bg-green-500" />
+                      <span className="text-xs text-gray-600 dark:text-gray-600">Stations Available</span>
+                    </div>
+                    <Badge 
+                      className="ml-auto text-xs"
+                      style={{ 
+                        backgroundColor: `${primaryColor}20`,
+                        color: primaryColor,
+                        border: 'none'
+                      }}
+                      data-testid={`badge-status-${device.category}`}
+                    >
+                      Live
+                    </Badge>
+                  </div>
+                </CardContent>
+              </Card>
+            );
+          })}
+        </div>
+
+        {settings.showPricing === 1 && pricing.length > 0 && (
+          <Collapsible open={isPricingOpen} onOpenChange={setIsPricingOpen}>
+            <CollapsibleTrigger asChild>
+              <Button
+                variant="ghost"
+                className="w-full flex items-center justify-between text-gray-900 dark:text-gray-900 hover:bg-gray-100 dark:hover:bg-gray-100 rounded-2xl py-6"
+                data-testid="button-toggle-pricing"
+              >
+                <span className="font-semibold">View Pricing</span>
+                {isPricingOpen ? <ChevronUp className="h-5 w-5" /> : <ChevronDown className="h-5 w-5" />}
+              </Button>
+            </CollapsibleTrigger>
+            <CollapsibleContent className="space-y-3">
+              {Object.entries(groupedPricing).map(([category, items]) => (
+                <Card key={category} className="bg-white dark:bg-white border-gray-200 dark:border-gray-200 rounded-2xl">
+                  <CardContent className="p-4">
+                    <h4 className="font-bold text-gray-900 dark:text-gray-900 mb-3">{category}</h4>
                     <div className="space-y-2">
-                      <div className="flex justify-between text-sm">
-                        <span className="text-muted-foreground">Availability</span>
-                        <span className={`font-semibold ${isAvailable ? 'text-green-500' : 'text-red-500'}`}>
-                          {percentage}%
-                        </span>
-                      </div>
-                      <div className="w-full bg-muted rounded-full h-3 overflow-hidden">
-                        <div 
-                          className={`h-full transition-all duration-500 ${
-                            isAvailable ? 'bg-green-500' : 'bg-red-500'
-                          }`}
-                          style={{ width: `${percentage}%` }}
-                          data-testid={`progress-${device.category}`}
-                        />
-                      </div>
+                      {items.map((item) => (
+                        <div key={item.id} className="flex justify-between text-sm">
+                          <span className="text-gray-600 dark:text-gray-600">{item.duration}</span>
+                          <span className="font-semibold text-gray-900 dark:text-gray-900">₹{item.price}</span>
+                        </div>
+                      ))}
                     </div>
                   </CardContent>
                 </Card>
-              );
-            })}
+              ))}
+            </CollapsibleContent>
+          </Collapsible>
+        )}
+
+        {settings.showContactInfo === 1 && (
+          <Card className="bg-white dark:bg-white border-gray-200 dark:border-gray-200 rounded-2xl">
+            <CardContent className="p-4 space-y-4">
+              <h3 className="font-bold text-lg text-gray-900 dark:text-gray-900" data-testid="text-contact-title">
+                {settings.contactSectionTitle}
+              </h3>
+
+              {settings.address && (
+                <div className="flex items-start gap-3">
+                  <MapPin className="w-5 h-5 mt-0.5" style={{ color: primaryColor }} />
+                  <div>
+                    <p className="text-sm font-semibold text-gray-900 dark:text-gray-900">Address</p>
+                    <p className="text-sm text-gray-600 dark:text-gray-600" data-testid="text-address">{settings.address}</p>
+                  </div>
+                </div>
+              )}
+
+              {settings.phone && (
+                <div className="flex items-start gap-3">
+                  <Phone className="w-5 h-5 mt-0.5" style={{ color: primaryColor }} />
+                  <div>
+                    <p className="text-sm font-semibold text-gray-900 dark:text-gray-900">Phone</p>
+                    <p className="text-sm text-gray-600 dark:text-gray-600" data-testid="text-phone">{settings.phone}</p>
+                  </div>
+                </div>
+              )}
+
+              {settings.hours && (
+                <div className="flex items-start gap-3">
+                  <Clock className="w-5 h-5 mt-0.5" style={{ color: primaryColor }} />
+                  <div>
+                    <p className="text-sm font-semibold text-gray-900 dark:text-gray-900">Hours</p>
+                    <p className="text-sm text-gray-600 dark:text-gray-600" data-testid="text-hours">{settings.hours}</p>
+                  </div>
+                </div>
+              )}
+
+              {settings.email && (
+                <div className="flex items-start gap-3">
+                  <Mail className="w-5 h-5 mt-0.5" style={{ color: primaryColor }} />
+                  <div>
+                    <p className="text-sm font-semibold text-gray-900 dark:text-gray-900">Email</p>
+                    <p className="text-sm text-gray-600 dark:text-gray-600" data-testid="text-email">{settings.email}</p>
+                  </div>
+                </div>
+              )}
+
+              <div className="flex gap-3 pt-2">
+                {settings.showCallNowButton === 1 && settings.phone && (
+                  <Button
+                    className="flex-1 rounded-full text-white dark:text-white"
+                    style={{ backgroundColor: primaryColor }}
+                    onClick={() => window.location.href = `tel:${settings.phone}`}
+                    data-testid="button-call-now"
+                  >
+                    <Phone className="w-4 h-4 mr-2" />
+                    Call Now
+                  </Button>
+                )}
+                {settings.showDirectionsButton === 1 && settings.address && (
+                  <Button
+                    variant="outline"
+                    className="flex-1 rounded-full border-gray-300 dark:border-gray-300"
+                    onClick={() => window.open(`https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(settings.address || '')}`, '_blank')}
+                    data-testid="button-directions"
+                  >
+                    <MapPin className="w-4 h-4 mr-2" />
+                    Directions
+                  </Button>
+                )}
+              </div>
+            </CardContent>
+          </Card>
+        )}
+
+        {settings.showFacilities === 1 && facilities.length > 0 && (
+          <div className="space-y-3">
+            <h3 className="font-bold text-lg text-gray-900 dark:text-gray-900">Facilities</h3>
+            <div className="grid grid-cols-2 gap-3">
+              {facilities.map((facility) => {
+                const Icon = getFacilityIcon(facility.icon);
+                return (
+                  <Card 
+                    key={facility.id}
+                    className="bg-white dark:bg-white border-gray-200 dark:border-gray-200 rounded-2xl"
+                    data-testid={`card-facility-${facility.id}`}
+                  >
+                    <CardContent className="p-4 text-center">
+                      <div 
+                        className="w-12 h-12 rounded-xl flex items-center justify-center mx-auto mb-2"
+                        style={{ backgroundColor: `${primaryColor}15` }}
+                      >
+                        <Icon className="w-6 h-6" style={{ color: primaryColor }} />
+                      </div>
+                      <h4 className="font-semibold text-sm text-gray-900 dark:text-gray-900">{facility.name}</h4>
+                      <p className="text-xs text-gray-500 dark:text-gray-500 mt-1">{facility.description}</p>
+                    </CardContent>
+                  </Card>
+                );
+              })}
+            </div>
           </div>
         )}
 
-        <div className="text-center text-sm text-muted-foreground space-y-1">
-          <p>This page automatically refreshes every 30 seconds</p>
-          <p className="text-xs">For bookings, please contact our staff or use the admin panel</p>
+        <div className="text-center text-xs text-gray-500 dark:text-gray-500 pt-4">
+          <p>© 2025 {settings.businessName}. All rights reserved.</p>
         </div>
       </div>
     </div>
