@@ -15,6 +15,14 @@ import {
   type InsertExpense,
   type ActivityLog,
   type InsertActivityLog,
+  type GamingCenterInfo,
+  type InsertGamingCenterInfo,
+  type GalleryImage,
+  type InsertGalleryImage,
+  type Facility,
+  type InsertFacility,
+  type Game,
+  type InsertGame,
   bookings,
   deviceConfigs,
   pricingConfigs,
@@ -23,6 +31,10 @@ import {
   users,
   expenses,
   activityLogs,
+  gamingCenterInfo,
+  galleryImages,
+  facilities,
+  games,
 } from "@shared/schema";
 import { db } from "./db";
 import { eq, and, gte, lte } from "drizzle-orm";
@@ -91,6 +103,28 @@ export interface IStorage {
   getAllActivityLogs(): Promise<ActivityLog[]>;
   createActivityLog(log: InsertActivityLog): Promise<ActivityLog>;
   getActivityLogsByDateRange(startDate: Date, endDate: Date): Promise<ActivityLog[]>;
+  
+  getGamingCenterInfo(): Promise<GamingCenterInfo | undefined>;
+  upsertGamingCenterInfo(info: InsertGamingCenterInfo): Promise<GamingCenterInfo>;
+  
+  getAllGalleryImages(): Promise<GalleryImage[]>;
+  getGalleryImage(id: string): Promise<GalleryImage | undefined>;
+  createGalleryImage(image: InsertGalleryImage): Promise<GalleryImage>;
+  updateGalleryImage(id: string, image: InsertGalleryImage): Promise<GalleryImage | undefined>;
+  deleteGalleryImage(id: string): Promise<boolean>;
+  
+  getAllFacilities(): Promise<Facility[]>;
+  getFacility(id: string): Promise<Facility | undefined>;
+  createFacility(facility: InsertFacility): Promise<Facility>;
+  updateFacility(id: string, facility: InsertFacility): Promise<Facility | undefined>;
+  deleteFacility(id: string): Promise<boolean>;
+  
+  getAllGames(): Promise<Game[]>;
+  getGamesByCategory(category: string): Promise<Game[]>;
+  getGame(id: string): Promise<Game | undefined>;
+  createGame(game: InsertGame): Promise<Game>;
+  updateGame(id: string, game: InsertGame): Promise<Game | undefined>;
+  deleteGame(id: string): Promise<boolean>;
   
   initializeDefaults(): Promise<void>;
 }
@@ -592,6 +626,115 @@ export class DatabaseStorage implements IStorage {
         )
       )
       .orderBy(activityLogs.createdAt);
+  }
+
+  async getGamingCenterInfo(): Promise<GamingCenterInfo | undefined> {
+    const [info] = await db.select().from(gamingCenterInfo).limit(1);
+    return info || undefined;
+  }
+
+  async upsertGamingCenterInfo(info: InsertGamingCenterInfo): Promise<GamingCenterInfo> {
+    const existing = await this.getGamingCenterInfo();
+    
+    if (existing) {
+      const [updated] = await db
+        .update(gamingCenterInfo)
+        .set({ ...info, updatedAt: new Date() })
+        .where(eq(gamingCenterInfo.id, existing.id))
+        .returning();
+      return updated;
+    } else {
+      const [newInfo] = await db.insert(gamingCenterInfo).values(info).returning();
+      return newInfo;
+    }
+  }
+
+  async getAllGalleryImages(): Promise<GalleryImage[]> {
+    return await db.select().from(galleryImages);
+  }
+
+  async getGalleryImage(id: string): Promise<GalleryImage | undefined> {
+    const [image] = await db.select().from(galleryImages).where(eq(galleryImages.id, id));
+    return image || undefined;
+  }
+
+  async createGalleryImage(image: InsertGalleryImage): Promise<GalleryImage> {
+    const [newImage] = await db.insert(galleryImages).values(image).returning();
+    return newImage;
+  }
+
+  async updateGalleryImage(id: string, image: InsertGalleryImage): Promise<GalleryImage | undefined> {
+    const [updated] = await db
+      .update(galleryImages)
+      .set(image)
+      .where(eq(galleryImages.id, id))
+      .returning();
+    return updated || undefined;
+  }
+
+  async deleteGalleryImage(id: string): Promise<boolean> {
+    const result = await db.delete(galleryImages).where(eq(galleryImages.id, id));
+    return result.rowCount ? result.rowCount > 0 : false;
+  }
+
+  async getAllFacilities(): Promise<Facility[]> {
+    return await db.select().from(facilities);
+  }
+
+  async getFacility(id: string): Promise<Facility | undefined> {
+    const [facility] = await db.select().from(facilities).where(eq(facilities.id, id));
+    return facility || undefined;
+  }
+
+  async createFacility(facility: InsertFacility): Promise<Facility> {
+    const [newFacility] = await db.insert(facilities).values(facility).returning();
+    return newFacility;
+  }
+
+  async updateFacility(id: string, facility: InsertFacility): Promise<Facility | undefined> {
+    const [updated] = await db
+      .update(facilities)
+      .set(facility)
+      .where(eq(facilities.id, id))
+      .returning();
+    return updated || undefined;
+  }
+
+  async deleteFacility(id: string): Promise<boolean> {
+    const result = await db.delete(facilities).where(eq(facilities.id, id));
+    return result.rowCount ? result.rowCount > 0 : false;
+  }
+
+  async getAllGames(): Promise<Game[]> {
+    return await db.select().from(games);
+  }
+
+  async getGamesByCategory(category: string): Promise<Game[]> {
+    return await db.select().from(games).where(eq(games.category, category));
+  }
+
+  async getGame(id: string): Promise<Game | undefined> {
+    const [game] = await db.select().from(games).where(eq(games.id, id));
+    return game || undefined;
+  }
+
+  async createGame(game: InsertGame): Promise<Game> {
+    const [newGame] = await db.insert(games).values(game).returning();
+    return newGame;
+  }
+
+  async updateGame(id: string, game: InsertGame): Promise<Game | undefined> {
+    const [updated] = await db
+      .update(games)
+      .set(game)
+      .where(eq(games.id, id))
+      .returning();
+    return updated || undefined;
+  }
+
+  async deleteGame(id: string): Promise<boolean> {
+    const result = await db.delete(games).where(eq(games.id, id));
+    return result.rowCount ? result.rowCount > 0 : false;
   }
 }
 

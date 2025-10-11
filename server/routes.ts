@@ -2,7 +2,17 @@ import type { Express } from "express";
 import { createServer, type Server } from "http";
 import { storage } from "./storage";
 import { requireAuth, requireAdmin } from "./auth";
-import { insertBookingSchema, insertDeviceConfigSchema, insertPricingConfigSchema, insertFoodItemSchema, insertExpenseSchema } from "@shared/schema";
+import { 
+  insertBookingSchema, 
+  insertDeviceConfigSchema, 
+  insertPricingConfigSchema, 
+  insertFoodItemSchema, 
+  insertExpenseSchema,
+  insertGamingCenterInfoSchema,
+  insertGalleryImageSchema,
+  insertFacilitySchema,
+  insertGameSchema
+} from "@shared/schema";
 
 export async function registerRoutes(app: Express): Promise<Server> {
   app.get("/api/bookings", requireAuth, async (req, res) => {
@@ -606,6 +616,81 @@ export async function registerRoutes(app: Express): Promise<Server> {
       return res.status(200).json({ success: true, message: "Message received but not an availability query" });
     } catch (error: any) {
       console.error('WhatsApp webhook error:', error);
+      res.status(500).json({ message: error.message });
+    }
+  });
+
+  app.get("/api/consumer/center-info", async (req, res) => {
+    try {
+      const info = await storage.getGamingCenterInfo();
+      res.json(info || null);
+    } catch (error: any) {
+      res.status(500).json({ message: error.message });
+    }
+  });
+
+  app.get("/api/consumer/gallery", async (req, res) => {
+    try {
+      const images = await storage.getAllGalleryImages();
+      res.json(images);
+    } catch (error: any) {
+      res.status(500).json({ message: error.message });
+    }
+  });
+
+  app.get("/api/consumer/facilities", async (req, res) => {
+    try {
+      const facilities = await storage.getAllFacilities();
+      res.json(facilities);
+    } catch (error: any) {
+      res.status(500).json({ message: error.message });
+    }
+  });
+
+  app.get("/api/consumer/games", async (req, res) => {
+    try {
+      const games = await storage.getAllGames();
+      res.json(games);
+    } catch (error: any) {
+      res.status(500).json({ message: error.message });
+    }
+  });
+
+  app.get("/api/consumer/availability", async (req, res) => {
+    try {
+      const allBookings = await storage.getAllBookings();
+      const deviceConfigs = await storage.getAllDeviceConfigs();
+      
+      const availability = deviceConfigs.map(config => {
+        const activeBookings = allBookings.filter(booking => 
+          booking.category === config.category && 
+          (booking.status === "running" || booking.status === "paused")
+        );
+        
+        const totalSeats = config.count;
+        const occupiedSeats = activeBookings.length;
+        const availableSeats = totalSeats - occupiedSeats;
+        
+        return {
+          category: config.category,
+          total: totalSeats,
+          available: availableSeats,
+          occupied: occupiedSeats,
+          percentage: totalSeats > 0 ? Math.round((availableSeats / totalSeats) * 100) : 0
+        };
+      });
+      
+      res.json(availability);
+    } catch (error: any) {
+      res.status(500).json({ message: error.message });
+    }
+  });
+
+  app.get("/api/consumer/pricing", async (req, res) => {
+    try {
+      const pricing = await storage.getAllPricingConfigs();
+      res.json(pricing);
+    } catch (error: any) {
       res.status(500).json({ message: error.message });
     }
   });

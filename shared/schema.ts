@@ -145,3 +145,53 @@ export const activityLogs = pgTable("activity_logs", {
 export const insertActivityLogSchema = createInsertSchema(activityLogs).omit({ id: true, createdAt: true });
 export type InsertActivityLog = z.infer<typeof insertActivityLogSchema>;
 export type ActivityLog = typeof activityLogs.$inferSelect;
+
+export const gamingCenterInfo = pgTable("gaming_center_info", {
+  id: varchar("id").primaryKey().$defaultFn(() => crypto.randomUUID()),
+  name: varchar("name").notNull(),
+  description: text("description").notNull(),
+  address: text("address").notNull(),
+  phone: varchar("phone").notNull(),
+  email: varchar("email"),
+  hours: text("hours").notNull(),
+  updatedAt: timestamp("updated_at").notNull().defaultNow(),
+});
+
+export const insertGamingCenterInfoSchema = createInsertSchema(gamingCenterInfo).omit({ id: true, updatedAt: true });
+export type InsertGamingCenterInfo = z.infer<typeof insertGamingCenterInfoSchema>;
+export type GamingCenterInfo = typeof gamingCenterInfo.$inferSelect;
+
+export const galleryImages = pgTable("gallery_images", {
+  id: varchar("id").primaryKey().$defaultFn(() => crypto.randomUUID()),
+  title: varchar("title").notNull(),
+  imageUrl: text("image_url").notNull(),
+  description: text("description"),
+  createdAt: timestamp("created_at").notNull().defaultNow(),
+});
+
+export const insertGalleryImageSchema = createInsertSchema(galleryImages).omit({ id: true, createdAt: true });
+export type InsertGalleryImage = z.infer<typeof insertGalleryImageSchema>;
+export type GalleryImage = typeof galleryImages.$inferSelect;
+
+export const facilities = pgTable("facilities", {
+  id: varchar("id").primaryKey().$defaultFn(() => crypto.randomUUID()),
+  name: varchar("name").notNull(),
+  description: text("description").notNull(),
+  icon: varchar("icon").notNull(),
+});
+
+export const insertFacilitySchema = createInsertSchema(facilities).omit({ id: true });
+export type InsertFacility = z.infer<typeof insertFacilitySchema>;
+export type Facility = typeof facilities.$inferSelect;
+
+export const games = pgTable("games", {
+  id: varchar("id").primaryKey().$defaultFn(() => crypto.randomUUID()),
+  name: varchar("name").notNull(),
+  description: text("description"),
+  imageUrl: text("image_url"),
+  category: varchar("category").notNull(),
+});
+
+export const insertGameSchema = createInsertSchema(games).omit({ id: true });
+export type InsertGame = z.infer<typeof insertGameSchema>;
+export type Game = typeof games.$inferSelect;
