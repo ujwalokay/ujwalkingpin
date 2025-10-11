@@ -24,12 +24,9 @@ import Home from "@/pages/Home";
 import ConsumerGallery from "@/pages/ConsumerGallery";
 import ConsumerFacilities from "@/pages/ConsumerFacilities";
 import ConsumerGames from "@/pages/ConsumerGames";
-import AILoadAnalytics from "@/pages/AILoadAnalytics";
-import AILoyalty from "@/pages/AILoyalty";
 import NotFound from "@/pages/not-found";
 import Login from "@/pages/Login";
 import { ConsumerNav } from "@/components/ConsumerNav";
-import { AIChatbot } from "@/components/AIChatbot";
 import { useState, useEffect } from "react";
 import { useToast } from "@/hooks/use-toast";
 
@@ -44,8 +41,6 @@ function Router() {
       <Route path="/expenses" component={Expenses} />
       <Route path="/settings" component={Settings} />
       <Route path="/reports" component={Reports} />
-      <Route path="/ai-analytics" component={AILoadAnalytics} />
-      <Route path="/ai-loyalty" component={AILoyalty} />
       <Route path="/terms" component={TermsAndConditions} />
       <Route component={NotFound} />
     </Switch>
@@ -192,7 +187,6 @@ function App() {
                 </div>
               </div>
             </SidebarProvider>
-            <AIChatbot />
             <Toaster />
           </TooltipProvider>
         </AuthProvider>
