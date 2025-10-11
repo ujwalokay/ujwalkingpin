@@ -27,18 +27,19 @@ const getIconForCategory = (category: string) => {
 export default function PublicStatus() {
   const [lastUpdate, setLastUpdate] = useState(new Date());
 
-  const { data: availability = [], isLoading, refetch } = useQuery<DeviceAvailability[]>({
+  const { data: availability = [], isLoading, refetch, dataUpdatedAt } = useQuery<DeviceAvailability[]>({
     queryKey: ["/api/public/status"],
     refetchInterval: 30000,
   });
 
   useEffect(() => {
-    setLastUpdate(new Date());
-  }, [availability]);
+    if (dataUpdatedAt) {
+      setLastUpdate(new Date(dataUpdatedAt));
+    }
+  }, [dataUpdatedAt]);
 
   const handleRefresh = () => {
     refetch();
-    setLastUpdate(new Date());
   };
 
   if (isLoading) {

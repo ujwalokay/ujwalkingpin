@@ -73,6 +73,7 @@ Preferred communication style: Simple, everyday language.
 - Pause/Resume Timer Functionality: For active gaming sessions.
 - Expense Tracker: Comprehensive system for operational costs with CSV/PDF export.
 - WhatsApp Bot Integration: Automated device availability queries via Twilio WhatsApp API.
+- Public Status Board: Customer-facing real-time availability display at `/status` route (no authentication required). Auto-refreshes every 30 seconds with visual indicators.
 
 ## External Dependencies
 
