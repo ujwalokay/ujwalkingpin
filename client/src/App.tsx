@@ -18,6 +18,7 @@ import Timeline from "@/pages/Timeline";
 import History from "@/pages/History";
 import ActivityLogs from "@/pages/ActivityLogs";
 import TermsAndConditions from "@/pages/TermsAndConditions";
+import PublicStatus from "@/pages/PublicStatus";
 import NotFound from "@/pages/not-found";
 import { useState, useEffect } from "react";
 import {
@@ -211,86 +212,91 @@ function App() {
       <ThemeProvider>
         <QueryClientProvider client={queryClient}>
           <TooltipProvider>
-            <Dialog open={showLogin} onOpenChange={() => {}}>
-              <DialogContent className="sm:max-w-md" onPointerDownOutside={(e) => e.preventDefault()} onEscapeKeyDown={(e) => e.preventDefault()}>
-                <DialogHeader>
-                  <DialogTitle className="text-2xl font-bold">
-                    Ankylo Gaming {isAdminLogin ? "Admin" : "Staff"}
-                  </DialogTitle>
-                  <DialogDescription>
-                    Please enter your credentials to access the {isAdminLogin ? "admin" : "staff"} panel
-                  </DialogDescription>
-                </DialogHeader>
-                <div className="space-y-4 py-4">
-                  <div className="space-y-2">
-                    <Label htmlFor="username">Username</Label>
-                    <Input
-                      id="username"
-                      data-testid="input-username"
-                      type="text"
-                      placeholder="Enter username"
-                      value={username}
-                      onChange={(e) => setUsername(e.target.value)}
-                      onKeyPress={handleKeyPress}
-                      disabled={isLockedOut}
-                    />
-                  </div>
-                  <div className="space-y-2">
-                    <Label htmlFor="password">Password</Label>
-                    <div className="relative">
-                      <Input
-                        id="password"
-                        data-testid="input-password"
-                        type={showPassword ? "text" : "password"}
-                        placeholder="Enter password"
-                        value={password}
-                        onChange={(e) => setPassword(e.target.value)}
-                        onKeyPress={handleKeyPress}
-                        className="pr-10"
-                        disabled={isLockedOut}
-                      />
-                      <button
-                        type="button"
-                        onClick={() => setShowPassword(!showPassword)}
-                        className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground transition-colors"
-                        data-testid="button-toggle-password"
-                        aria-label={showPassword ? "Hide password" : "Show password"}
-                        disabled={isLockedOut}
+            <Switch>
+              <Route path="/status" component={PublicStatus} />
+              <Route>
+                <Dialog open={showLogin} onOpenChange={() => {}}>
+                  <DialogContent className="sm:max-w-md" onPointerDownOutside={(e) => e.preventDefault()} onEscapeKeyDown={(e) => e.preventDefault()}>
+                    <DialogHeader>
+                      <DialogTitle className="text-2xl font-bold">
+                        Ankylo Gaming {isAdminLogin ? "Admin" : "Staff"}
+                      </DialogTitle>
+                      <DialogDescription>
+                        Please enter your credentials to access the {isAdminLogin ? "admin" : "staff"} panel
+                      </DialogDescription>
+                    </DialogHeader>
+                    <div className="space-y-4 py-4">
+                      <div className="space-y-2">
+                        <Label htmlFor="username">Username</Label>
+                        <Input
+                          id="username"
+                          data-testid="input-username"
+                          type="text"
+                          placeholder="Enter username"
+                          value={username}
+                          onChange={(e) => setUsername(e.target.value)}
+                          onKeyPress={handleKeyPress}
+                          disabled={isLockedOut}
+                        />
+                      </div>
+                      <div className="space-y-2">
+                        <Label htmlFor="password">Password</Label>
+                        <div className="relative">
+                          <Input
+                            id="password"
+                            data-testid="input-password"
+                            type={showPassword ? "text" : "password"}
+                            placeholder="Enter password"
+                            value={password}
+                            onChange={(e) => setPassword(e.target.value)}
+                            onKeyPress={handleKeyPress}
+                            className="pr-10"
+                            disabled={isLockedOut}
+                          />
+                          <button
+                            type="button"
+                            onClick={() => setShowPassword(!showPassword)}
+                            className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground transition-colors"
+                            data-testid="button-toggle-password"
+                            aria-label={showPassword ? "Hide password" : "Show password"}
+                            disabled={isLockedOut}
+                          >
+                            {showPassword ? (
+                              <EyeOff className="h-4 w-4" />
+                            ) : (
+                              <Eye className="h-4 w-4" />
+                            )}
+                          </button>
+                        </div>
+                      </div>
+                      <Button 
+                        onClick={handleLogin} 
+                        className="w-full"
+                        data-testid="button-login"
+                        disabled={isLoggingIn || isLockedOut}
                       >
-                        {showPassword ? (
-                          <EyeOff className="h-4 w-4" />
-                        ) : (
-                          <Eye className="h-4 w-4" />
-                        )}
-                      </button>
+                        {isLoggingIn ? "Logging in..." : isLockedOut ? `Wait ${remainingTime}s` : "Login"}
+                      </Button>
+                      <div className="text-center">
+                        <button
+                          type="button"
+                          onClick={() => {
+                            setIsAdminLogin(!isAdminLogin);
+                            setUsername("");
+                            setPassword("");
+                          }}
+                          className="text-sm text-primary hover:underline transition-all"
+                          data-testid="button-toggle-login-type"
+                          disabled={isLockedOut}
+                        >
+                          Login as {isAdminLogin ? "Staff" : "Admin"}
+                        </button>
+                      </div>
                     </div>
-                  </div>
-                  <Button 
-                    onClick={handleLogin} 
-                    className="w-full"
-                    data-testid="button-login"
-                    disabled={isLoggingIn || isLockedOut}
-                  >
-                    {isLoggingIn ? "Logging in..." : isLockedOut ? `Wait ${remainingTime}s` : "Login"}
-                  </Button>
-                  <div className="text-center">
-                    <button
-                      type="button"
-                      onClick={() => {
-                        setIsAdminLogin(!isAdminLogin);
-                        setUsername("");
-                        setPassword("");
-                      }}
-                      className="text-sm text-primary hover:underline transition-all"
-                      data-testid="button-toggle-login-type"
-                      disabled={isLockedOut}
-                    >
-                      Login as {isAdminLogin ? "Staff" : "Admin"}
-                    </button>
-                  </div>
-                </div>
-              </DialogContent>
-            </Dialog>
+                  </DialogContent>
+                </Dialog>
+              </Route>
+            </Switch>
             <Toaster />
           </TooltipProvider>
         </QueryClientProvider>
