@@ -29,6 +29,7 @@ import AILoyalty from "@/pages/AILoyalty";
 import NotFound from "@/pages/not-found";
 import Login from "@/pages/Login";
 import { ConsumerNav } from "@/components/ConsumerNav";
+import { AIChatbot } from "@/components/AIChatbot";
 import { useState, useEffect } from "react";
 import { useToast } from "@/hooks/use-toast";
 
@@ -191,6 +192,7 @@ function App() {
                 </div>
               </div>
             </SidebarProvider>
+            <AIChatbot />
             <Toaster />
           </TooltipProvider>
         </AuthProvider>

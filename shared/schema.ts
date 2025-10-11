@@ -270,3 +270,26 @@ export const loyaltyConfig = pgTable("loyalty_config", {
 export const insertLoyaltyConfigSchema = createInsertSchema(loyaltyConfig).omit({ id: true, updatedAt: true });
 export type InsertLoyaltyConfig = z.infer<typeof insertLoyaltyConfigSchema>;
 export type LoyaltyConfig = typeof loyaltyConfig.$inferSelect;
+
+export const chatSessions = pgTable("chat_sessions", {
+  id: varchar("id").primaryKey().$defaultFn(() => crypto.randomUUID()),
+  userId: varchar("user_id").notNull(),
+  title: varchar("title").notNull().default("New Chat"),
+  createdAt: timestamp("created_at").notNull().defaultNow(),
+});
+
+export const insertChatSessionSchema = createInsertSchema(chatSessions).omit({ id: true, createdAt: true });
+export type InsertChatSession = z.infer<typeof insertChatSessionSchema>;
+export type ChatSession = typeof chatSessions.$inferSelect;
+
+export const chatMessages = pgTable("chat_messages", {
+  id: varchar("id").primaryKey().$defaultFn(() => crypto.randomUUID()),
+  sessionId: varchar("session_id").notNull(),
+  role: varchar("role").notNull(), // 'user' or 'assistant'
+  content: text("content").notNull(),
+  createdAt: timestamp("created_at").notNull().defaultNow(),
+});
+
+export const insertChatMessageSchema = createInsertSchema(chatMessages).omit({ id: true, createdAt: true });
+export type InsertChatMessage = z.infer<typeof insertChatMessageSchema>;
+export type ChatMessage = typeof chatMessages.$inferSelect;

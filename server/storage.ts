@@ -33,6 +33,10 @@ import {
   type InsertLoyaltyEvent,
   type LoyaltyConfig,
   type InsertLoyaltyConfig,
+  type ChatSession,
+  type InsertChatSession,
+  type ChatMessage,
+  type InsertChatMessage,
   bookings,
   deviceConfigs,
   pricingConfigs,
@@ -50,6 +54,8 @@ import {
   loyaltyMembers,
   loyaltyEvents,
   loyaltyConfig,
+  chatSessions,
+  chatMessages,
 } from "@shared/schema";
 import { db } from "./db";
 import { eq, and, gte, lte, desc } from "drizzle-orm";
@@ -164,6 +170,15 @@ export interface IStorage {
   getLoyaltyConfig(): Promise<LoyaltyConfig | undefined>;
   upsertLoyaltyConfig(config: InsertLoyaltyConfig): Promise<LoyaltyConfig>;
   awardLoyaltyPoints(whatsappNumber: string, customerName: string, amount: number): Promise<void>;
+  
+  getChatSessionsByUser(userId: string): Promise<ChatSession[]>;
+  getChatSession(id: string): Promise<ChatSession | undefined>;
+  createChatSession(session: InsertChatSession): Promise<ChatSession>;
+  updateChatSession(id: string, session: Partial<InsertChatSession>): Promise<ChatSession | undefined>;
+  deleteChatSession(id: string): Promise<boolean>;
+  
+  getChatMessagesBySession(sessionId: string): Promise<ChatMessage[]>;
+  createChatMessage(message: InsertChatMessage): Promise<ChatMessage>;
   
   initializeDefaults(): Promise<void>;
 }
@@ -970,6 +985,47 @@ export class DatabaseStorage implements IStorage {
         currencySymbol: config.currencySymbol || "$",
       } as any,
     });
+  }
+
+  async getChatSessionsByUser(userId: string): Promise<ChatSession[]> {
+    return await db.select().from(chatSessions)
+      .where(eq(chatSessions.userId, userId))
+      .orderBy(desc(chatSessions.createdAt));
+  }
+
+  async getChatSession(id: string): Promise<ChatSession | undefined> {
+    const [session] = await db.select().from(chatSessions).where(eq(chatSessions.id, id));
+    return session;
+  }
+
+  async createChatSession(session: InsertChatSession): Promise<ChatSession> {
+    const [created] = await db.insert(chatSessions).values(session).returning();
+    return created;
+  }
+
+  async updateChatSession(id: string, session: Partial<InsertChatSession>): Promise<ChatSession | undefined> {
+    const [updated] = await db.update(chatSessions)
+      .set(session)
+      .where(eq(chatSessions.id, id))
+      .returning();
+    return updated;
+  }
+
+  async deleteChatSession(id: string): Promise<boolean> {
+    await db.delete(chatMessages).where(eq(chatMessages.sessionId, id));
+    const result = await db.delete(chatSessions).where(eq(chatSessions.id, id));
+    return result.rowCount ? result.rowCount > 0 : false;
+  }
+
+  async getChatMessagesBySession(sessionId: string): Promise<ChatMessage[]> {
+    return await db.select().from(chatMessages)
+      .where(eq(chatMessages.sessionId, sessionId))
+      .orderBy(chatMessages.createdAt);
+  }
+
+  async createChatMessage(message: InsertChatMessage): Promise<ChatMessage> {
+    const [created] = await db.insert(chatMessages).values(message).returning();
+    return created;
   }
 }
 

@@ -16,8 +16,12 @@ import {
   insertLoadPredictionSchema,
   insertLoyaltyMemberSchema,
   insertLoyaltyEventSchema,
-  insertLoyaltyConfigSchema
+  insertLoyaltyConfigSchema,
+  insertChatSessionSchema,
+  insertChatMessageSchema
 } from "@shared/schema";
+import { generateChatResponse } from "./aiChatService";
+import { z } from "zod";
 
 export async function registerRoutes(app: Express): Promise<Server> {
   app.get("/api/bookings", requireAuth, async (req, res) => {
@@ -854,6 +858,113 @@ export async function registerRoutes(app: Express): Promise<Server> {
       res.json(config);
     } catch (error: any) {
       res.status(400).json({ message: error.message });
+    }
+  });
+
+  app.get("/api/ai/chat/sessions", requireAuth, async (req, res) => {
+    try {
+      const sessions = await storage.getChatSessionsByUser(req.user!.id);
+      res.json(sessions);
+    } catch (error: any) {
+      res.status(500).json({ message: error.message });
+    }
+  });
+
+  app.post("/api/ai/chat/sessions", requireAuth, async (req, res) => {
+    try {
+      const validated = insertChatSessionSchema.parse({
+        ...req.body,
+        userId: req.user!.id,
+      });
+      const session = await storage.createChatSession(validated);
+      res.json(session);
+    } catch (error: any) {
+      res.status(400).json({ message: error.message });
+    }
+  });
+
+  app.get("/api/ai/chat/sessions/:sessionId/messages", requireAuth, async (req, res) => {
+    try {
+      const { sessionId } = req.params;
+      const session = await storage.getChatSession(sessionId);
+      
+      if (!session || session.userId !== req.user!.id) {
+        return res.status(404).json({ message: "Chat session not found" });
+      }
+
+      const messages = await storage.getChatMessagesBySession(sessionId);
+      res.json(messages);
+    } catch (error: any) {
+      res.status(500).json({ message: error.message });
+    }
+  });
+
+  const chatRequestSchema = z.object({
+    sessionId: z.string().optional(),
+    message: z.string().min(1).max(2000),
+  });
+
+  app.post("/api/ai/chat", requireAuth, async (req, res) => {
+    try {
+      const { sessionId, message } = chatRequestSchema.parse(req.body);
+      
+      let currentSessionId = sessionId;
+      
+      if (!currentSessionId) {
+        const newSession = await storage.createChatSession({
+          userId: req.user!.id,
+          title: message.substring(0, 50) + (message.length > 50 ? "..." : ""),
+        });
+        currentSessionId = newSession.id;
+      }
+
+      const session = await storage.getChatSession(currentSessionId);
+      if (!session || session.userId !== req.user!.id) {
+        return res.status(404).json({ message: "Chat session not found" });
+      }
+
+      await storage.createChatMessage({
+        sessionId: currentSessionId,
+        role: "user",
+        content: message,
+      });
+
+      const conversationHistory = await storage.getChatMessagesBySession(currentSessionId);
+      const historyForAI = conversationHistory
+        .slice(0, -1)
+        .map(msg => ({ role: msg.role as "user" | "assistant", content: msg.content }));
+
+      const aiResponse = await generateChatResponse(message, historyForAI);
+
+      const assistantMessage = await storage.createChatMessage({
+        sessionId: currentSessionId,
+        role: "assistant",
+        content: aiResponse,
+      });
+
+      res.json({
+        sessionId: currentSessionId,
+        message: assistantMessage,
+      });
+    } catch (error: any) {
+      console.error("AI chat error:", error);
+      res.status(500).json({ message: error.message || "Failed to process chat request" });
+    }
+  });
+
+  app.delete("/api/ai/chat/sessions/:sessionId", requireAuth, async (req, res) => {
+    try {
+      const { sessionId } = req.params;
+      const session = await storage.getChatSession(sessionId);
+      
+      if (!session || session.userId !== req.user!.id) {
+        return res.status(404).json({ message: "Chat session not found" });
+      }
+
+      await storage.deleteChatSession(sessionId);
+      res.json({ success: true });
+    } catch (error: any) {
+      res.status(500).json({ message: error.message });
     }
   });
 
