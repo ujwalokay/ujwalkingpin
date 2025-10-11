@@ -67,23 +67,45 @@ export default function PublicStatus() {
   const [lastUpdate, setLastUpdate] = useState(new Date());
   const [isPricingOpen, setIsPricingOpen] = useState(false);
 
+  const defaultSettings = {
+    businessName: "Ankylo Gaming",
+    logoUrl: undefined,
+    headerTitle: "Live Availability",
+    headerSubtitle: "Real-time status updated every 5 seconds",
+    updateInterval: 5,
+    showPricing: 1,
+    showContactInfo: 1,
+    contactSectionTitle: "Ankylo Gaming Center",
+    address: "123 Gaming Street, Tech District, City - 400001",
+    phone: "+91 98765 43210",
+    hours: "10:00 AM - 11:00 PM (Mon-Sun)",
+    email: "info@ankylgaming.com",
+    showCallNowButton: 1,
+    showDirectionsButton: 1,
+    showFacilities: 1,
+    primaryColor: "#a855f7",
+    accentColor: "#8b5cf6"
+  };
+
   const { data: settings } = useQuery<WebviewSettings>({
     queryKey: ["/api/webview-settings"],
   });
 
+  const activeSettings = settings || defaultSettings;
+
   const { data: availability = [], isLoading, refetch, dataUpdatedAt } = useQuery<DeviceAvailability[]>({
     queryKey: ["/api/public/status"],
-    refetchInterval: (settings?.updateInterval || 5) * 1000,
+    refetchInterval: (activeSettings.updateInterval || 5) * 1000,
   });
 
   const { data: pricing = [] } = useQuery<PricingConfig[]>({
     queryKey: ["/api/consumer/pricing"],
-    enabled: settings?.showPricing === 1,
+    enabled: activeSettings.showPricing === 1,
   });
 
   const { data: facilities = [] } = useQuery<Facility[]>({
     queryKey: ["/api/consumer/facilities"],
-    enabled: settings?.showFacilities === 1,
+    enabled: activeSettings.showFacilities === 1,
   });
 
   useEffect(() => {
@@ -92,10 +114,10 @@ export default function PublicStatus() {
     }
   }, [dataUpdatedAt]);
 
-  const primaryColor = settings?.primaryColor || "#a855f7";
-  const accentColor = settings?.accentColor || "#8b5cf6";
+  const primaryColor = activeSettings.primaryColor || "#a855f7";
+  const accentColor = activeSettings.accentColor || "#8b5cf6";
 
-  if (isLoading || !settings) {
+  if (isLoading) {
     return (
       <div className="min-h-screen bg-gray-50 dark:bg-gray-50 flex items-center justify-center p-6">
         <div className="text-center">
@@ -119,19 +141,19 @@ export default function PublicStatus() {
       <div className="max-w-md mx-auto px-4 py-6 space-y-6">
         <div className="flex items-center justify-between bg-white dark:bg-white rounded-2xl p-4 shadow-sm">
           <div className="flex items-center gap-3">
-            {settings.logoUrl ? (
-              <img src={settings.logoUrl} alt="Logo" className="w-10 h-10 rounded-lg" />
+            {activeSettings.logoUrl ? (
+              <img src={activeSettings.logoUrl} alt="Logo" className="w-10 h-10 rounded-lg" />
             ) : (
               <div 
                 className="w-10 h-10 rounded-lg flex items-center justify-center text-white dark:text-white font-bold"
                 style={{ backgroundColor: primaryColor }}
               >
-                {settings.businessName.charAt(0)}
+                {activeSettings.businessName.charAt(0)}
               </div>
             )}
             <div>
               <h2 className="font-bold text-gray-900 dark:text-gray-900" data-testid="text-business-name">
-                {settings.businessName}
+                {activeSettings.businessName}
               </h2>
               <p className="text-sm text-gray-500 dark:text-gray-500">
                 Updated {lastUpdate.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' })}
@@ -155,10 +177,10 @@ export default function PublicStatus() {
             style={{ color: primaryColor }}
             data-testid="text-header-title"
           >
-            {settings.headerTitle}
+            {activeSettings.headerTitle}
           </h1>
           <p className="text-sm text-gray-600 dark:text-gray-600" data-testid="text-header-subtitle">
-            {settings.headerSubtitle}
+            {activeSettings.headerSubtitle}
           </p>
         </div>
 
@@ -240,7 +262,7 @@ export default function PublicStatus() {
           })}
         </div>
 
-        {settings.showPricing === 1 && pricing.length > 0 && (
+        {activeSettings.showPricing === 1 && pricing.length > 0 && (
           <Collapsible open={isPricingOpen} onOpenChange={setIsPricingOpen}>
             <CollapsibleTrigger asChild>
               <Button
@@ -272,70 +294,70 @@ export default function PublicStatus() {
           </Collapsible>
         )}
 
-        {settings.showContactInfo === 1 && (
+        {activeSettings.showContactInfo === 1 && (
           <Card className="bg-white dark:bg-white border-gray-200 dark:border-gray-200 rounded-2xl">
             <CardContent className="p-4 space-y-4">
               <h3 className="font-bold text-lg text-gray-900 dark:text-gray-900" data-testid="text-contact-title">
-                {settings.contactSectionTitle}
+                {activeSettings.contactSectionTitle}
               </h3>
 
-              {settings.address && (
+              {activeSettings.address && (
                 <div className="flex items-start gap-3">
                   <MapPin className="w-5 h-5 mt-0.5" style={{ color: primaryColor }} />
                   <div>
                     <p className="text-sm font-semibold text-gray-900 dark:text-gray-900">Address</p>
-                    <p className="text-sm text-gray-600 dark:text-gray-600" data-testid="text-address">{settings.address}</p>
+                    <p className="text-sm text-gray-600 dark:text-gray-600" data-testid="text-address">{activeSettings.address}</p>
                   </div>
                 </div>
               )}
 
-              {settings.phone && (
+              {activeSettings.phone && (
                 <div className="flex items-start gap-3">
                   <Phone className="w-5 h-5 mt-0.5" style={{ color: primaryColor }} />
                   <div>
                     <p className="text-sm font-semibold text-gray-900 dark:text-gray-900">Phone</p>
-                    <p className="text-sm text-gray-600 dark:text-gray-600" data-testid="text-phone">{settings.phone}</p>
+                    <p className="text-sm text-gray-600 dark:text-gray-600" data-testid="text-phone">{activeSettings.phone}</p>
                   </div>
                 </div>
               )}
 
-              {settings.hours && (
+              {activeSettings.hours && (
                 <div className="flex items-start gap-3">
                   <Clock className="w-5 h-5 mt-0.5" style={{ color: primaryColor }} />
                   <div>
                     <p className="text-sm font-semibold text-gray-900 dark:text-gray-900">Hours</p>
-                    <p className="text-sm text-gray-600 dark:text-gray-600" data-testid="text-hours">{settings.hours}</p>
+                    <p className="text-sm text-gray-600 dark:text-gray-600" data-testid="text-hours">{activeSettings.hours}</p>
                   </div>
                 </div>
               )}
 
-              {settings.email && (
+              {activeSettings.email && (
                 <div className="flex items-start gap-3">
                   <Mail className="w-5 h-5 mt-0.5" style={{ color: primaryColor }} />
                   <div>
                     <p className="text-sm font-semibold text-gray-900 dark:text-gray-900">Email</p>
-                    <p className="text-sm text-gray-600 dark:text-gray-600" data-testid="text-email">{settings.email}</p>
+                    <p className="text-sm text-gray-600 dark:text-gray-600" data-testid="text-email">{activeSettings.email}</p>
                   </div>
                 </div>
               )}
 
               <div className="flex gap-3 pt-2">
-                {settings.showCallNowButton === 1 && settings.phone && (
+                {activeSettings.showCallNowButton === 1 && activeSettings.phone && (
                   <Button
                     className="flex-1 rounded-full text-white dark:text-white"
                     style={{ backgroundColor: primaryColor }}
-                    onClick={() => window.location.href = `tel:${settings.phone}`}
+                    onClick={() => window.location.href = `tel:${activeSettings.phone}`}
                     data-testid="button-call-now"
                   >
                     <Phone className="w-4 h-4 mr-2" />
                     Call Now
                   </Button>
                 )}
-                {settings.showDirectionsButton === 1 && settings.address && (
+                {activeSettings.showDirectionsButton === 1 && activeSettings.address && (
                   <Button
                     variant="outline"
                     className="flex-1 rounded-full border-gray-300 dark:border-gray-300"
-                    onClick={() => window.open(`https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(settings.address || '')}`, '_blank')}
+                    onClick={() => window.open(`https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(activeSettings.address || '')}`, '_blank')}
                     data-testid="button-directions"
                   >
                     <MapPin className="w-4 h-4 mr-2" />
@@ -347,7 +369,7 @@ export default function PublicStatus() {
           </Card>
         )}
 
-        {settings.showFacilities === 1 && facilities.length > 0 && (
+        {activeSettings.showFacilities === 1 && facilities.length > 0 && (
           <div className="space-y-3">
             <h3 className="font-bold text-lg text-gray-900 dark:text-gray-900">Facilities</h3>
             <div className="grid grid-cols-2 gap-3">
@@ -377,7 +399,7 @@ export default function PublicStatus() {
         )}
 
         <div className="text-center text-xs text-gray-500 dark:text-gray-500 pt-4">
-          <p>© 2025 {settings.businessName}. All rights reserved.</p>
+          <p>© 2025 {activeSettings.businessName}. All rights reserved.</p>
         </div>
       </div>
     </div>
