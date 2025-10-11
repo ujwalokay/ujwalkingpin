@@ -1,8 +1,4 @@
-import OpenAI from "openai";
 import { storage } from "./storage";
-
-// the newest OpenAI model is "gpt-5" which was released August 7, 2025. do not change this unless explicitly requested by the user
-const openai = new OpenAI({ apiKey: process.env.OPENAI_API_KEY });
 
 export interface LoadPredictionInput {
   activeSessions: number;
@@ -62,66 +58,81 @@ export async function generateLoadPrediction(
   currentMetrics: LoadPredictionInput,
   horizon: "1h" | "3h" | "6h" | "12h" | "24h"
 ): Promise<LoadPredictionResult> {
-  try {
-    const now = new Date();
-    const timeOfDay = now.getHours();
-    const dayOfWeek = now.getDay();
-
-    const prompt = `You are an AI assistant for a gaming center that predicts customer load and demand. Based on the following current metrics, predict the expected load for the next ${horizon}.
-
-Current Metrics:
-- Active Sessions: ${currentMetrics.activeSessions}
-- Average Session Length: ${currentMetrics.avgSessionLength} minutes
-- Food Orders: ${currentMetrics.foodOrders}
-- Capacity Utilization: ${currentMetrics.capacityUtilization}%
-- Time of Day: ${timeOfDay}:00 (24-hour format)
-- Day of Week: ${dayOfWeek} (0=Sunday, 6=Saturday)
-
-Consider typical patterns:
-- Gaming centers are busiest on weekends and evenings (6pm-11pm)
-- Lunch hours (12pm-2pm) and dinner hours (6pm-8pm) typically see more food orders
-- After-school hours (3pm-7pm) on weekdays attract younger customers
-- Late nights (10pm-2am) on weekends see high capacity
-
-Provide a prediction in JSON format with:
-{
-  "predictedLoad": <integer 0-100 representing predicted capacity utilization %>,
-  "confidence": <float 0-1 representing prediction confidence>,
-  "reasoning": "<brief explanation of the prediction>"
-}`;
-
-    const response = await openai.chat.completions.create({
-      model: "gpt-5",
-      messages: [
-        {
-          role: "system",
-          content: "You are an expert at predicting customer demand patterns for gaming centers. Respond only with valid JSON.",
-        },
-        {
-          role: "user",
-          content: prompt,
-        },
-      ],
-      response_format: { type: "json_object" },
-      max_completion_tokens: 500,
-    });
-
-    const result = JSON.parse(response.choices[0].message.content || "{}");
-
-    return {
-      predictedLoad: Math.max(0, Math.min(100, Math.round(result.predictedLoad || 0))),
-      horizon,
-      confidence: Math.max(0, Math.min(1, result.confidence || 0.5)),
-      features: {
-        timeOfDay,
-        dayOfWeek,
-        currentUtilization: currentMetrics.capacityUtilization,
-        reasoning: result.reasoning || "No reasoning provided",
-      },
-    };
-  } catch (error: any) {
-    throw new Error(`Failed to generate load prediction: ${error.message}`);
+  const now = new Date();
+  const timeOfDay = now.getHours();
+  const dayOfWeek = now.getDay();
+  
+  // Pattern-based prediction logic (no real AI needed - just smart calculations)
+  let predictedLoad = currentMetrics.capacityUtilization;
+  let reasoning = "";
+  let confidence = 0.75;
+  
+  const isWeekend = dayOfWeek === 0 || dayOfWeek === 6;
+  const hourMultipliers: Record<string, number> = {
+    "1h": 1,
+    "3h": 3,
+    "6h": 6,
+    "12h": 12,
+    "24h": 24
+  };
+  
+  const hoursAhead = hourMultipliers[horizon];
+  const futureHour = (timeOfDay + hoursAhead) % 24;
+  
+  // Peak hours logic: 6pm-11pm = busy, 12pm-2pm = moderate, 3pm-7pm weekday = moderate
+  const isPeakTime = (hour: number) => (hour >= 18 && hour <= 23);
+  const isLunchTime = (hour: number) => (hour >= 12 && hour <= 14);
+  const isAfterSchool = (hour: number) => (hour >= 15 && hour <= 19);
+  
+  // Calculate base prediction
+  if (isPeakTime(futureHour)) {
+    predictedLoad = isWeekend ? 85 : 70;
+    reasoning = `Peak hours (${futureHour}:00) ${isWeekend ? 'on weekend' : 'on weekday'}`;
+  } else if (isLunchTime(futureHour)) {
+    predictedLoad = 45;
+    reasoning = `Lunch hours (${futureHour}:00) - moderate traffic`;
+  } else if (isAfterSchool(futureHour) && !isWeekend) {
+    predictedLoad = 55;
+    reasoning = `After-school hours (${futureHour}:00) on weekday`;
+  } else if (futureHour >= 0 && futureHour <= 6) {
+    predictedLoad = 10;
+    reasoning = `Late night/early morning (${futureHour}:00) - minimal traffic`;
+  } else {
+    predictedLoad = 30;
+    reasoning = `Off-peak hours (${futureHour}:00)`;
   }
+  
+  // Weekend bonus
+  if (isWeekend && !isPeakTime(futureHour)) {
+    predictedLoad += 15;
+    reasoning += " (weekend boost)";
+  }
+  
+  // Trend adjustment based on current load
+  const trendFactor = (currentMetrics.capacityUtilization - 50) * 0.2;
+  predictedLoad = Math.round(predictedLoad + trendFactor);
+  
+  // Adjust confidence based on time horizon
+  if (hoursAhead <= 3) confidence = 0.85;
+  else if (hoursAhead <= 6) confidence = 0.75;
+  else if (hoursAhead <= 12) confidence = 0.65;
+  else confidence = 0.55;
+  
+  // Ensure bounds
+  predictedLoad = Math.max(0, Math.min(100, predictedLoad));
+  
+  return {
+    predictedLoad,
+    horizon,
+    confidence,
+    features: {
+      timeOfDay,
+      dayOfWeek,
+      currentUtilization: currentMetrics.capacityUtilization,
+      reasoning,
+      algorithm: "pattern-based-v1"
+    },
+  };
 }
 
 export async function storeCurrentLoadMetric(): Promise<void> {
@@ -152,7 +163,7 @@ export async function generateAndStorePredictions(): Promise<void> {
       await storage.createLoadPrediction({
         horizon: prediction.horizon,
         predictedLoad: prediction.predictedLoad,
-        modelVersion: "gpt-5-v1",
+        modelVersion: "pattern-based-v1",
         features: prediction.features,
       });
     }
