@@ -196,32 +196,6 @@ export const insertGameSchema = createInsertSchema(games).omit({ id: true });
 export type InsertGame = z.infer<typeof insertGameSchema>;
 export type Game = typeof games.$inferSelect;
 
-export const webviewSettings = pgTable("webview_settings", {
-  id: varchar("id").primaryKey().$defaultFn(() => crypto.randomUUID()),
-  businessName: varchar("business_name").notNull().default("Ankylo Gaming"),
-  logoUrl: text("logo_url"),
-  headerTitle: varchar("header_title").notNull().default("Live Availability"),
-  headerSubtitle: varchar("header_subtitle").notNull().default("Real-time status updated every 5 seconds"),
-  updateInterval: integer("update_interval").notNull().default(5),
-  showPricing: integer("show_pricing").notNull().default(1),
-  showContactInfo: integer("show_contact_info").notNull().default(1),
-  contactSectionTitle: varchar("contact_section_title").notNull().default("Ankylo Gaming Center"),
-  address: text("address").default("123 Gaming Street, Tech District, City - 400001"),
-  phone: varchar("phone").default("+91 98765 43210"),
-  hours: varchar("hours").default("10:00 AM - 11:00 PM (Mon-Sun)"),
-  email: varchar("email").default("info@ankylgaming.com"),
-  showCallNowButton: integer("show_call_now_button").notNull().default(1),
-  showDirectionsButton: integer("show_directions_button").notNull().default(1),
-  showFacilities: integer("show_facilities").notNull().default(1),
-  primaryColor: varchar("primary_color").notNull().default("#a855f7"),
-  accentColor: varchar("accent_color").notNull().default("#8b5cf6"),
-  updatedAt: timestamp("updated_at").notNull().defaultNow(),
-});
-
-export const insertWebviewSettingsSchema = createInsertSchema(webviewSettings).omit({ id: true, updatedAt: true });
-export type InsertWebviewSettings = z.infer<typeof insertWebviewSettingsSchema>;
-export type WebviewSettings = typeof webviewSettings.$inferSelect;
-
 export const loadMetrics = pgTable("load_metrics", {
   id: varchar("id").primaryKey().$defaultFn(() => crypto.randomUUID()),
   timestamp: timestamp("timestamp").notNull().defaultNow(),

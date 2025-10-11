@@ -23,8 +23,6 @@ import {
   type InsertFacility,
   type Game,
   type InsertGame,
-  type WebviewSettings,
-  type InsertWebviewSettings,
   type LoadMetric,
   type InsertLoadMetric,
   type LoadPrediction,
@@ -45,7 +43,6 @@ import {
   galleryImages,
   facilities,
   games,
-  webviewSettings,
   loadMetrics,
   loadPredictions,
   loyaltyMembers,
@@ -140,9 +137,6 @@ export interface IStorage {
   createGame(game: InsertGame): Promise<Game>;
   updateGame(id: string, game: InsertGame): Promise<Game | undefined>;
   deleteGame(id: string): Promise<boolean>;
-  
-  getWebviewSettings(): Promise<WebviewSettings | undefined>;
-  upsertWebviewSettings(settings: InsertWebviewSettings): Promise<WebviewSettings>;
   
   getAllLoadMetrics(): Promise<LoadMetric[]>;
   getRecentLoadMetrics(limit: number): Promise<LoadMetric[]>;
@@ -773,27 +767,6 @@ export class DatabaseStorage implements IStorage {
   async deleteGame(id: string): Promise<boolean> {
     const result = await db.delete(games).where(eq(games.id, id));
     return result.rowCount ? result.rowCount > 0 : false;
-  }
-
-  async getWebviewSettings(): Promise<WebviewSettings | undefined> {
-    const [settings] = await db.select().from(webviewSettings).limit(1);
-    return settings || undefined;
-  }
-
-  async upsertWebviewSettings(settings: InsertWebviewSettings): Promise<WebviewSettings> {
-    const existing = await this.getWebviewSettings();
-    
-    if (existing) {
-      const [updated] = await db
-        .update(webviewSettings)
-        .set({ ...settings, updatedAt: new Date() })
-        .where(eq(webviewSettings.id, existing.id))
-        .returning();
-      return updated;
-    } else {
-      const [created] = await db.insert(webviewSettings).values(settings).returning();
-      return created;
-    }
   }
 
   async getAllLoadMetrics(): Promise<LoadMetric[]> {

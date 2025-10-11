@@ -23,7 +23,6 @@ import Home from "@/pages/Home";
 import ConsumerGallery from "@/pages/ConsumerGallery";
 import ConsumerFacilities from "@/pages/ConsumerFacilities";
 import ConsumerGames from "@/pages/ConsumerGames";
-import MiniWebview from "@/pages/MiniWebview";
 import AILoadAnalytics from "@/pages/AILoadAnalytics";
 import AILoyalty from "@/pages/AILoyalty";
 import NotFound from "@/pages/not-found";
@@ -51,7 +50,6 @@ function Router() {
       <Route path="/food" component={Food} />
       <Route path="/expenses" component={Expenses} />
       <Route path="/settings" component={Settings} />
-      <Route path="/mini-webview" component={MiniWebview} />
       <Route path="/reports" component={Reports} />
       <Route path="/ai-analytics" component={AILoadAnalytics} />
       <Route path="/ai-loyalty" component={AILoyalty} />

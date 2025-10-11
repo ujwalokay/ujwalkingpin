@@ -78,7 +78,6 @@ Preferred communication style: Simple, everyday language.
 - Expense Tracker: Comprehensive system for operational costs with CSV/PDF export.
 - WhatsApp Bot Integration: Automated device availability queries via Twilio WhatsApp API.
 - Public Status Board: Customer-facing real-time availability display at `/status` route (no authentication required). Auto-refreshes with visual indicators.
-- Mini Webview Customization: Admin panel at `/mini-webview` for customizing the public status page including branding (business name, logo, colors), header text, contact information, display toggles for pricing/facilities/contact sections, and update intervals. Changes are stored in database and applied dynamically to the consumer-facing page.
 - **AI Load Analytics**: Real-time dashboard showing current system usage and AI-powered predictions for future load at `/ai-load-analytics`. Features live metrics, utilization charts, and OpenAI GPT-5 forecasts. Accessible to all authenticated users with real-time updates via React Query polling.
 - **AI Loyalty System**: Customer loyalty management at `/ai-loyalty`. Admin-only interface for adding/editing members and managing points/rewards. Staff have read-only access to view member information. Uses role-based access control via `requireAdmin` and `requireAdminOrStaff` middleware.
 

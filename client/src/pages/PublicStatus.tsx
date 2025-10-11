@@ -4,7 +4,6 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Monitor, Gamepad2, Glasses, Car, Cpu, RefreshCw, Phone, MapPin, Clock, Mail, ChevronDown, ChevronUp, Wifi, Wind, Armchair, Pizza } from "lucide-react";
-import type { WebviewSettings } from "@shared/schema";
 import {
   Collapsible,
   CollapsibleContent,
@@ -67,7 +66,7 @@ export default function PublicStatus() {
   const [lastUpdate, setLastUpdate] = useState(new Date());
   const [isPricingOpen, setIsPricingOpen] = useState(false);
 
-  const defaultSettings = {
+  const activeSettings = {
     businessName: "Ankylo Gaming",
     logoUrl: undefined,
     headerTitle: "Live Availability",
@@ -86,12 +85,6 @@ export default function PublicStatus() {
     primaryColor: "#a855f7",
     accentColor: "#8b5cf6"
   };
-
-  const { data: settings } = useQuery<WebviewSettings>({
-    queryKey: ["/api/webview-settings"],
-  });
-
-  const activeSettings = settings || defaultSettings;
 
   const { data: availability = [], isLoading, refetch, dataUpdatedAt } = useQuery<DeviceAvailability[]>({
     queryKey: ["/api/public/status"],
