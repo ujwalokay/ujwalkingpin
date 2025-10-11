@@ -11,7 +11,8 @@ import {
   insertGamingCenterInfoSchema,
   insertGalleryImageSchema,
   insertFacilitySchema,
-  insertGameSchema
+  insertGameSchema,
+  insertWebviewSettingsSchema
 } from "@shared/schema";
 
 export async function registerRoutes(app: Express): Promise<Server> {
@@ -692,6 +693,47 @@ export async function registerRoutes(app: Express): Promise<Server> {
       res.json(pricing);
     } catch (error: any) {
       res.status(500).json({ message: error.message });
+    }
+  });
+
+  app.get("/api/webview-settings", async (req, res) => {
+    try {
+      const settings = await storage.getWebviewSettings();
+      if (!settings) {
+        const defaultSettings = {
+          businessName: "Ankylo Gaming",
+          headerTitle: "Live Availability",
+          headerSubtitle: "Real-time status updated every 5 seconds",
+          updateInterval: 5,
+          showPricing: 1,
+          showContactInfo: 1,
+          contactSectionTitle: "Ankylo Gaming Center",
+          address: "123 Gaming Street, Tech District, City - 400001",
+          phone: "+91 98765 43210",
+          hours: "10:00 AM - 11:00 PM (Mon-Sun)",
+          email: "info@ankylgaming.com",
+          showCallNowButton: 1,
+          showDirectionsButton: 1,
+          showFacilities: 1,
+          primaryColor: "#a855f7",
+          accentColor: "#8b5cf6"
+        };
+        const created = await storage.upsertWebviewSettings(defaultSettings);
+        return res.json(created);
+      }
+      res.json(settings);
+    } catch (error: any) {
+      res.status(500).json({ message: error.message });
+    }
+  });
+
+  app.post("/api/webview-settings", requireAdmin, async (req, res) => {
+    try {
+      const validated = insertWebviewSettingsSchema.parse(req.body);
+      const settings = await storage.upsertWebviewSettings(validated);
+      res.json(settings);
+    } catch (error: any) {
+      res.status(400).json({ message: error.message });
     }
   });
 
