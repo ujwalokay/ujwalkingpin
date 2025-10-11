@@ -2,243 +2,101 @@
 
 ## Overview
 
-This is a local admin panel web application for managing a gaming center's Point-of-Sale (POS) system. The application enables real-time tracking of gaming sessions across multiple device types (PC, PS5, VR simulators, and car simulators), manages walk-in and advance bookings, and provides comprehensive reporting capabilities. Built as a full-stack TypeScript application, it runs locally on the shop's computer and features a gaming-themed dark mode interface inspired by Discord and Steam admin panels.
+This project is a local admin panel web application designed for managing a gaming center's Point-of-Sale (POS) system. It facilitates real-time tracking of gaming sessions across various device types (PC, PS5, VR, car simulators), handles both walk-in and advance bookings, and provides comprehensive reporting, including an expense tracker. The application is a full-stack TypeScript project, running locally on the shop's computer, and features a gaming-themed dark mode UI inspired by Discord and Steam. Its primary purpose is to streamline operations, manage inventory, track expenses, and improve customer service in a gaming center environment.
 
 ## User Preferences
 
 Preferred communication style: Simple, everyday language.
-
-## Recent Changes
-
-**October 11, 2025 - WhatsApp Bot Integration for Device Availability**
-- Integrated Twilio WhatsApp API for automated availability notifications
-- Created Twilio client utility (`server/twilio.ts`) with WhatsApp message sending capability
-- Added GET `/api/whatsapp/availability` endpoint for programmatic availability queries
-- Implemented POST `/api/whatsapp/webhook` endpoint to receive and process WhatsApp messages
-- Smart message parsing detects availability queries using keywords: 'available', 'availability', 'how many', 'pc', 'ps5', 'vr', 'free', 'check'
-- Bot automatically responds with real-time device availability across all categories
-- Response format shows available/total devices with percentage and visual status indicators (✅/❌)
-- Availability calculation based on current active bookings (running/paused status)
-- No booking functionality - read-only availability information for customer convenience
-- Webhook requires Twilio configuration: set webhook URL in Twilio console to `https://your-app-url.com/api/whatsapp/webhook`
-- Example query: "How many PCs are available?" → Bot replies with current availability for all device types
-
-**October 9, 2025 - Expense Tracker Feature with Export Capabilities**
-- Implemented comprehensive expense tracking system for operational costs
-- Added expenses table to database with category, description, amount, and date fields
-- Created expense CRUD operations in storage interface (create, read, update, delete)
-- Added secure API routes for expense management (GET/POST/PATCH/DELETE /api/expenses)
-- Built expense tracker page with table view showing all expenses sorted by date
-- Included expense categories: Equipment Maintenance/Purchase, Food/Beverage Purchase, Utilities, Staff Salary, Game Licenses, Marketing, Rent, Repairs, Supplies, Other
-- Added date picker for selecting expense dates and category dropdown for easy selection
-- Implemented robust validation: frontend validates positive numeric amounts, backend uses Zod schema refinement
-- Total expenses calculation with NaN-safe logic to prevent data corruption
-- Added "Expenses" menu item to sidebar navigation with wallet icon
-- All operations protected by authentication (requireAuth middleware)
-- **Export to Excel (CSV)**: Download expenses as CSV file with proper formatting and quote escaping
-- **Export to PDF**: Generate printable PDF report with total expenses summary and detailed table
-- Both export functions include empty data validation and user-friendly error messages
-- Helps track operational costs and calculate profit margins (revenue minus expenses)
-
-**October 7, 2025 - Pause/Resume Timer Fix, Responsive Food Dialog, and Theme Toggle**
-- Fixed pause/resume timer functionality by properly mapping pausedRemainingTime field from database to frontend
-- Added pausedRemainingTime to Booking interface so timer properly resumes from paused state
-- Improved food add dialog layout responsiveness with better mobile sizing and compact spacing
-- Implemented dark/light theme toggle system with ThemeProvider component
-- Added theme toggle button in header to switch between light and dark modes
-- Theme preference persists in localStorage and syncs across application
-- All components now support seamless theme switching
-- Fixed ThemeProvider context issue by moving it inside App component for proper React context hierarchy
-
-**October 7, 2025 - Cache Invalidation Fix for Real-Time Seat Availability**
-- Fixed issue where available seats list wouldn't update after creating a booking
-- Added cache invalidation for '/api/bookings/available-seats' query after successful booking creation
-- Now when a booking is created, the AddBookingDialog immediately refreshes to show accurate availability
-- Prevents users from seeing stale seat availability data when creating multiple bookings
-- Users can no longer attempt to book already-occupied seats due to cached data
-
-**October 7, 2025 - Date Column for Upcoming Bookings & Date-Specific Conflict Detection**
-- Added date column to upcoming bookings table to display booking dates clearly
-- Date column only appears in "Upcoming Bookings" tab, not in "Walk-in List" tab
-- Date format: DD MMM YYYY (e.g., "07 Oct 2025") for easy readability
-- Verified conflict detection is fully date-specific - bookings on different dates never conflict
-- If PC-2 is booked tomorrow 12:00-12:30, it's available today 12:00-12:30 (different dates)
-- Conflict validation uses full date+time comparison, preventing false conflicts across dates
-- Both POST /api/bookings and GET /api/bookings/available-seats use date-aware overlap detection
-
-**October 7, 2025 - Smart Upcoming Booking Flow with Time-Based Seat Availability**
-- Redesigned upcoming booking flow to ask for date/time BEFORE showing available seats
-- New flow: Duration → Date → Time Slot → Category → Seats (instead of showing seats first)
-- Added GET /api/bookings/available-seats endpoint to check seat availability for specific date/time slots
-- Real-time seat availability calculation based on time slot overlaps with existing bookings
-- When creating upcoming booking, system now shows only seats that are free during the requested time
-- Prevents booking conflicts by filtering out seats already booked during the selected time slot
-- Walk-in booking flow remains unchanged (shows currently available seats immediately)
-- Improves customer service - staff can instantly tell customers which seats are free at specific times
-
-**October 7, 2025 - Booking History Archive System**
-- Implemented separate booking history table to store archived completed/expired bookings
-- Added "Refresh List" button functionality to move expired and completed bookings to permanent history
-- Created dedicated history storage with archivedAt timestamp for audit trail
-- Updated History page to display archived bookings from history table with archive dates
-- Backend automatically moves bookings to history table when refresh is clicked
-- History records persist independently from active bookings for long-term tracking
-- Added POST /api/bookings/archive endpoint to handle archival process
-- Added GET /api/booking-history endpoint to fetch archived records
-- Query cache invalidation ensures real-time UI updates across Dashboard and History pages
-
-**October 6, 2025 - Pause/Resume Timer Functionality**
-- Implemented pause/resume toggle for running gaming sessions
-- Added "Pause Timer" button for running bookings to pause the countdown
-- Added "Resume Timer" button for paused bookings to continue from where it left off
-- Introduced "paused" status with yellow badge indicator
-- Added pausedRemainingTime field to booking schema to store remaining time when paused
-- Paused seats are still counted as occupied to prevent double booking
-- Updated UI to show "Paused" indicator in timer column for paused sessions
-- Delete food items functionality - can now remove individual food items from bookings
-- Extended delete capability to completed bookings for better history management
-
-**October 5, 2025 - Dynamic Category Management**
-- Implemented fully dynamic device category system - users can now add/delete any device type
-- Added "Add Category" functionality in Settings with dialog UI for creating new categories
-- Added delete buttons to each category card with active booking validation
-- Refactored Settings from hardcoded PC/PS5/VR/Car to unified dynamic state management
-- Updated Dashboard to dynamically display all categories with auto-assigned icons and colors
-- Standardized React Query cache keys across Dashboard and Settings for proper cache invalidation
-- Added DELETE API endpoints for device-config and pricing-config in backend
-- Implemented storage delete methods (deleteDeviceConfig, deletePricingConfig) in MemStorage
-- Categories now persist across page reloads and sync between all views
-- Pricing configuration automatically adapts to show all active device categories
-
-**October 4, 2025 - Replit Environment Setup**
-- Successfully imported and configured the Gaming Center POS Admin Panel for Replit
-- Created PostgreSQL database and pushed schema (users, bookings, settings, device_config, pricing_config tables)
-- Configured development workflow to run on port 5000 with Express + Vite
-- Verified frontend is properly connected to backend API
-- Deployment configuration set for autoscale deployment target
-- Application is fully functional with gaming-themed dark mode interface
 
 ## System Architecture
 
 ### Frontend Architecture
 
 **Technology Stack:**
-- React 18+ with TypeScript for type safety
-- Vite as build tool and development server
-- Wouter for client-side routing (lightweight React Router alternative)
+- React 18+ with TypeScript
+- Vite for development and build
+- Wouter for client-side routing
 - TanStack React Query for server state management and caching
 
-**UI Component System:**
-- Radix UI primitives for accessible, unstyled components
-- shadcn/ui component library (New York style variant)
-- Tailwind CSS for styling with custom gaming-themed design tokens
-- Custom color palette optimized for dark mode with gaming aesthetics (cyan/teal accents, status-specific colors)
+**UI/UX Decisions:**
+- Radix UI primitives and shadcn/ui (New York style) for accessible components.
+- Tailwind CSS with a custom, gaming-themed dark mode color palette (cyan/teal accents).
+- Theme toggle for light/dark mode persistence via localStorage.
 
 **State Management:**
-- React Query handles all server state with automatic refetching and caching
-- Local component state with React hooks for UI interactions
-- No global state management library (Redux/Zustand) - keeping architecture simple
-
-**Key Design Patterns:**
-- Component composition with Radix UI slot pattern
-- Custom hooks for reusable logic (use-toast, use-mobile)
-- Real-time timer updates using React useEffect intervals
-- Form validation with React Hook Form and Zod schemas
+- React Query for server state caching and synchronization.
+- Local component state with React hooks.
 
 ### Backend Architecture
 
 **Server Framework:**
-- Express.js with TypeScript for REST API
-- Native HTTP server (Node.js http module)
-- Middleware-based request processing pipeline
-
-**API Design:**
-- RESTful endpoints following resource-based URL patterns
-- JSON request/response format
-- Basic CRUD operations for bookings and settings
-- No authentication/authorization (local single-user application)
+- Express.js with TypeScript.
+- RESTful API design with JSON communication.
 
 **Database Layer:**
-- Drizzle ORM for type-safe database operations
-- PostgreSQL as database (Neon serverless provider with websocket support)
-- Schema-first approach with Zod validation
-- Migration support via drizzle-kit
+- PostgreSQL via Neon serverless provider.
+- Drizzle ORM for type-safe database interactions.
+- Schema-first approach with Zod validation.
 
 **Data Models:**
-- Users table (minimal - username/password for potential future auth)
-- Bookings table (tracks all active gaming sessions with status, timing, pricing)
-- Booking History table (stores archived completed/expired bookings with archive timestamp)
-- Device Configs table (stores device categories and their seat configurations)
-- Pricing Configs table (stores pricing rules per category and duration)
-- Food Items table (stores available food/beverage items)
-- Settings table (stores admin configurations like delete PIN)
-
-**Storage Pattern:**
-- Interface-based storage abstraction (IStorage)
-- DatabaseStorage implementation using Drizzle queries
-- Supports booking CRUD, statistics queries, and history retrieval
+- `Bookings`: Manages active sessions, status, timing, and pricing.
+- `Booking History`: Archives completed/expired bookings for audit.
+- `Device Configs`: Stores dynamic device categories and seat configurations.
+- `Pricing Configs`: Defines pricing rules per category and duration.
+- `Food Items`: Stores available food and beverage options.
+- `Settings`: General admin configurations (e.g., delete PIN).
+- `Expenses`: Tracks operational costs by category, description, amount, and date.
 
 ### Key Architectural Decisions
 
 **Monorepo Structure:**
-- Shared schema definitions between client and server (`/shared` directory)
-- Type safety across full stack using shared TypeScript types
-- Single package.json with unified dependencies
-
-**Development vs Production:**
-- Vite dev server with HMR in development
-- Static file serving in production
-- Environment-based configuration (NODE_ENV)
-- Custom error overlay and dev tools for Replit environment
+- Shared TypeScript schema definitions between client and server for full-stack type safety.
 
 **Real-time Features:**
-- Client-side interval timers for countdown displays
-- Polling-based updates (no WebSocket implementation)
-- Status transitions managed through time comparisons
-- Audio/visual notifications for expired sessions
+- Client-side interval timers for session countdowns.
+- Polling for updates (no WebSockets for simplicity).
+- Audio/visual notifications for expired sessions.
 
 **Styling Architecture:**
-- CSS custom properties for theme tokens
-- Tailwind utility classes for component styling
-- Component-scoped styles using cn() utility (clsx + tailwind-merge)
-- Gaming aesthetic with neon accents and status-based color coding
+- CSS custom properties for theme tokens.
+- Tailwind utility classes and `clsx`/`tailwind-merge` for styling.
+- Gaming aesthetic with neon accents and status-based color coding.
 
 **Form Handling:**
-- React Hook Form for form state management
-- Zod schemas for validation rules
-- @hookform/resolvers for schema integration
-- Controlled components with validation feedback
+- React Hook Form for form state and validation.
+- Zod schemas for robust input validation.
+
+**Key Features Implemented:**
+- Dynamic Device Category Management: Add/delete device types, affecting dashboard and pricing.
+- Smart Upcoming Booking Flow: Date/time-based seat availability, preventing conflicts.
+- Booking History Archival: Dedicated storage for past bookings.
+- Pause/Resume Timer Functionality: For active gaming sessions.
+- Expense Tracker: Comprehensive system for operational costs with CSV/PDF export.
+- WhatsApp Bot Integration: Automated device availability queries via Twilio WhatsApp API.
 
 ## External Dependencies
 
 ### Database
-- **Neon PostgreSQL**: Serverless PostgreSQL with websocket support (@neondatabase/serverless)
-- Connection pooling via Neon's Pool implementation
-- Environment variable configuration (DATABASE_URL)
+- **Neon PostgreSQL**: Serverless PostgreSQL database.
 
 ### UI Component Libraries
-- **Radix UI**: Comprehensive suite of unstyled, accessible React primitives (dialog, dropdown, select, tabs, etc.)
-- **shadcn/ui**: Pre-styled component implementations built on Radix UI
-- **Lucide React**: Icon library for consistent iconography
+- **Radix UI**: Accessible React primitives.
+- **shadcn/ui**: Component library built on Radix UI.
+- **Lucide React**: Icon library.
 
 ### Development Tools
-- **Drizzle Kit**: Database migration and schema management tool
-- **Replit Plugins**: Custom Vite plugins for Replit-specific development features (error overlay, cartographer, dev banner)
-- **TypeScript**: Full-stack type safety with strict mode enabled
+- **Drizzle Kit**: Database migration and schema management.
+- **Vite**: Frontend build tool.
+- **TypeScript**: Language.
 
 ### Validation & Schema
-- **Zod**: Runtime type validation and schema definition
-- **drizzle-zod**: Bridge between Drizzle schema and Zod validators
+- **Zod**: Runtime type validation.
+- **drizzle-zod**: Integration between Drizzle and Zod.
 
 ### Utility Libraries
-- **date-fns**: Date manipulation and formatting
-- **clsx & tailwind-merge**: Conditional className composition
-- **class-variance-authority**: Type-safe variant API for components
+- **date-fns**: Date manipulation.
+- **clsx & tailwind-merge**: Conditional CSS class composition.
+- **class-variance-authority**: Type-safe variant API for components.
 
-### Build & Bundling
-- **Vite**: Frontend build tool and dev server
-- **esbuild**: Backend bundling for production builds
-- **PostCSS**: CSS processing with Tailwind and Autoprefixer
-
-### Session Management
-- **connect-pg-simple**: PostgreSQL session store for Express (prepared for future authentication)
+### Communication
+- **Twilio**: For WhatsApp bot integration (sending and receiving messages).
