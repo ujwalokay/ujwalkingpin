@@ -119,6 +119,7 @@ function App() {
           <TooltipProvider>
             <Switch>
               <Route path="/status" component={PublicStatus} />
+              <Route path="/analytics" component={Analytics} />
               <Route path="/home">
                 <ConsumerNav />
                 <Home />
