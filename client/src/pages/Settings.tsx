@@ -217,7 +217,7 @@ export default function Settings() {
 
       await savePricingConfigMutation.mutateAsync({
         category: newCategory.category,
-        configs: [{ duration: "30 mins", price: 0 }],
+        configs: [{ duration: "30 mins", price: "0" }],
       });
 
       queryClient.invalidateQueries({ queryKey: ["/api/device-config"] });
