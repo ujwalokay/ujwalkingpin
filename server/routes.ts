@@ -269,9 +269,36 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
   app.get("/api/analytics/usage", requireAuth, async (req, res) => {
     try {
+      const timeRange = req.query.timeRange as string || "today";
       const bookings = await storage.getAllBookings();
       const deviceConfigs = await storage.getAllDeviceConfigs();
       const now = new Date();
+      
+      // Calculate time range dates
+      let rangeStart: Date;
+      let rangeEnd: Date = new Date(now);
+      
+      switch (timeRange) {
+        case "today":
+          rangeStart = new Date(now.getFullYear(), now.getMonth(), now.getDate(), 0, 0, 0);
+          rangeEnd = new Date(now.getFullYear(), now.getMonth(), now.getDate(), 23, 59, 59);
+          break;
+        case "week":
+          const dayOfWeek = now.getDay();
+          rangeStart = new Date(now);
+          rangeStart.setDate(now.getDate() - dayOfWeek);
+          rangeStart.setHours(0, 0, 0, 0);
+          break;
+        case "month":
+          rangeStart = new Date(now.getFullYear(), now.getMonth(), 1, 0, 0, 0);
+          break;
+        case "all":
+          rangeStart = new Date(0); // Beginning of time
+          break;
+        default:
+          rangeStart = new Date(now.getFullYear(), now.getMonth(), now.getDate(), 0, 0, 0);
+          rangeEnd = new Date(now.getFullYear(), now.getMonth(), now.getDate(), 23, 59, 59);
+      }
       
       // Calculate current occupancy (only from current bookings)
       const activeBookings = bookings.filter(b => b.status === "running" || b.status === "paused");
@@ -290,9 +317,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
         };
       });
       
-      // Hourly usage pattern for today - INCLUDE BOTH current AND historical bookings
-      const todayStart = new Date(now.getFullYear(), now.getMonth(), now.getDate(), 0, 0, 0);
-      const todayEnd = new Date(now.getFullYear(), now.getMonth(), now.getDate(), 23, 59, 59);
+      // Hourly usage pattern for selected time range - INCLUDE BOTH current AND historical bookings
+      const todayStart = rangeStart;
+      const todayEnd = rangeEnd;
       
       // Get today's bookings from current bookings
       const todayCurrentBookings = bookings.filter(b => {

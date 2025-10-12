@@ -4,6 +4,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { AreaChart, Area, BarChart, Bar, PieChart, Pie, Cell, LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer } from "recharts";
 import { Activity, TrendingUp, Users, Clock, RefreshCw } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 
 interface UsageStats {
   currentOccupancy: number;
@@ -31,7 +32,7 @@ interface UsageStats {
 const COLORS = ['#8b5cf6', '#3b82f6', '#10b981', '#f59e0b', '#ef4444', '#ec4899'];
 
 export default function Analytics() {
-  const [timeRange] = useState<string>("today");
+  const [timeRange, setTimeRange] = useState<string>("today");
 
   const { data: stats, isLoading, refetch, isFetching } = useQuery<UsageStats>({
     queryKey: ["/api/analytics/usage", timeRange],
@@ -52,25 +53,38 @@ export default function Analytics() {
 
   return (
     <div className="space-y-6 p-4 sm:p-6">
-      <div className="flex items-center justify-between">
+      <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
         <div>
           <h1 className="text-2xl sm:text-3xl font-bold tracking-tight" data-testid="heading-analytics">
-            Real-Time Analytics
+            Analytics Dashboard
           </h1>
           <p className="text-sm sm:text-base text-muted-foreground mt-2">
             Usage data and performance metrics
           </p>
         </div>
-        <Button 
-          onClick={() => refetch()} 
-          disabled={isFetching}
-          variant="outline"
-          size="sm"
-          data-testid="button-refresh"
-        >
-          <RefreshCw className={`h-4 w-4 mr-2 ${isFetching ? 'animate-spin' : ''}`} />
-          Refresh
-        </Button>
+        <div className="flex items-center gap-2">
+          <Select value={timeRange} onValueChange={setTimeRange}>
+            <SelectTrigger className="w-[140px]" data-testid="select-timerange">
+              <SelectValue placeholder="Time Range" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="today">Today</SelectItem>
+              <SelectItem value="week">This Week</SelectItem>
+              <SelectItem value="month">This Month</SelectItem>
+              <SelectItem value="all">All Time</SelectItem>
+            </SelectContent>
+          </Select>
+          <Button 
+            onClick={() => refetch()} 
+            disabled={isFetching}
+            variant="outline"
+            size="sm"
+            data-testid="button-refresh"
+          >
+            <RefreshCw className={`h-4 w-4 mr-2 ${isFetching ? 'animate-spin' : ''}`} />
+            Refresh
+          </Button>
+        </div>
       </div>
 
       {/* Key Metrics */}
@@ -204,7 +218,9 @@ export default function Analytics() {
         <Card>
           <CardHeader>
             <CardTitle>Usage by Category</CardTitle>
-            <CardDescription>Current seat utilization per category</CardDescription>
+            <CardDescription>
+              {timeRange === "today" ? "Today's" : timeRange === "week" ? "This week's" : timeRange === "month" ? "This month's" : "All time"} seat utilization per category
+            </CardDescription>
           </CardHeader>
           <CardContent>
             {stats?.categoryUsage && stats.categoryUsage.length > 0 ? (
@@ -251,8 +267,10 @@ export default function Analytics() {
         {/* Hourly Usage Pattern */}
         <Card>
           <CardHeader>
-            <CardTitle>Today's Hourly Usage</CardTitle>
-            <CardDescription>Booking activity throughout the day</CardDescription>
+            <CardTitle>Hourly Usage</CardTitle>
+            <CardDescription>
+              {timeRange === "today" ? "Booking activity throughout today" : timeRange === "week" ? "Booking activity this week" : timeRange === "month" ? "Booking activity this month" : "All booking activity"}
+            </CardDescription>
           </CardHeader>
           <CardContent>
             {stats?.hourlyUsage && stats.hourlyUsage.length > 0 ? (
