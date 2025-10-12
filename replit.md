@@ -4,6 +4,13 @@
 
 This project is a local admin panel web application designed for managing a gaming center's Point-of-Sale (POS) system. It facilitates real-time tracking of gaming sessions across various device types (PC, PS5, VR, car simulators), handles both walk-in and advance bookings, and provides comprehensive reporting, including an expense tracker. The application is a full-stack TypeScript project, running locally on the shop's computer, and features a gaming-themed dark mode UI inspired by Discord and Steam. Its primary purpose is to streamline operations, manage inventory, track expenses, and improve customer service in a gaming center environment.
 
+## Recent Changes
+
+**October 12, 2025:**
+- Updated Analytics Dashboard to display only walk-in booking data (excludes upcoming bookings)
+- Analytics API endpoint now filters for `bookingType === "walk-in"` and `status !== "upcoming"`
+- All metrics (occupancy, revenue, hourly usage) now reflect active walk-in sessions only
+
 ## User Preferences
 
 Preferred communication style: Simple, everyday language.
