@@ -20,6 +20,10 @@ This project is a local admin panel web application designed for managing a gami
   - Removed chat sessions and chat messages from database schema
   - Dropped chat_sessions and chat_messages tables from database
   - Cleaned up storage.ts to remove chat-related interfaces and methods
+- **Fixed Loyalty Settings Save Issue:**
+  - Updated insertLoyaltyConfigSchema to use z.coerce.number() for automatic string-to-number conversion
+  - Added default values for all tier threshold fields to handle partial payloads
+  - Resolved "Failed to update loyalty settings" error
 
 ## User Preferences
 
