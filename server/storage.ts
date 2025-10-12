@@ -33,10 +33,6 @@ import {
   type InsertLoyaltyEvent,
   type LoyaltyConfig,
   type InsertLoyaltyConfig,
-  type ChatSession,
-  type InsertChatSession,
-  type ChatMessage,
-  type InsertChatMessage,
   bookings,
   deviceConfigs,
   pricingConfigs,
@@ -54,8 +50,6 @@ import {
   loyaltyMembers,
   loyaltyEvents,
   loyaltyConfig,
-  chatSessions,
-  chatMessages,
 } from "@shared/schema";
 import { db } from "./db";
 import { eq, and, gte, lte, desc } from "drizzle-orm";
