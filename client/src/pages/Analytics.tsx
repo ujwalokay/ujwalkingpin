@@ -2,8 +2,8 @@ import { useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { AreaChart, Area, BarChart, Bar, PieChart, Pie, Cell, LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer } from "recharts";
-import { Activity, TrendingUp, Users, Clock } from "lucide-react";
-import { Badge } from "@/components/ui/badge";
+import { Activity, TrendingUp, Users, Clock, RefreshCw } from "lucide-react";
+import { Button } from "@/components/ui/button";
 
 interface UsageStats {
   currentOccupancy: number;
@@ -33,9 +33,8 @@ const COLORS = ['#8b5cf6', '#3b82f6', '#10b981', '#f59e0b', '#ef4444', '#ec4899'
 export default function Analytics() {
   const [timeRange] = useState<string>("today");
 
-  const { data: stats, isLoading } = useQuery<UsageStats>({
+  const { data: stats, isLoading, refetch, isFetching } = useQuery<UsageStats>({
     queryKey: ["/api/analytics/usage", timeRange],
-    refetchInterval: 5000, // Refresh every 5 seconds for real-time data
   });
 
   if (isLoading) {
@@ -59,13 +58,19 @@ export default function Analytics() {
             Real-Time Analytics
           </h1>
           <p className="text-sm sm:text-base text-muted-foreground mt-2">
-            Live usage data and performance metrics
+            Usage data and performance metrics
           </p>
         </div>
-        <Badge variant="outline" className="animate-pulse bg-green-100 dark:bg-green-900 text-green-800 dark:text-green-200">
-          <Activity className="h-3 w-3 mr-1" />
-          Live
-        </Badge>
+        <Button 
+          onClick={() => refetch()} 
+          disabled={isFetching}
+          variant="outline"
+          size="sm"
+          data-testid="button-refresh"
+        >
+          <RefreshCw className={`h-4 w-4 mr-2 ${isFetching ? 'animate-spin' : ''}`} />
+          Refresh
+        </Button>
       </div>
 
       {/* Key Metrics */}
@@ -95,7 +100,7 @@ export default function Analytics() {
               {occupancyPercentage}%
             </div>
             <p className="text-xs text-muted-foreground">
-              Live update every 5s
+              Click refresh to update
             </p>
           </CardContent>
         </Card>
@@ -134,8 +139,8 @@ export default function Analytics() {
       {/* Real-Time Occupancy Chart */}
       <Card>
         <CardHeader>
-          <CardTitle>Real-Time Occupancy Trend</CardTitle>
-          <CardDescription>Live seat occupancy over the last 10 minutes</CardDescription>
+          <CardTitle>Occupancy Trend</CardTitle>
+          <CardDescription>Seat occupancy over recent activity</CardDescription>
         </CardHeader>
         <CardContent>
           {stats?.realtimeData && stats.realtimeData.length > 0 ? (
