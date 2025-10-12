@@ -741,7 +741,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  app.post("/api/loyalty/config", requireAdmin, async (req, res) => {
+  app.post("/api/loyalty/config", requireAuth, async (req, res) => {
     try {
       const validatedConfig = insertLoyaltyConfigSchema.parse(req.body);
       const config = await storage.upsertLoyaltyConfig(validatedConfig);

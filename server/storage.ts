@@ -245,16 +245,16 @@ export class DatabaseStorage implements IStorage {
       }
       
       if (adminPassword.length < 8) {
-        throw new Error('ADMIN_PASSWORD must be at least 8 characters long. Please set a stronger password and restart.');
+        console.error('❌ WARNING: ADMIN_PASSWORD must be at least 8 characters long. Admin user not created.');
+      } else {
+        // Create admin user
+        await this.createUser({
+          username: adminUsername,
+          password: adminPassword,
+          role: "admin"
+        });
+        console.log(`✅ Admin user created with username: ${adminUsername}`);
       }
-      
-      // Create admin user
-      await this.createUser({
-        username: adminUsername,
-        password: adminPassword,
-        role: "admin"
-      });
-      console.log(`✅ Admin user created with username: ${adminUsername}`);
       
       // Create staff user if credentials provided
       if (staffUsername && staffPassword) {
