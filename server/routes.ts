@@ -270,7 +270,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.get("/api/analytics/usage", async (req, res) => {
     try {
       const timeRange = req.query.timeRange as string || "today";
-      const bookings = await storage.getAllBookings();
+      const allBookings = await storage.getAllBookings();
+      // Filter for walk-in bookings only
+      const bookings = allBookings.filter(b => b.bookingType === "walk-in");
       const deviceConfigs = await storage.getAllDeviceConfigs();
       const now = new Date();
       
@@ -300,13 +302,13 @@ export async function registerRoutes(app: Express): Promise<Server> {
           rangeEnd = new Date(now.getFullYear(), now.getMonth(), now.getDate(), 23, 59, 59);
       }
       
-      // Calculate current occupancy (only from current bookings)
+      // Calculate current occupancy (only from current walk-in bookings)
       const activeBookings = bookings.filter(b => b.status === "running" || b.status === "paused");
       const currentOccupancy = activeBookings.length;
       const totalCapacity = deviceConfigs.reduce((sum, config) => sum + config.count, 0);
       const occupancyRate = totalCapacity > 0 ? (currentOccupancy / totalCapacity) * 100 : 0;
       
-      // Category usage (only from current active bookings)
+      // Category usage (only from current active walk-in bookings)
       const categoryUsage = deviceConfigs.map(config => {
         const occupied = activeBookings.filter(b => b.category === config.category).length;
         return {
@@ -317,21 +319,21 @@ export async function registerRoutes(app: Express): Promise<Server> {
         };
       });
       
-      // Hourly usage pattern for selected time range - INCLUDE BOTH current AND historical bookings
+      // Hourly usage pattern for selected time range - INCLUDE BOTH current AND historical walk-in bookings
       const todayStart = rangeStart;
       const todayEnd = rangeEnd;
       
-      // Get today's bookings from current bookings
+      // Get today's walk-in bookings from current bookings (exclude upcoming status)
       const todayCurrentBookings = bookings.filter(b => {
         const start = new Date(b.startTime);
-        return start >= todayStart && start <= todayEnd;
+        return start >= todayStart && start <= todayEnd && b.status !== "upcoming";
       });
       
-      // Get today's bookings from historical bookings (raw records with startTime)
+      // Get today's walk-in bookings from historical bookings (raw records with startTime, exclude upcoming)
       const allHistoricalBookings = await storage.getAllBookingHistory();
       const todayHistoricalBookings = allHistoricalBookings.filter(b => {
         const start = new Date(b.startTime);
-        return start >= todayStart && start <= todayEnd;
+        return start >= todayStart && start <= todayEnd && b.bookingType === "walk-in" && b.status !== "upcoming";
       });
       
       // Combine both sources for complete hourly data
