@@ -196,7 +196,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  app.get("/api/booking-history", requireAuth, async (req, res) => {
+  app.get("/api/booking-history", async (req, res) => {
     try {
       const history = await storage.getAllBookingHistory();
       res.json(history);

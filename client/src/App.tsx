@@ -120,6 +120,7 @@ function App() {
             <Switch>
               <Route path="/status" component={PublicStatus} />
               <Route path="/analytics" component={Analytics} />
+              <Route path="/history" component={History} />
               <Route path="/home">
                 <ConsumerNav />
                 <Home />
