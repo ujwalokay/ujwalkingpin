@@ -11,7 +11,8 @@ import {
   insertGamingCenterInfoSchema,
   insertGalleryImageSchema,
   insertFacilitySchema,
-  insertGameSchema
+  insertGameSchema,
+  insertLoyaltyConfigSchema
 } from "@shared/schema";
 import { z } from "zod";
 
@@ -742,7 +743,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
   app.post("/api/loyalty/config", requireAdmin, async (req, res) => {
     try {
-      const config = await storage.upsertLoyaltyConfig(req.body);
+      const validatedConfig = insertLoyaltyConfigSchema.parse(req.body);
+      const config = await storage.upsertLoyaltyConfig(validatedConfig);
       res.json(config);
     } catch (error: any) {
       res.status(500).json({ message: error.message });
