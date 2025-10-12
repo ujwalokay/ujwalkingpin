@@ -27,6 +27,7 @@ import ConsumerGames from "@/pages/ConsumerGames";
 import NotFound from "@/pages/not-found";
 import Login from "@/pages/Login";
 import { ConsumerNav } from "@/components/ConsumerNav";
+import { CursorTrail } from "@/components/CursorTrail";
 import { useState, useEffect } from "react";
 import { useToast } from "@/hooks/use-toast";
 
@@ -137,6 +138,7 @@ function App() {
                 {showLogin && <Login onLoginSuccess={handleLoginSuccess} />}
               </Route>
             </Switch>
+            <CursorTrail />
             <Toaster />
           </TooltipProvider>
         </QueryClientProvider>
@@ -188,6 +190,7 @@ function App() {
                 </div>
               </div>
             </SidebarProvider>
+            <CursorTrail />
             <Toaster />
           </TooltipProvider>
         </AuthProvider>
