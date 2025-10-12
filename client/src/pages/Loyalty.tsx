@@ -61,7 +61,14 @@ export default function Loyalty() {
 
   const updateConfigMutation = useMutation({
     mutationFn: async (newConfig: LoyaltyConfig) => {
-      return await apiRequest("POST", "/api/loyalty/config", newConfig);
+      const configWithBronze = {
+        ...newConfig,
+        tierThresholds: {
+          ...newConfig.tierThresholds,
+          bronze: 0,
+        },
+      };
+      return await apiRequest("POST", "/api/loyalty/config", configWithBronze);
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["/api/loyalty/config"] });
@@ -336,6 +343,9 @@ export default function Loyalty() {
                   />
                 </div>
               </div>
+              <p className="text-xs text-muted-foreground mt-2">
+                Note: Bronze tier starts at 0 points
+              </p>
             </div>
           </div>
 
