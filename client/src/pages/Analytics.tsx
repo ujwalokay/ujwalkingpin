@@ -138,99 +138,18 @@ export default function Analytics() {
           <CardDescription>Live seat occupancy over the last 10 minutes</CardDescription>
         </CardHeader>
         <CardContent>
-          <ResponsiveContainer width="100%" height={300}>
-            <AreaChart data={stats?.realtimeData || []}>
-              <defs>
-                <linearGradient id="colorOccupancy" x1="0" y1="0" x2="0" y2="1">
-                  <stop offset="5%" stopColor="#8b5cf6" stopOpacity={0.8}/>
-                  <stop offset="95%" stopColor="#8b5cf6" stopOpacity={0}/>
-                </linearGradient>
-              </defs>
-              <CartesianGrid strokeDasharray="3 3" className="stroke-muted" />
-              <XAxis 
-                dataKey="timestamp" 
-                className="text-xs"
-                tick={{ fill: 'currentColor' }}
-              />
-              <YAxis className="text-xs" tick={{ fill: 'currentColor' }} />
-              <Tooltip 
-                contentStyle={{ 
-                  backgroundColor: 'hsl(var(--card))',
-                  border: '1px solid hsl(var(--border))',
-                  borderRadius: '6px'
-                }}
-              />
-              <Legend />
-              <Area 
-                type="monotone" 
-                dataKey="occupancy" 
-                stroke="#8b5cf6" 
-                fillOpacity={1} 
-                fill="url(#colorOccupancy)" 
-                name="Occupied Seats"
-              />
-              <Area 
-                type="monotone" 
-                dataKey="capacity" 
-                stroke="#3b82f6" 
-                fill="transparent"
-                strokeDasharray="5 5"
-                name="Total Capacity"
-              />
-            </AreaChart>
-          </ResponsiveContainer>
-        </CardContent>
-      </Card>
-
-      <div className="grid gap-4 md:grid-cols-2">
-        {/* Category Usage Chart */}
-        <Card>
-          <CardHeader>
-            <CardTitle>Usage by Category</CardTitle>
-            <CardDescription>Current seat utilization per category</CardDescription>
-          </CardHeader>
-          <CardContent>
+          {stats?.realtimeData && stats.realtimeData.length > 0 ? (
             <ResponsiveContainer width="100%" height={300}>
-              <PieChart>
-                <Pie
-                  data={stats?.categoryUsage || []}
-                  cx="50%"
-                  cy="50%"
-                  labelLine={false}
-                  label={({ category, percentage }) => `${category}: ${percentage}%`}
-                  outerRadius={80}
-                  fill="#8884d8"
-                  dataKey="occupied"
-                  nameKey="category"
-                >
-                  {(stats?.categoryUsage || []).map((entry, index) => (
-                    <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
-                  ))}
-                </Pie>
-                <Tooltip 
-                  contentStyle={{ 
-                    backgroundColor: 'hsl(var(--card))',
-                    border: '1px solid hsl(var(--border))',
-                    borderRadius: '6px'
-                  }}
-                />
-              </PieChart>
-            </ResponsiveContainer>
-          </CardContent>
-        </Card>
-
-        {/* Hourly Usage Pattern */}
-        <Card>
-          <CardHeader>
-            <CardTitle>Today's Hourly Usage</CardTitle>
-            <CardDescription>Booking activity throughout the day</CardDescription>
-          </CardHeader>
-          <CardContent>
-            <ResponsiveContainer width="100%" height={300}>
-              <BarChart data={stats?.hourlyUsage || []}>
+              <AreaChart data={stats.realtimeData}>
+                <defs>
+                  <linearGradient id="colorOccupancy" x1="0" y1="0" x2="0" y2="1">
+                    <stop offset="5%" stopColor="#8b5cf6" stopOpacity={0.8}/>
+                    <stop offset="95%" stopColor="#8b5cf6" stopOpacity={0}/>
+                  </linearGradient>
+                </defs>
                 <CartesianGrid strokeDasharray="3 3" className="stroke-muted" />
                 <XAxis 
-                  dataKey="hour" 
+                  dataKey="timestamp" 
                   className="text-xs"
                   tick={{ fill: 'currentColor' }}
                 />
@@ -243,9 +162,120 @@ export default function Analytics() {
                   }}
                 />
                 <Legend />
-                <Bar dataKey="bookings" fill="#8b5cf6" name="Bookings" radius={[8, 8, 0, 0]} />
-              </BarChart>
+                <Area 
+                  type="monotone" 
+                  dataKey="occupancy" 
+                  stroke="#8b5cf6" 
+                  fillOpacity={1} 
+                  fill="url(#colorOccupancy)" 
+                  name="Occupied Seats"
+                />
+                <Area 
+                  type="monotone" 
+                  dataKey="capacity" 
+                  stroke="#3b82f6" 
+                  fill="transparent"
+                  strokeDasharray="5 5"
+                  name="Total Capacity"
+                />
+              </AreaChart>
             </ResponsiveContainer>
+          ) : (
+            <div className="flex items-center justify-center h-[300px] text-muted-foreground">
+              <div className="text-center">
+                <Activity className="h-12 w-12 mx-auto mb-3 opacity-50" />
+                <p className="text-sm">No data available</p>
+                <p className="text-xs mt-1">Configure devices and create bookings to see real-time trends</p>
+              </div>
+            </div>
+          )}
+        </CardContent>
+      </Card>
+
+      <div className="grid gap-4 md:grid-cols-2">
+        {/* Category Usage Chart */}
+        <Card>
+          <CardHeader>
+            <CardTitle>Usage by Category</CardTitle>
+            <CardDescription>Current seat utilization per category</CardDescription>
+          </CardHeader>
+          <CardContent>
+            {stats?.categoryUsage && stats.categoryUsage.length > 0 ? (
+              <ResponsiveContainer width="100%" height={300}>
+                <PieChart>
+                  <Pie
+                    data={stats.categoryUsage}
+                    cx="50%"
+                    cy="50%"
+                    labelLine={false}
+                    label={({ category, percentage }) => `${category}: ${percentage}%`}
+                    outerRadius={80}
+                    fill="#8884d8"
+                    dataKey="occupied"
+                    nameKey="category"
+                  >
+                    {stats.categoryUsage.map((entry, index) => (
+                      <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
+                    ))}
+                  </Pie>
+                  <Tooltip 
+                    contentStyle={{ 
+                      backgroundColor: 'hsl(var(--card))',
+                      border: '1px solid hsl(var(--border))',
+                      borderRadius: '6px'
+                    }}
+                  />
+                </PieChart>
+              </ResponsiveContainer>
+            ) : (
+              <div className="flex items-center justify-center h-[300px] text-muted-foreground">
+                <div className="text-center">
+                  <Users className="h-12 w-12 mx-auto mb-3 opacity-50" />
+                  <p className="text-sm">No categories configured</p>
+                  <p className="text-xs mt-1">Add device categories in Settings to see usage breakdown</p>
+                </div>
+              </div>
+            )}
+          </CardContent>
+        </Card>
+
+        {/* Hourly Usage Pattern */}
+        <Card>
+          <CardHeader>
+            <CardTitle>Today's Hourly Usage</CardTitle>
+            <CardDescription>Booking activity throughout the day</CardDescription>
+          </CardHeader>
+          <CardContent>
+            {stats?.hourlyUsage && stats.hourlyUsage.length > 0 ? (
+              <ResponsiveContainer width="100%" height={300}>
+                <BarChart data={stats.hourlyUsage}>
+                  <CartesianGrid strokeDasharray="3 3" className="stroke-muted" />
+                  <XAxis 
+                    dataKey="hour" 
+                    className="text-xs"
+                    tick={{ fill: 'currentColor' }}
+                  />
+                  <YAxis className="text-xs" tick={{ fill: 'currentColor' }} />
+                  <Tooltip 
+                    contentStyle={{ 
+                      backgroundColor: 'hsl(var(--card))',
+                      border: '1px solid hsl(var(--border))',
+                      borderRadius: '6px'
+                    }}
+                  />
+                  <Legend />
+                  <Bar dataKey="bookings" fill="#8b5cf6" name="Bookings" radius={[8, 8, 0, 0]} />
+                </BarChart>
+              </ResponsiveContainer>
+            ) : (
+              <div className="flex items-center justify-center h-[300px] text-muted-foreground">
+                <div className="text-center">
+                  <Clock className="h-12 w-12 mx-auto mb-3 opacity-50" />
+                  <p className="text-sm">No bookings today</p>
+                  <p className="text-xs mt-1">Create bookings to see hourly activity patterns</p>
+                </div>
+              </div>
+            )}
           </CardContent>
         </Card>
       </div>
@@ -257,37 +287,47 @@ export default function Analytics() {
           <CardDescription>Real-time breakdown of seat availability</CardDescription>
         </CardHeader>
         <CardContent>
-          <div className="space-y-4">
-            {stats?.categoryUsage?.map((category, index) => (
-              <div key={category.category} className="space-y-2">
-                <div className="flex items-center justify-between">
-                  <div className="flex items-center gap-2">
+          {stats?.categoryUsage && stats.categoryUsage.length > 0 ? (
+            <div className="space-y-4">
+              {stats.categoryUsage.map((category, index) => (
+                <div key={category.category} className="space-y-2">
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center gap-2">
+                      <div 
+                        className="w-3 h-3 rounded-full" 
+                        style={{ backgroundColor: COLORS[index % COLORS.length] }}
+                      />
+                      <span className="font-medium">{category.category}</span>
+                    </div>
+                    <div className="text-sm text-muted-foreground">
+                      {category.occupied}/{category.total} occupied
+                    </div>
+                  </div>
+                  <div className="w-full bg-secondary rounded-full h-2">
                     <div 
-                      className="w-3 h-3 rounded-full" 
-                      style={{ backgroundColor: COLORS[index % COLORS.length] }}
+                      className="h-2 rounded-full transition-all duration-500"
+                      style={{ 
+                        width: `${category.percentage}%`,
+                        backgroundColor: COLORS[index % COLORS.length]
+                      }}
                     />
-                    <span className="font-medium">{category.category}</span>
                   </div>
-                  <div className="text-sm text-muted-foreground">
-                    {category.occupied}/{category.total} occupied
+                  <div className="flex justify-between text-xs text-muted-foreground">
+                    <span>{category.percentage}% utilized</span>
+                    <span>{category.total - category.occupied} available</span>
                   </div>
                 </div>
-                <div className="w-full bg-secondary rounded-full h-2">
-                  <div 
-                    className="h-2 rounded-full transition-all duration-500"
-                    style={{ 
-                      width: `${category.percentage}%`,
-                      backgroundColor: COLORS[index % COLORS.length]
-                    }}
-                  />
-                </div>
-                <div className="flex justify-between text-xs text-muted-foreground">
-                  <span>{category.percentage}% utilized</span>
-                  <span>{category.total - category.occupied} available</span>
-                </div>
+              ))}
+            </div>
+          ) : (
+            <div className="flex items-center justify-center py-12 text-muted-foreground">
+              <div className="text-center">
+                <TrendingUp className="h-12 w-12 mx-auto mb-3 opacity-50" />
+                <p className="text-sm">No category data available</p>
+                <p className="text-xs mt-1">Configure device categories in Settings to see detailed status</p>
               </div>
-            ))}
-          </div>
+            </div>
+          )}
         </CardContent>
       </Card>
     </div>
