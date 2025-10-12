@@ -1,11 +1,13 @@
 import express, { type Request, Response, NextFunction } from "express";
 import session from "express-session";
+import connectPgSimple from "connect-pg-simple";
 import helmet from "helmet";
 import cors from "cors";
 import { registerRoutes } from "./routes";
 import { registerAuthRoutes } from "./auth";
 import { setupVite, serveStatic, log } from "./vite";
 import { storage } from "./storage";
+import { pool } from "./db";
 
 const app = express();
 
@@ -71,9 +73,17 @@ if (process.env.NODE_ENV === "production" && !process.env.SESSION_SECRET) {
   process.exit(1);
 }
 
-// Session configuration
+// PostgreSQL session store for persistent sessions
+const PgSession = connectPgSimple(session);
+
+// Session configuration with PostgreSQL store
 app.use(
   session({
+    store: new PgSession({
+      pool: pool,
+      tableName: 'session',
+      createTableIfMissing: true,
+    }),
     secret: process.env.SESSION_SECRET || "dev-secret-DO-NOT-USE-IN-PRODUCTION",
     resave: false,
     saveUninitialized: false,
