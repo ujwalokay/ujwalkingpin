@@ -267,6 +267,82 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  app.get("/api/analytics/usage", requireAuth, async (req, res) => {
+    try {
+      const bookings = await storage.getAllBookings();
+      const deviceConfigs = await storage.getAllDeviceConfigs();
+      const now = new Date();
+      
+      // Calculate current occupancy
+      const activeBookings = bookings.filter(b => b.status === "running" || b.status === "paused");
+      const currentOccupancy = activeBookings.length;
+      const totalCapacity = deviceConfigs.reduce((sum, config) => sum + config.count, 0);
+      const occupancyRate = totalCapacity > 0 ? (currentOccupancy / totalCapacity) * 100 : 0;
+      
+      // Category usage
+      const categoryUsage = deviceConfigs.map(config => {
+        const occupied = activeBookings.filter(b => b.category === config.category).length;
+        return {
+          category: config.category,
+          occupied,
+          total: config.count,
+          percentage: config.count > 0 ? Math.round((occupied / config.count) * 100) : 0
+        };
+      });
+      
+      // Hourly usage pattern for today
+      const todayStart = new Date(now.getFullYear(), now.getMonth(), now.getDate(), 0, 0, 0);
+      const todayEnd = new Date(now.getFullYear(), now.getMonth(), now.getDate(), 23, 59, 59);
+      const todayBookings = bookings.filter(b => {
+        const start = new Date(b.startTime);
+        return start >= todayStart && start <= todayEnd;
+      });
+      
+      const hourlyUsage = Array.from({ length: 24 }, (_, hour) => {
+        const hourStart = new Date(todayStart);
+        hourStart.setHours(hour);
+        const hourEnd = new Date(hourStart);
+        hourEnd.setHours(hour + 1);
+        
+        const hourBookings = todayBookings.filter(b => {
+          const start = new Date(b.startTime);
+          return start >= hourStart && start < hourEnd;
+        });
+        
+        const revenue = hourBookings.reduce((sum, b) => sum + parseFloat(b.price), 0);
+        
+        return {
+          hour: `${hour.toString().padStart(2, '0')}:00`,
+          bookings: hourBookings.length,
+          revenue
+        };
+      }).filter(h => h.bookings > 0 || now.getHours() >= parseInt(h.hour));
+      
+      // Real-time data (last 10 data points simulating 5-second intervals)
+      const realtimeData = Array.from({ length: 10 }, (_, i) => {
+        const timestamp = new Date(now.getTime() - (9 - i) * 5000);
+        const timeStr = timestamp.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit', second: '2-digit' });
+        return {
+          timestamp: timeStr,
+          occupancy: currentOccupancy,
+          capacity: totalCapacity
+        };
+      });
+      
+      res.json({
+        currentOccupancy,
+        totalCapacity,
+        occupancyRate,
+        activeBookings: activeBookings.length,
+        categoryUsage,
+        hourlyUsage,
+        realtimeData
+      });
+    } catch (error: any) {
+      res.status(500).json({ message: error.message });
+    }
+  });
+
   app.get("/api/device-config", requireAuth, async (req, res) => {
     try {
       const configs = await storage.getAllDeviceConfigs();
