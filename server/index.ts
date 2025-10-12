@@ -27,12 +27,26 @@ app.use(cors({
       return callback(null, true);
     }
     
-    // In production, check against allowed origins
+    // In production, check against allowed origins OR allow same-origin requests
     if (allowedOrigins.indexOf(origin) !== -1) {
-      callback(null, true);
-    } else {
-      callback(new Error('Not allowed by CORS'));
+      return callback(null, true);
     }
+    
+    // Allow same-origin requests (frontend and backend on same domain)
+    // This handles cases like Render where both are served from the same URL
+    const requestHost = origin.replace(/^https?:\/\//, '');
+    const serverHost = process.env.RENDER_EXTERNAL_URL?.replace(/^https?:\/\//, '') || '';
+    
+    if (serverHost && requestHost === serverHost) {
+      return callback(null, true);
+    }
+    
+    // If ALLOWED_ORIGINS is not set in production, allow all origins (for flexibility)
+    if (!process.env.ALLOWED_ORIGINS) {
+      return callback(null, true);
+    }
+    
+    callback(new Error('Not allowed by CORS'));
   },
   credentials: true,
   methods: ['GET', 'POST', 'PUT', 'DELETE', 'PATCH'],
