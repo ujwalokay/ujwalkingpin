@@ -5,7 +5,7 @@ import { PricingTable } from "@/components/PricingTable";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Save, Plus, Trash2 } from "lucide-react";
+import { Save, Plus, Trash2, Award } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { apiRequest, queryClient } from "@/lib/queryClient";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -17,6 +17,7 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import type { Booking } from "@shared/schema";
 import { useAuth } from "@/contexts/AuthContext";
 
@@ -65,6 +66,31 @@ export default function Settings() {
   const [categories, setCategories] = useState<CategoryState[]>([]);
   const [showAddDialog, setShowAddDialog] = useState(false);
   const [newCategoryName, setNewCategoryName] = useState("");
+
+  // Loyalty configuration state
+  const { data: loyaltyConfig } = useQuery<{
+    pointsPerCurrency: number;
+    currencySymbol: string;
+    tierThresholds: { bronze: number; silver: number; gold: number; platinum: number };
+  }>({
+    queryKey: ["/api/loyalty/config"],
+  });
+
+  const [loyaltySettings, setLoyaltySettings] = useState({
+    pointsPerCurrency: 1,
+    currencySymbol: "₹",
+    tierThresholds: { bronze: 0, silver: 100, gold: 500, platinum: 1000 },
+  });
+
+  useEffect(() => {
+    if (loyaltyConfig) {
+      setLoyaltySettings({
+        pointsPerCurrency: loyaltyConfig.pointsPerCurrency || 1,
+        currencySymbol: loyaltyConfig.currencySymbol || "₹",
+        tierThresholds: loyaltyConfig.tierThresholds || { bronze: 0, silver: 100, gold: 500, platinum: 1000 },
+      });
+    }
+  }, [loyaltyConfig]);
 
   useEffect(() => {
     if (deviceConfigs && pricingConfigs) {

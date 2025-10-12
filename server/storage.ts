@@ -170,6 +170,7 @@ export interface IStorage {
   getLoyaltyConfig(): Promise<LoyaltyConfig | undefined>;
   upsertLoyaltyConfig(config: InsertLoyaltyConfig): Promise<LoyaltyConfig>;
   awardLoyaltyPoints(whatsappNumber: string, customerName: string, amount: number): Promise<void>;
+  redeemLoyaltyPoints(whatsappNumber: string, pointsToRedeem: number): Promise<{ discountAmount: number; remainingPoints: number }>;
   
   getChatSessionsByUser(userId: string): Promise<ChatSession[]>;
   getChatSession(id: string): Promise<ChatSession | undefined>;
@@ -1013,6 +1014,59 @@ export class DatabaseStorage implements IStorage {
         currencySymbol: config.currencySymbol || "$",
       } as any,
     });
+  }
+
+  async redeemLoyaltyPoints(whatsappNumber: string, pointsToRedeem: number): Promise<{ discountAmount: number; remainingPoints: number }> {
+    if (!whatsappNumber || pointsToRedeem <= 0) {
+      throw new Error("Invalid redemption request");
+    }
+
+    const member = await this.getLoyaltyMemberByWhatsapp(whatsappNumber);
+    if (!member) {
+      throw new Error("Customer is not a loyalty member");
+    }
+
+    if (member.points < pointsToRedeem) {
+      throw new Error(`Insufficient points. Available: ${member.points}, Requested: ${pointsToRedeem}`);
+    }
+
+    const config = await this.getLoyaltyConfig();
+    if (!config) {
+      throw new Error("Loyalty configuration not found");
+    }
+
+    // Calculate discount amount (1 point = 1/pointsPerCurrency in currency)
+    const discountAmount = pointsToRedeem / config.pointsPerCurrency;
+    const newPoints = member.points - pointsToRedeem;
+
+    // Update member points
+    await this.updateLoyaltyMember(member.id, {
+      points: newPoints,
+      redemptionHistory: [
+        ...(member.redemptionHistory || []),
+        {
+          date: new Date().toISOString(),
+          points: pointsToRedeem,
+          reward: `Discount of ${config.currencySymbol}${discountAmount.toFixed(2)}`,
+        }
+      ] as any,
+    });
+
+    // Log the redemption event
+    await this.createLoyaltyEvent({
+      memberId: member.id,
+      type: "points_redeemed",
+      deltaPoints: -pointsToRedeem,
+      metadata: {
+        discountAmount: discountAmount.toString(),
+        currencySymbol: config.currencySymbol || "$",
+      } as any,
+    });
+
+    return {
+      discountAmount: Math.floor(discountAmount),
+      remainingPoints: newPoints,
+    };
   }
 
   async getChatSessionsByUser(userId: string): Promise<ChatSession[]> {
