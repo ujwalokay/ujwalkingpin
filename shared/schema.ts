@@ -277,7 +277,15 @@ export const loyaltyConfig = pgTable("loyalty_config", {
   updatedAt: timestamp("updated_at").notNull().defaultNow(),
 });
 
-export const insertLoyaltyConfigSchema = createInsertSchema(loyaltyConfig).omit({ id: true, updatedAt: true });
+export const insertLoyaltyConfigSchema = createInsertSchema(loyaltyConfig).omit({ id: true, updatedAt: true }).extend({
+  pointsPerCurrency: z.coerce.number().positive("Points per currency must be positive"),
+  tierThresholds: z.object({
+    bronze: z.coerce.number().nonnegative().default(0),
+    silver: z.coerce.number().nonnegative().default(100),
+    gold: z.coerce.number().nonnegative().default(500),
+    platinum: z.coerce.number().nonnegative().default(1000),
+  }).default({ bronze: 0, silver: 100, gold: 500, platinum: 1000 }),
+});
 export type InsertLoyaltyConfig = z.infer<typeof insertLoyaltyConfigSchema>;
 export type LoyaltyConfig = typeof loyaltyConfig.$inferSelect;
 
