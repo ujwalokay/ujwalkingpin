@@ -11,6 +11,24 @@ export const loginLimiter = rateLimit({
   legacyHeaders: false,
 });
 
+// Rate limiter for webhook endpoints
+export const webhookLimiter = rateLimit({
+  windowMs: 1 * 60 * 1000, // 1 minute
+  max: 30, // Limit each IP to 30 requests per minute
+  message: "Too many webhook requests, please slow down.",
+  standardHeaders: true,
+  legacyHeaders: false,
+});
+
+// Rate limiter for public API endpoints
+export const publicApiLimiter = rateLimit({
+  windowMs: 1 * 60 * 1000, // 1 minute
+  max: 60, // Limit each IP to 60 requests per minute
+  message: "Too many requests, please try again later.",
+  standardHeaders: true,
+  legacyHeaders: false,
+});
+
 export async function loginHandler(req: Request, res: Response) {
   try {
     const { username, password } = loginSchema.parse(req.body);

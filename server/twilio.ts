@@ -1,4 +1,5 @@
 import twilio from 'twilio';
+import type { Request, Response, NextFunction } from 'express';
 
 let connectionSettings: any;
 
@@ -56,4 +57,41 @@ export async function sendWhatsAppMessage(to: string, message: string) {
     to: `whatsapp:${to}`,
     body: message
   });
+}
+
+export async function verifyTwilioWebhook(req: Request, res: Response, next: NextFunction) {
+  // Skip verification in development if TWILIO_AUTH_TOKEN is not set
+  if (process.env.NODE_ENV !== 'production' && !process.env.TWILIO_AUTH_TOKEN) {
+    return next();
+  }
+  
+  try {
+    const { accountSid, apiKeySecret } = await getCredentials();
+    const authToken = process.env.TWILIO_AUTH_TOKEN || apiKeySecret;
+    
+    const twilioSignature = req.headers['x-twilio-signature'] as string;
+    
+    if (!twilioSignature) {
+      return res.status(403).json({ message: 'Missing Twilio signature' });
+    }
+    
+    const url = `${req.protocol}://${req.get('host')}${req.originalUrl}`;
+    const params = req.body;
+    
+    const validator = twilio.validateRequest(
+      authToken,
+      twilioSignature,
+      url,
+      params
+    );
+    
+    if (!validator) {
+      return res.status(403).json({ message: 'Invalid Twilio signature' });
+    }
+    
+    next();
+  } catch (error) {
+    console.error('Webhook verification error:', error);
+    return res.status(500).json({ message: 'Webhook verification failed' });
+  }
 }

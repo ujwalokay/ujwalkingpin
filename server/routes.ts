@@ -1,7 +1,7 @@
 import type { Express } from "express";
 import { createServer, type Server } from "http";
 import { storage } from "./storage";
-import { requireAuth, requireAdmin, requireAdminOrStaff } from "./auth";
+import { requireAuth, requireAdmin, requireAdminOrStaff, webhookLimiter, publicApiLimiter } from "./auth";
 import { 
   insertBookingSchema, 
   insertDeviceConfigSchema, 
@@ -17,7 +17,7 @@ import {
 import { z } from "zod";
 
 export async function registerRoutes(app: Express): Promise<Server> {
-  app.get("/api/server-time", async (req, res) => {
+  app.get("/api/server-time", publicApiLimiter, async (req, res) => {
     res.json({ serverTime: new Date().toISOString() });
   });
 
@@ -506,7 +506,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   // Public Status Route (No Auth Required)
-  app.get("/api/public/status", async (req, res) => {
+  app.get("/api/public/status", publicApiLimiter, async (req, res) => {
     try {
       const allBookings = await storage.getAllBookings();
       const deviceConfigs = await storage.getAllDeviceConfigs();
@@ -536,7 +536,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   // WhatsApp Bot Routes
-  app.get("/api/whatsapp/availability", async (req, res) => {
+  app.get("/api/whatsapp/availability", publicApiLimiter, async (req, res) => {
     try {
       const allBookings = await storage.getAllBookings();
       const deviceConfigs = await storage.getAllDeviceConfigs();
@@ -567,7 +567,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  app.post("/api/whatsapp/webhook", async (req, res) => {
+  // Import Twilio webhook verification
+  const { verifyTwilioWebhook } = await import('./twilio');
+  
+  app.post("/api/whatsapp/webhook", webhookLimiter, verifyTwilioWebhook, async (req, res) => {
     try {
       const { Body, From } = req.body;
       
@@ -626,7 +629,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  app.get("/api/consumer/center-info", async (req, res) => {
+  app.get("/api/consumer/center-info", publicApiLimiter, async (req, res) => {
     try {
       const info = await storage.getGamingCenterInfo();
       res.json(info || null);
@@ -635,7 +638,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  app.get("/api/consumer/gallery", async (req, res) => {
+  app.get("/api/consumer/gallery", publicApiLimiter, async (req, res) => {
     try {
       const images = await storage.getAllGalleryImages();
       res.json(images);
@@ -644,7 +647,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  app.get("/api/consumer/facilities", async (req, res) => {
+  app.get("/api/consumer/facilities", publicApiLimiter, async (req, res) => {
     try {
       const facilities = await storage.getAllFacilities();
       res.json(facilities);
@@ -653,7 +656,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  app.get("/api/consumer/games", async (req, res) => {
+  app.get("/api/consumer/games", publicApiLimiter, async (req, res) => {
     try {
       const games = await storage.getAllGames();
       res.json(games);
@@ -662,7 +665,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  app.get("/api/consumer/availability", async (req, res) => {
+  app.get("/api/consumer/availability", publicApiLimiter, async (req, res) => {
     try {
       const allBookings = await storage.getAllBookings();
       const deviceConfigs = await storage.getAllDeviceConfigs();
@@ -692,7 +695,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  app.get("/api/consumer/pricing", async (req, res) => {
+  app.get("/api/consumer/pricing", publicApiLimiter, async (req, res) => {
     try {
       const pricing = await storage.getAllPricingConfigs();
       res.json(pricing);
