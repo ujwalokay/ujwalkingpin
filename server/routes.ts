@@ -323,17 +323,21 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const todayStart = rangeStart;
       const todayEnd = rangeEnd;
       
-      // Get today's walk-in bookings from current bookings (exclude upcoming status)
+      // Get today's walk-in bookings from current bookings (only include active sessions, exclude upcoming)
+      const allowedStatuses = ["running", "paused", "expired", "completed"];
       const todayCurrentBookings = bookings.filter(b => {
         const start = new Date(b.startTime);
-        return start >= todayStart && start <= todayEnd && b.status !== "upcoming";
+        const isInRange = start >= todayStart && start <= todayEnd;
+        const isAllowedStatus = allowedStatuses.includes(b.status);
+        return isInRange && isAllowedStatus;
       });
       
-      // Get today's walk-in bookings from historical bookings (raw records with startTime, exclude upcoming)
+      // Get today's walk-in bookings from historical bookings (raw records with startTime, only allowed statuses)
       const allHistoricalBookings = await storage.getAllBookingHistory();
       const todayHistoricalBookings = allHistoricalBookings.filter(b => {
         const start = new Date(b.startTime);
-        return start >= todayStart && start <= todayEnd && b.bookingType === "walk-in" && b.status !== "upcoming";
+        const isAllowedStatus = allowedStatuses.includes(b.status);
+        return start >= todayStart && start <= todayEnd && b.bookingType === "walk-in" && isAllowedStatus;
       });
       
       // Combine both sources for complete hourly data

@@ -37,7 +37,7 @@ export default function Analytics() {
   const [activeTab, setActiveTab] = useState<string>("overview");
 
   const { data: stats, isLoading, refetch, isFetching } = useQuery<UsageStats>({
-    queryKey: ["/api/analytics/usage", timeRange],
+    queryKey: [`/api/analytics/usage?timeRange=${timeRange}`],
   });
 
   const metrics = useMemo(() => {
