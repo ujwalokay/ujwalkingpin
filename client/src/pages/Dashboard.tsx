@@ -10,8 +10,9 @@ import { EndSessionDialog } from "@/components/EndSessionDialog";
 import { AddFoodToBookingDialog } from "@/components/AddFoodToBookingDialog";
 import { Plus, Monitor, Gamepad2, Glasses, Car, Cpu, Tv, Radio, Box, RefreshCw, Calculator } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
-import { fetchBookings, createBooking, updateBooking, deleteBooking, fetchDeviceConfigs } from "@/lib/api";
+import { fetchBookings, createBooking, updateBooking, deleteBooking, fetchDeviceConfigs, getServerTime } from "@/lib/api";
 import type { Booking as DBBooking, DeviceConfig } from "@shared/schema";
+import { useServerTime } from "@/hooks/useServerTime";
 
 type BookingStatus = "available" | "running" | "expired" | "upcoming" | "completed" | "paused";
 
@@ -61,6 +62,7 @@ const getColorForCategory = (index: number) => {
 export default function Dashboard() {
   const { toast } = useToast();
   const queryClient = useQueryClient();
+  const { getTime } = useServerTime();
   const [addDialog, setAddDialog] = useState(false);
   const [extendDialog, setExtendDialog] = useState({ open: false, bookingId: "" });
   const [deleteDialog, setDeleteDialog] = useState({ open: false, bookingId: "", seatName: "", customerName: "" });
@@ -113,7 +115,7 @@ export default function Dashboard() {
 
   useEffect(() => {
     const interval = setInterval(async () => {
-      const now = new Date();
+      const now = getTime();
       const updatedBookings = bookings.map(booking => {
         if (booking.status === "running" && booking.endTime < now) {
           return { ...booking, status: "expired" as BookingStatus };
@@ -140,7 +142,7 @@ export default function Dashboard() {
     }, 5000);
 
     return () => clearInterval(interval);
-  }, [bookings, queryClient]);
+  }, [bookings, queryClient, getTime]);
 
   const getAvailableSeats = (category: string) => {
     const cat = categories.find(c => c.name === category);
@@ -186,7 +188,7 @@ export default function Dashboard() {
     timeSlot?: string;
   }) => {
     try {
-      const now = new Date();
+      const now = await getServerTime();
       const durationMap: { [key: string]: number } = {
         "30 mins": 30,
         "1 hour": 60,
@@ -388,7 +390,7 @@ export default function Dashboard() {
     const booking = bookings.find(b => b.id === bookingId);
     if (!booking) return;
 
-    const now = new Date();
+    const now = getTime();
 
     if (booking.status === "running") {
       const remainingTime = booking.endTime.getTime() - now.getTime();

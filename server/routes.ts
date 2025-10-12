@@ -16,6 +16,10 @@ import {
 import { z } from "zod";
 
 export async function registerRoutes(app: Express): Promise<Server> {
+  app.get("/api/server-time", async (req, res) => {
+    res.json({ serverTime: new Date().toISOString() });
+  });
+
   app.get("/api/bookings", requireAuth, async (req, res) => {
     try {
       const bookings = await storage.getAllBookings();

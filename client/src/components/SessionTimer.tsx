@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react";
 import { Clock } from "lucide-react";
+import { useServerTime } from "@/hooks/useServerTime";
 
 interface SessionTimerProps {
   endTime: Date;
@@ -10,10 +11,11 @@ export function SessionTimer({ endTime, className = "" }: SessionTimerProps) {
   const [timeLeft, setTimeLeft] = useState<string>("");
   const [isExpiring, setIsExpiring] = useState(false);
   const [isExpired, setIsExpired] = useState(false);
+  const { isReady, getTime } = useServerTime();
 
   useEffect(() => {
     const updateTimer = () => {
-      const now = new Date();
+      const now = isReady ? getTime() : new Date();
       const diff = endTime.getTime() - now.getTime();
 
       if (diff <= 0) {
@@ -39,7 +41,7 @@ export function SessionTimer({ endTime, className = "" }: SessionTimerProps) {
     const interval = setInterval(updateTimer, 1000);
 
     return () => clearInterval(interval);
-  }, [endTime]);
+  }, [endTime, isReady, getTime]);
 
   const timerColor = isExpired 
     ? "text-destructive" 

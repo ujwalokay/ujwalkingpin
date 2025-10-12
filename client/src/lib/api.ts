@@ -58,3 +58,12 @@ export async function fetchPricingConfigs(): Promise<PricingConfig[]> {
   }
   return response.json();
 }
+
+export async function getServerTime(): Promise<Date> {
+  const response = await fetch("/api/server-time");
+  if (!response.ok) {
+    throw new Error("Failed to fetch server time");
+  }
+  const data = await response.json();
+  return new Date(data.serverTime);
+}
