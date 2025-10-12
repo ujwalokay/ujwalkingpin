@@ -10,6 +10,16 @@ This project is a local admin panel web application designed for managing a gami
 - Updated Analytics Dashboard to display only walk-in booking data (excludes upcoming bookings)
 - Analytics API endpoint now filters for `bookingType === "walk-in"` and `status !== "upcoming"`
 - All metrics (occupancy, revenue, hourly usage) now reflect active walk-in sessions only
+- **Enhanced Analytics Page with Gaming Cafe Metrics:**
+  - Added unique customer tracking for walk-ins
+  - Added average session duration calculation
+  - Added food order statistics (total orders and revenue)
+  - Improved layout with two-row metric cards for better visibility
+  - All metrics now properly calculate from walk-in bookings only
+- **Removed Unused Chat Functionality:**
+  - Removed chat sessions and chat messages from database schema
+  - Dropped chat_sessions and chat_messages tables from database
+  - Cleaned up storage.ts to remove chat-related interfaces and methods
 
 ## User Preferences
 
