@@ -181,11 +181,13 @@ export default function Analytics() {
               </AreaChart>
             </ResponsiveContainer>
           ) : (
-            <div className="flex items-center justify-center h-[300px] text-muted-foreground">
-              <div className="text-center">
-                <Activity className="h-12 w-12 mx-auto mb-3 opacity-50" />
-                <p className="text-sm">No data available</p>
-                <p className="text-xs mt-1">Configure devices and create bookings to see real-time trends</p>
+            <div className="flex items-center justify-center h-[300px] border-2 border-dashed border-muted rounded-lg bg-muted/10">
+              <div className="text-center p-6">
+                <Activity className="h-16 w-16 mx-auto mb-4 text-muted-foreground" />
+                <p className="text-lg font-semibold mb-2 text-foreground">No Data Available</p>
+                <p className="text-sm text-muted-foreground max-w-md">
+                  To see real-time trends, first go to <strong className="text-foreground">Settings</strong> to configure device categories, then create bookings in the <strong className="text-foreground">Dashboard</strong>.
+                </p>
               </div>
             </div>
           )}
@@ -228,11 +230,13 @@ export default function Analytics() {
                 </PieChart>
               </ResponsiveContainer>
             ) : (
-              <div className="flex items-center justify-center h-[300px] text-muted-foreground">
-                <div className="text-center">
-                  <Users className="h-12 w-12 mx-auto mb-3 opacity-50" />
-                  <p className="text-sm">No categories configured</p>
-                  <p className="text-xs mt-1">Add device categories in Settings to see usage breakdown</p>
+              <div className="flex items-center justify-center h-[300px] border-2 border-dashed border-muted rounded-lg bg-muted/10">
+                <div className="text-center p-6">
+                  <Users className="h-16 w-16 mx-auto mb-4 text-muted-foreground" />
+                  <p className="text-lg font-semibold mb-2 text-foreground">No Categories Configured</p>
+                  <p className="text-sm text-muted-foreground max-w-md">
+                    Go to <strong className="text-foreground">Settings → Device Config</strong> to add gaming categories (PC, PS5, Xbox, etc.)
+                  </p>
                 </div>
               </div>
             )}
@@ -268,11 +272,13 @@ export default function Analytics() {
                 </BarChart>
               </ResponsiveContainer>
             ) : (
-              <div className="flex items-center justify-center h-[300px] text-muted-foreground">
-                <div className="text-center">
-                  <Clock className="h-12 w-12 mx-auto mb-3 opacity-50" />
-                  <p className="text-sm">No bookings today</p>
-                  <p className="text-xs mt-1">Create bookings to see hourly activity patterns</p>
+              <div className="flex items-center justify-center h-[300px] border-2 border-dashed border-muted rounded-lg bg-muted/10">
+                <div className="text-center p-6">
+                  <Clock className="h-16 w-16 mx-auto mb-4 text-muted-foreground" />
+                  <p className="text-lg font-semibold mb-2 text-foreground">No Bookings Today</p>
+                  <p className="text-sm text-muted-foreground max-w-md">
+                    Create bookings in the <strong className="text-foreground">Dashboard</strong> to see hourly activity patterns
+                  </p>
                 </div>
               </div>
             )}
@@ -320,11 +326,13 @@ export default function Analytics() {
               ))}
             </div>
           ) : (
-            <div className="flex items-center justify-center py-12 text-muted-foreground">
-              <div className="text-center">
-                <TrendingUp className="h-12 w-12 mx-auto mb-3 opacity-50" />
-                <p className="text-sm">No category data available</p>
-                <p className="text-xs mt-1">Configure device categories in Settings to see detailed status</p>
+            <div className="flex items-center justify-center py-12 border-2 border-dashed border-muted rounded-lg bg-muted/10">
+              <div className="text-center p-6">
+                <TrendingUp className="h-16 w-16 mx-auto mb-4 text-muted-foreground" />
+                <p className="text-lg font-semibold mb-2 text-foreground">No Category Data</p>
+                <p className="text-sm text-muted-foreground max-w-md">
+                  Configure device categories in <strong className="text-foreground">Settings</strong> to see detailed status
+                </p>
               </div>
             </div>
           )}
