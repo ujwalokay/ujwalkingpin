@@ -2,7 +2,7 @@ import { useState, useMemo } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { AreaChart, Area, BarChart, Bar, PieChart, Pie, Cell, LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer, ComposedChart } from "recharts";
-import { Activity, TrendingUp, Users, DollarSign, Zap, RefreshCw, Calendar } from "lucide-react";
+import { Activity, TrendingUp, Users, DollarSign, Zap, RefreshCw, Calendar, Clock, ShoppingBag, UserCheck } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
@@ -28,6 +28,10 @@ interface UsageStats {
     occupancy: number;
     capacity: number;
   }>;
+  uniqueCustomers: number;
+  avgSessionDuration: number;
+  totalFoodOrders: number;
+  foodRevenue: number;
 }
 
 const COLORS = ['#8b5cf6', '#3b82f6', '#10b981', '#f59e0b', '#ef4444', '#ec4899'];
@@ -110,7 +114,7 @@ export default function Analytics() {
       </div>
 
       {/* Key Metrics Grid */}
-      <div className="grid gap-4 grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-6">
+      <div className="grid gap-4 grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5">
         <Card className="hover:shadow-lg transition-shadow">
           <CardHeader className="flex flex-row items-center justify-between pb-2">
             <CardTitle className="text-sm font-medium">Occupancy</CardTitle>
@@ -188,8 +192,71 @@ export default function Analytics() {
 
         <Card className="hover:shadow-lg transition-shadow">
           <CardHeader className="flex flex-row items-center justify-between pb-2">
+            <CardTitle className="text-sm font-medium">Customers</CardTitle>
+            <UserCheck className="h-4 w-4 text-pink-500" />
+          </CardHeader>
+          <CardContent>
+            <div className="text-2xl font-bold" data-testid="text-unique-customers">
+              {stats?.uniqueCustomers || 0}
+            </div>
+            <p className="text-xs text-muted-foreground mt-1">
+              Unique walk-ins
+            </p>
+          </CardContent>
+        </Card>
+      </div>
+
+      {/* Additional Metrics Grid */}
+      <div className="grid gap-4 grid-cols-1 sm:grid-cols-2 lg:grid-cols-4">
+        <Card className="hover:shadow-lg transition-shadow">
+          <CardHeader className="flex flex-row items-center justify-between pb-2">
+            <CardTitle className="text-sm font-medium">Avg Session</CardTitle>
+            <Clock className="h-4 w-4 text-blue-500" />
+          </CardHeader>
+          <CardContent>
+            <div className="text-2xl font-bold" data-testid="text-avg-session">
+              {stats?.avgSessionDuration || 0} min
+            </div>
+            <p className="text-xs text-muted-foreground mt-1">
+              Per customer
+            </p>
+          </CardContent>
+        </Card>
+
+        <Card className="hover:shadow-lg transition-shadow">
+          <CardHeader className="flex flex-row items-center justify-between pb-2">
+            <CardTitle className="text-sm font-medium">Food Orders</CardTitle>
+            <ShoppingBag className="h-4 w-4 text-orange-500" />
+          </CardHeader>
+          <CardContent>
+            <div className="text-2xl font-bold" data-testid="text-food-orders">
+              {stats?.totalFoodOrders || 0}
+            </div>
+            <p className="text-xs text-muted-foreground mt-1">
+              Total orders
+            </p>
+          </CardContent>
+        </Card>
+
+        <Card className="hover:shadow-lg transition-shadow">
+          <CardHeader className="flex flex-row items-center justify-between pb-2">
+            <CardTitle className="text-sm font-medium">Food Revenue</CardTitle>
+            <DollarSign className="h-4 w-4 text-green-500" />
+          </CardHeader>
+          <CardContent>
+            <div className="text-2xl font-bold" data-testid="text-food-revenue">
+              ₹{stats?.foodRevenue?.toFixed(2) || "0.00"}
+            </div>
+            <p className="text-xs text-muted-foreground mt-1">
+              From food sales
+            </p>
+          </CardContent>
+        </Card>
+
+        <Card className="hover:shadow-lg transition-shadow">
+          <CardHeader className="flex flex-row items-center justify-between pb-2">
             <CardTitle className="text-sm font-medium">Avg/Hour</CardTitle>
-            <Zap className="h-4 w-4 text-pink-500" />
+            <Zap className="h-4 w-4 text-purple-500" />
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold" data-testid="text-avg-bookings">

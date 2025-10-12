@@ -374,6 +374,34 @@ export async function registerRoutes(app: Express): Promise<Server> {
         };
       });
       
+      // Customer insights - unique customers in the selected time range
+      const uniqueCustomers = new Set([
+        ...todayCurrentBookings.map(b => b.customerName.toLowerCase().trim()),
+        ...todayHistoricalBookings.map(b => b.customerName.toLowerCase().trim())
+      ]).size;
+      
+      // Average session duration (in minutes)
+      const completedBookings = todayBookings.filter(b => b.status === "completed" || b.status === "expired");
+      const avgSessionDuration = completedBookings.length > 0
+        ? completedBookings.reduce((sum, b) => {
+            const start = new Date(b.startTime).getTime();
+            const end = new Date(b.endTime).getTime();
+            return sum + (end - start) / (1000 * 60); // Convert to minutes
+          }, 0) / completedBookings.length
+        : 0;
+      
+      // Food order statistics
+      const totalFoodOrders = todayBookings.reduce((sum, b) => {
+        return sum + (b.foodOrders?.length || 0);
+      }, 0);
+      
+      const foodRevenue = todayBookings.reduce((sum, b) => {
+        const orderTotal = (b.foodOrders || []).reduce((orderSum, item) => {
+          return orderSum + (parseFloat(item.price) * item.quantity);
+        }, 0);
+        return sum + orderTotal;
+      }, 0);
+      
       res.json({
         currentOccupancy,
         totalCapacity,
@@ -381,7 +409,11 @@ export async function registerRoutes(app: Express): Promise<Server> {
         activeBookings: activeBookings.length,
         categoryUsage,
         hourlyUsage,
-        realtimeData
+        realtimeData,
+        uniqueCustomers,
+        avgSessionDuration: Math.round(avgSessionDuration),
+        totalFoodOrders,
+        foodRevenue
       });
     } catch (error: any) {
       res.status(500).json({ message: error.message });
