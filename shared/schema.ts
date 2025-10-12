@@ -229,6 +229,9 @@ export const loyaltyMembers = pgTable("loyalty_members", {
   whatsappNumber: varchar("whatsapp_number").notNull().unique(),
   tier: varchar("tier").notNull().default("bronze"),
   points: integer("points").notNull().default(0),
+  totalSpent: varchar("total_spent").notNull().default("0"),
+  visitCount: integer("visit_count").notNull().default(0),
+  lastVisit: timestamp("last_visit"),
   redemptionHistory: jsonb("redemption_history").$type<Array<{
     date: string;
     points: number;

@@ -933,7 +933,7 @@ export class DatabaseStorage implements IStorage {
   }
 
   async awardLoyaltyPoints(whatsappNumber: string, customerName: string, amount: number): Promise<void> {
-    if (isNaN(amount) || !isFinite(amount) || amount <= 0) {
+    if (isNaN(amount) || !isFinite(amount) || amount <= 0 || !whatsappNumber) {
       return;
     }
 
@@ -949,16 +949,41 @@ export class DatabaseStorage implements IStorage {
 
     let member = await this.getLoyaltyMemberByWhatsapp(whatsappNumber);
     
+    // Count unique visit days from booking history for this customer
+    const customerBookings = await db.select()
+      .from(bookingHistory)
+      .where(eq(bookingHistory.whatsappNumber, whatsappNumber));
+    
+    const uniqueVisitDays = new Set(
+      customerBookings.map(b => new Date(b.createdAt).toDateString())
+    ).size;
+
+    const totalSpent = customerBookings.reduce((sum, b) => {
+      const bookingPrice = parseFloat(b.price) || 0;
+      const foodPrice = (b.foodOrders || []).reduce((fSum, f) => fSum + (parseFloat(f.price) * f.quantity), 0);
+      return sum + bookingPrice + foodPrice;
+    }, 0) + amount;
+    
     if (!member) {
-      member = await this.createLoyaltyMember({
-        customerName,
-        whatsappNumber,
-        tier: "bronze",
-        points: 0,
-        redemptionHistory: [],
-      });
+      // Auto-enroll only after 3 visits
+      if (uniqueVisitDays >= 3) {
+        member = await this.createLoyaltyMember({
+          customerName,
+          whatsappNumber,
+          tier: "bronze",
+          points: 0,
+          visitCount: uniqueVisitDays,
+          lastVisit: new Date(),
+          totalSpent: totalSpent.toString(),
+          redemptionHistory: [],
+        });
+      } else {
+        // Not enough visits yet, just return
+        return;
+      }
     }
 
+    // Update member with new points and visit stats
     const newPoints = member.points + pointsToAward;
     
     const tierThresholds = config.tierThresholds || { bronze: 0, silver: 100, gold: 500, platinum: 1000 };
@@ -974,6 +999,9 @@ export class DatabaseStorage implements IStorage {
     await this.updateLoyaltyMember(member.id, {
       points: newPoints,
       tier: newTier,
+      visitCount: uniqueVisitDays,
+      lastVisit: new Date(),
+      totalSpent: totalSpent.toString(),
     });
 
     await this.createLoyaltyEvent({
