@@ -5,6 +5,7 @@ import { Button } from "@/components/ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Calendar, Download, IndianRupee, Users, Clock } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
+import { getAdjustedTime } from "@/hooks/useServerTime";
 import {
   Table,
   TableBody,
@@ -84,7 +85,7 @@ export default function Reports() {
       const link = document.createElement("a");
       const url = URL.createObjectURL(blob);
       link.setAttribute("href", url);
-      link.setAttribute("download", `booking_report_${selectedPeriod}_${new Date().toISOString().split('T')[0]}.csv`);
+      link.setAttribute("download", `booking_report_${selectedPeriod}_${getAdjustedTime().toISOString().split('T')[0]}.csv`);
       link.style.visibility = "hidden";
       document.body.appendChild(link);
       link.click();

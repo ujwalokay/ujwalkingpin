@@ -9,6 +9,7 @@ import {
   CollapsibleContent,
   CollapsibleTrigger,
 } from "@/components/ui/collapsible";
+import { getAdjustedTime } from "@/hooks/useServerTime";
 
 interface DeviceAvailability {
   category: string;
@@ -63,7 +64,7 @@ const getProgressBarColor = (percentage: number) => {
 };
 
 export default function PublicStatus() {
-  const [lastUpdate, setLastUpdate] = useState(new Date());
+  const [lastUpdate, setLastUpdate] = useState(getAdjustedTime());
   const [isPricingOpen, setIsPricingOpen] = useState(false);
 
   const activeSettings = {

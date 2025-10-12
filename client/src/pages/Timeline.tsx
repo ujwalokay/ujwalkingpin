@@ -4,6 +4,7 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { Calendar, Clock, ChevronLeft, ChevronRight } from "lucide-react";
 import { useState } from "react";
 import { Button } from "@/components/ui/button";
+import { useServerTime, getAdjustedTime } from "@/hooks/useServerTime";
 
 interface FoodOrder {
   foodId: string;
@@ -29,7 +30,8 @@ interface Booking {
 }
 
 export default function Timeline() {
-  const [selectedDate, setSelectedDate] = useState(new Date());
+  const { getTime } = useServerTime();
+  const [selectedDate, setSelectedDate] = useState(getAdjustedTime());
 
   const { data: bookings = [], isLoading } = useQuery<Booking[]>({
     queryKey: ["/api/bookings"],
@@ -83,7 +85,7 @@ export default function Timeline() {
   const timeMarkers = Array.from({ length: 25 }, (_, i) => i);
   const majorTimeMarkers = [0, 6, 12, 18, 24];
 
-  const isToday = selectedDate.toDateString() === new Date().toDateString();
+  const isToday = selectedDate.toDateString() === getTime().toDateString();
 
   const changeDate = (days: number) => {
     const newDate = new Date(selectedDate);
@@ -93,7 +95,7 @@ export default function Timeline() {
 
   const getCurrentTimePosition = () => {
     if (!isToday) return null;
-    const now = new Date();
+    const now = getTime();
     return getTimePosition(now);
   };
 
@@ -113,7 +115,7 @@ export default function Timeline() {
           <Button variant="outline" size="icon" onClick={() => changeDate(-1)} data-testid="button-prev-day">
             <ChevronLeft className="h-4 w-4" />
           </Button>
-          <Button variant="outline" onClick={() => setSelectedDate(new Date())} disabled={isToday} data-testid="button-today" className="min-w-[80px]">
+          <Button variant="outline" onClick={() => setSelectedDate(getTime())} disabled={isToday} data-testid="button-today" className="min-w-[80px]">
             Today
           </Button>
           <Button variant="outline" size="icon" onClick={() => changeDate(1)} data-testid="button-next-day">

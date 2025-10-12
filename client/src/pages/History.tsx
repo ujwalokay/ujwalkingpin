@@ -8,6 +8,7 @@ import { Clock, User, Phone, DollarSign, Calendar, Search } from "lucide-react";
 import { useState } from "react";
 import { format, isValid, isSameDay, parseISO } from "date-fns";
 import type { BookingHistory } from "@shared/schema";
+import { getAdjustedTime } from "@/hooks/useServerTime";
 
 export default function History() {
   const [searchQuery, setSearchQuery] = useState("");
@@ -82,7 +83,7 @@ export default function History() {
           <p className="text-muted-foreground mt-2">View all completed bookings</p>
         </div>
         <div className="text-sm text-muted-foreground" data-testid="text-current-date">
-          {new Date().toLocaleDateString('en-IN', { 
+          {getAdjustedTime().toLocaleDateString('en-IN', { 
             weekday: 'short', 
             year: 'numeric', 
             month: 'short', 

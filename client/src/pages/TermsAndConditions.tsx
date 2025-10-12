@@ -3,6 +3,7 @@ import { ScrollArea } from "@/components/ui/scroll-area";
 import { Separator } from "@/components/ui/separator";
 import { Button } from "@/components/ui/button";
 import { Instagram, Linkedin, Github, Twitter, Mail } from "lucide-react";
+import { getAdjustedTime } from "@/hooks/useServerTime";
 
 export default function TermsAndConditions() {
   return (
@@ -11,7 +12,7 @@ export default function TermsAndConditions() {
         <CardHeader>
           <CardTitle className="text-3xl font-bold">Terms and Conditions</CardTitle>
           <CardDescription>
-            Last updated: {new Date().toLocaleDateString('en-IN', { 
+            Last updated: {getAdjustedTime().toLocaleDateString('en-IN', { 
               year: 'numeric', 
               month: 'long', 
               day: 'numeric' 

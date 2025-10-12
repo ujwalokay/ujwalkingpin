@@ -14,6 +14,7 @@ import { queryClient } from "@/lib/queryClient";
 import type { Expense } from "@shared/schema";
 import { format } from "date-fns";
 import { useAuth } from "@/contexts/AuthContext";
+import { getAdjustedTime } from "@/hooks/useServerTime";
 
 const EXPENSE_CATEGORIES = [
   "Equipment Maintenance",
@@ -48,7 +49,7 @@ export default function Expenses() {
     category: "",
     description: "",
     amount: "",
-    date: new Date(),
+    date: getAdjustedTime(),
   });
 
   const { data: expenses = [], isLoading } = useQuery<Expense[]>({
@@ -69,7 +70,7 @@ export default function Expenses() {
       queryClient.invalidateQueries({ queryKey: ["/api/expenses"] });
       toast({ title: "Expense Added", description: "Expense has been recorded successfully" });
       setAddDialog(false);
-      setFormData({ category: "", description: "", amount: "", date: new Date() });
+      setFormData({ category: "", description: "", amount: "", date: getAdjustedTime() });
     },
   });
 
@@ -170,7 +171,7 @@ export default function Expenses() {
       const link = document.createElement("a");
       const url = URL.createObjectURL(blob);
       link.setAttribute("href", url);
-      link.setAttribute("download", `expenses_${new Date().toISOString().split('T')[0]}.csv`);
+      link.setAttribute("download", `expenses_${getAdjustedTime().toISOString().split('T')[0]}.csv`);
       link.style.visibility = "hidden";
       document.body.appendChild(link);
       link.click();
@@ -239,7 +240,7 @@ export default function Expenses() {
         </head>
         <body>
           <h1>Expense Report</h1>
-          <p>Generated on ${new Date().toLocaleDateString()}</p>
+          <p>Generated on ${getAdjustedTime().toLocaleDateString()}</p>
           <div class="summary">
             <h3>Total Expenses</h3>
             <div class="value">₹${totalExpenses.toFixed(2)}</div>
