@@ -273,13 +273,13 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const deviceConfigs = await storage.getAllDeviceConfigs();
       const now = new Date();
       
-      // Calculate current occupancy
+      // Calculate current occupancy (only from current bookings)
       const activeBookings = bookings.filter(b => b.status === "running" || b.status === "paused");
       const currentOccupancy = activeBookings.length;
       const totalCapacity = deviceConfigs.reduce((sum, config) => sum + config.count, 0);
       const occupancyRate = totalCapacity > 0 ? (currentOccupancy / totalCapacity) * 100 : 0;
       
-      // Category usage
+      // Category usage (only from current active bookings)
       const categoryUsage = deviceConfigs.map(config => {
         const occupied = activeBookings.filter(b => b.category === config.category).length;
         return {
@@ -290,13 +290,25 @@ export async function registerRoutes(app: Express): Promise<Server> {
         };
       });
       
-      // Hourly usage pattern for today
+      // Hourly usage pattern for today - INCLUDE BOTH current AND historical bookings
       const todayStart = new Date(now.getFullYear(), now.getMonth(), now.getDate(), 0, 0, 0);
       const todayEnd = new Date(now.getFullYear(), now.getMonth(), now.getDate(), 23, 59, 59);
-      const todayBookings = bookings.filter(b => {
+      
+      // Get today's bookings from current bookings
+      const todayCurrentBookings = bookings.filter(b => {
         const start = new Date(b.startTime);
         return start >= todayStart && start <= todayEnd;
       });
+      
+      // Get today's bookings from historical bookings (raw records with startTime)
+      const allHistoricalBookings = await storage.getAllBookingHistory();
+      const todayHistoricalBookings = allHistoricalBookings.filter(b => {
+        const start = new Date(b.startTime);
+        return start >= todayStart && start <= todayEnd;
+      });
+      
+      // Combine both sources for complete hourly data
+      const todayBookings = [...todayCurrentBookings, ...todayHistoricalBookings];
       
       const hourlyUsage = Array.from({ length: 24 }, (_, hour) => {
         const hourStart = new Date(todayStart);
