@@ -1,10 +1,11 @@
-import { useState } from "react";
+import { useState, useMemo } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { AreaChart, Area, BarChart, Bar, PieChart, Pie, Cell, LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer } from "recharts";
-import { Activity, TrendingUp, Users, Clock, RefreshCw } from "lucide-react";
+import { AreaChart, Area, BarChart, Bar, PieChart, Pie, Cell, LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer, ComposedChart, RadarChart, PolarGrid, PolarAngleAxis, PolarRadiusAxis, Radar } from "recharts";
+import { Activity, TrendingUp, Users, Clock, RefreshCw, DollarSign, Zap } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 
 interface UsageStats {
   currentOccupancy: number;
@@ -51,6 +52,57 @@ export default function Analytics() {
 
   const occupancyPercentage = stats ? Math.round(stats.occupancyRate) : 0;
 
+  // Local data processing and calculations
+  const localAnalytics = useMemo(() => {
+    if (!stats) return null;
+
+    // Calculate revenue trend from hourly data
+    const revenueTrend = stats.hourlyUsage?.map(item => ({
+      hour: item.hour,
+      revenue: item.revenue || 0,
+      bookings: item.bookings
+    })) || [];
+
+    // Calculate peak hours (top 3 hours by bookings)
+    const peakHours = [...(stats.hourlyUsage || [])]
+      .sort((a, b) => b.bookings - a.bookings)
+      .slice(0, 3);
+
+    // Calculate total revenue
+    const totalRevenue = stats.hourlyUsage?.reduce((sum, item) => sum + (item.revenue || 0), 0) || 0;
+
+    // Calculate average bookings per hour
+    const avgBookingsPerHour = stats.hourlyUsage && stats.hourlyUsage.length > 0
+      ? Math.round(stats.hourlyUsage.reduce((sum, item) => sum + item.bookings, 0) / stats.hourlyUsage.length)
+      : 0;
+
+    // Category performance comparison
+    const categoryPerformance = stats.categoryUsage?.map(cat => ({
+      category: cat.category,
+      utilization: cat.percentage,
+      occupied: cat.occupied,
+      available: cat.total - cat.occupied,
+      total: cat.total
+    })) || [];
+
+    // Radar chart data for multi-dimensional analysis
+    const radarData = stats.categoryUsage?.map(cat => ({
+      category: cat.category,
+      utilization: cat.percentage,
+      capacity: (cat.total / (stats.totalCapacity || 1)) * 100,
+      demand: cat.occupied > 0 ? 100 : 0
+    })) || [];
+
+    return {
+      revenueTrend,
+      peakHours,
+      totalRevenue,
+      avgBookingsPerHour,
+      categoryPerformance,
+      radarData
+    };
+  }, [stats]);
+
   return (
     <div className="space-y-6 p-4 sm:p-6">
       <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
@@ -88,7 +140,7 @@ export default function Analytics() {
       </div>
 
       {/* Key Metrics */}
-      <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
+      <div className="grid gap-4 grid-cols-2 md:grid-cols-3 lg:grid-cols-6">
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
             <CardTitle className="text-sm font-medium">Current Occupancy</CardTitle>
@@ -145,6 +197,36 @@ export default function Analytics() {
             </div>
             <p className="text-xs text-muted-foreground">
               Ready to book
+            </p>
+          </CardContent>
+        </Card>
+
+        <Card>
+          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+            <CardTitle className="text-sm font-medium">Total Revenue</CardTitle>
+            <DollarSign className="h-4 w-4 text-muted-foreground" />
+          </CardHeader>
+          <CardContent>
+            <div className="text-2xl font-bold" data-testid="text-total-revenue">
+              ₹{localAnalytics ? localAnalytics.totalRevenue.toFixed(2) : "0.00"}
+            </div>
+            <p className="text-xs text-muted-foreground">
+              {timeRange === "today" ? "Today's earnings" : "Period earnings"}
+            </p>
+          </CardContent>
+        </Card>
+
+        <Card>
+          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+            <CardTitle className="text-sm font-medium">Avg Bookings/Hr</CardTitle>
+            <Zap className="h-4 w-4 text-muted-foreground" />
+          </CardHeader>
+          <CardContent>
+            <div className="text-2xl font-bold" data-testid="text-avg-bookings">
+              {localAnalytics ? localAnalytics.avgBookingsPerHour : 0}
+            </div>
+            <p className="text-xs text-muted-foreground">
+              Hourly average
             </p>
           </CardContent>
         </Card>
@@ -213,6 +295,75 @@ export default function Analytics() {
         </CardContent>
       </Card>
 
+      {/* Revenue & Bookings Trend */}
+      <Card>
+        <CardHeader>
+          <CardTitle>Revenue & Bookings Trend</CardTitle>
+          <CardDescription>Combined view of revenue and booking activity</CardDescription>
+        </CardHeader>
+        <CardContent>
+          {localAnalytics?.revenueTrend && localAnalytics.revenueTrend.length > 0 ? (
+            <ResponsiveContainer width="100%" height={350}>
+              <ComposedChart data={localAnalytics.revenueTrend}>
+                <CartesianGrid strokeDasharray="3 3" className="stroke-muted" />
+                <XAxis 
+                  dataKey="hour" 
+                  className="text-xs"
+                  tick={{ fill: 'currentColor' }}
+                />
+                <YAxis 
+                  yAxisId="left"
+                  className="text-xs" 
+                  tick={{ fill: 'currentColor' }}
+                  label={{ value: 'Revenue (₹)', angle: -90, position: 'insideLeft' }}
+                />
+                <YAxis 
+                  yAxisId="right"
+                  orientation="right"
+                  className="text-xs" 
+                  tick={{ fill: 'currentColor' }}
+                  label={{ value: 'Bookings', angle: 90, position: 'insideRight' }}
+                />
+                <Tooltip 
+                  contentStyle={{ 
+                    backgroundColor: 'hsl(var(--card))',
+                    border: '1px solid hsl(var(--border))',
+                    borderRadius: '6px'
+                  }}
+                />
+                <Legend />
+                <Bar 
+                  yAxisId="left"
+                  dataKey="revenue" 
+                  fill="#10b981" 
+                  name="Revenue (₹)" 
+                  radius={[8, 8, 0, 0]} 
+                />
+                <Line 
+                  yAxisId="right"
+                  type="monotone" 
+                  dataKey="bookings" 
+                  stroke="#8b5cf6" 
+                  strokeWidth={3}
+                  name="Bookings"
+                  dot={{ r: 4 }}
+                />
+              </ComposedChart>
+            </ResponsiveContainer>
+          ) : (
+            <div className="flex items-center justify-center h-[350px] border-2 border-dashed border-muted rounded-lg bg-muted/10">
+              <div className="text-center p-6">
+                <DollarSign className="h-16 w-16 mx-auto mb-4 text-muted-foreground" />
+                <p className="text-lg font-semibold mb-2 text-foreground">No Revenue Data</p>
+                <p className="text-sm text-muted-foreground max-w-md">
+                  Create bookings to see revenue and booking trends
+                </p>
+              </div>
+            </div>
+          )}
+        </CardContent>
+      </Card>
+
       <div className="grid gap-4 md:grid-cols-2">
         {/* Category Usage Chart */}
         <Card>
@@ -264,6 +415,59 @@ export default function Analytics() {
           </CardContent>
         </Card>
 
+        {/* Category Performance Radar */}
+        <Card>
+          <CardHeader>
+            <CardTitle>Category Performance</CardTitle>
+            <CardDescription>Multi-dimensional analysis of category metrics</CardDescription>
+          </CardHeader>
+          <CardContent>
+            {localAnalytics?.radarData && localAnalytics.radarData.length > 0 ? (
+              <ResponsiveContainer width="100%" height={300}>
+                <RadarChart data={localAnalytics.radarData}>
+                  <PolarGrid stroke="hsl(var(--muted-foreground))" />
+                  <PolarAngleAxis dataKey="category" tick={{ fill: 'currentColor' }} />
+                  <PolarRadiusAxis angle={90} domain={[0, 100]} tick={{ fill: 'currentColor' }} />
+                  <Radar 
+                    name="Utilization %" 
+                    dataKey="utilization" 
+                    stroke="#8b5cf6" 
+                    fill="#8b5cf6" 
+                    fillOpacity={0.6} 
+                  />
+                  <Radar 
+                    name="Capacity %" 
+                    dataKey="capacity" 
+                    stroke="#3b82f6" 
+                    fill="#3b82f6" 
+                    fillOpacity={0.3} 
+                  />
+                  <Legend />
+                  <Tooltip 
+                    contentStyle={{ 
+                      backgroundColor: 'hsl(var(--card))',
+                      border: '1px solid hsl(var(--border))',
+                      borderRadius: '6px'
+                    }}
+                  />
+                </RadarChart>
+              </ResponsiveContainer>
+            ) : (
+              <div className="flex items-center justify-center h-[300px] border-2 border-dashed border-muted rounded-lg bg-muted/10">
+                <div className="text-center p-6">
+                  <Activity className="h-16 w-16 mx-auto mb-4 text-muted-foreground" />
+                  <p className="text-lg font-semibold mb-2 text-foreground">No Category Data</p>
+                  <p className="text-sm text-muted-foreground max-w-md">
+                    Configure categories to see performance metrics
+                  </p>
+                </div>
+              </div>
+            )}
+          </CardContent>
+        </Card>
+      </div>
+
+      <div className="grid gap-4 md:grid-cols-2">
         {/* Hourly Usage Pattern */}
         <Card>
           <CardHeader>
@@ -301,6 +505,61 @@ export default function Analytics() {
                   <p className="text-lg font-semibold mb-2 text-foreground">No Bookings Today</p>
                   <p className="text-sm text-muted-foreground max-w-md">
                     Create bookings in the <strong className="text-foreground">Dashboard</strong> to see hourly activity patterns
+                  </p>
+                </div>
+              </div>
+            )}
+          </CardContent>
+        </Card>
+
+        {/* Peak Hours Card */}
+        <Card>
+          <CardHeader>
+            <CardTitle>Peak Hours</CardTitle>
+            <CardDescription>Top 3 busiest hours by booking count</CardDescription>
+          </CardHeader>
+          <CardContent>
+            {localAnalytics?.peakHours && localAnalytics.peakHours.length > 0 ? (
+              <div className="space-y-4">
+                {localAnalytics.peakHours.map((peak, index) => (
+                  <div key={peak.hour} className="flex items-center gap-4">
+                    <div className="flex items-center justify-center w-10 h-10 rounded-full bg-primary/10 text-primary font-bold">
+                      #{index + 1}
+                    </div>
+                    <div className="flex-1">
+                      <div className="flex items-center justify-between mb-1">
+                        <span className="font-semibold">{peak.hour}</span>
+                        <span className="text-sm text-muted-foreground">{peak.bookings} bookings</span>
+                      </div>
+                      <div className="w-full bg-secondary rounded-full h-2">
+                        <div 
+                          className="bg-primary h-2 rounded-full transition-all duration-500"
+                          style={{ 
+                            width: `${(peak.bookings / (localAnalytics.peakHours[0]?.bookings || 1)) * 100}%`
+                          }}
+                        />
+                      </div>
+                    </div>
+                  </div>
+                ))}
+                <div className="mt-6 p-4 bg-muted/50 rounded-lg">
+                  <div className="flex items-center gap-2 mb-2">
+                    <Zap className="h-5 w-5 text-primary" />
+                    <span className="font-semibold">Peak Hour Insight</span>
+                  </div>
+                  <p className="text-sm text-muted-foreground">
+                    {localAnalytics.peakHours[0]?.hour} is your busiest hour with {localAnalytics.peakHours[0]?.bookings} bookings
+                    {localAnalytics.peakHours[0]?.revenue ? ` generating ₹${Number(localAnalytics.peakHours[0].revenue).toFixed(2)}` : ''}
+                  </p>
+                </div>
+              </div>
+            ) : (
+              <div className="flex items-center justify-center h-[300px] border-2 border-dashed border-muted rounded-lg bg-muted/10">
+                <div className="text-center p-6">
+                  <Zap className="h-16 w-16 mx-auto mb-4 text-muted-foreground" />
+                  <p className="text-lg font-semibold mb-2 text-foreground">No Peak Hours Data</p>
+                  <p className="text-sm text-muted-foreground max-w-md">
+                    Create bookings to identify peak hours
                   </p>
                 </div>
               </div>
