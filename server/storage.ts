@@ -35,6 +35,8 @@ import {
   type InsertLoyaltyConfig,
   type GameUpdate,
   type InsertGameUpdate,
+  type MiniWebviewSettings,
+  type InsertMiniWebviewSettings,
   bookings,
   deviceConfigs,
   pricingConfigs,
@@ -53,6 +55,7 @@ import {
   loyaltyEvents,
   loyaltyConfig,
   gameUpdates,
+  miniWebviewSettings,
 } from "@shared/schema";
 import { db } from "./db";
 import { eq, and, gte, lte, desc } from "drizzle-orm";
@@ -175,6 +178,9 @@ export interface IStorage {
   getRecentGameUpdates(limit: number): Promise<GameUpdate[]>;
   createGameUpdate(update: InsertGameUpdate): Promise<GameUpdate>;
   deleteGameUpdate(id: string): Promise<boolean>;
+  
+  getMiniWebviewSettings(): Promise<MiniWebviewSettings | undefined>;
+  upsertMiniWebviewSettings(settings: InsertMiniWebviewSettings): Promise<MiniWebviewSettings>;
   
   initializeDefaults(): Promise<void>;
 }
@@ -1095,6 +1101,27 @@ export class DatabaseStorage implements IStorage {
   async deleteGameUpdate(id: string): Promise<boolean> {
     const result = await db.delete(gameUpdates).where(eq(gameUpdates.id, id));
     return result.rowCount !== null && result.rowCount > 0;
+  }
+
+  async getMiniWebviewSettings(): Promise<MiniWebviewSettings | undefined> {
+    const [settings] = await db.select().from(miniWebviewSettings).limit(1);
+    return settings || undefined;
+  }
+
+  async upsertMiniWebviewSettings(settings: InsertMiniWebviewSettings): Promise<MiniWebviewSettings> {
+    const existing = await this.getMiniWebviewSettings();
+    
+    if (existing) {
+      const [updated] = await db
+        .update(miniWebviewSettings)
+        .set({ ...settings, updatedAt: new Date() })
+        .where(eq(miniWebviewSettings.id, existing.id))
+        .returning();
+      return updated;
+    } else {
+      const [newSettings] = await db.insert(miniWebviewSettings).values(settings).returning();
+      return newSettings;
+    }
   }
 }
 
