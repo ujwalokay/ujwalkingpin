@@ -35,8 +35,6 @@ import {
   type InsertLoyaltyConfig,
   type GameUpdate,
   type InsertGameUpdate,
-  type Otp,
-  type InsertOtp,
   bookings,
   deviceConfigs,
   pricingConfigs,
@@ -55,7 +53,6 @@ import {
   loyaltyEvents,
   loyaltyConfig,
   gameUpdates,
-  otps,
 } from "@shared/schema";
 import { db } from "./db";
 import { eq, and, gte, lte, desc } from "drizzle-orm";
@@ -178,11 +175,6 @@ export interface IStorage {
   getRecentGameUpdates(limit: number): Promise<GameUpdate[]>;
   createGameUpdate(update: InsertGameUpdate): Promise<GameUpdate>;
   deleteGameUpdate(id: string): Promise<boolean>;
-  
-  createOtp(otp: InsertOtp): Promise<Otp>;
-  verifyOtp(userId: string, code: string): Promise<boolean>;
-  deleteOtpsByUserId(userId: string): Promise<void>;
-  cleanupExpiredOtps(): Promise<void>;
   
   initializeDefaults(): Promise<void>;
 }
@@ -1103,37 +1095,6 @@ export class DatabaseStorage implements IStorage {
   async deleteGameUpdate(id: string): Promise<boolean> {
     const result = await db.delete(gameUpdates).where(eq(gameUpdates.id, id));
     return result.rowCount !== null && result.rowCount > 0;
-  }
-
-  async createOtp(otp: InsertOtp): Promise<Otp> {
-    const [newOtp] = await db.insert(otps).values(otp).returning();
-    return newOtp;
-  }
-
-  async verifyOtp(userId: string, code: string): Promise<boolean> {
-    const [otp] = await db
-      .select()
-      .from(otps)
-      .where(and(eq(otps.userId, userId), eq(otps.code, code)));
-
-    if (!otp) {
-      return false;
-    }
-
-    if (new Date() > otp.expiresAt) {
-      await this.deleteOtpsByUserId(userId);
-      return false;
-    }
-
-    return true;
-  }
-
-  async deleteOtpsByUserId(userId: string): Promise<void> {
-    await db.delete(otps).where(eq(otps.userId, userId));
-  }
-
-  async cleanupExpiredOtps(): Promise<void> {
-    await db.delete(otps).where(lte(otps.expiresAt, new Date()));
   }
 }
 

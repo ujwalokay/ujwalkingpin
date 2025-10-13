@@ -7,17 +7,12 @@ This project is a local admin panel web application designed for managing a gami
 ## Recent Changes
 
 **October 13, 2025:**
-- **Implemented Two-Factor Authentication (2FA) for Admin Users:**
-  - Added email field to users table for admin email addresses
-  - Created OTP (One-Time Password) system with secure cryptographic generation using Node.js crypto module
-  - Implemented email delivery via Nodemailer with professional HTML email templates
-  - OTP codes expire after 10 minutes for security
-  - 2FA is required ONLY for admin users; staff users bypass 2FA
-  - Session management enhanced with pending verification state
-  - Created dedicated OTP verification page with countdown timer
-  - Added secure environment variable configuration for SMTP settings (SMTP_HOST, SMTP_PORT, SMTP_USER, SMTP_PASSWORD, SMTP_FROM, ADMIN_EMAIL)
-  - Supports Gmail, Outlook, Yahoo, and other SMTP email providers
-  - Design decision: Enhanced security for admin access without impacting staff workflow
+- **Removed Two-Factor Authentication (2FA):**
+  - Removed OTP verification system
+  - Removed email functionality and Nodemailer dependency
+  - Simplified login flow for all users (both admin and staff)
+  - No longer requires SMTP configuration or email setup
+  - Streamlined authentication without OTP verification
 - **Implemented Device-Based Access Control for Mobile/Tablet:**
   - Created device detection hook (`use-device-type.tsx`) to identify PC, mobile, and tablet devices
   - Updated AuthContext with device-aware permissions (`canMakeChanges` flag)
@@ -123,7 +118,6 @@ Preferred communication style: Simple, everyday language.
 - WhatsApp Bot Integration: Automated device availability queries via Twilio WhatsApp API.
 - Public Status Board: Customer-facing real-time availability display at `/status` route (no authentication required). Auto-refreshes with visual indicators.
 - Device-Based Access Control: Admin/staff users restricted to view-only mode on mobile/tablet devices (< 1024px), with full editing capabilities available only on PC/desktop (≥ 1024px).
-- Two-Factor Authentication (2FA): Secure email-based OTP verification for admin users only. Uses cryptographically secure random number generation and 10-minute expiration. Supports all major email providers via SMTP.
 
 ## External Dependencies
 
@@ -151,7 +145,6 @@ Preferred communication style: Simple, everyday language.
 
 ### Communication
 - **Twilio**: For WhatsApp bot integration (sending and receiving messages).
-- **Nodemailer**: For sending OTP emails in 2FA authentication.
 
 ## Setup Requirements
 
@@ -159,10 +152,4 @@ Preferred communication style: Simple, everyday language.
 The following environment variables need to be configured:
 - `ADMIN_USERNAME`: Initial admin account username
 - `ADMIN_PASSWORD`: Initial admin account password
-- `ADMIN_EMAIL`: Admin user's email address for receiving OTP codes (required for 2FA)
-- `SMTP_HOST`: SMTP server hostname (e.g., smtp.gmail.com for Gmail)
-- `SMTP_PORT`: SMTP server port (usually 587 for TLS)
-- `SMTP_USER`: Email address for sending OTP emails
-- `SMTP_PASSWORD`: Email password or app-specific password
-- `SMTP_FROM`: "From" email address (usually same as SMTP_USER)
 - `DATABASE_URL`: PostgreSQL connection string (auto-configured by Replit)

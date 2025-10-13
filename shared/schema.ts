@@ -116,23 +116,6 @@ export const insertUserSchema = createInsertSchema(users).omit({ id: true, creat
 export type InsertUser = z.infer<typeof insertUserSchema>;
 export type User = typeof users.$inferSelect;
 
-export const otps = pgTable("otps", {
-  id: varchar("id").primaryKey().$defaultFn(() => crypto.randomUUID()),
-  userId: varchar("user_id").notNull(),
-  code: varchar("code").notNull(),
-  expiresAt: timestamp("expires_at").notNull(),
-  createdAt: timestamp("created_at").notNull().defaultNow(),
-});
-
-export const insertOtpSchema = createInsertSchema(otps).omit({ id: true, createdAt: true });
-export type InsertOtp = z.infer<typeof insertOtpSchema>;
-export type Otp = typeof otps.$inferSelect;
-
-export const verifyOtpSchema = z.object({
-  userId: z.string(),
-  code: z.string().length(6, "OTP must be 6 digits"),
-});
-
 export const loginSchema = z.object({
   username: z.string().min(1, "Username is required"),
   password: z.string().min(1, "Password is required"),
