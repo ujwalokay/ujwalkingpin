@@ -2,6 +2,7 @@ import { useState, useEffect } from "react";
 import { useQuery, useMutation } from "@tanstack/react-query";
 import { DeviceConfigCard } from "@/components/DeviceConfigCard";
 import { PricingTable } from "@/components/PricingTable";
+import { MiniWebviewSettings } from "@/components/MiniWebviewSettings";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -393,6 +394,8 @@ export default function Settings() {
           ))}
         </div>
       </div>
+
+      <MiniWebviewSettings isAdmin={isAdmin} canMakeChanges={canMakeChanges} />
 
       <Dialog open={showAddDialog} onOpenChange={setShowAddDialog}>
         <DialogContent data-testid="dialog-add-category">
