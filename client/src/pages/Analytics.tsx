@@ -44,15 +44,62 @@ export default function Analytics() {
     queryKey: [`/api/analytics/usage?timeRange=${timeRange}`],
   });
 
-  const metrics = useMemo(() => {
+  // Convert UTC time to India Standard Time (Asia/Kolkata)
+  const convertToIST = (utcTimeString: string, isHourFormat: boolean = false): string => {
+    if (isHourFormat) {
+      // For hour format like "14:00", create a date object and convert to IST
+      const [hour] = utcTimeString.split(':').map(Number);
+      const utcDate = new Date();
+      utcDate.setUTCHours(hour, 0, 0, 0);
+      const istHour = utcDate.toLocaleString('en-IN', { 
+        timeZone: 'Asia/Kolkata',
+        hour: '2-digit',
+        minute: '2-digit',
+        hour12: false
+      });
+      return istHour;
+    } else {
+      // For timestamp format, parse and convert to IST
+      const now = new Date();
+      const [time] = utcTimeString.split(' ');
+      const [hours, minutes, seconds] = time.split(':').map(Number);
+      now.setUTCHours(hours, minutes, seconds || 0, 0);
+      return now.toLocaleString('en-IN', {
+        timeZone: 'Asia/Kolkata',
+        hour: '2-digit',
+        minute: '2-digit',
+        second: '2-digit',
+        hour12: false
+      });
+    }
+  };
+
+  // Transform data with IST timezone conversion
+  const transformedStats = useMemo(() => {
     if (!stats) return null;
 
-    const totalRevenue = stats.hourlyUsage?.reduce((sum, item) => sum + (item.revenue || 0), 0) || 0;
-    const avgBookingsPerHour = stats.hourlyUsage && stats.hourlyUsage.length > 0
-      ? Math.round(stats.hourlyUsage.reduce((sum, item) => sum + item.bookings, 0) / stats.hourlyUsage.length)
+    return {
+      ...stats,
+      hourlyUsage: stats.hourlyUsage?.map(item => ({
+        ...item,
+        hour: convertToIST(item.hour, true)
+      })) || [],
+      realtimeData: stats.realtimeData?.map(item => ({
+        ...item,
+        timestamp: convertToIST(item.timestamp, false)
+      })) || []
+    };
+  }, [stats]);
+
+  const metrics = useMemo(() => {
+    if (!transformedStats) return null;
+
+    const totalRevenue = transformedStats.hourlyUsage?.reduce((sum, item) => sum + (item.revenue || 0), 0) || 0;
+    const avgBookingsPerHour = transformedStats.hourlyUsage && transformedStats.hourlyUsage.length > 0
+      ? Math.round(transformedStats.hourlyUsage.reduce((sum, item) => sum + item.bookings, 0) / transformedStats.hourlyUsage.length)
       : 0;
 
-    const peakHours = [...(stats.hourlyUsage || [])]
+    const peakHours = [...(transformedStats.hourlyUsage || [])]
       .sort((a, b) => b.bookings - a.bookings)
       .slice(0, 3);
 
@@ -60,10 +107,10 @@ export default function Analytics() {
       totalRevenue,
       avgBookingsPerHour,
       peakHours,
-      occupancyPercentage: Math.round(stats.occupancyRate || 0),
-      availableSeats: (stats.totalCapacity || 0) - (stats.currentOccupancy || 0)
+      occupancyPercentage: Math.round(transformedStats.occupancyRate || 0),
+      availableSeats: (transformedStats.totalCapacity || 0) - (transformedStats.currentOccupancy || 0)
     };
-  }, [stats]);
+  }, [transformedStats]);
 
   if (isLoading) {
     return (
@@ -122,7 +169,7 @@ export default function Analytics() {
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold" data-testid="text-current-occupancy">
-              {stats?.currentOccupancy || 0}/{stats?.totalCapacity || 0}
+              {transformedStats?.currentOccupancy || 0}/{transformedStats?.totalCapacity || 0}
             </div>
             <p className="text-xs text-muted-foreground mt-1">
               {metrics?.occupancyPercentage}% capacity
@@ -152,7 +199,7 @@ export default function Analytics() {
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold" data-testid="text-active-bookings">
-              {stats?.activeBookings || 0}
+              {transformedStats?.activeBookings || 0}
             </div>
             <p className="text-xs text-muted-foreground mt-1">
               Running now
@@ -197,7 +244,7 @@ export default function Analytics() {
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold" data-testid="text-unique-customers">
-              {stats?.uniqueCustomers || 0}
+              {transformedStats?.uniqueCustomers || 0}
             </div>
             <p className="text-xs text-muted-foreground mt-1">
               Unique walk-ins
@@ -215,7 +262,7 @@ export default function Analytics() {
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold" data-testid="text-avg-session">
-              {stats?.avgSessionDuration || 0} min
+              {transformedStats?.avgSessionDuration || 0} min
             </div>
             <p className="text-xs text-muted-foreground mt-1">
               Per customer
@@ -230,7 +277,7 @@ export default function Analytics() {
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold" data-testid="text-food-orders">
-              {stats?.totalFoodOrders || 0}
+              {transformedStats?.totalFoodOrders || 0}
             </div>
             <p className="text-xs text-muted-foreground mt-1">
               Total orders
@@ -245,7 +292,7 @@ export default function Analytics() {
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold" data-testid="text-food-revenue">
-              ₹{stats?.foodRevenue?.toFixed(2) || "0.00"}
+              ₹{transformedStats?.foodRevenue?.toFixed(2) || "0.00"}
             </div>
             <p className="text-xs text-muted-foreground mt-1">
               From food sales
@@ -285,9 +332,9 @@ export default function Analytics() {
               <CardDescription>Real-time seat utilization over time</CardDescription>
             </CardHeader>
             <CardContent>
-              {stats?.realtimeData && stats.realtimeData.length > 0 ? (
+              {transformedStats?.realtimeData && transformedStats.realtimeData.length > 0 ? (
                 <ResponsiveContainer width="100%" height={300}>
-                  <AreaChart data={stats.realtimeData}>
+                  <AreaChart data={transformedStats.realtimeData}>
                     <defs>
                       <linearGradient id="occupancyGradient" x1="0" y1="0" x2="0" y2="1">
                         <stop offset="5%" stopColor="#8b5cf6" stopOpacity={0.8}/>
@@ -322,11 +369,11 @@ export default function Analytics() {
                 <CardDescription>Usage by device category</CardDescription>
               </CardHeader>
               <CardContent>
-                {stats?.categoryUsage && stats.categoryUsage.length > 0 ? (
+                {transformedStats?.categoryUsage && transformedStats.categoryUsage.length > 0 ? (
                   <ResponsiveContainer width="100%" height={250}>
                     <PieChart>
                       <Pie
-                        data={stats.categoryUsage}
+                        data={transformedStats.categoryUsage}
                         cx="50%"
                         cy="50%"
                         labelLine={false}
@@ -334,7 +381,7 @@ export default function Analytics() {
                         outerRadius={80}
                         dataKey="occupied"
                       >
-                        {stats.categoryUsage.map((_, index) => (
+                        {transformedStats.categoryUsage.map((_, index) => (
                           <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
                         ))}
                       </Pie>
@@ -358,9 +405,9 @@ export default function Analytics() {
                 <CardDescription>Bookings throughout the day</CardDescription>
               </CardHeader>
               <CardContent>
-                {stats?.hourlyUsage && stats.hourlyUsage.length > 0 ? (
+                {transformedStats?.hourlyUsage && transformedStats.hourlyUsage.length > 0 ? (
                   <ResponsiveContainer width="100%" height={250}>
-                    <BarChart data={stats.hourlyUsage}>
+                    <BarChart data={transformedStats.hourlyUsage}>
                       <CartesianGrid strokeDasharray="3 3" className="stroke-muted" />
                       <XAxis dataKey="hour" className="text-xs" />
                       <YAxis className="text-xs" />
@@ -389,9 +436,9 @@ export default function Analytics() {
               <CardDescription>Combined performance metrics</CardDescription>
             </CardHeader>
             <CardContent>
-              {stats?.hourlyUsage && stats.hourlyUsage.length > 0 ? (
+              {transformedStats?.hourlyUsage && transformedStats.hourlyUsage.length > 0 ? (
                 <ResponsiveContainer width="100%" height={350}>
-                  <ComposedChart data={stats.hourlyUsage}>
+                  <ComposedChart data={transformedStats.hourlyUsage}>
                     <CartesianGrid strokeDasharray="3 3" />
                     <XAxis dataKey="hour" />
                     <YAxis yAxisId="left" />
