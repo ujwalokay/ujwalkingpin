@@ -42,15 +42,9 @@ export async function loginHandler(req: Request, res: Response) {
       });
     }
     
-    // Check if user is admin and requires 2FA
-    if (user.role === "admin") {
-      // Check if admin has email configured
-      if (!user.email) {
-        return res.status(400).json({
-          message: "Admin email not configured. Please contact system administrator to set up your email for 2FA."
-        });
-      }
-
+    // Check if user is admin and has email configured for 2FA
+    if (user.role === "admin" && user.email) {
+      // Admin has email - use 2FA
       // Generate and send OTP
       const otpCode = generateOTP();
       const expiresAt = new Date(Date.now() + 10 * 60 * 1000); // 10 minutes
@@ -85,6 +79,12 @@ export async function loginHandler(req: Request, res: Response) {
         userId: user.id,
         message: `OTP sent to ${user.email.replace(/(.{2})(.*)(@.*)/, '$1***$3')}`
       });
+    }
+    
+    // Admin without email or staff user - login directly without 2FA
+    if (user.role === "admin") {
+      // Admin without email configured - allow login but warn in logs
+      console.warn(`⚠️  Admin user "${user.username}" logged in without 2FA (no email configured)`);
     }
     
     // For non-admin users (staff), proceed with normal login
@@ -196,8 +196,8 @@ export function requireAuth(req: Request, res: Response, next: NextFunction) {
   if (!req.session.userId) {
     return res.status(401).json({ message: "Authentication required" });
   }
-  // Check if admin user has completed OTP verification
-  if (req.session.role === "admin" && !req.session.otpVerified) {
+  // Check if admin user has completed OTP verification (only if they went through OTP flow)
+  if (req.session.role === "admin" && req.session.otpVerified === false) {
     return res.status(401).json({ message: "OTP verification required" });
   }
   next();
