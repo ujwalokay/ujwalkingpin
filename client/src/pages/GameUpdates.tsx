@@ -4,7 +4,8 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Badge } from "@/components/ui/badge";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Button } from "@/components/ui/button";
-import { RefreshCw, ExternalLink, Calendar, Tag } from "lucide-react";
+import { Input } from "@/components/ui/input";
+import { RefreshCw, ExternalLink, Calendar, Tag, Search, HardDrive } from "lucide-react";
 import type { GameUpdate } from "@shared/schema";
 import { format } from "date-fns";
 
@@ -33,6 +34,7 @@ const UPDATE_TYPE_COLORS: Record<string, string> = {
 
 export default function GameUpdates() {
   const [selectedGame, setSelectedGame] = useState<string>("all");
+  const [searchQuery, setSearchQuery] = useState<string>("");
 
   const { data: updates, isLoading, refetch, isFetching } = useQuery<GameUpdate[]>({
     queryKey: selectedGame === "all" ? ['/api/game-updates'] : [`/api/game-updates?game=${selectedGame}`],
@@ -40,7 +42,17 @@ export default function GameUpdates() {
     refetchIntervalInBackground: true, // Continue refetching when tab is not focused
   });
 
-  const filteredUpdates = updates || [];
+  // Filter updates by search query
+  const filteredUpdates = (updates || []).filter((update) => {
+    if (!searchQuery) return true;
+    const query = searchQuery.toLowerCase();
+    return (
+      update.title.toLowerCase().includes(query) ||
+      update.description.toLowerCase().includes(query) ||
+      update.gameName.toLowerCase().includes(query) ||
+      update.updateType.toLowerCase().includes(query)
+    );
+  });
 
   if (isLoading) {
     return (
@@ -56,38 +68,64 @@ export default function GameUpdates() {
   return (
     <div className="min-h-screen bg-background p-4 md:p-6 space-y-6">
       {/* Header */}
-      <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
-        <div>
-          <h1 className="text-3xl font-bold tracking-tight" data-testid="heading-game-updates">
-            Game Updates
-          </h1>
-          <p className="text-muted-foreground mt-1">
-            Latest news, patches, and events for your favorite games
-          </p>
+      <div className="flex flex-col gap-4">
+        <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
+          <div>
+            <h1 className="text-3xl font-bold tracking-tight" data-testid="heading-game-updates">
+              Game Updates
+            </h1>
+            <p className="text-muted-foreground mt-1">
+              Latest news, patches, and events for your favorite games
+            </p>
+          </div>
+          <div className="flex items-center gap-2">
+            <Select value={selectedGame} onValueChange={setSelectedGame}>
+              <SelectTrigger className="w-[180px]" data-testid="select-game-filter">
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                {GAME_FILTERS.map((game) => (
+                  <SelectItem key={game.value} value={game.value}>
+                    {game.label}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+            <Button 
+              onClick={() => refetch()} 
+              disabled={isFetching}
+              variant="outline"
+              size="sm"
+              data-testid="button-refresh"
+            >
+              <RefreshCw className={`h-4 w-4 mr-2 ${isFetching ? 'animate-spin' : ''}`} />
+              Refresh
+            </Button>
+          </div>
         </div>
-        <div className="flex items-center gap-2">
-          <Select value={selectedGame} onValueChange={setSelectedGame}>
-            <SelectTrigger className="w-[180px]" data-testid="select-game-filter">
-              <SelectValue />
-            </SelectTrigger>
-            <SelectContent>
-              {GAME_FILTERS.map((game) => (
-                <SelectItem key={game.value} value={game.value}>
-                  {game.label}
-                </SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
-          <Button 
-            onClick={() => refetch()} 
-            disabled={isFetching}
-            variant="outline"
-            size="sm"
-            data-testid="button-refresh"
-          >
-            <RefreshCw className={`h-4 w-4 mr-2 ${isFetching ? 'animate-spin' : ''}`} />
-            Refresh
-          </Button>
+        
+        {/* Search Bar */}
+        <div className="relative w-full max-w-2xl">
+          <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+          <Input
+            type="text"
+            placeholder="Search updates by game name, title, or update type..."
+            value={searchQuery}
+            onChange={(e) => setSearchQuery(e.target.value)}
+            className="pl-10"
+            data-testid="input-search"
+          />
+          {searchQuery && (
+            <Button
+              variant="ghost"
+              size="sm"
+              className="absolute right-2 top-1/2 transform -translate-y-1/2 h-7 px-2"
+              onClick={() => setSearchQuery("")}
+              data-testid="button-clear-search"
+            >
+              Clear
+            </Button>
+          )}
         </div>
       </div>
 
@@ -162,6 +200,16 @@ export default function GameUpdates() {
                 <p className="text-sm text-muted-foreground line-clamp-3" data-testid={`text-description-${update.id}`}>
                   {update.description}
                 </p>
+
+                {/* Extract and display file size if available in description */}
+                {update.description.match(/(\d+\.?\d*\s?(GB|MB|TB))/i) && (
+                  <div className="flex items-center gap-2 p-2 bg-muted rounded-lg" data-testid={`file-size-${update.id}`}>
+                    <HardDrive className="h-4 w-4 text-primary" />
+                    <span className="text-sm font-medium">
+                      Download: {update.description.match(/(\d+\.?\d*\s?(GB|MB|TB))/i)![0]}
+                    </span>
+                  </div>
+                )}
 
                 {update.sourceUrl && (
                   <Button 
