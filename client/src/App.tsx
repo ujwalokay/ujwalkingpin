@@ -31,6 +31,7 @@ import NotFound from "@/pages/not-found";
 import Login from "@/pages/Login";
 import { ConsumerNav } from "@/components/ConsumerNav";
 import { CursorTrail } from "@/components/CursorTrail";
+import { SplashScreen } from "@/components/SplashScreen";
 import { useState, useEffect } from "react";
 import { useToast } from "@/hooks/use-toast";
 
@@ -64,6 +65,7 @@ function App() {
   const [isAuthenticated, setIsAuthenticated] = useState(false);
   const [user, setUser] = useState<User | null>(null);
   const [showLogin, setShowLogin] = useState(false);
+  const [showSplash, setShowSplash] = useState(true);
   const { toast } = useToast();
 
   const style = {
@@ -88,6 +90,14 @@ function App() {
     };
     checkAuth();
   }, []);
+
+  if (showSplash) {
+    return (
+      <ThemeProvider>
+        <SplashScreen onComplete={() => setShowSplash(false)} />
+      </ThemeProvider>
+    );
+  }
 
   const handleLoginSuccess = (userData: User) => {
     setUser(userData);
