@@ -153,7 +153,8 @@ export function AddBookingDialog({ open, onOpenChange, onConfirm, availableSeats
     const isTimeSlotRequired = bookingType === "upcoming" && !timeSlot;
     
     if (category && selectedSeats.length > 0 && customerName && duration && selectedSlot && !isWhatsappRequired && !isDateRequired && !isTimeSlotRequired) {
-      const totalPrice = (parseFloat(selectedSlot.price.toString()) * personCount).toString();
+      const finalPersonCount = category === "PS5" ? personCount : 1;
+      const totalPrice = (parseFloat(selectedSlot.price.toString()) * finalPersonCount).toString();
       
       onConfirm?.({
         category,
@@ -162,7 +163,7 @@ export function AddBookingDialog({ open, onOpenChange, onConfirm, availableSeats
         whatsappNumber: whatsappNumber.trim() || undefined,
         duration,
         price: totalPrice,
-        personCount,
+        personCount: finalPersonCount,
         bookingType,
         bookingDate: bookingType === "upcoming" ? bookingDate : undefined,
         timeSlot: bookingType === "upcoming" ? timeSlot : undefined,
@@ -183,6 +184,7 @@ export function AddBookingDialog({ open, onOpenChange, onConfirm, availableSeats
   const handleCategoryChange = (newCategory: string) => {
     setCategory(newCategory);
     setSelectedSeats([]);
+    setPersonCount(1);
   };
 
   const increaseDuration = () => {
@@ -503,38 +505,40 @@ export function AddBookingDialog({ open, onOpenChange, onConfirm, availableSeats
             />
           </div>
 
-          <div className="space-y-2">
-            <Label>Number of Persons</Label>
-            <div className="flex items-center gap-2">
-              <Button
-                type="button"
-                variant="outline"
-                size="icon"
-                onClick={decreasePersonCount}
-                disabled={personCount <= 1}
-                data-testid="button-decrease-person"
-              >
-                <Minus className="h-4 w-4" />
-              </Button>
-              <div className="flex-1 text-center font-semibold" data-testid="text-person-count">
-                {personCount} {personCount === 1 ? 'Person' : 'Persons'}
+          {category === "PS5" && (
+            <div className="space-y-2">
+              <Label>Number of Persons</Label>
+              <div className="flex items-center gap-2">
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="icon"
+                  onClick={decreasePersonCount}
+                  disabled={personCount <= 1}
+                  data-testid="button-decrease-person"
+                >
+                  <Minus className="h-4 w-4" />
+                </Button>
+                <div className="flex-1 text-center font-semibold" data-testid="text-person-count">
+                  {personCount} {personCount === 1 ? 'Person' : 'Persons'}
+                </div>
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="icon"
+                  onClick={increasePersonCount}
+                  data-testid="button-increase-person"
+                >
+                  <Plus className="h-4 w-4" />
+                </Button>
               </div>
-              <Button
-                type="button"
-                variant="outline"
-                size="icon"
-                onClick={increasePersonCount}
-                data-testid="button-increase-person"
-              >
-                <Plus className="h-4 w-4" />
-              </Button>
+              {selectedSlot && (
+                <p className="text-xs text-muted-foreground">
+                  {duration}: ${selectedSlot.price} × {personCount} = ${(parseFloat(selectedSlot.price.toString()) * personCount).toFixed(2)}
+                </p>
+              )}
             </div>
-            {selectedSlot && (
-              <p className="text-xs text-muted-foreground">
-                {duration}: ${selectedSlot.price} × {personCount} = ${(parseFloat(selectedSlot.price.toString()) * personCount).toFixed(2)}
-              </p>
-            )}
-          </div>
+          )}
 
           <div className="space-y-2">
             <Label htmlFor="whatsapp">

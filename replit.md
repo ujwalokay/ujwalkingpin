@@ -7,21 +7,17 @@ This project is a local admin panel web application designed for managing a gami
 ## Recent Changes
 
 **October 13, 2025:**
-- **Added Mini Webview Feature (Customer-Facing Live Availability Page):**
-  - Created new public route `/mini-webview` for customer-facing live availability display
-  - Features a mobile-optimized UI with gradient background (purple/pink/orange)
-  - Real-time availability display for all gaming stations (PC, PS5, etc.)
-  - Shows total stations, available count, and percentage with color-coded progress bars
-  - Auto-refreshes every N seconds (configurable in admin settings)
-  - Collapsible pricing section showing all pricing tiers by category
-  - Contact information section with address, phone, hours, and email
-  - "Call Now" and "Directions" buttons for easy customer interaction
-  - Facilities section displaying amenities with icons
-  - Admin controls in Settings page to:
-    - Enable/disable live updates (stops auto-refresh when disabled)
-    - Configure refresh interval (1-60 seconds)
-  - New database table: `mini_webview_settings` for configuration
-  - Public API endpoint aggregates data from multiple sources (bookings, devices, pricing, facilities, center info)
+- **Added Person Count Feature for PS5 Bookings:**
+  - Added `personCount` field to bookings and bookingHistory database schema
+  - Person count selector with +/- buttons appears only when booking PS5 devices
+  - Pricing automatically multiplies by person count for PS5 bookings (e.g., 30 min @ $10 × 3 persons = $30)
+  - Person count defaults to 1 and resets when switching device categories
+  - "Persons" column added to BookingTable to display person count
+  - Dashboard properly persists and displays person count for all bookings
+- **Removed Mini Webview Feature:**
+  - Removed `/mini-webview` public route and related components
+  - Removed mini_webview_settings table from database
+  - Cleaned up 603 lines of code for simplified codebase
 - **Removed Two-Factor Authentication (2FA):**
   - Removed OTP verification system
   - Removed email functionality and Nodemailer dependency
