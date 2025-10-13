@@ -48,6 +48,9 @@ export default function MiniWebview() {
   useEffect(() => {
     if (!data?.settings) return;
     
+    const isLiveEnabled = data.settings.isLiveEnabled === "true";
+    if (!isLiveEnabled) return;
+    
     const intervalSeconds = data.settings.refreshInterval || 5;
     const interval = setInterval(() => {
       refetch();
@@ -101,7 +104,8 @@ export default function MiniWebview() {
             variant="ghost"
             size="icon"
             onClick={() => refetch()}
-            className="text-white hover:bg-white/20"
+            disabled={!isLiveEnabled}
+            className="text-white hover:bg-white/20 disabled:opacity-50"
             data-testid="button-refresh"
           >
             <RefreshCw className="w-5 h-5" />
