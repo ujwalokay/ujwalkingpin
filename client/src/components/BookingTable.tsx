@@ -44,6 +44,7 @@ interface Booking {
   startTime: Date;
   endTime: Date;
   price: number;
+  personCount?: number;
   status: BookingStatus;
   foodOrders?: FoodOrder[];
   pausedRemainingTime?: number | null;
@@ -99,6 +100,7 @@ export function BookingTable({ bookings, onExtend, onEnd, onComplete, onAddFood,
               <TableHead className="w-12"></TableHead>
               <TableHead>Seat</TableHead>
               <TableHead>Customer</TableHead>
+              <TableHead>Persons</TableHead>
               <TableHead>WhatsApp</TableHead>
               <TableHead className="w-12">Loyalty</TableHead>
               {showDateColumn && <TableHead>Date</TableHead>}
@@ -115,7 +117,7 @@ export function BookingTable({ bookings, onExtend, onEnd, onComplete, onAddFood,
           <TableBody>
             {filteredBookings.length === 0 ? (
               <TableRow>
-                <TableCell colSpan={showDateColumn ? 14 : 13} className="text-center text-muted-foreground">
+                <TableCell colSpan={showDateColumn ? 15 : 14} className="text-center text-muted-foreground">
                   No bookings found
                 </TableCell>
               </TableRow>
@@ -141,6 +143,9 @@ export function BookingTable({ bookings, onExtend, onEnd, onComplete, onAddFood,
                     </TableCell>
                     <TableCell data-testid={`text-customer-${booking.id}`}>
                       {booking.customerName}
+                    </TableCell>
+                    <TableCell data-testid={`text-persons-${booking.id}`}>
+                      {booking.personCount || 1}
                     </TableCell>
                     <TableCell data-testid={`text-whatsapp-${booking.id}`}>
                       {booking.whatsappNumber || "-"}

@@ -16,6 +16,7 @@ export const bookings = pgTable("bookings", {
   status: varchar("status").notNull(),
   bookingType: varchar("booking_type").notNull(),
   pausedRemainingTime: integer("paused_remaining_time"),
+  personCount: integer("person_count").notNull().default(1),
   foodOrders: jsonb("food_orders").$type<Array<{
     foodId: string;
     foodName: string;
@@ -79,6 +80,7 @@ export const bookingHistory = pgTable("booking_history", {
   status: varchar("status").notNull(),
   bookingType: varchar("booking_type").notNull(),
   pausedRemainingTime: integer("paused_remaining_time"),
+  personCount: integer("person_count").notNull().default(1),
   foodOrders: jsonb("food_orders").$type<Array<{
     foodId: string;
     foodName: string;

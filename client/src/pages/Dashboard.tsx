@@ -36,6 +36,7 @@ interface Booking {
   startTime: Date;
   endTime: Date;
   price: number;
+  personCount?: number;
   status: BookingStatus;
   bookingType: "walk-in" | "upcoming";
   foodOrders?: FoodOrder[];
@@ -104,6 +105,7 @@ export default function Dashboard() {
       startTime: new Date(dbBooking.startTime),
       endTime: new Date(dbBooking.endTime),
       price: parseFloat(dbBooking.price),
+      personCount: dbBooking.personCount,
       status: dbBooking.status as BookingStatus,
       bookingType: dbBooking.bookingType as "walk-in" | "upcoming",
       foodOrders: dbBooking.foodOrders || [],
@@ -187,6 +189,7 @@ export default function Dashboard() {
     whatsappNumber?: string;
     duration: string;
     price: string;
+    personCount: number;
     bookingType: "walk-in" | "upcoming";
     bookingDate?: Date;
     timeSlot?: string;
@@ -231,6 +234,7 @@ export default function Dashboard() {
           startTime: startTime.toISOString() as any,
           endTime: endTime.toISOString() as any,
           price: newBooking.price,
+          personCount: newBooking.personCount,
           status: newBooking.bookingType === "walk-in" ? "running" : "upcoming",
           bookingType: newBooking.bookingType,
           foodOrders: [],

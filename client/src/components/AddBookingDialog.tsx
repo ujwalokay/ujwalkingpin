@@ -35,6 +35,7 @@ interface AddBookingDialogProps {
     whatsappNumber?: string;
     duration: string;
     price: string;
+    personCount: number;
     bookingType: "walk-in" | "upcoming";
     bookingDate?: Date;
     timeSlot?: string;
@@ -79,6 +80,7 @@ export function AddBookingDialog({ open, onOpenChange, onConfirm, availableSeats
   const [customerName, setCustomerName] = useState<string>("");
   const [whatsappNumber, setWhatsappNumber] = useState<string>("");
   const [durationMinutes, setDurationMinutes] = useState<number>(30);
+  const [personCount, setPersonCount] = useState<number>(1);
   const [bookingType, setBookingType] = useState<"walk-in" | "upcoming">("walk-in");
   const [bookingDate, setBookingDate] = useState<Date>();
   const [timeSlot, setTimeSlot] = useState<string>("");
@@ -151,13 +153,16 @@ export function AddBookingDialog({ open, onOpenChange, onConfirm, availableSeats
     const isTimeSlotRequired = bookingType === "upcoming" && !timeSlot;
     
     if (category && selectedSeats.length > 0 && customerName && duration && selectedSlot && !isWhatsappRequired && !isDateRequired && !isTimeSlotRequired) {
+      const totalPrice = (parseFloat(selectedSlot.price.toString()) * personCount).toString();
+      
       onConfirm?.({
         category,
         seatNumbers: selectedSeats,
         customerName,
         whatsappNumber: whatsappNumber.trim() || undefined,
         duration,
-        price: selectedSlot.price.toString(),
+        price: totalPrice,
+        personCount,
         bookingType,
         bookingDate: bookingType === "upcoming" ? bookingDate : undefined,
         timeSlot: bookingType === "upcoming" ? timeSlot : undefined,
@@ -167,6 +172,7 @@ export function AddBookingDialog({ open, onOpenChange, onConfirm, availableSeats
       setCustomerName("");
       setWhatsappNumber("");
       setDurationMinutes(30);
+      setPersonCount(1);
       setBookingType("walk-in");
       setBookingDate(undefined);
       setTimeSlot("");
@@ -185,6 +191,14 @@ export function AddBookingDialog({ open, onOpenChange, onConfirm, availableSeats
 
   const decreaseDuration = () => {
     setDurationMinutes(prev => Math.max(30, prev - 30));
+  };
+
+  const increasePersonCount = () => {
+    setPersonCount(prev => prev + 1);
+  };
+
+  const decreasePersonCount = () => {
+    setPersonCount(prev => Math.max(1, prev - 1));
   };
 
   const latestBookingEndTime = useMemo(() => {
@@ -487,6 +501,39 @@ export function AddBookingDialog({ open, onOpenChange, onConfirm, availableSeats
               placeholder="Enter customer name"
               data-testid="input-customer-name"
             />
+          </div>
+
+          <div className="space-y-2">
+            <Label>Number of Persons</Label>
+            <div className="flex items-center gap-2">
+              <Button
+                type="button"
+                variant="outline"
+                size="icon"
+                onClick={decreasePersonCount}
+                disabled={personCount <= 1}
+                data-testid="button-decrease-person"
+              >
+                <Minus className="h-4 w-4" />
+              </Button>
+              <div className="flex-1 text-center font-semibold" data-testid="text-person-count">
+                {personCount} {personCount === 1 ? 'Person' : 'Persons'}
+              </div>
+              <Button
+                type="button"
+                variant="outline"
+                size="icon"
+                onClick={increasePersonCount}
+                data-testid="button-increase-person"
+              >
+                <Plus className="h-4 w-4" />
+              </Button>
+            </div>
+            {selectedSlot && (
+              <p className="text-xs text-muted-foreground">
+                {duration}: ${selectedSlot.price} × {personCount} = ${(parseFloat(selectedSlot.price.toString()) * personCount).toFixed(2)}
+              </p>
+            )}
           </div>
 
           <div className="space-y-2">
