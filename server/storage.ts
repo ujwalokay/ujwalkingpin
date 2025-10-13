@@ -250,13 +250,18 @@ export class DatabaseStorage implements IStorage {
       if (adminPassword.length < 8) {
         console.error('❌ WARNING: ADMIN_PASSWORD must be at least 8 characters long. Admin user not created.');
       } else {
-        // Create admin user
+        // Create admin user with email if provided
+        const adminEmail = process.env.ADMIN_EMAIL;
         await this.createUser({
           username: adminUsername,
           password: adminPassword,
+          email: adminEmail,
           role: "admin"
         });
         console.log(`✅ Admin user created with username: ${adminUsername}`);
+        if (adminEmail) {
+          console.log(`✅ Admin email set to: ${adminEmail}`);
+        }
       }
       
       // Create staff user if credentials provided

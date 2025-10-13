@@ -1,4 +1,5 @@
 import nodemailer from 'nodemailer';
+import crypto from 'crypto';
 
 let transporter: nodemailer.Transporter | null = null;
 
@@ -27,7 +28,9 @@ function getTransporter() {
 }
 
 export function generateOTP(): string {
-  return Math.floor(100000 + Math.random() * 900000).toString();
+  // Generate cryptographically secure random 6-digit OTP
+  const otp = crypto.randomInt(100000, 1000000);
+  return otp.toString();
 }
 
 export async function sendOTPEmail(email: string, username: string, otp: string): Promise<boolean> {
