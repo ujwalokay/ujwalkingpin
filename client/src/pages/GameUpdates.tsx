@@ -36,6 +36,8 @@ export default function GameUpdates() {
 
   const { data: updates, isLoading, refetch, isFetching } = useQuery<GameUpdate[]>({
     queryKey: selectedGame === "all" ? ['/api/game-updates'] : [`/api/game-updates?game=${selectedGame}`],
+    refetchInterval: 30000, // Refetch every 30 seconds for real-time updates
+    refetchIntervalInBackground: true, // Continue refetching when tab is not focused
   });
 
   const filteredUpdates = updates || [];
