@@ -7,13 +7,16 @@ This project is a local admin panel web application designed for managing a gami
 ## Recent Changes
 
 **October 13, 2025:**
-- **Added Person Count Feature for PS5 Bookings:**
-  - Added `personCount` field to bookings and bookingHistory database schema
-  - Person count selector with +/- buttons appears only when booking PS5 devices
-  - Pricing automatically multiplies by person count for PS5 bookings (e.g., 30 min @ $10 × 3 persons = $30)
-  - Person count defaults to 1 and resets when switching device categories
-  - "Persons" column added to BookingTable to display person count
+- **Implemented Person-Based Pricing System:**
+  - Added `personCount` field to pricing configuration schema (database table: pricing_configs)
+  - Updated PricingTable component to support person-based pricing input (format: "30 mins + 1 person")
+  - Admin can now configure person count for any pricing slot in Settings
+  - Person count selector appears in AddBookingDialog when selected pricing slot has personCount > 1
+  - Booking price automatically multiplies by person count (e.g., 30 min @ ₹10 × 3 persons = ₹30)
+  - Person count defaults to 1 and resets when switching device categories or pricing slots
+  - "Persons" column in BookingTable displays person count for all bookings
   - Dashboard properly persists and displays person count for all bookings
+  - Flexible system: any device category can now use person-based pricing, not just PS5
 - **Removed Mini Webview Feature:**
   - Removed `/mini-webview` public route and related components
   - Removed mini_webview_settings table from database
