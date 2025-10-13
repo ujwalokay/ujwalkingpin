@@ -1001,6 +1001,16 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Generate and download PDF documentation
+  app.get("/api/documentation/pdf", publicApiLimiter, async (req, res) => {
+    try {
+      const { generateApplicationPDF } = await import('./pdf-generator');
+      generateApplicationPDF(res);
+    } catch (error: any) {
+      res.status(500).json({ message: error.message });
+    }
+  });
+
   const httpServer = createServer(app);
 
   return httpServer;
