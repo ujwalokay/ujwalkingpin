@@ -15,6 +15,7 @@ import type { Expense } from "@shared/schema";
 import { format } from "date-fns";
 import { useAuth } from "@/contexts/AuthContext";
 import { getAdjustedTime } from "@/hooks/useServerTime";
+import { DeviceRestrictionAlert } from "@/components/DeviceRestrictionAlert";
 
 const EXPENSE_CATEGORIES = [
   "Equipment Maintenance",
@@ -34,7 +35,7 @@ const EXPENSE_CATEGORIES = [
 
 export default function Expenses() {
   const { toast } = useToast();
-  const { isAdmin } = useAuth();
+  const { isAdmin, canMakeChanges, deviceRestricted, user } = useAuth();
   const [addDialog, setAddDialog] = useState(false);
   const [editDialog, setEditDialog] = useState<{ open: boolean; item: Expense | null }>({
     open: false,
@@ -310,6 +311,8 @@ export default function Expenses() {
 
   return (
     <div className="space-y-4 md:space-y-6">
+      <DeviceRestrictionAlert show={deviceRestricted} userRole={user?.role} />
+      
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
         <div>
           <h1 className="text-2xl sm:text-3xl font-bold text-foreground">Expense Tracker</h1>
@@ -338,7 +341,7 @@ export default function Expenses() {
               <span className="hidden sm:inline">Export </span>PDF
             </Button>
           </div>
-          <Button onClick={() => setAddDialog(true)} data-testid="button-add-expense" className="w-full sm:w-auto">
+          <Button onClick={() => setAddDialog(true)} data-testid="button-add-expense" className="w-full sm:w-auto" disabled={!canMakeChanges}>
             <Plus className="mr-2 h-4 w-4" />
             Add Expense
           </Button>

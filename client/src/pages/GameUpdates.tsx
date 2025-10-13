@@ -8,6 +8,8 @@ import { Input } from "@/components/ui/input";
 import { RefreshCw, ExternalLink, Calendar, Tag, Search, HardDrive, Sparkles, Zap } from "lucide-react";
 import type { GameUpdate } from "@shared/schema";
 import { format } from "date-fns";
+import { useAuth } from "@/contexts/AuthContext";
+import { DeviceRestrictionAlert } from "@/components/DeviceRestrictionAlert";
 
 const GAME_FILTERS = [
   { value: "all", label: "All Games" },

@@ -11,6 +11,7 @@ import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, D
 import { useToast } from "@/hooks/use-toast";
 import { apiRequest, queryClient } from "@/lib/queryClient";
 import { useAuth } from "@/contexts/AuthContext";
+import { DeviceRestrictionAlert } from "@/components/DeviceRestrictionAlert";
 
 interface LoyaltyMember {
   id: string;
@@ -37,7 +38,7 @@ interface LoyaltyConfig {
 
 export default function Loyalty() {
   const { toast } = useToast();
-  const { isAdmin } = useAuth();
+  const { isAdmin, canMakeChanges, deviceRestricted, user } = useAuth();
   const [showConfigDialog, setShowConfigDialog] = useState(false);
   const [configSettings, setConfigSettings] = useState<LoyaltyConfig>({
     pointsPerCurrency: 1,
@@ -117,6 +118,8 @@ export default function Loyalty() {
 
   return (
     <div className="space-y-6 p-6">
+      <DeviceRestrictionAlert show={deviceRestricted} userRole={user?.role} />
+      
       <div className="flex items-center justify-between">
         <div className="flex items-center gap-3">
           <div className="relative">
@@ -129,7 +132,7 @@ export default function Loyalty() {
           </div>
         </div>
         {isAdmin && (
-          <Button onClick={() => setShowConfigDialog(true)} data-testid="button-loyalty-settings">
+          <Button onClick={() => setShowConfigDialog(true)} data-testid="button-loyalty-settings" disabled={!canMakeChanges}>
             <Settings className="h-4 w-4 mr-2" />
             Settings
           </Button>

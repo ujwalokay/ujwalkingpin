@@ -20,6 +20,7 @@ import {
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import type { Booking } from "@shared/schema";
 import { useAuth } from "@/contexts/AuthContext";
+import { DeviceRestrictionAlert } from "@/components/DeviceRestrictionAlert";
 
 interface DeviceConfig {
   id: string;
@@ -49,7 +50,7 @@ interface CategoryState {
 
 export default function Settings() {
   const { toast } = useToast();
-  const { isAdmin } = useAuth();
+  const { isAdmin, canMakeChanges, deviceRestricted, user } = useAuth();
 
   const { data: deviceConfigs, isLoading: deviceLoading } = useQuery<DeviceConfig[]>({
     queryKey: ["/api/device-config"],
@@ -316,6 +317,8 @@ export default function Settings() {
 
   return (
     <div className="space-y-6 p-4 sm:p-6">
+      <DeviceRestrictionAlert show={deviceRestricted} userRole={user?.role} />
+      
       <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
         <div>
           <h1 className="text-2xl font-bold text-foreground sm:text-3xl">Settings</h1>
@@ -325,7 +328,7 @@ export default function Settings() {
           <Button 
             onClick={handleSave} 
             data-testid="button-save-settings"
-            disabled={saveDeviceConfigMutation.isPending || savePricingConfigMutation.isPending}
+            disabled={!canMakeChanges || saveDeviceConfigMutation.isPending || savePricingConfigMutation.isPending}
             className="w-full sm:w-auto"
           >
             <Save className="mr-2 h-4 w-4" />
@@ -343,6 +346,7 @@ export default function Settings() {
               onClick={() => setShowAddDialog(true)}
               data-testid="button-add-category"
               className="w-full sm:w-auto"
+              disabled={!canMakeChanges}
             >
               <Plus className="mr-2 h-4 w-4" />
               Add Category

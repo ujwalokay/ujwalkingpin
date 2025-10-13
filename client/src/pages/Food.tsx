@@ -9,10 +9,11 @@ import { Label } from "@/components/ui/label";
 import { queryClient } from "@/lib/queryClient";
 import type { FoodItem } from "@shared/schema";
 import { useAuth } from "@/contexts/AuthContext";
+import { DeviceRestrictionAlert } from "@/components/DeviceRestrictionAlert";
 
 export default function Food() {
   const { toast } = useToast();
-  const { isAdmin } = useAuth();
+  const { isAdmin, canMakeChanges, deviceRestricted, user } = useAuth();
   const [addDialog, setAddDialog] = useState(false);
   const [editDialog, setEditDialog] = useState<{ open: boolean; item: FoodItem | null }>({
     open: false,
@@ -114,12 +115,14 @@ export default function Food() {
 
   return (
     <div className="space-y-4 md:space-y-6">
+      <DeviceRestrictionAlert show={deviceRestricted} userRole={user?.role} />
+      
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
         <div>
           <h1 className="text-2xl sm:text-3xl font-bold text-foreground">Food Management</h1>
           <p className="text-sm sm:text-base text-muted-foreground">Manage food items available for customers</p>
         </div>
-        <Button onClick={() => setAddDialog(true)} data-testid="button-add-food" className="w-full sm:w-auto">
+        <Button onClick={() => setAddDialog(true)} data-testid="button-add-food" className="w-full sm:w-auto" disabled={!canMakeChanges}>
           <Plus className="mr-2 h-4 w-4" />
           Add Food Item
         </Button>
