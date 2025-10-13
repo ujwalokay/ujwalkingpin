@@ -6,6 +6,22 @@ This project is a local admin panel web application designed for managing a gami
 
 ## Recent Changes
 
+**October 13, 2025:**
+- **Implemented Device-Based Access Control for Mobile/Tablet:**
+  - Created device detection hook (`use-device-type.tsx`) to identify PC, mobile, and tablet devices
+  - Updated AuthContext with device-aware permissions (`canMakeChanges` flag)
+  - Admin/staff users can now only VIEW on mobile and tablet devices (screen width < 1024px)
+  - All editing capabilities (Add, Edit, Delete, Settings) are restricted to PC/desktop only
+  - Added DeviceRestrictionAlert component to inform users of access limitations
+  - Updated all admin pages with device restrictions:
+    - Dashboard and BookingTable: Disabled all booking actions on mobile/tablet
+    - Settings: Disabled configuration changes on mobile/tablet
+    - Food Management: Disabled add/edit/delete food items on mobile/tablet
+    - Expense Tracker: Disabled add/edit/delete expenses on mobile/tablet
+    - Loyalty Program: Disabled settings configuration on mobile/tablet
+    - Game Updates: Added restriction alert for consistency
+  - Design decision: Mobile/tablet = read-only for admin/staff, PC = full access
+
 **October 12, 2025:**
 - Updated Analytics Dashboard to display only walk-in booking data (excludes upcoming bookings)
 - Analytics API endpoint now filters for `bookingType === "walk-in"` and `status !== "upcoming"`
@@ -95,6 +111,7 @@ Preferred communication style: Simple, everyday language.
 - Expense Tracker: Comprehensive system for operational costs with CSV/PDF export.
 - WhatsApp Bot Integration: Automated device availability queries via Twilio WhatsApp API.
 - Public Status Board: Customer-facing real-time availability display at `/status` route (no authentication required). Auto-refreshes with visual indicators.
+- Device-Based Access Control: Admin/staff users restricted to view-only mode on mobile/tablet devices (< 1024px), with full editing capabilities available only on PC/desktop (≥ 1024px).
 
 ## External Dependencies
 
