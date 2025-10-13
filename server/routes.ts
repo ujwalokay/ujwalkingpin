@@ -12,7 +12,8 @@ import {
   insertGalleryImageSchema,
   insertFacilitySchema,
   insertGameSchema,
-  insertLoyaltyConfigSchema
+  insertLoyaltyConfigSchema,
+  insertGameUpdateSchema
 } from "@shared/schema";
 import { z } from "zod";
 
@@ -911,6 +912,90 @@ export async function registerRoutes(app: Express): Promise<Server> {
     try {
       const members = await storage.getAllLoyaltyMembers();
       res.json(members);
+    } catch (error: any) {
+      res.status(500).json({ message: error.message });
+    }
+  });
+
+  // Game Updates Routes
+  app.get("/api/game-updates", publicApiLimiter, async (req, res) => {
+    try {
+      const { game, limit } = req.query;
+      
+      if (game) {
+        const updates = await storage.getGameUpdatesByGame(game as string);
+        return res.json(updates);
+      }
+      
+      if (limit) {
+        const updates = await storage.getRecentGameUpdates(parseInt(limit as string));
+        return res.json(updates);
+      }
+      
+      const updates = await storage.getAllGameUpdates();
+      res.json(updates);
+    } catch (error: any) {
+      res.status(500).json({ message: error.message });
+    }
+  });
+
+  app.get("/api/game-updates/:id", publicApiLimiter, async (req, res) => {
+    try {
+      const update = await storage.getGameUpdate(req.params.id);
+      if (!update) {
+        return res.status(404).json({ message: "Game update not found" });
+      }
+      res.json(update);
+    } catch (error: any) {
+      res.status(500).json({ message: error.message });
+    }
+  });
+
+  app.post("/api/game-updates", requireAdmin, async (req, res) => {
+    try {
+      const validatedUpdate = insertGameUpdateSchema.parse(req.body);
+      const update = await storage.createGameUpdate(validatedUpdate);
+      
+      // Log the admin activity
+      if (req.session.userId && req.session.username && req.session.role) {
+        await storage.createActivityLog({
+          userId: req.session.userId,
+          username: req.session.username,
+          userRole: req.session.role,
+          action: 'create',
+          entityType: 'game-update',
+          entityId: update.id,
+          details: `Created game update for ${update.gameName}: ${update.title}`
+        });
+      }
+      
+      res.json(update);
+    } catch (error: any) {
+      res.status(400).json({ message: error.message });
+    }
+  });
+
+  app.delete("/api/game-updates/:id", requireAdmin, async (req, res) => {
+    try {
+      const success = await storage.deleteGameUpdate(req.params.id);
+      if (!success) {
+        return res.status(404).json({ message: "Game update not found" });
+      }
+      
+      // Log the admin activity
+      if (req.session.userId && req.session.username && req.session.role) {
+        await storage.createActivityLog({
+          userId: req.session.userId,
+          username: req.session.username,
+          userRole: req.session.role,
+          action: 'delete',
+          entityType: 'game-update',
+          entityId: req.params.id,
+          details: `Deleted game update`
+        });
+      }
+      
+      res.json({ message: "Game update deleted successfully" });
     } catch (error: any) {
       res.status(500).json({ message: error.message });
     }
