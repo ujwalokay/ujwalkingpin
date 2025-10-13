@@ -5,7 +5,7 @@ import { Badge } from "@/components/ui/badge";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { RefreshCw, ExternalLink, Calendar, Tag, Search, HardDrive } from "lucide-react";
+import { RefreshCw, ExternalLink, Calendar, Tag, Search, HardDrive, Sparkles, Zap } from "lucide-react";
 import type { GameUpdate } from "@shared/schema";
 import { format } from "date-fns";
 
@@ -70,13 +70,19 @@ export default function GameUpdates() {
       {/* Header */}
       <div className="flex flex-col gap-4">
         <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
-          <div>
-            <h1 className="text-3xl font-bold tracking-tight" data-testid="heading-game-updates">
-              Game Updates
-            </h1>
-            <p className="text-muted-foreground mt-1">
-              Latest news, patches, and events for your favorite games
-            </p>
+          <div className="flex items-center gap-3">
+            <div className="relative">
+              <Zap className="h-8 w-8 text-yellow-500 animate-pulse" />
+              <Sparkles className="h-5 w-5 text-yellow-400 absolute -top-1 -right-1 animate-ping opacity-75" />
+            </div>
+            <div>
+              <h1 className="text-3xl font-bold tracking-tight" data-testid="heading-game-updates">
+                Game Updates
+              </h1>
+              <p className="text-muted-foreground mt-1">
+                Latest news, patches, and events for your favorite games
+              </p>
+            </div>
           </div>
           <div className="flex items-center gap-2">
             <Select value={selectedGame} onValueChange={setSelectedGame}>

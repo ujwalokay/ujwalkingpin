@@ -2,7 +2,7 @@ import { useState, useMemo } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { AreaChart, Area, BarChart, Bar, PieChart, Pie, Cell, LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer, ComposedChart } from "recharts";
-import { Activity, TrendingUp, Users, DollarSign, Zap, RefreshCw, Calendar, Clock, ShoppingBag, UserCheck } from "lucide-react";
+import { Activity, TrendingUp, Users, DollarSign, Zap, RefreshCw, Calendar, Clock, ShoppingBag, UserCheck, Sparkles, Brain } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
@@ -127,13 +127,19 @@ export default function Analytics() {
     <div className="min-h-screen bg-background p-4 md:p-6 space-y-6">
       {/* Header */}
       <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
-        <div>
-          <h1 className="text-3xl font-bold tracking-tight" data-testid="heading-analytics">
-            Analytics Dashboard
-          </h1>
-          <p className="text-muted-foreground mt-1">
-            Real-time insights and performance metrics
-          </p>
+        <div className="flex items-center gap-3">
+          <div className="relative">
+            <Brain className="h-8 w-8 text-blue-500 animate-pulse" />
+            <Sparkles className="h-5 w-5 text-blue-400 absolute -top-1 -right-1 animate-bounce" />
+          </div>
+          <div>
+            <h1 className="text-3xl font-bold tracking-tight" data-testid="heading-analytics">
+              Analytics Dashboard
+            </h1>
+            <p className="text-muted-foreground mt-1">
+              Real-time insights and performance metrics
+            </p>
+          </div>
         </div>
         <div className="flex items-center gap-2">
           <Select value={timeRange} onValueChange={setTimeRange}>

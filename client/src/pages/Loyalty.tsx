@@ -6,7 +6,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
-import { Award, Crown, Star, TrendingUp, Users, Settings } from "lucide-react";
+import { Award, Crown, Star, TrendingUp, Users, Settings, Sparkles } from "lucide-react";
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { useToast } from "@/hooks/use-toast";
 import { apiRequest, queryClient } from "@/lib/queryClient";
@@ -118,9 +118,15 @@ export default function Loyalty() {
   return (
     <div className="space-y-6 p-6">
       <div className="flex items-center justify-between">
-        <div>
-          <h1 className="text-3xl font-bold tracking-tight" data-testid="heading-loyalty">Loyalty Program</h1>
-          <p className="text-muted-foreground mt-2">Manage loyalty members and rewards</p>
+        <div className="flex items-center gap-3">
+          <div className="relative">
+            <Sparkles className="h-8 w-8 text-purple-500 animate-pulse" />
+            <Sparkles className="h-8 w-8 text-purple-400 absolute top-0 left-0 animate-ping opacity-75" />
+          </div>
+          <div>
+            <h1 className="text-3xl font-bold tracking-tight" data-testid="heading-loyalty">Loyalty Program</h1>
+            <p className="text-muted-foreground mt-2">Manage loyalty members and rewards</p>
+          </div>
         </div>
         {isAdmin && (
           <Button onClick={() => setShowConfigDialog(true)} data-testid="button-loyalty-settings">
