@@ -7,6 +7,7 @@ import { Pencil, Check, X, Plus, Trash2 } from "lucide-react";
 interface PriceSlot {
   duration: string;
   price: number;
+  personCount?: number;
 }
 
 interface PricingTableProps {
@@ -20,6 +21,7 @@ export function PricingTable({ category, slots, onUpdateSlots }: PricingTablePro
   const [editValue, setEditValue] = useState("");
   const [editDurationHours, setEditDurationHours] = useState(0);
   const [editDurationMins, setEditDurationMins] = useState(0);
+  const [editPersonCount, setEditPersonCount] = useState(1);
 
   const startEdit = (index: number) => {
     setEditingIndex(index);
@@ -27,6 +29,7 @@ export function PricingTable({ category, slots, onUpdateSlots }: PricingTablePro
     const totalMins = getDurationMinutes(slots[index].duration);
     setEditDurationHours(Math.floor(totalMins / 60));
     setEditDurationMins(totalMins % 60);
+    setEditPersonCount(slots[index].personCount || 1);
   };
 
   const saveEdit = () => {
@@ -35,6 +38,7 @@ export function PricingTable({ category, slots, onUpdateSlots }: PricingTablePro
       const totalMins = editDurationHours * 60 + editDurationMins;
       newSlots[editingIndex].price = parseInt(editValue) || 0;
       newSlots[editingIndex].duration = getDurationString(totalMins);
+      newSlots[editingIndex].personCount = editPersonCount;
       onUpdateSlots?.(newSlots);
       setEditingIndex(null);
     }
@@ -45,6 +49,7 @@ export function PricingTable({ category, slots, onUpdateSlots }: PricingTablePro
     setEditValue("");
     setEditDurationHours(0);
     setEditDurationMins(0);
+    setEditPersonCount(1);
   };
 
   const getDurationMinutes = (duration: string): number => {
@@ -65,14 +70,14 @@ export function PricingTable({ category, slots, onUpdateSlots }: PricingTablePro
 
   const addSlot = () => {
     if (slots.length === 0) {
-      const newSlots = [{ duration: "30 mins", price: 0 }];
+      const newSlots = [{ duration: "30 mins", price: 0, personCount: 1 }];
       onUpdateSlots?.(newSlots);
       return;
     }
     const lastSlot = slots[slots.length - 1];
     const lastMins = getDurationMinutes(lastSlot.duration);
     const newMins = lastMins + 30;
-    const newSlots = [...slots, { duration: getDurationString(newMins), price: 0 }];
+    const newSlots = [...slots, { duration: getDurationString(newMins), price: 0, personCount: 1 }];
     onUpdateSlots?.(newSlots);
   };
 
@@ -125,9 +130,21 @@ export function PricingTable({ category, slots, onUpdateSlots }: PricingTablePro
                     />
                     <span className="text-xs text-muted-foreground">min</span>
                   </div>
+                  <span className="text-xs">+</span>
+                  <div className="flex items-center gap-1">
+                    <Input
+                      type="number"
+                      min="1"
+                      value={editPersonCount}
+                      onChange={(e) => setEditPersonCount(Math.max(1, parseInt(e.target.value) || 1))}
+                      className="w-12 h-8 text-center"
+                      data-testid={`input-person-count-${category.toLowerCase()}-${index}`}
+                    />
+                    <span className="text-xs text-muted-foreground">person</span>
+                  </div>
                 </div>
               ) : (
-                <span className="text-sm font-medium">{slot.duration}</span>
+                <span className="text-sm font-medium">{slot.duration} + {slot.personCount || 1} person</span>
               )}
               <div className="flex items-center gap-2">
                 {editingIndex === index ? (

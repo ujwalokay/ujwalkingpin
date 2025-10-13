@@ -50,6 +50,7 @@ interface PricingConfig {
   category: string;
   duration: string;
   price: number;
+  personCount?: number;
 }
 
 interface Booking {
@@ -125,7 +126,7 @@ export function AddBookingDialog({ open, onOpenChange, onConfirm, availableSeats
   const slots = category 
     ? pricingConfig
         .filter(config => config.category === category)
-        .map(config => ({ duration: config.duration, price: config.price }))
+        .map(config => ({ duration: config.duration, price: config.price, personCount: config.personCount }))
     : [];
   
   const getDurationString = (mins: number) => {
@@ -153,8 +154,10 @@ export function AddBookingDialog({ open, onOpenChange, onConfirm, availableSeats
     const isTimeSlotRequired = bookingType === "upcoming" && !timeSlot;
     
     if (category && selectedSeats.length > 0 && customerName && duration && selectedSlot && !isWhatsappRequired && !isDateRequired && !isTimeSlotRequired) {
-      const finalPersonCount = category === "PS5" ? personCount : 1;
-      const totalPrice = (parseFloat(selectedSlot.price.toString()) * finalPersonCount).toString();
+      const slotPersonCount = selectedSlot.personCount || 1;
+      const finalPersonCount = slotPersonCount > 1 ? personCount : 1;
+      const basePrice = parseFloat(selectedSlot.price.toString());
+      const totalPrice = slotPersonCount > 1 ? (basePrice * personCount).toString() : basePrice.toString();
       
       onConfirm?.({
         category,
@@ -505,7 +508,7 @@ export function AddBookingDialog({ open, onOpenChange, onConfirm, availableSeats
             />
           </div>
 
-          {category === "PS5" && (
+          {selectedSlot && selectedSlot.personCount && selectedSlot.personCount > 1 && (
             <div className="space-y-2">
               <Label>Number of Persons</Label>
               <div className="flex items-center gap-2">
@@ -532,11 +535,9 @@ export function AddBookingDialog({ open, onOpenChange, onConfirm, availableSeats
                   <Plus className="h-4 w-4" />
                 </Button>
               </div>
-              {selectedSlot && (
-                <p className="text-xs text-muted-foreground">
-                  {duration}: ${selectedSlot.price} × {personCount} = ${(parseFloat(selectedSlot.price.toString()) * personCount).toFixed(2)}
-                </p>
-              )}
+              <p className="text-xs text-muted-foreground">
+                {duration} + {selectedSlot.personCount} person: ₹{selectedSlot.price} × {personCount} = ₹{(parseFloat(selectedSlot.price.toString()) * personCount).toFixed(2)}
+              </p>
             </div>
           )}
 

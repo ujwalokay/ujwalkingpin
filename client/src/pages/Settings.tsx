@@ -34,11 +34,13 @@ interface PricingConfig {
   category: string;
   duration: string;
   price: string;
+  personCount?: number;
 }
 
 interface PricingSlot {
   duration: string;
   price: number;
+  personCount?: number;
 }
 
 interface CategoryState {
@@ -100,13 +102,13 @@ export default function Settings() {
       deviceConfigs.forEach(config => {
         const pricing = pricingConfigs
           .filter(p => p.category === config.category)
-          .map(p => ({ duration: p.duration, price: parseFloat(p.price) }));
+          .map(p => ({ duration: p.duration, price: parseFloat(p.price), personCount: p.personCount || 1 }));
 
         categoryMap.set(config.category, {
           category: config.category,
           count: config.count,
           seats: config.seats.map(seat => ({ name: seat, visible: true })),
-          pricing: pricing.length > 0 ? pricing : [{ duration: "30 mins", price: 0 }],
+          pricing: pricing.length > 0 ? pricing : [{ duration: "30 mins", price: 0, personCount: 1 }],
         });
       });
 
@@ -116,7 +118,7 @@ export default function Settings() {
             category: config.category,
             count: 0,
             seats: [],
-            pricing: [{ duration: config.duration, price: parseFloat(config.price) }],
+            pricing: [{ duration: config.duration, price: parseFloat(config.price), personCount: config.personCount || 1 }],
           });
         }
       });
@@ -132,7 +134,7 @@ export default function Settings() {
   });
 
   const savePricingConfigMutation = useMutation({
-    mutationFn: async (data: { category: string; configs: { duration: string; price: string | number }[] }) => {
+    mutationFn: async (data: { category: string; configs: { duration: string; price: string | number; personCount?: number }[] }) => {
       return await apiRequest("POST", "/api/pricing-config", data);
     },
   });
@@ -206,7 +208,7 @@ export default function Settings() {
       category: newCategoryName.trim(),
       count: 0,
       seats: [],
-      pricing: [{ duration: "30 mins", price: 0 }],
+      pricing: [{ duration: "30 mins", price: 0, personCount: 1 }],
     };
 
     try {
@@ -218,7 +220,7 @@ export default function Settings() {
 
       await savePricingConfigMutation.mutateAsync({
         category: newCategory.category,
-        configs: [{ duration: "30 mins", price: "0" }],
+        configs: [{ duration: "30 mins", price: "0", personCount: 1 }],
       });
 
       queryClient.invalidateQueries({ queryKey: ["/api/device-config"] });

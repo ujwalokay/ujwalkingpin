@@ -60,6 +60,7 @@ export const pricingConfigs = pgTable("pricing_configs", {
   category: varchar("category").notNull(),
   duration: varchar("duration").notNull(),
   price: varchar("price").notNull(),
+  personCount: integer("person_count").notNull().default(1),
 });
 
 export const insertPricingConfigSchema = createInsertSchema(pricingConfigs).omit({ id: true });
