@@ -1,0 +1,151 @@
+2025-10-13T11:42:27.248675743Z   run `npm fund` for details
+2025-10-13T11:42:27.267842732Z 
+2025-10-13T11:42:27.267868964Z 8 vulnerabilities (3 low, 5 moderate)
+2025-10-13T11:42:27.267872115Z 
+2025-10-13T11:42:27.267875185Z To address issues that do not require attention, run:
+2025-10-13T11:42:27.267877505Z   npm audit fix
+2025-10-13T11:42:27.267880425Z 
+2025-10-13T11:42:27.267882825Z To address all issues (including breaking changes), run:
+2025-10-13T11:42:27.267885656Z   npm audit fix --force
+2025-10-13T11:42:27.267887656Z 
+2025-10-13T11:42:27.267890226Z Run `npm audit` for details.
+2025-10-13T11:42:27.418539067Z 
+2025-10-13T11:42:27.418570159Z > rest-express@1.0.0 build
+2025-10-13T11:42:27.4185763Z > npx vite build && npx esbuild server/index.ts --platform=node --packages=external --bundle --format=esm --outdir=dist
+2025-10-13T11:42:27.41858163Z 
+2025-10-13T11:42:27.893446497Z vite v5.4.20 building for production...
+2025-10-13T11:42:27.941524302Z transforming...
+2025-10-13T11:42:28.955414988Z 
+2025-10-13T11:42:28.955465212Z A PostCSS plugin did not pass the `from` option to `postcss.parse`. This may cause imported assets to be incorrectly transformed. If you've recently added a PostCSS plugin that raised this warning, please contact the package author to fix the issue.
+2025-10-13T11:42:34.16616011Z ✓ 3409 modules transformed.
+2025-10-13T11:42:34.669987957Z rendering chunks...
+2025-10-13T11:42:34.682439167Z computing gzip size...
+2025-10-13T11:42:34.709894319Z ../dist/public/index.html                                                                                             2.29 kB │ gzip:   0.93 kB
+2025-10-13T11:42:34.709978306Z ../dist/public/assets/WhatsApp Image 2025-10-10 at 18.33.50_a4a3fc99_1760107172482-CJaR6HBG.jpg                      44.74 kB
+2025-10-13T11:42:34.710023699Z ../dist/public/assets/WhatsApp Image 2025-10-10 at 18.33.50_d321359c_1760107172482-BwJavlwc.jpg                      56.48 kB
+2025-10-13T11:42:34.710124917Z ../dist/public/assets/WhatsApp_Image_2025-10-10_at_18.36.58_1fb5438e-removebg-preview_1760342704718-Cg0v57vU.png    110.23 kB
+2025-10-13T11:42:34.710149149Z ../dist/public/assets/purple_gaming_setup__c53078b3-DsAXQPOl.jpg                                                    110.50 kB
+2025-10-13T11:42:34.710181972Z ../dist/public/assets/index-DpArBERs.css                                                                            103.11 kB │ gzip:  16.73 kB
+2025-10-13T11:42:34.710188432Z ../dist/public/assets/index-DtofGq5P.js                                                                           1,109.84 kB │ gzip: 306.09 kB
+2025-10-13T11:42:34.710271079Z 
+2025-10-13T11:42:34.710278899Z (!) Some chunks are larger than 500 kB after minification. Consider:
+2025-10-13T11:42:34.71029242Z - Using dynamic import() to code-split the application
+2025-10-13T11:42:34.710296641Z - Use build.rollupOptions.output.manualChunks to improve chunking: https://rollupjs.org/configuration-options/#output-manualchunks
+2025-10-13T11:42:34.710298871Z - Adjust chunk size limit for this warning via build.chunkSizeWarningLimit.
+2025-10-13T11:42:34.710530739Z ✓ built in 6.80s
+2025-10-13T11:42:35.058963912Z 
+2025-10-13T11:42:35.058991124Z   dist/index.js  90.2kb
+2025-10-13T11:42:35.058995185Z 
+2025-10-13T11:42:35.058998605Z ⚡ Done in 6ms
+2025-10-13T11:42:35.644894764Z ==> Uploading build...
+2025-10-13T11:42:45.462596472Z ==> Uploaded in 6.3s. Compression took 3.5s
+2025-10-13T11:42:45.503306217Z ==> Build successful 🎉
+2025-10-13T11:42:48.182734525Z ==> Deploying...
+2025-10-13T11:43:17.543461716Z ==> Running 'npm run start'
+2025-10-13T11:43:18.55655915Z 
+2025-10-13T11:43:18.556595012Z > rest-express@1.0.0 start
+2025-10-13T11:43:18.556600322Z > npx drizzle-kit push && NODE_ENV=production node dist/index.js
+2025-10-13T11:43:18.556602822Z 
+2025-10-13T11:43:23.452421819Z No config path provided, using default 'drizzle.config.ts'
+2025-10-13T11:43:23.452658442Z Reading config file '/opt/render/project/src/drizzle.config.ts'
+2025-10-13T11:43:30.343928382Z Using 'pg' driver for database querying
+2025-10-13T11:43:33.352441997Z [⣷] Pulling schema from database...
+2025-10-13T11:43:33.550826027Z [⣯] Pulling schema from database...
+2025-10-13T11:43:33.68083767Z [⣟] Pulling schema from database...
+2025-10-13T11:43:33.807311196Z [⡿] Pulling schema from database...
+2025-10-13T11:43:33.934492741Z [⢿] Pulling schema from database...
+2025-10-13T11:43:34.062373801Z [⣻] Pulling schema from database...
+2025-10-13T11:43:34.19097972Z [⣽] Pulling schema from database...
+2025-10-13T11:43:34.318816609Z [⣷] Pulling schema from database...
+2025-10-13T11:43:34.446291048Z [⣯] Pulling schema from database...
+2025-10-13T11:43:34.574146677Z [⣟] Pulling schema from database...
+2025-10-13T11:43:34.702898013Z [⡿] Pulling schema from database...
+2025-10-13T11:43:34.759302003Z [✓] Pulling schema from database...
+2025-10-13T11:43:34.850006063Z 
+2025-10-13T11:43:34.850036885Z Is otps table created or renamed from another table?
+2025-10-13T11:43:34.850041845Z ❯ + otps           create table
+2025-10-13T11:43:54.325393197Z ==> No open ports detected, continuing to scan...
+2025-10-13T11:43:54.432086781Z ==> Docs on specifying a port: https://render.com/docs/web-services#port-binding
+2025-10-13T11:43:54.667658617Z /opt/render/project/src/node_modules/pg-pool/index.js:45
+2025-10-13T11:43:54.667690989Z     Error.captureStackTrace(err)
+2025-10-13T11:43:54.667696169Z           ^
+2025-10-13T11:43:54.667699979Z 
+2025-10-13T11:43:54.66770471Z error: column "email" does not exist
+2025-10-13T11:43:54.66770964Z     at /opt/render/project/src/node_modules/pg-pool/index.js:45:11
+2025-10-13T11:43:54.66771513Z     at process.processTicksAndRejections (node:internal/process/task_queues:105:5)
+2025-10-13T11:43:54.66772066Z     at async file:///opt/render/project/src/node_modules/drizzle-orm/node-postgres/session.js:83:22
+2025-10-13T11:43:54.667728941Z     at async DatabaseStorage.initializeDefaults (file:///opt/render/project/src/dist/index.js:400:27)
+2025-10-13T11:43:54.667733491Z     at async file:///opt/render/project/src/dist/index.js:2422:3 {
+2025-10-13T11:43:54.667738261Z   length: 105,
+2025-10-13T11:43:54.667743341Z   severity: 'ERROR',
+2025-10-13T11:43:54.667747212Z   code: '42703',
+2025-10-13T11:43:54.667751192Z   detail: undefined,
+2025-10-13T11:43:54.667755032Z   hint: undefined,
+2025-10-13T11:43:54.667759152Z   position: '43',
+2025-10-13T11:43:54.667763333Z   internalPosition: undefined,
+2025-10-13T11:43:54.667767203Z   internalQuery: undefined,
+2025-10-13T11:43:54.667770953Z   where: undefined,
+2025-10-13T11:43:54.667774853Z   schema: undefined,
+2025-10-13T11:43:54.667778523Z   table: undefined,
+2025-10-13T11:43:54.667782704Z   column: undefined,
+2025-10-13T11:43:54.667786914Z   dataType: undefined,
+2025-10-13T11:43:54.667791114Z   constraint: undefined,
+2025-10-13T11:43:54.667795204Z   file: 'parse_relation.c',
+2025-10-13T11:43:54.667798035Z   line: '3716',
+2025-10-13T11:43:54.667801055Z   routine: 'errorMissingColumn'
+2025-10-13T11:43:54.667803775Z }
+2025-10-13T11:43:54.667807465Z 
+2025-10-13T11:43:54.667812215Z Node.js v22.16.0
+2025-10-13T11:43:55.92837127Z ==> Exited with status 1
+2025-10-13T11:43:55.944951619Z ==> Common ways to troubleshoot your deploy: https://render.com/docs/troubleshooting-deploys
+2025-10-13T11:44:01.390702739Z ==> Running 'npm run start'
+2025-10-13T11:44:02.306728097Z 
+2025-10-13T11:44:02.306764689Z > rest-express@1.0.0 start
+2025-10-13T11:44:02.306770509Z > npx drizzle-kit push && NODE_ENV=production node dist/index.js
+2025-10-13T11:44:02.306772839Z 
+2025-10-13T11:44:07.100242225Z No config path provided, using default 'drizzle.config.ts'
+2025-10-13T11:44:07.100451476Z Reading config file '/opt/render/project/src/drizzle.config.ts'
+2025-10-13T11:44:14.899943868Z Using 'pg' driver for database querying
+2025-10-13T11:44:17.906525066Z [⣷] Pulling schema from database...
+2025-10-13T11:44:17.990676032Z [⣯] Pulling schema from database...
+2025-10-13T11:44:18.1993211Z [⣟] Pulling schema from database...
+2025-10-13T11:44:18.327632893Z [⡿] Pulling schema from database...
+2025-10-13T11:44:18.455555566Z [⢿] Pulling schema from database...
+2025-10-13T11:44:18.583464327Z [⣻] Pulling schema from database...
+2025-10-13T11:44:18.711437403Z [⣽] Pulling schema from database...
+2025-10-13T11:44:18.84022214Z [⣷] Pulling schema from database...
+2025-10-13T11:44:18.928765347Z [✓] Pulling schema from database...
+2025-10-13T11:44:19.002288525Z 
+2025-10-13T11:44:19.002307466Z Is otps table created or renamed from another table?
+2025-10-13T11:44:19.002313116Z ❯ + otps           create table
+2025-10-13T11:43:54.945349349Z   ~ session › otps rename table
+2025-10-13T11:44:38.802599655Z /opt/render/project/src/node_modules/pg-pool/index.js:45
+2025-10-13T11:44:38.803429569Z     Error.captureStackTrace(err)
+2025-10-13T11:44:38.803436729Z           ^
+2025-10-13T11:44:38.803441109Z 
+2025-10-13T11:44:38.80344663Z error: column "email" does not exist
+2025-10-13T11:44:38.80345215Z     at /opt/render/project/src/node_modules/pg-pool/index.js:45:11
+2025-10-13T11:44:38.8034573Z     at process.processTicksAndRejections (node:internal/process/task_queues:105:5)
+2025-10-13T11:44:38.80346236Z     at async file:///opt/render/project/src/node_modules/drizzle-orm/node-postgres/session.js:83:22
+2025-10-13T11:44:38.803468411Z     at async DatabaseStorage.initializeDefaults (file:///opt/render/project/src/dist/index.js:400:27)
+2025-10-13T11:44:38.803472801Z     at async file:///opt/render/project/src/dist/index.js:2422:3 {
+2025-10-13T11:44:38.803477171Z   length: 105,
+2025-10-13T11:44:38.803482061Z   severity: 'ERROR',
+2025-10-13T11:44:38.803486282Z   code: '42703',
+2025-10-13T11:44:38.803490542Z   detail: undefined,
+2025-10-13T11:44:38.803494772Z   hint: undefined,
+2025-10-13T11:44:38.803498942Z   position: '43',
+2025-10-13T11:44:38.803502982Z   internalPosition: undefined,
+2025-10-13T11:44:38.803507383Z   internalQuery: undefined,
+2025-10-13T11:44:38.803511593Z   where: undefined,
+2025-10-13T11:44:38.803515483Z   schema: undefined,
+2025-10-13T11:44:38.803519463Z   table: undefined,
+2025-10-13T11:44:38.803523504Z   column: undefined,
+2025-10-13T11:44:38.803527374Z   dataType: undefined,
+2025-10-13T11:44:38.803531464Z   constraint: undefined,
+2025-10-13T11:44:38.803536104Z   file: 'parse_relation.c',
+2025-10-13T11:44:38.803540424Z   line: '3716',
+2025-10-13T11:44:38.803544855Z   routine: 'errorMissingColumn'
+2025-10-13T11:44:38.803549435Z }
+2025-10-13T11:44:38.803553275Z 
+2025-10-13T11:44:38.803557395Z Node.js v22.16.0
