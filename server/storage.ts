@@ -631,6 +631,7 @@ export class DatabaseStorage implements IStorage {
     const [newUser] = await db.insert(users).values({
       username: user.username,
       passwordHash,
+      email: user.email,
       role: user.role || "admin",
     }).returning();
     
