@@ -97,6 +97,7 @@ export const users = pgTable("users", {
   id: varchar("id").primaryKey().$defaultFn(() => crypto.randomUUID()),
   username: varchar("username").notNull().unique(),
   passwordHash: varchar("password_hash").notNull(),
+  email: varchar("email"),
   role: varchar("role").notNull().default("admin"),
   createdAt: timestamp("created_at").notNull().defaultNow(),
 });
@@ -110,9 +111,27 @@ export const insertUserSchema = createInsertSchema(users).omit({ id: true, creat
     .min(3, "Username must be at least 3 characters")
     .max(50, "Username must be at most 50 characters")
     .regex(/^[a-zA-Z0-9_-]+$/, "Username can only contain letters, numbers, underscores, and hyphens"),
+  email: z.string().email("Invalid email address").optional(),
 });
 export type InsertUser = z.infer<typeof insertUserSchema>;
 export type User = typeof users.$inferSelect;
+
+export const otps = pgTable("otps", {
+  id: varchar("id").primaryKey().$defaultFn(() => crypto.randomUUID()),
+  userId: varchar("user_id").notNull(),
+  code: varchar("code").notNull(),
+  expiresAt: timestamp("expires_at").notNull(),
+  createdAt: timestamp("created_at").notNull().defaultNow(),
+});
+
+export const insertOtpSchema = createInsertSchema(otps).omit({ id: true, createdAt: true });
+export type InsertOtp = z.infer<typeof insertOtpSchema>;
+export type Otp = typeof otps.$inferSelect;
+
+export const verifyOtpSchema = z.object({
+  userId: z.string(),
+  code: z.string().length(6, "OTP must be 6 digits"),
+});
 
 export const loginSchema = z.object({
   username: z.string().min(1, "Username is required"),
