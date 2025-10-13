@@ -8,11 +8,14 @@ import { AddBookingDialog } from "@/components/AddBookingDialog";
 import { ExtendSessionDialog } from "@/components/ExtendSessionDialog";
 import { EndSessionDialog } from "@/components/EndSessionDialog";
 import { AddFoodToBookingDialog } from "@/components/AddFoodToBookingDialog";
+import { DeviceRestrictionAlert } from "@/components/DeviceRestrictionAlert";
 import { Plus, Monitor, Gamepad2, Glasses, Car, Cpu, Tv, Radio, Box, RefreshCw, Calculator } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { fetchBookings, createBooking, updateBooking, deleteBooking, fetchDeviceConfigs, getServerTime } from "@/lib/api";
 import type { Booking as DBBooking, DeviceConfig } from "@shared/schema";
 import { useServerTime } from "@/hooks/useServerTime";
+import { useAuth } from "@/contexts/AuthContext";
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 
 type BookingStatus = "available" | "running" | "expired" | "upcoming" | "completed" | "paused";
 
@@ -63,6 +66,7 @@ export default function Dashboard() {
   const { toast } = useToast();
   const queryClient = useQueryClient();
   const { getTime } = useServerTime();
+  const { canMakeChanges, deviceRestricted, user } = useAuth();
   const [addDialog, setAddDialog] = useState(false);
   const [extendDialog, setExtendDialog] = useState({ open: false, bookingId: "" });
   const [deleteDialog, setDeleteDialog] = useState({ open: false, bookingId: "", seatName: "", customerName: "" });
@@ -535,15 +539,35 @@ export default function Dashboard() {
 
   return (
     <div className="space-y-4 md:space-y-6">
+      <DeviceRestrictionAlert show={deviceRestricted} userRole={user?.role} />
+      
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 sm:gap-4">
         <div>
           <h1 className="text-2xl sm:text-3xl font-bold text-foreground">Seat Management</h1>
           <p className="text-sm sm:text-base text-muted-foreground">Monitor and manage all gaming seats</p>
         </div>
-        <Button onClick={() => setAddDialog(true)} data-testid="button-add-booking" className="w-full sm:w-auto">
-          <Plus className="mr-2 h-4 w-4" />
-          Add Booking
-        </Button>
+        <TooltipProvider>
+          <Tooltip>
+            <TooltipTrigger asChild>
+              <span className="w-full sm:w-auto">
+                <Button 
+                  onClick={() => setAddDialog(true)} 
+                  data-testid="button-add-booking" 
+                  className="w-full sm:w-auto"
+                  disabled={!canMakeChanges}
+                >
+                  <Plus className="mr-2 h-4 w-4" />
+                  Add Booking
+                </Button>
+              </span>
+            </TooltipTrigger>
+            {!canMakeChanges && (
+              <TooltipContent>
+                <p>Desktop access required to add bookings</p>
+              </TooltipContent>
+            )}
+          </Tooltip>
+        </TooltipProvider>
       </div>
 
       <div className="grid gap-3 grid-cols-2 md:grid-cols-2 lg:grid-cols-4">
