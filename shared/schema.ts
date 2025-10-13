@@ -289,3 +289,22 @@ export const insertLoyaltyConfigSchema = createInsertSchema(loyaltyConfig).omit(
 export type InsertLoyaltyConfig = z.infer<typeof insertLoyaltyConfigSchema>;
 export type LoyaltyConfig = typeof loyaltyConfig.$inferSelect;
 
+export const gameUpdates = pgTable("game_updates", {
+  id: varchar("id").primaryKey().$defaultFn(() => crypto.randomUUID()),
+  title: varchar("title").notNull(),
+  description: text("description").notNull(),
+  imageUrl: text("image_url").notNull(),
+  gameName: varchar("game_name").notNull(),
+  updateType: varchar("update_type").notNull(),
+  source: varchar("source"),
+  sourceUrl: text("source_url"),
+  publishedAt: timestamp("published_at").notNull(),
+  createdAt: timestamp("created_at").notNull().defaultNow(),
+});
+
+export const insertGameUpdateSchema = createInsertSchema(gameUpdates).omit({ id: true, createdAt: true }).extend({
+  publishedAt: z.union([z.string(), z.date()]).transform(val => typeof val === 'string' ? new Date(val) : val),
+});
+export type InsertGameUpdate = z.infer<typeof insertGameUpdateSchema>;
+export type GameUpdate = typeof gameUpdates.$inferSelect;
+
