@@ -6,6 +6,7 @@ import { Label } from "@/components/ui/label";
 import { useToast } from "@/hooks/use-toast";
 import loginImage from "@assets/stock_images/purple_gaming_setup,_c53078b3.jpg";
 import logoDark from "@assets/WhatsApp Image 2025-10-10 at 18.33.50_a4a3fc99_1760107172482.jpg";
+import VerifyOtp from "./VerifyOtp";
 
 interface LoginProps {
   onLoginSuccess: (userData: any) => void;
@@ -20,6 +21,8 @@ export default function Login({ onLoginSuccess }: LoginProps) {
   const [lockoutTime, setLockoutTime] = useState<number | null>(null);
   const [remainingTime, setRemainingTime] = useState(0);
   const [isAdminLogin, setIsAdminLogin] = useState(false);
+  const [showOtpVerification, setShowOtpVerification] = useState(false);
+  const [otpData, setOtpData] = useState<{ userId: string; maskedEmail: string } | null>(null);
   const { toast } = useToast();
 
   useEffect(() => {
@@ -63,13 +66,28 @@ export default function Login({ onLoginSuccess }: LoginProps) {
 
       if (response.ok) {
         const userData = await response.json();
-        setFailedAttempts(0);
-        setLockoutTime(null);
-        onLoginSuccess(userData);
-        toast({
-          title: "Login successful",
-          description: `Welcome ${userData.username} (${userData.role})`,
-        });
+        
+        // Check if OTP verification is required
+        if (userData.requiresOtp) {
+          setOtpData({
+            userId: userData.userId,
+            maskedEmail: userData.message.split('OTP sent to ')[1] || 'your email'
+          });
+          setShowOtpVerification(true);
+          toast({
+            title: "OTP Sent",
+            description: userData.message,
+          });
+        } else {
+          // Normal login success
+          setFailedAttempts(0);
+          setLockoutTime(null);
+          onLoginSuccess(userData);
+          toast({
+            title: "Login successful",
+            description: `Welcome ${userData.username} (${userData.role})`,
+          });
+        }
       } else {
         const data = await response.json();
         const newFailedAttempts = failedAttempts + 1;
@@ -110,6 +128,25 @@ export default function Login({ onLoginSuccess }: LoginProps) {
   };
 
   const isLockedOut = !!(lockoutTime && Date.now() < lockoutTime);
+
+  const handleBackToLogin = () => {
+    setShowOtpVerification(false);
+    setOtpData(null);
+    setUsername("");
+    setPassword("");
+  };
+
+  // Show OTP verification page if needed
+  if (showOtpVerification && otpData) {
+    return (
+      <VerifyOtp
+        userId={otpData.userId}
+        maskedEmail={otpData.maskedEmail}
+        onVerifySuccess={onLoginSuccess}
+        onBack={handleBackToLogin}
+      />
+    );
+  }
 
   return (
     <div className="min-h-screen flex items-center justify-center p-4 bg-gradient-to-br from-purple-900 via-gray-900 to-black dark:from-purple-950 dark:via-gray-950 dark:to-black">
