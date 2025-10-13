@@ -155,6 +155,7 @@ export default function Food() {
                   size="icon"
                   onClick={() => openEditDialog(item)}
                   data-testid={`button-edit-food-${item.id}`}
+                  disabled={!canMakeChanges}
                 >
                   <Pencil className="h-4 w-4" />
                 </Button>
@@ -163,6 +164,7 @@ export default function Food() {
                   size="icon"
                   onClick={() => openDeleteDialog(item.id, item.name)}
                   data-testid={`button-delete-food-${item.id}`}
+                  disabled={!canMakeChanges}
                 >
                   <Trash2 className="h-4 w-4 text-destructive" />
                 </Button>

@@ -35,6 +35,7 @@ const UPDATE_TYPE_COLORS: Record<string, string> = {
 };
 
 export default function GameUpdates() {
+  const { deviceRestricted, user } = useAuth();
   const [selectedGame, setSelectedGame] = useState<string>("all");
   const [searchQuery, setSearchQuery] = useState<string>("");
 
@@ -69,6 +70,8 @@ export default function GameUpdates() {
 
   return (
     <div className="min-h-screen bg-background p-4 md:p-6 space-y-6">
+      <DeviceRestrictionAlert show={deviceRestricted} userRole={user?.role} />
+      
       {/* Header */}
       <div className="flex flex-col gap-4">
         <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">

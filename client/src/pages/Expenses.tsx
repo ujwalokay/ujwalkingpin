@@ -412,6 +412,7 @@ export default function Expenses() {
                           size="icon"
                           onClick={() => openEditDialog(expense)}
                           data-testid={`button-edit-expense-${expense.id}`}
+                          disabled={!canMakeChanges}
                         >
                           <Pencil className="h-4 w-4" />
                         </Button>
@@ -420,6 +421,7 @@ export default function Expenses() {
                           size="icon"
                           onClick={() => openDeleteDialog(expense.id, expense.description)}
                           data-testid={`button-delete-expense-${expense.id}`}
+                          disabled={!canMakeChanges}
                         >
                           <Trash2 className="h-4 w-4 text-destructive" />
                         </Button>
