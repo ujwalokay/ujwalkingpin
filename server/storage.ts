@@ -33,6 +33,8 @@ import {
   type InsertLoyaltyEvent,
   type LoyaltyConfig,
   type InsertLoyaltyConfig,
+  type GameUpdate,
+  type InsertGameUpdate,
   bookings,
   deviceConfigs,
   pricingConfigs,
@@ -50,6 +52,7 @@ import {
   loyaltyMembers,
   loyaltyEvents,
   loyaltyConfig,
+  gameUpdates,
 } from "@shared/schema";
 import { db } from "./db";
 import { eq, and, gte, lte, desc } from "drizzle-orm";
@@ -165,6 +168,13 @@ export interface IStorage {
   upsertLoyaltyConfig(config: InsertLoyaltyConfig): Promise<LoyaltyConfig>;
   awardLoyaltyPoints(whatsappNumber: string, customerName: string, amount: number): Promise<void>;
   redeemLoyaltyPoints(whatsappNumber: string, pointsToRedeem: number): Promise<{ discountAmount: number; remainingPoints: number }>;
+  
+  getAllGameUpdates(): Promise<GameUpdate[]>;
+  getGameUpdate(id: string): Promise<GameUpdate | undefined>;
+  getGameUpdatesByGame(gameName: string): Promise<GameUpdate[]>;
+  getRecentGameUpdates(limit: number): Promise<GameUpdate[]>;
+  createGameUpdate(update: InsertGameUpdate): Promise<GameUpdate>;
+  deleteGameUpdate(id: string): Promise<boolean>;
   
   initializeDefaults(): Promise<void>;
 }
@@ -1052,6 +1062,33 @@ export class DatabaseStorage implements IStorage {
       discountAmount: Math.floor(discountAmount),
       remainingPoints: newPoints,
     };
+  }
+
+  async getAllGameUpdates(): Promise<GameUpdate[]> {
+    return await db.select().from(gameUpdates).orderBy(desc(gameUpdates.publishedAt));
+  }
+
+  async getGameUpdate(id: string): Promise<GameUpdate | undefined> {
+    const [update] = await db.select().from(gameUpdates).where(eq(gameUpdates.id, id));
+    return update;
+  }
+
+  async getGameUpdatesByGame(gameName: string): Promise<GameUpdate[]> {
+    return await db.select().from(gameUpdates).where(eq(gameUpdates.gameName, gameName)).orderBy(desc(gameUpdates.publishedAt));
+  }
+
+  async getRecentGameUpdates(limit: number): Promise<GameUpdate[]> {
+    return await db.select().from(gameUpdates).orderBy(desc(gameUpdates.publishedAt)).limit(limit);
+  }
+
+  async createGameUpdate(update: InsertGameUpdate): Promise<GameUpdate> {
+    const [newUpdate] = await db.insert(gameUpdates).values(update).returning();
+    return newUpdate;
+  }
+
+  async deleteGameUpdate(id: string): Promise<boolean> {
+    const result = await db.delete(gameUpdates).where(eq(gameUpdates.id, id));
+    return result.rowCount !== null && result.rowCount > 0;
   }
 }
 
