@@ -310,14 +310,3 @@ export const insertGameUpdateSchema = createInsertSchema(gameUpdates).omit({ id:
 export type InsertGameUpdate = z.infer<typeof insertGameUpdateSchema>;
 export type GameUpdate = typeof gameUpdates.$inferSelect;
 
-export const miniWebviewSettings = pgTable("mini_webview_settings", {
-  id: varchar("id").primaryKey().$defaultFn(() => crypto.randomUUID()),
-  isLiveEnabled: varchar("is_live_enabled").notNull().default("true"),
-  refreshInterval: integer("refresh_interval").notNull().default(5),
-  updatedAt: timestamp("updated_at").notNull().defaultNow(),
-});
-
-export const insertMiniWebviewSettingsSchema = createInsertSchema(miniWebviewSettings).omit({ id: true, updatedAt: true });
-export type InsertMiniWebviewSettings = z.infer<typeof insertMiniWebviewSettingsSchema>;
-export type MiniWebviewSettings = typeof miniWebviewSettings.$inferSelect;
-

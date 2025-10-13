@@ -28,7 +28,6 @@ import ConsumerGallery from "@/pages/ConsumerGallery";
 import ConsumerFacilities from "@/pages/ConsumerFacilities";
 import ConsumerGames from "@/pages/ConsumerGames";
 import FeaturesShowcase from "@/pages/FeaturesShowcase";
-import MiniWebview from "@/pages/MiniWebview";
 import NotFound from "@/pages/not-found";
 import Login from "@/pages/Login";
 import { ConsumerNav } from "@/components/ConsumerNav";
@@ -136,7 +135,6 @@ function App() {
               <Route path="/features" component={FeaturesShowcase} />
               <Route path="/analytics" component={Analytics} />
               <Route path="/history" component={History} />
-              <Route path="/mini-webview" component={MiniWebview} />
               <Route path="/home">
                 <ConsumerNav />
                 <Home />
