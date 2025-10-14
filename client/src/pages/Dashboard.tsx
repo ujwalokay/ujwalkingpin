@@ -38,7 +38,7 @@ interface Booking {
   price: number;
   personCount?: number;
   status: BookingStatus;
-  bookingType: "walk-in" | "upcoming";
+  bookingType: "walk-in" | "upcoming" | "happy-hours";
   foodOrders?: FoodOrder[];
   pausedRemainingTime?: number | null;
 }
@@ -107,7 +107,7 @@ export default function Dashboard() {
       price: parseFloat(dbBooking.price),
       personCount: dbBooking.personCount,
       status: dbBooking.status as BookingStatus,
-      bookingType: dbBooking.bookingType as "walk-in" | "upcoming",
+      bookingType: dbBooking.bookingType as "walk-in" | "upcoming" | "happy-hours",
       foodOrders: dbBooking.foodOrders || [],
       pausedRemainingTime: dbBooking.pausedRemainingTime,
     }));
@@ -527,6 +527,7 @@ export default function Dashboard() {
 
   const walkInBookings = filteredBookings.filter(b => b.bookingType === "walk-in");
   const upcomingBookings = filteredBookings.filter(b => b.bookingType === "upcoming");
+  const happyHoursBookings = filteredBookings.filter(b => b.bookingType === "happy-hours");
 
   if (isLoading) {
     return (
@@ -601,6 +602,10 @@ export default function Dashboard() {
               <span className="hidden sm:inline">Upcoming Bookings</span>
               <span className="sm:hidden">Upcoming</span> ({upcomingBookings.length})
             </TabsTrigger>
+            <TabsTrigger value="happy-hours" data-testid="tab-happy-hours" className="flex-1 sm:flex-none">
+              <span className="hidden sm:inline">Happy Hours</span>
+              <span className="sm:hidden">Happy Hours</span> ({happyHoursBookings.length})
+            </TabsTrigger>
           </TabsList>
           <div className="flex gap-2">
             <Button 
@@ -644,6 +649,21 @@ export default function Dashboard() {
         <TabsContent value="upcoming" className="space-y-4">
           <BookingTable
             bookings={upcomingBookings}
+            onEnd={handleDelete}
+            onComplete={handleComplete}
+            onAddFood={handleAddFood}
+            onStopTimer={handleStopTimer}
+            onDeleteFood={handleDeleteFood}
+            showDateColumn={true}
+            selectedBookings={selectedBookings}
+            onToggleSelection={handleToggleSelection}
+          />
+        </TabsContent>
+
+        <TabsContent value="happy-hours" className="space-y-4">
+          <BookingTable
+            bookings={happyHoursBookings}
+            onExtend={handleExtend}
             onEnd={handleDelete}
             onComplete={handleComplete}
             onAddFood={handleAddFood}

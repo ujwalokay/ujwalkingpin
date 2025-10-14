@@ -70,11 +70,9 @@ export type PricingConfig = typeof pricingConfigs.$inferSelect;
 export const happyHoursConfigs = pgTable("happy_hours_configs", {
   id: varchar("id").primaryKey().$defaultFn(() => crypto.randomUUID()),
   category: varchar("category").notNull(),
-  duration: varchar("duration").notNull(),
-  price: varchar("price").notNull(),
-  personCount: integer("person_count").notNull().default(1),
   startTime: varchar("start_time").notNull(), // e.g., "14:00"
   endTime: varchar("end_time").notNull(), // e.g., "18:00"
+  pricePerHour: real("price_per_hour").notNull(),
   enabled: integer("enabled").notNull().default(1), // 1 = enabled, 0 = disabled
 });
 
