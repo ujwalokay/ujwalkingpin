@@ -6,6 +6,7 @@ import {
   insertBookingSchema, 
   insertDeviceConfigSchema, 
   insertPricingConfigSchema, 
+  insertHappyHoursConfigSchema,
   insertFoodItemSchema, 
   insertExpenseSchema,
   insertGamingCenterInfoSchema,
@@ -507,6 +508,64 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const { category } = req.params;
       await storage.deletePricingConfig(category);
       res.json({ success: true, message: `Deleted pricing config for ${category}` });
+    } catch (error: any) {
+      res.status(500).json({ message: error.message });
+    }
+  });
+
+  app.get("/api/happy-hours-config", requireAuth, async (req, res) => {
+    try {
+      const configs = await storage.getAllHappyHoursConfigs();
+      res.json(configs);
+    } catch (error: any) {
+      res.status(500).json({ message: error.message });
+    }
+  });
+
+  app.post("/api/happy-hours-config", requireAdmin, async (req, res) => {
+    try {
+      const { category, configs } = req.body;
+      if (!category || !Array.isArray(configs)) {
+        return res.status(400).json({ message: "Invalid request format" });
+      }
+      
+      const validatedConfigs = configs.map(c => insertHappyHoursConfigSchema.parse({ ...c, category }));
+      const saved = await storage.upsertHappyHoursConfigs(category, validatedConfigs);
+      
+      // Log the admin activity
+      if (req.session.userId && req.session.username && req.session.role) {
+        await storage.createActivityLog({
+          userId: req.session.userId,
+          username: req.session.username,
+          userRole: req.session.role,
+          action: 'update',
+          entityType: 'happy-hours-config',
+          entityId: category,
+          details: `Updated happy hours config for ${category} - ${configs.length} time slots`
+        });
+      }
+      
+      res.json(saved);
+    } catch (error: any) {
+      res.status(400).json({ message: error.message });
+    }
+  });
+
+  app.delete("/api/happy-hours-config/:category", requireAdmin, async (req, res) => {
+    try {
+      const { category } = req.params;
+      await storage.deleteHappyHoursConfig(category);
+      res.json({ success: true, message: `Deleted happy hours config for ${category}` });
+    } catch (error: any) {
+      res.status(500).json({ message: error.message });
+    }
+  });
+
+  app.get("/api/happy-hours-active/:category", publicApiLimiter, async (req, res) => {
+    try {
+      const { category } = req.params;
+      const isActive = await storage.isHappyHoursActive(category);
+      res.json({ active: isActive });
     } catch (error: any) {
       res.status(500).json({ message: error.message });
     }

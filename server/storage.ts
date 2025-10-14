@@ -5,6 +5,8 @@ import {
   type InsertDeviceConfig,
   type PricingConfig,
   type InsertPricingConfig,
+  type HappyHoursConfig,
+  type InsertHappyHoursConfig,
   type FoodItem,
   type InsertFoodItem,
   type BookingHistory,
@@ -38,6 +40,7 @@ import {
   bookings,
   deviceConfigs,
   pricingConfigs,
+  happyHoursConfigs,
   foodItems,
   bookingHistory,
   users,
@@ -100,6 +103,12 @@ export interface IStorage {
   getPricingConfigsByCategory(category: string): Promise<PricingConfig[]>;
   upsertPricingConfigs(category: string, configs: InsertPricingConfig[]): Promise<PricingConfig[]>;
   deletePricingConfig(category: string): Promise<boolean>;
+  
+  getAllHappyHoursConfigs(): Promise<HappyHoursConfig[]>;
+  getHappyHoursConfigsByCategory(category: string): Promise<HappyHoursConfig[]>;
+  upsertHappyHoursConfigs(category: string, configs: InsertHappyHoursConfig[]): Promise<HappyHoursConfig[]>;
+  deleteHappyHoursConfig(category: string): Promise<boolean>;
+  isHappyHoursActive(category: string): Promise<boolean>;
   
   getAllFoodItems(): Promise<FoodItem[]>;
   getFoodItem(id: string): Promise<FoodItem | undefined>;
@@ -497,6 +506,50 @@ export class DatabaseStorage implements IStorage {
   async deletePricingConfig(category: string): Promise<boolean> {
     const result = await db.delete(pricingConfigs).where(eq(pricingConfigs.category, category));
     return result.rowCount ? result.rowCount > 0 : false;
+  }
+
+  async getAllHappyHoursConfigs(): Promise<HappyHoursConfig[]> {
+    return await db.select().from(happyHoursConfigs);
+  }
+
+  async getHappyHoursConfigsByCategory(category: string): Promise<HappyHoursConfig[]> {
+    return await db.select().from(happyHoursConfigs).where(eq(happyHoursConfigs.category, category));
+  }
+
+  async upsertHappyHoursConfigs(category: string, configs: InsertHappyHoursConfig[]): Promise<HappyHoursConfig[]> {
+    // Delete existing configs for this category
+    await db.delete(happyHoursConfigs).where(eq(happyHoursConfigs.category, category));
+    
+    if (configs.length === 0) {
+      return [];
+    }
+    
+    // Insert new configs
+    const result = await db.insert(happyHoursConfigs).values(configs).returning();
+    return result;
+  }
+
+  async deleteHappyHoursConfig(category: string): Promise<boolean> {
+    const result = await db.delete(happyHoursConfigs).where(eq(happyHoursConfigs.category, category));
+    return result.rowCount ? result.rowCount > 0 : false;
+  }
+
+  async isHappyHoursActive(category: string): Promise<boolean> {
+    const configs = await this.getHappyHoursConfigsByCategory(category);
+    if (configs.length === 0 || configs[0].enabled === 0) {
+      return false;
+    }
+
+    const now = new Date();
+    const currentTime = `${now.getHours().toString().padStart(2, '0')}:${now.getMinutes().toString().padStart(2, '0')}`;
+    
+    for (const config of configs) {
+      if (currentTime >= config.startTime && currentTime <= config.endTime) {
+        return true;
+      }
+    }
+    
+    return false;
   }
 
   async getAllFoodItems(): Promise<FoodItem[]> {
