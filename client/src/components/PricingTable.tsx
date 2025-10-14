@@ -100,24 +100,24 @@ export function PricingTable({ category, slots, onUpdateSlots }: PricingTablePro
           {slots.map((slot, index) => (
             <div
               key={index}
-              className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 rounded-md border p-3 hover-elevate"
+              className="flex flex-col lg:flex-row items-start lg:items-center justify-between gap-3 lg:gap-4 rounded-md border p-3 lg:p-4 hover-elevate transition-all"
               data-testid={`row-pricing-${category.toLowerCase()}-${index}`}
             >
               {editingIndex === index ? (
-                <div className="flex flex-col sm:flex-row items-start sm:items-center gap-2 flex-1">
-                  <div className="flex items-center gap-2">
-                    <div className="flex items-center gap-1">
+                <div className="flex flex-col lg:flex-row items-start lg:items-center gap-3 lg:gap-4 flex-1 w-full">
+                  <div className="flex items-center gap-2 lg:gap-3">
+                    <div className="flex items-center gap-1.5">
                       <Input
                         type="number"
                         min="0"
                         value={editDurationHours}
                         onChange={(e) => setEditDurationHours(Math.max(0, parseInt(e.target.value) || 0))}
-                        className="w-14 h-8 text-center"
+                        className="w-16 lg:w-20 h-9 lg:h-10 text-center text-sm lg:text-base"
                         data-testid={`input-duration-hours-${category.toLowerCase()}-${index}`}
                       />
-                      <span className="text-xs text-muted-foreground">hr</span>
+                      <span className="text-xs lg:text-sm text-muted-foreground font-medium">hr</span>
                     </div>
-                    <div className="flex items-center gap-1">
+                    <div className="flex items-center gap-1.5">
                       <Input
                         type="number"
                         min="0"
@@ -127,78 +127,78 @@ export function PricingTable({ category, slots, onUpdateSlots }: PricingTablePro
                           const value = parseInt(e.target.value) || 0;
                           setEditDurationMins(value >= 30 ? 30 : 0);
                         }}
-                        className="w-14 h-8 text-center"
+                        className="w-16 lg:w-20 h-9 lg:h-10 text-center text-sm lg:text-base"
                         data-testid={`input-duration-mins-${category.toLowerCase()}-${index}`}
                       />
-                      <span className="text-xs text-muted-foreground">min</span>
+                      <span className="text-xs lg:text-sm text-muted-foreground font-medium">min</span>
                     </div>
                   </div>
                   {category === "PS5" && (
-                    <div className="flex items-center gap-2">
-                      <span className="text-xs text-muted-foreground">+</span>
-                      <div className="flex items-center gap-1">
+                    <div className="flex items-center gap-2 lg:gap-3">
+                      <span className="text-xs lg:text-sm text-muted-foreground">+</span>
+                      <div className="flex items-center gap-1.5">
                         <Input
                           type="number"
                           min="1"
                           value={editPersonCount}
                           onChange={(e) => setEditPersonCount(Math.max(1, parseInt(e.target.value) || 1))}
-                          className="w-14 h-8 text-center"
+                          className="w-16 lg:w-20 h-9 lg:h-10 text-center text-sm lg:text-base"
                           data-testid={`input-person-count-${category.toLowerCase()}-${index}`}
                         />
-                        <span className="text-xs text-muted-foreground">person</span>
+                        <span className="text-xs lg:text-sm text-muted-foreground font-medium">person</span>
                       </div>
                     </div>
                   )}
                 </div>
               ) : (
-                <div className="text-sm font-medium flex-1">
+                <div className="text-sm lg:text-base font-medium flex-1">
                   {slot.duration}{category === "PS5" ? ` + ${slot.personCount || 1} person` : ''}
                 </div>
               )}
-              <div className="flex items-center gap-2 w-full sm:w-auto justify-end">
+              <div className="flex items-center gap-2 lg:gap-3 w-full lg:w-auto justify-end">
                 {editingIndex === index ? (
                   <>
-                    <div className="flex items-center gap-1">
-                      <span className="text-xs text-muted-foreground hidden sm:inline">₹</span>
+                    <div className="flex items-center gap-1.5 lg:gap-2">
+                      <span className="text-sm lg:text-base text-muted-foreground font-semibold">₹</span>
                       <Input
                         type="number"
                         value={editValue}
                         onChange={(e) => setEditValue(e.target.value)}
-                        className="w-20 sm:w-24 h-8"
+                        className="w-24 lg:w-32 h-9 lg:h-10 text-sm lg:text-base"
                         placeholder="Price"
                         data-testid={`input-price-${category.toLowerCase()}-${index}`}
                       />
                     </div>
-                    <Button size="icon" variant="ghost" className="h-8 w-8 shrink-0" onClick={saveEdit} data-testid={`button-save-${index}`}>
-                      <Check className="h-4 w-4" />
+                    <Button size="icon" variant="ghost" className="h-9 w-9 lg:h-10 lg:w-10 shrink-0 hover:bg-green-100 dark:hover:bg-green-900" onClick={saveEdit} data-testid={`button-save-${index}`}>
+                      <Check className="h-4 w-4 lg:h-5 lg:w-5" />
                     </Button>
-                    <Button size="icon" variant="ghost" className="h-8 w-8 shrink-0" onClick={cancelEdit} data-testid={`button-cancel-${index}`}>
-                      <X className="h-4 w-4" />
+                    <Button size="icon" variant="ghost" className="h-9 w-9 lg:h-10 lg:w-10 shrink-0 hover:bg-red-100 dark:hover:bg-red-900" onClick={cancelEdit} data-testid={`button-cancel-${index}`}>
+                      <X className="h-4 w-4 lg:h-5 lg:w-5" />
                     </Button>
                   </>
                 ) : (
                   <>
-                    <span className="font-bold text-primary text-lg" data-testid={`text-price-${category.toLowerCase()}-${index}`}>
+                    <span className="font-bold text-primary text-lg lg:text-xl" data-testid={`text-price-${category.toLowerCase()}-${index}`}>
                       ₹{slot.price}
                     </span>
                     <Button
                       size="icon"
                       variant="ghost"
-                      className="h-8 w-8 shrink-0"
+                      className="h-9 w-9 lg:h-10 lg:w-10 shrink-0 hover:bg-blue-100 dark:hover:bg-blue-900"
                       onClick={() => startEdit(index)}
                       data-testid={`button-edit-${category.toLowerCase()}-${index}`}
                     >
-                      <Pencil className="h-4 w-4" />
+                      <Pencil className="h-4 w-4 lg:h-5 lg:w-5" />
                     </Button>
                     {slots.length > 1 && (
                       <Button
                         size="icon"
                         variant="ghost"
-                        className="h-8 w-8 shrink-0"
+                        className="h-9 w-9 lg:h-10 lg:w-10 shrink-0 hover:bg-red-100 dark:hover:bg-red-900"
                         onClick={() => removeSlot(index)}
                         data-testid={`button-remove-${category.toLowerCase()}-${index}`}
                       >
-                        <Trash2 className="h-4 w-4" />
+                        <Trash2 className="h-4 w-4 lg:h-5 lg:w-5" />
                       </Button>
                     )}
                   </>
