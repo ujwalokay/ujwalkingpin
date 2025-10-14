@@ -11,7 +11,9 @@ This project is a local admin panel web application designed for managing a gami
   - Modified AddBookingDialog to ALWAYS show person counter (+/-) for ALL PS5 bookings
   - Person count controls now appear regardless of whether pricing slot has personCount configured
   - Improved responsive layout with flex-col sm:flex-row pattern for better mobile/tablet experience
-  - Fixed pricing calculation to properly multiply by person count for all PS5 bookings
+  - **Fixed pricing: PS5 configured price is now FINAL/TOTAL price (no multiplication)**
+  - Person count is tracked for information only, NOT used for price calculation
+  - Example: "1 hour + 3 person = ₹100" means ₹100 is the total price, regardless of actual persons selected
   - Enhanced seats grid with better column distribution (3 cols on mobile, up to 6 on large screens)
   - Improved time slot filter buttons with grid layout for consistent button sizing
   - PS5 remains the only category with always-visible person count controls (PS5 is unique)
