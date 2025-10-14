@@ -206,10 +206,9 @@ export function AddBookingDialog({ open, onOpenChange, onConfirm, availableSeats
         totalPrice = happyHoursPrice;
         finalPersonCount = 1; // Happy Hours doesn't use multi-person pricing
       } else if (category === "PS5") {
-        // PS5 always uses person count for pricing
+        // PS5 price is final/total (no multiplication needed)
         finalPersonCount = personCount;
-        const basePrice = parseFloat(selectedSlot!.price.toString());
-        totalPrice = (basePrice * personCount).toString();
+        totalPrice = selectedSlot!.price.toString();
       } else {
         // Other categories only use multi-person pricing if slot defines it
         const slotPersonCount = selectedSlot!.personCount || 1;
@@ -602,15 +601,9 @@ export function AddBookingDialog({ open, onOpenChange, onConfirm, availableSeats
                   </Button>
                 </div>
               </div>
-              {selectedSlot.personCount && selectedSlot.personCount > 1 ? (
-                <p className="text-xs text-muted-foreground">
-                  {duration} for {personCount} {personCount === 1 ? 'person' : 'persons'}: ₹{selectedSlot.price} × {personCount} = ₹{(parseFloat(selectedSlot.price.toString()) * personCount).toFixed(2)}
-                </p>
-              ) : (
-                <p className="text-xs text-muted-foreground">
-                  {duration}: ₹{selectedSlot.price} (Price per person)
-                </p>
-              )}
+              <p className="text-xs text-muted-foreground">
+                {duration} for {personCount} {personCount === 1 ? 'person' : 'persons'}: ₹{selectedSlot.price} (Total Price)
+              </p>
             </div>
           )}
 
