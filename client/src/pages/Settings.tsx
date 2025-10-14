@@ -2,6 +2,7 @@ import { useState, useEffect } from "react";
 import { useQuery, useMutation } from "@tanstack/react-query";
 import { DeviceConfigCard } from "@/components/DeviceConfigCard";
 import { PricingTable } from "@/components/PricingTable";
+import { HappyHoursTable } from "@/components/HappyHoursTable";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -43,11 +44,32 @@ interface PricingSlot {
   personCount?: number;
 }
 
+interface HappyHoursConfig {
+  id: string;
+  category: string;
+  startTime: string;
+  endTime: string;
+  pricePerHour: number;
+  enabled: number;
+}
+
+interface HappyHoursSlot {
+  startTime: string;
+  endTime: string;
+  pricePerHour: number;
+}
+
+interface HappyHoursData {
+  enabled: boolean;
+  slots: HappyHoursSlot[];
+}
+
 interface CategoryState {
   category: string;
   count: number;
   seats: { name: string; visible: boolean }[];
   pricing: PricingSlot[];
+  happyHours: HappyHoursData;
 }
 
 export default function Settings() {
@@ -60,6 +82,10 @@ export default function Settings() {
 
   const { data: pricingConfigs, isLoading: pricingLoading } = useQuery<PricingConfig[]>({
     queryKey: ["/api/pricing-config"],
+  });
+
+  const { data: happyHoursConfigs, isLoading: happyHoursLoading } = useQuery<HappyHoursConfig[]>({
+    queryKey: ["/api/happy-hours-config"],
   });
 
   const { data: bookings = [] } = useQuery<Booking[]>({
@@ -96,7 +122,7 @@ export default function Settings() {
   }, [loyaltyConfig]);
 
   useEffect(() => {
-    if (deviceConfigs && pricingConfigs) {
+    if (deviceConfigs && pricingConfigs && happyHoursConfigs) {
       const categoryMap = new Map<string, CategoryState>();
 
       deviceConfigs.forEach(config => {
@@ -104,11 +130,21 @@ export default function Settings() {
           .filter(p => p.category === config.category)
           .map(p => ({ duration: p.duration, price: parseFloat(p.price), personCount: p.personCount || 1 }));
 
+        const happyHoursSlots = happyHoursConfigs
+          .filter(h => h.category === config.category)
+          .map(h => ({ startTime: h.startTime, endTime: h.endTime, pricePerHour: h.pricePerHour }));
+
+        const happyHoursEnabled = happyHoursConfigs.find(h => h.category === config.category)?.enabled === 1;
+
         categoryMap.set(config.category, {
           category: config.category,
           count: config.count,
           seats: config.seats.map(seat => ({ name: seat, visible: true })),
           pricing: pricing.length > 0 ? pricing : [{ duration: "30 mins", price: 0, personCount: 1 }],
+          happyHours: {
+            enabled: happyHoursEnabled,
+            slots: happyHoursSlots.length > 0 ? happyHoursSlots : [{ startTime: "10:00", endTime: "12:00", pricePerHour: 0 }],
+          },
         });
       });
 
@@ -119,13 +155,14 @@ export default function Settings() {
             count: 0,
             seats: [],
             pricing: [{ duration: config.duration, price: parseFloat(config.price), personCount: config.personCount || 1 }],
+            happyHours: { enabled: false, slots: [{ startTime: "10:00", endTime: "12:00", pricePerHour: 0 }] },
           });
         }
       });
 
       setCategories(Array.from(categoryMap.values()));
     }
-  }, [deviceConfigs, pricingConfigs]);
+  }, [deviceConfigs, pricingConfigs, happyHoursConfigs]);
 
   const saveDeviceConfigMutation = useMutation({
     mutationFn: async (config: { category: string; count: number; seats: string[] }) => {
@@ -139,15 +176,23 @@ export default function Settings() {
     },
   });
 
+  const saveHappyHoursConfigMutation = useMutation({
+    mutationFn: async (data: { category: string; configs: { startTime: string; endTime: string; pricePerHour: number; enabled: number }[] }) => {
+      return await apiRequest("POST", "/api/happy-hours-config", data);
+    },
+  });
+
   const deleteCategoryMutation = useMutation({
     mutationFn: async (category: string) => {
       await apiRequest("DELETE", `/api/device-config/${category}`);
       await apiRequest("DELETE", `/api/pricing-config/${category}`);
+      await apiRequest("DELETE", `/api/happy-hours-config/${category}`);
       return { success: true };
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["/api/device-config"] });
       queryClient.invalidateQueries({ queryKey: ["/api/pricing-config"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/happy-hours-config"] });
     },
   });
 
@@ -188,6 +233,12 @@ export default function Settings() {
   const updateCategoryPricing = (category: string, pricing: PricingSlot[]) => {
     setCategories(prev => prev.map(cat =>
       cat.category === category ? { ...cat, pricing } : cat
+    ));
+  };
+
+  const updateCategoryHappyHours = (category: string, happyHours: HappyHoursData) => {
+    setCategories(prev => prev.map(cat =>
+      cat.category === category ? { ...cat, happyHours } : cat
     ));
   };
 
@@ -281,12 +332,20 @@ export default function Settings() {
           category: cat.category,
           configs: cat.pricing.map(p => ({ ...p, price: p.price.toString() })),
         }),
+        saveHappyHoursConfigMutation.mutateAsync({
+          category: cat.category,
+          configs: cat.happyHours.slots.map(slot => ({
+            ...slot,
+            enabled: cat.happyHours.enabled ? 1 : 0,
+          })),
+        }),
       ]);
 
       await Promise.all(savePromises);
 
       queryClient.invalidateQueries({ queryKey: ["/api/device-config"] });
       queryClient.invalidateQueries({ queryKey: ["/api/pricing-config"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/happy-hours-config"] });
 
       toast({
         title: "Settings Saved",
@@ -308,7 +367,7 @@ export default function Settings() {
     return totalCount - occupied;
   };
 
-  if (deviceLoading || pricingLoading) {
+  if (deviceLoading || pricingLoading || happyHoursLoading) {
     return (
       <div className="space-y-6">
         <Skeleton className="h-20 w-full" />
@@ -391,6 +450,24 @@ export default function Settings() {
               category={cat.category}
               slots={cat.pricing}
               onUpdateSlots={isAdmin ? (pricing) => updateCategoryPricing(cat.category, pricing) : () => {}}
+            />
+          ))}
+        </div>
+      </div>
+
+      <div>
+        <h2 className="text-lg font-semibold mb-4 sm:text-xl">Happy Hours Configuration</h2>
+        <p className="text-sm text-muted-foreground mb-4">
+          Set special time-based pricing for specific hours. When enabled, Happy Hours bookings will be available during the configured time slots.
+        </p>
+        <div className="grid gap-4 sm:grid-cols-1 lg:grid-cols-2 xl:grid-cols-3">
+          {categories.map(cat => (
+            <HappyHoursTable
+              key={cat.category}
+              category={cat.category}
+              enabled={cat.happyHours.enabled}
+              slots={cat.happyHours.slots}
+              onUpdate={(data) => updateCategoryHappyHours(cat.category, data)}
             />
           ))}
         </div>
