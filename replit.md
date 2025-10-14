@@ -7,6 +7,23 @@ This project is a local admin panel web application designed for managing a gami
 ## Recent Changes
 
 **October 14, 2025:**
+- **Enhanced Onboarding Tour Feature:**
+  - Expanded tutorial from 5 to 11 comprehensive steps covering all major features
+  - Added detailed explanations for: Dashboard, Creating Bookings, Managing Sessions, Food Orders, Settings, Happy Hours, Analytics, Expenses, History, and Getting Started
+  - Enhanced each step with:
+    - Multi-paragraph descriptions (3-4 sentences)
+    - `features` array with icons and detailed descriptions
+    - `tips` array with practical advice and pro tips
+  - Improved UI with scrollable content, visual separators, progress indicators
+  - Added "Step X of Y" counter for better navigation
+  - Tour accessible via "Take Tour" button in header (sparkle icon)
+  - Provides comprehensive, actionable guidance for new users
+- **Fixed Extend Session Feature:**
+  - Extend dialog now fetches pricing from Settings based on device category (PC, PS5, etc.)
+  - Fixed price calculation bug (was adding number + string, now correctly adds numbers)
+  - Added support for decimal durations (1.5 hours, 2.5 hr, etc.)
+  - Normalized personCount handling so category-level pricing displays correctly
+  - Extended sessions now show configured pricing instead of hardcoded values
 - **Restructured Happy Hours Configuration System:**
   - Separated Happy Hours into two distinct parts for better configuration:
     - **Happy Hours Time Slots**: Defines WHEN happy hours are active (start/end times per category)
