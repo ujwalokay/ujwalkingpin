@@ -38,7 +38,8 @@ export function PricingTable({ category, slots, onUpdateSlots }: PricingTablePro
       const totalMins = editDurationHours * 60 + editDurationMins;
       newSlots[editingIndex].price = parseInt(editValue) || 0;
       newSlots[editingIndex].duration = getDurationString(totalMins);
-      newSlots[editingIndex].personCount = editPersonCount;
+      // Only PS5 category can have personCount > 1, force others to 1
+      newSlots[editingIndex].personCount = category === "PS5" ? editPersonCount : 1;
       onUpdateSlots?.(newSlots);
       setEditingIndex(null);
     }
@@ -135,8 +136,13 @@ export function PricingTable({ category, slots, onUpdateSlots }: PricingTablePro
                     <Input
                       type="number"
                       min="1"
-                      value={editPersonCount}
-                      onChange={(e) => setEditPersonCount(Math.max(1, parseInt(e.target.value) || 1))}
+                      value={category === "PS5" ? editPersonCount : 1}
+                      onChange={(e) => {
+                        if (category === "PS5") {
+                          setEditPersonCount(Math.max(1, parseInt(e.target.value) || 1));
+                        }
+                      }}
+                      disabled={category !== "PS5"}
                       className="w-12 h-8 text-center"
                       data-testid={`input-person-count-${category.toLowerCase()}-${index}`}
                     />

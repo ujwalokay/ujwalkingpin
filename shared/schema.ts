@@ -63,7 +63,19 @@ export const pricingConfigs = pgTable("pricing_configs", {
   personCount: integer("person_count").notNull().default(1),
 });
 
-export const insertPricingConfigSchema = createInsertSchema(pricingConfigs).omit({ id: true });
+export const insertPricingConfigSchema = createInsertSchema(pricingConfigs).omit({ id: true }).refine(
+  (data) => {
+    // Only PS5 category can have personCount > 1, all others must be 1
+    if (data.category !== "PS5" && data.personCount && data.personCount > 1) {
+      return false;
+    }
+    return true;
+  },
+  {
+    message: "Only PS5 category can have person count greater than 1",
+    path: ["personCount"],
+  }
+);
 export type InsertPricingConfig = z.infer<typeof insertPricingConfigSchema>;
 export type PricingConfig = typeof pricingConfigs.$inferSelect;
 
