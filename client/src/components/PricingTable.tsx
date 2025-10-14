@@ -100,84 +100,91 @@ export function PricingTable({ category, slots, onUpdateSlots }: PricingTablePro
           {slots.map((slot, index) => (
             <div
               key={index}
-              className="flex items-center justify-between rounded-md border p-3 hover-elevate"
+              className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 rounded-md border p-3 hover-elevate"
               data-testid={`row-pricing-${category.toLowerCase()}-${index}`}
             >
               {editingIndex === index ? (
-                <div className="flex items-center gap-2">
-                  <div className="flex items-center gap-1">
-                    <Input
-                      type="number"
-                      min="0"
-                      value={editDurationHours}
-                      onChange={(e) => setEditDurationHours(Math.max(0, parseInt(e.target.value) || 0))}
-                      className="w-12 h-8 text-center"
-                      data-testid={`input-duration-hours-${category.toLowerCase()}-${index}`}
-                    />
-                    <span className="text-xs text-muted-foreground">hr</span>
+                <div className="flex flex-col sm:flex-row items-start sm:items-center gap-2 flex-1">
+                  <div className="flex items-center gap-2">
+                    <div className="flex items-center gap-1">
+                      <Input
+                        type="number"
+                        min="0"
+                        value={editDurationHours}
+                        onChange={(e) => setEditDurationHours(Math.max(0, parseInt(e.target.value) || 0))}
+                        className="w-14 h-8 text-center"
+                        data-testid={`input-duration-hours-${category.toLowerCase()}-${index}`}
+                      />
+                      <span className="text-xs text-muted-foreground">hr</span>
+                    </div>
+                    <div className="flex items-center gap-1">
+                      <Input
+                        type="number"
+                        min="0"
+                        step="30"
+                        value={editDurationMins}
+                        onChange={(e) => {
+                          const value = parseInt(e.target.value) || 0;
+                          setEditDurationMins(value >= 30 ? 30 : 0);
+                        }}
+                        className="w-14 h-8 text-center"
+                        data-testid={`input-duration-mins-${category.toLowerCase()}-${index}`}
+                      />
+                      <span className="text-xs text-muted-foreground">min</span>
+                    </div>
                   </div>
-                  <div className="flex items-center gap-1">
-                    <Input
-                      type="number"
-                      min="0"
-                      step="30"
-                      value={editDurationMins}
-                      onChange={(e) => {
-                        const value = parseInt(e.target.value) || 0;
-                        setEditDurationMins(value >= 30 ? 30 : 0);
-                      }}
-                      className="w-12 h-8 text-center"
-                      data-testid={`input-duration-mins-${category.toLowerCase()}-${index}`}
-                    />
-                    <span className="text-xs text-muted-foreground">min</span>
-                  </div>
-                  <span className="text-xs">+</span>
-                  <div className="flex items-center gap-1">
-                    <Input
-                      type="number"
-                      min="1"
-                      value={category === "PS5" ? editPersonCount : 1}
-                      onChange={(e) => {
-                        if (category === "PS5") {
-                          setEditPersonCount(Math.max(1, parseInt(e.target.value) || 1));
-                        }
-                      }}
-                      disabled={category !== "PS5"}
-                      className="w-12 h-8 text-center"
-                      data-testid={`input-person-count-${category.toLowerCase()}-${index}`}
-                    />
-                    <span className="text-xs text-muted-foreground">person</span>
-                  </div>
+                  {category === "PS5" && (
+                    <div className="flex items-center gap-2">
+                      <span className="text-xs text-muted-foreground">+</span>
+                      <div className="flex items-center gap-1">
+                        <Input
+                          type="number"
+                          min="1"
+                          value={editPersonCount}
+                          onChange={(e) => setEditPersonCount(Math.max(1, parseInt(e.target.value) || 1))}
+                          className="w-14 h-8 text-center"
+                          data-testid={`input-person-count-${category.toLowerCase()}-${index}`}
+                        />
+                        <span className="text-xs text-muted-foreground">person</span>
+                      </div>
+                    </div>
+                  )}
                 </div>
               ) : (
-                <span className="text-sm font-medium">{slot.duration} + {slot.personCount || 1} person</span>
+                <div className="text-sm font-medium flex-1">
+                  {slot.duration}{category === "PS5" ? ` + ${slot.personCount || 1} person` : ''}
+                </div>
               )}
-              <div className="flex items-center gap-2">
+              <div className="flex items-center gap-2 w-full sm:w-auto justify-end">
                 {editingIndex === index ? (
                   <>
-                    <Input
-                      type="number"
-                      value={editValue}
-                      onChange={(e) => setEditValue(e.target.value)}
-                      className="w-24 h-8"
-                      data-testid={`input-price-${category.toLowerCase()}-${index}`}
-                    />
-                    <Button size="icon" variant="ghost" className="h-8 w-8" onClick={saveEdit} data-testid={`button-save-${index}`}>
+                    <div className="flex items-center gap-1">
+                      <span className="text-xs text-muted-foreground hidden sm:inline">₹</span>
+                      <Input
+                        type="number"
+                        value={editValue}
+                        onChange={(e) => setEditValue(e.target.value)}
+                        className="w-20 sm:w-24 h-8"
+                        placeholder="Price"
+                        data-testid={`input-price-${category.toLowerCase()}-${index}`}
+                      />
+                    </div>
+                    <Button size="icon" variant="ghost" className="h-8 w-8 shrink-0" onClick={saveEdit} data-testid={`button-save-${index}`}>
                       <Check className="h-4 w-4" />
                     </Button>
-                    <Button size="icon" variant="ghost" className="h-8 w-8" onClick={cancelEdit} data-testid={`button-cancel-${index}`}>
+                    <Button size="icon" variant="ghost" className="h-8 w-8 shrink-0" onClick={cancelEdit} data-testid={`button-cancel-${index}`}>
                       <X className="h-4 w-4" />
                     </Button>
                   </>
                 ) : (
                   <>
-                    <span className="font-bold text-primary" data-testid={`text-price-${category.toLowerCase()}-${index}`}>
+                    <span className="font-bold text-primary text-lg" data-testid={`text-price-${category.toLowerCase()}-${index}`}>
                       ₹{slot.price}
                     </span>
                     <Button
                       size="icon"
                       variant="ghost"
-                      className="h-8 w-8"
+                      className="h-8 w-8 shrink-0"
                       onClick={() => startEdit(index)}
                       data-testid={`button-edit-${category.toLowerCase()}-${index}`}
                     >
@@ -187,7 +194,7 @@ export function PricingTable({ category, slots, onUpdateSlots }: PricingTablePro
                       <Button
                         size="icon"
                         variant="ghost"
-                        className="h-8 w-8"
+                        className="h-8 w-8 shrink-0"
                         onClick={() => removeSlot(index)}
                         data-testid={`button-remove-${category.toLowerCase()}-${index}`}
                       >
