@@ -9,6 +9,7 @@ import { ExtendSessionDialog } from "@/components/ExtendSessionDialog";
 import { EndSessionDialog } from "@/components/EndSessionDialog";
 import { AddFoodToBookingDialog } from "@/components/AddFoodToBookingDialog";
 import { DeviceRestrictionAlert } from "@/components/DeviceRestrictionAlert";
+import { OnboardingTour } from "@/components/OnboardingTour";
 import { Plus, Monitor, Gamepad2, Glasses, Car, Cpu, Tv, Radio, Box, RefreshCw, Calculator } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { fetchBookings, createBooking, updateBooking, deleteBooking, fetchDeviceConfigs, getServerTime } from "@/lib/api";
@@ -67,13 +68,14 @@ export default function Dashboard() {
   const { toast } = useToast();
   const queryClient = useQueryClient();
   const { getTime } = useServerTime();
-  const { canMakeChanges, deviceRestricted, user } = useAuth();
+  const { canMakeChanges, deviceRestricted, user, onboardingCompleted } = useAuth();
   const [addDialog, setAddDialog] = useState(false);
   const [extendDialog, setExtendDialog] = useState({ open: false, bookingId: "" });
   const [deleteDialog, setDeleteDialog] = useState({ open: false, bookingId: "", seatName: "", customerName: "" });
   const [foodDialog, setFoodDialog] = useState({ open: false, bookingId: "", seatName: "", customerName: "" });
   const [hideCompleted, setHideCompleted] = useState(false);
   const [selectedBookings, setSelectedBookings] = useState<Set<string>>(new Set());
+  const [showTour, setShowTour] = useState(false);
 
   const { data: dbBookings = [], isLoading } = useQuery({ 
     queryKey: ['bookings'], 
@@ -93,6 +95,12 @@ export default function Dashboard() {
       color: getColorForCategory(index),
     }));
   }, [deviceConfigs]);
+
+  useEffect(() => {
+    if (!onboardingCompleted && user) {
+      setShowTour(true);
+    }
+  }, [onboardingCompleted, user]);
 
   const bookings: Booking[] = useMemo(() => {
     return dbBookings.map((dbBooking: DBBooking) => ({
@@ -518,6 +526,19 @@ export default function Dashboard() {
     });
   };
 
+  const handleCompleteTour = async () => {
+    try {
+      await fetch('/api/auth/complete-onboarding', {
+        method: 'POST',
+        credentials: 'include',
+      });
+      setShowTour(false);
+      window.location.reload();
+    } catch (error) {
+      console.error('Failed to complete onboarding:', error);
+    }
+  };
+
   const filteredBookings = useMemo(() => {
     if (hideCompleted) {
       return bookings.filter(b => b.status !== "completed" && b.status !== "expired");
@@ -705,6 +726,12 @@ export default function Dashboard() {
         seatName={foodDialog.seatName}
         customerName={foodDialog.customerName}
         onConfirm={handleConfirmAddFood}
+      />
+
+      <OnboardingTour
+        open={showTour}
+        onComplete={handleCompleteTour}
+        onSkip={handleCompleteTour}
       />
     </div>
   );
