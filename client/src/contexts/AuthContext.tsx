@@ -5,6 +5,7 @@ interface User {
   id: string;
   username: string;
   role: "admin" | "staff";
+  onboardingCompleted?: boolean;
 }
 
 interface AuthContextType {
@@ -12,6 +13,7 @@ interface AuthContextType {
   isAdmin: boolean;
   canMakeChanges: boolean;
   deviceRestricted: boolean;
+  onboardingCompleted: boolean;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
@@ -23,9 +25,10 @@ export function AuthProvider({ children, user }: { children: ReactNode; user: Us
   const isStaffOrAdmin = user?.role === "admin" || user?.role === "staff";
   const canMakeChanges = isStaffOrAdmin ? isDesktop : true;
   const deviceRestricted = isStaffOrAdmin && !isDesktop;
+  const onboardingCompleted = user?.onboardingCompleted ?? true;
 
   return (
-    <AuthContext.Provider value={{ user, isAdmin, canMakeChanges, deviceRestricted }}>
+    <AuthContext.Provider value={{ user, isAdmin, canMakeChanges, deviceRestricted, onboardingCompleted }}>
       {children}
     </AuthContext.Provider>
   );
