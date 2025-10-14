@@ -7,6 +7,17 @@ This project is a local admin panel web application designed for managing a gami
 ## Recent Changes
 
 **October 14, 2025:**
+- **Restructured Happy Hours Configuration System:**
+  - Separated Happy Hours into two distinct parts for better configuration:
+    - **Happy Hours Time Slots**: Defines WHEN happy hours are active (start/end times per category)
+    - **Happy Hours Pricing**: Defines pricing tiers that apply DURING those time slots (similar to PC/PS5 pricing)
+  - Added new `happy_hours_pricing_configs` database table for pricing tiers
+  - Removed `pricePerHour` field from `happy_hours_configs` table (now only stores time windows)
+  - Created HappyHoursPricing component matching PricingTable structure (duration + price tiers)
+  - Updated Settings page to show both time slots and pricing sections for Happy Hours
+  - Improved responsive layout with 4-column grid for 2K/4K displays, better spacing on PC
+  - Complete CRUD operations for both time slots and pricing configurations
+  - Architecture matches regular pricing system for consistency and maintainability
 - **Enhanced PS5 Person Count Controls:**
   - Modified AddBookingDialog to ALWAYS show person counter (+/-) for ALL PS5 bookings
   - Person count controls now appear regardless of whether pricing slot has personCount configured
