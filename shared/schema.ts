@@ -150,6 +150,7 @@ export const users = pgTable("users", {
   passwordHash: varchar("password_hash").notNull(),
   email: varchar("email"),
   role: varchar("role").notNull().default("admin"),
+  onboardingCompleted: integer("onboarding_completed").notNull().default(0),
   createdAt: timestamp("created_at").notNull().defaultNow(),
 });
 
