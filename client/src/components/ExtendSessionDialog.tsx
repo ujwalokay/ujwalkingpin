@@ -38,7 +38,7 @@ export function ExtendSessionDialog({
 
   const timeSlots = useMemo(() => {
     const categoryConfigs = allPricingConfigs.filter(
-      (config) => config.category === category && config.personCount === personCount
+      (config) => config.category === category && (config.personCount || 1) === personCount
     );
     
     if (categoryConfigs.length === 0) {

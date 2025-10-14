@@ -284,11 +284,18 @@ export default function Dashboard() {
     const booking = bookings.find(b => b.id === extendDialog.bookingId);
     if (booking) {
       const parseDuration = (durationStr: string): number => {
-        const match = durationStr.match(/(\d+)\s*(mins?|hours?)/i);
-        if (!match) return 60;
-        const value = parseInt(match[1]);
-        const unit = match[2].toLowerCase();
-        return unit.startsWith('hour') ? value * 60 : value;
+        const normalized = durationStr.toLowerCase().trim();
+        const match = normalized.match(/(\d+(?:\.\d+)?)\s*(mins?\.?|minutes?|hrs?\.?|hours?)/);
+        if (!match) {
+          console.warn(`Could not parse duration: "${durationStr}", defaulting to 60 minutes`);
+          return 60;
+        }
+        const value = parseFloat(match[1]);
+        const unit = match[2];
+        if (unit.startsWith('h')) {
+          return Math.round(value * 60);
+        }
+        return Math.round(value);
       };
       
       const minutes = parseDuration(duration);
@@ -717,7 +724,7 @@ export default function Dashboard() {
         onOpenChange={(open) => setExtendDialog({ ...extendDialog, open })}
         seatName={bookings.find(b => b.id === extendDialog.bookingId)?.seatName || ""}
         category={bookings.find(b => b.id === extendDialog.bookingId)?.category || ""}
-        personCount={bookings.find(b => b.id === extendDialog.bookingId)?.personCount || 1}
+        personCount={(bookings.find(b => b.id === extendDialog.bookingId)?.personCount) || 1}
         onConfirm={handleConfirmExtend}
       />
 
