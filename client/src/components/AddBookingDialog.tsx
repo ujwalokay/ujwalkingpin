@@ -205,7 +205,13 @@ export function AddBookingDialog({ open, onOpenChange, onConfirm, availableSeats
         // Happy Hours pricing is per hour rate * duration
         totalPrice = happyHoursPrice;
         finalPersonCount = 1; // Happy Hours doesn't use multi-person pricing
+      } else if (category === "PS5") {
+        // PS5 always uses person count for pricing
+        finalPersonCount = personCount;
+        const basePrice = parseFloat(selectedSlot!.price.toString());
+        totalPrice = (basePrice * personCount).toString();
       } else {
+        // Other categories only use multi-person pricing if slot defines it
         const slotPersonCount = selectedSlot!.personCount || 1;
         finalPersonCount = slotPersonCount > 1 ? personCount : 1;
         const basePrice = parseFloat(selectedSlot!.price.toString());
@@ -452,14 +458,13 @@ export function AddBookingDialog({ open, onOpenChange, onConfirm, availableSeats
                 <Label htmlFor="timeSlot">
                   Time Slot <span className="text-destructive">*</span>
                 </Label>
-                <div className="flex gap-2 mb-2">
+                <div className="grid grid-cols-3 gap-2 mb-2">
                   <Button
                     type="button"
                     variant={timePeriodFilter === "all" ? "default" : "outline"}
                     size="sm"
                     onClick={() => setTimePeriodFilter("all")}
                     data-testid="button-filter-all"
-                    className="flex-1"
                   >
                     All Day
                   </Button>
@@ -469,7 +474,6 @@ export function AddBookingDialog({ open, onOpenChange, onConfirm, availableSeats
                     size="sm"
                     onClick={() => setTimePeriodFilter("am")}
                     data-testid="button-filter-am"
-                    className="flex-1"
                   >
                     AM
                   </Button>
@@ -479,7 +483,6 @@ export function AddBookingDialog({ open, onOpenChange, onConfirm, availableSeats
                     size="sm"
                     onClick={() => setTimePeriodFilter("pm")}
                     data-testid="button-filter-pm"
-                    className="flex-1"
                   >
                     PM
                   </Button>
@@ -533,7 +536,7 @@ export function AddBookingDialog({ open, onOpenChange, onConfirm, availableSeats
               <Label>
                 Select Seats ({selectedSeats.length} selected)
               </Label>
-              <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-2 max-h-48 overflow-y-auto p-2 border rounded-md">
+              <div className="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-5 lg:grid-cols-6 gap-2 max-h-48 overflow-y-auto p-3 border rounded-md bg-muted/30">
                 {selectedCategory.seats.map((seat) => (
                   <div
                     key={seat}
@@ -547,7 +550,7 @@ export function AddBookingDialog({ open, onOpenChange, onConfirm, availableSeats
                     />
                     <Label
                       htmlFor={`seat-${seat}`}
-                      className="cursor-pointer text-sm font-normal"
+                      className="cursor-pointer text-sm font-normal whitespace-nowrap"
                     >
                       {category}-{seat}
                     </Label>
@@ -568,36 +571,46 @@ export function AddBookingDialog({ open, onOpenChange, onConfirm, availableSeats
             />
           </div>
 
-          {category === "PS5" && selectedSlot && selectedSlot.personCount && selectedSlot.personCount > 1 && (
+          {category === "PS5" && bookingType !== "happy-hours" && selectedSlot && (
             <div className="space-y-2">
               <Label>Number of Persons</Label>
-              <div className="flex items-center gap-2">
-                <Button
-                  type="button"
-                  variant="outline"
-                  size="icon"
-                  onClick={decreasePersonCount}
-                  disabled={personCount <= 1}
-                  data-testid="button-decrease-person"
-                >
-                  <Minus className="h-4 w-4" />
-                </Button>
-                <div className="flex-1 text-center font-semibold" data-testid="text-person-count">
-                  {personCount} {personCount === 1 ? 'Person' : 'Persons'}
+              <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-3">
+                <div className="flex items-center gap-2 flex-1">
+                  <Button
+                    type="button"
+                    variant="outline"
+                    size="icon"
+                    onClick={decreasePersonCount}
+                    disabled={personCount <= 1}
+                    data-testid="button-decrease-person"
+                    className="shrink-0"
+                  >
+                    <Minus className="h-4 w-4" />
+                  </Button>
+                  <div className="flex-1 text-center font-semibold py-2" data-testid="text-person-count">
+                    {personCount} {personCount === 1 ? 'Person' : 'Persons'}
+                  </div>
+                  <Button
+                    type="button"
+                    variant="outline"
+                    size="icon"
+                    onClick={increasePersonCount}
+                    data-testid="button-increase-person"
+                    className="shrink-0"
+                  >
+                    <Plus className="h-4 w-4" />
+                  </Button>
                 </div>
-                <Button
-                  type="button"
-                  variant="outline"
-                  size="icon"
-                  onClick={increasePersonCount}
-                  data-testid="button-increase-person"
-                >
-                  <Plus className="h-4 w-4" />
-                </Button>
               </div>
-              <p className="text-xs text-muted-foreground">
-                {duration} + {selectedSlot.personCount} person: ₹{selectedSlot.price} × {personCount} = ₹{(parseFloat(selectedSlot.price.toString()) * personCount).toFixed(2)}
-              </p>
+              {selectedSlot.personCount && selectedSlot.personCount > 1 ? (
+                <p className="text-xs text-muted-foreground">
+                  {duration} for {personCount} {personCount === 1 ? 'person' : 'persons'}: ₹{selectedSlot.price} × {personCount} = ₹{(parseFloat(selectedSlot.price.toString()) * personCount).toFixed(2)}
+                </p>
+              ) : (
+                <p className="text-xs text-muted-foreground">
+                  {duration}: ₹{selectedSlot.price} (Price per person)
+                </p>
+              )}
             </div>
           )}
 
