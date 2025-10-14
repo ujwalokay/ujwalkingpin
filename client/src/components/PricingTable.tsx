@@ -100,12 +100,12 @@ export function PricingTable({ category, slots, onUpdateSlots }: PricingTablePro
           {slots.map((slot, index) => (
             <div
               key={index}
-              className="flex flex-col lg:flex-row items-start lg:items-center justify-between gap-3 lg:gap-4 rounded-md border p-3 lg:p-4 hover-elevate transition-all"
+              className="rounded-md border p-3 lg:p-4 hover-elevate transition-all"
               data-testid={`row-pricing-${category.toLowerCase()}-${index}`}
             >
               {editingIndex === index ? (
-                <div className="flex flex-col lg:flex-row items-start lg:items-center gap-3 lg:gap-4 flex-1 w-full">
-                  <div className="flex items-center gap-2 lg:gap-3">
+                <div className="flex flex-col gap-3">
+                  <div className="flex flex-wrap items-center gap-2 lg:gap-3">
                     <div className="flex items-center gap-1.5">
                       <Input
                         type="number"
@@ -132,39 +132,31 @@ export function PricingTable({ category, slots, onUpdateSlots }: PricingTablePro
                       />
                       <span className="text-xs lg:text-sm text-muted-foreground font-medium">min</span>
                     </div>
+                    {category === "PS5" && (
+                      <>
+                        <span className="text-xs lg:text-sm text-muted-foreground">+</span>
+                        <div className="flex items-center gap-1.5">
+                          <Input
+                            type="number"
+                            min="1"
+                            value={editPersonCount}
+                            onChange={(e) => setEditPersonCount(Math.max(1, parseInt(e.target.value) || 1))}
+                            className="w-16 lg:w-20 h-9 lg:h-10 text-center text-sm lg:text-base"
+                            data-testid={`input-person-count-${category.toLowerCase()}-${index}`}
+                          />
+                          <span className="text-xs lg:text-sm text-muted-foreground font-medium">person</span>
+                        </div>
+                      </>
+                    )}
                   </div>
-                  {category === "PS5" && (
-                    <div className="flex items-center gap-2 lg:gap-3">
-                      <span className="text-xs lg:text-sm text-muted-foreground">+</span>
-                      <div className="flex items-center gap-1.5">
-                        <Input
-                          type="number"
-                          min="1"
-                          value={editPersonCount}
-                          onChange={(e) => setEditPersonCount(Math.max(1, parseInt(e.target.value) || 1))}
-                          className="w-16 lg:w-20 h-9 lg:h-10 text-center text-sm lg:text-base"
-                          data-testid={`input-person-count-${category.toLowerCase()}-${index}`}
-                        />
-                        <span className="text-xs lg:text-sm text-muted-foreground font-medium">person</span>
-                      </div>
-                    </div>
-                  )}
-                </div>
-              ) : (
-                <div className="text-sm lg:text-base font-medium flex-1">
-                  {slot.duration}{category === "PS5" ? ` + ${slot.personCount || 1} person` : ''}
-                </div>
-              )}
-              <div className="flex items-center gap-2 lg:gap-3 w-full lg:w-auto justify-end">
-                {editingIndex === index ? (
-                  <>
-                    <div className="flex items-center gap-1.5 lg:gap-2">
+                  <div className="flex items-center gap-2 lg:gap-3">
+                    <div className="flex items-center gap-1.5 lg:gap-2 flex-1">
                       <span className="text-sm lg:text-base text-muted-foreground font-semibold">₹</span>
                       <Input
                         type="number"
                         value={editValue}
                         onChange={(e) => setEditValue(e.target.value)}
-                        className="w-24 lg:w-32 h-9 lg:h-10 text-sm lg:text-base"
+                        className="w-full max-w-[200px] h-9 lg:h-10 text-sm lg:text-base"
                         placeholder="Price"
                         data-testid={`input-price-${category.toLowerCase()}-${index}`}
                       />
@@ -175,9 +167,14 @@ export function PricingTable({ category, slots, onUpdateSlots }: PricingTablePro
                     <Button size="icon" variant="ghost" className="h-9 w-9 lg:h-10 lg:w-10 shrink-0 hover:bg-red-100 dark:hover:bg-red-900" onClick={cancelEdit} data-testid={`button-cancel-${index}`}>
                       <X className="h-4 w-4 lg:h-5 lg:w-5" />
                     </Button>
-                  </>
-                ) : (
-                  <>
+                  </div>
+                </div>
+              ) : (
+                <div className="flex items-center justify-between gap-3">
+                  <div className="text-sm lg:text-base font-medium flex-1">
+                    {slot.duration}{category === "PS5" ? ` + ${slot.personCount || 1} person` : ''}
+                  </div>
+                  <div className="flex items-center gap-2 lg:gap-3">
                     <span className="font-bold text-primary text-lg lg:text-xl" data-testid={`text-price-${category.toLowerCase()}-${index}`}>
                       ₹{slot.price}
                     </span>
@@ -201,9 +198,9 @@ export function PricingTable({ category, slots, onUpdateSlots }: PricingTablePro
                         <Trash2 className="h-4 w-4 lg:h-5 lg:w-5" />
                       </Button>
                     )}
-                  </>
-                )}
-              </div>
+                  </div>
+                </div>
+              )}
             </div>
           ))}
           <Button
