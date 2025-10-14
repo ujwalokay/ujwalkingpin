@@ -6,6 +6,20 @@ This project is a local admin panel web application designed for managing a gami
 
 ## Recent Changes
 
+**October 14, 2025:**
+- **Implemented Happy Hours Feature:**
+  - Added `happy_hours_configs` table to database with category, pricePerHour, startTime, endTime, and enabled fields
+  - Created HappyHoursTable component in Settings page for configuring time-based special pricing
+  - Added "Happy Hours" tab to Dashboard for viewing Happy Hours bookings
+  - Updated AddBookingDialog to support Happy Hours booking type with:
+    - Active time validation (only available during configured time windows)
+    - Hourly rate pricing display (price per hour × duration in hours)
+    - Visual indicators for Happy Hours availability status
+  - Happy Hours bookings start immediately (like walk-in) but only during configured time windows
+  - Pricing uses hourly rate system: pricePerHour × (duration in hours)
+  - All Happy Hours bookings are marked as "running" status when created
+  - Flexible system: any device category can have Happy Hours pricing configured
+
 **October 13, 2025:**
 - **Implemented Person-Based Pricing System:**
   - Added `personCount` field to pricing configuration schema (database table: pricing_configs)
