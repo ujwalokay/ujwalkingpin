@@ -283,15 +283,17 @@ export default function Dashboard() {
   const handleConfirmExtend = async (duration: string, price: string) => {
     const booking = bookings.find(b => b.id === extendDialog.bookingId);
     if (booking) {
-      const durationMap: { [key: string]: number } = {
-        "30 mins": 30,
-        "1 hour": 60,
-        "2 hours": 120,
+      const parseDuration = (durationStr: string): number => {
+        const match = durationStr.match(/(\d+)\s*(mins?|hours?)/i);
+        if (!match) return 60;
+        const value = parseInt(match[1]);
+        const unit = match[2].toLowerCase();
+        return unit.startsWith('hour') ? value * 60 : value;
       };
-      const minutes = durationMap[duration] || 60;
       
+      const minutes = parseDuration(duration);
       const newEndTime = new Date(booking.endTime.getTime() + minutes * 60 * 1000);
-      const newPrice = (booking.price + price).toString();
+      const newPrice = (booking.price + parseFloat(price)).toFixed(2);
       
       await extendBookingMutation.mutateAsync({
         id: extendDialog.bookingId,
@@ -300,7 +302,7 @@ export default function Dashboard() {
       
       toast({
         title: "Session Extended",
-        description: `${booking.seatName} extended by ${duration}`,
+        description: `${booking.seatName} extended by ${duration} - ₹${price} added`,
       });
     }
     setExtendDialog({ open: false, bookingId: "" });
