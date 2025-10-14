@@ -16,6 +16,12 @@ This project is a local admin panel web application designed for managing a gami
   - Improved time slot filter buttons with grid layout for consistent button sizing
   - PS5 remains the only category with always-visible person count controls (PS5 is unique)
   - Happy Hours bookings correctly exclude person count multiplier
+- **Improved Pricing Configuration Layout:**
+  - Enhanced PricingTable component with responsive mobile/tablet layout
+  - Person count field now completely hidden for PC (not just disabled) - only visible for PS5
+  - Edit mode now uses flex-col on mobile, flex-row on larger screens for better UX
+  - Action buttons and price inputs properly sized for different screen sizes
+  - Display text conditionally shows "+ X person" only for PS5 category
 - **Restricted Person Count to PS5 Category Only:**
   - Modified AddBookingDialog to show person counter (+/-) only for PS5 category bookings
   - PC bookings no longer display person field regardless of pricing configuration
