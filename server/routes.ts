@@ -7,6 +7,7 @@ import {
   insertDeviceConfigSchema, 
   insertPricingConfigSchema, 
   insertHappyHoursConfigSchema,
+  insertHappyHoursPricingSchema,
   insertFoodItemSchema, 
   insertExpenseSchema,
   insertGamingCenterInfoSchema,
@@ -565,6 +566,54 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const { category } = req.params;
       const isActive = await storage.isHappyHoursActive(category);
       res.json({ active: isActive });
+    } catch (error: any) {
+      res.status(500).json({ message: error.message });
+    }
+  });
+
+  app.get("/api/happy-hours-pricing", requireAuth, async (req, res) => {
+    try {
+      const configs = await storage.getAllHappyHoursPricing();
+      res.json(configs);
+    } catch (error: any) {
+      res.status(500).json({ message: error.message });
+    }
+  });
+
+  app.post("/api/happy-hours-pricing", requireAdmin, async (req, res) => {
+    try {
+      const { category, configs } = req.body;
+      if (!category || !Array.isArray(configs)) {
+        return res.status(400).json({ message: "Invalid request format" });
+      }
+      
+      const validatedConfigs = configs.map(c => insertHappyHoursPricingSchema.parse({ ...c, category }));
+      const saved = await storage.upsertHappyHoursPricing(category, validatedConfigs);
+      
+      // Log the admin activity
+      if (req.session.userId && req.session.username && req.session.role) {
+        await storage.createActivityLog({
+          userId: req.session.userId,
+          username: req.session.username,
+          userRole: req.session.role,
+          action: 'update',
+          entityType: 'happy-hours-pricing',
+          entityId: category,
+          details: `Updated happy hours pricing for ${category} - ${configs.length} price tiers`
+        });
+      }
+      
+      res.json(saved);
+    } catch (error: any) {
+      res.status(400).json({ message: error.message });
+    }
+  });
+
+  app.delete("/api/happy-hours-pricing/:category", requireAdmin, async (req, res) => {
+    try {
+      const { category } = req.params;
+      await storage.deleteHappyHoursPricing(category);
+      res.json({ success: true, message: `Deleted happy hours pricing for ${category}` });
     } catch (error: any) {
       res.status(500).json({ message: error.message });
     }

@@ -7,6 +7,8 @@ import {
   type InsertPricingConfig,
   type HappyHoursConfig,
   type InsertHappyHoursConfig,
+  type HappyHoursPricing,
+  type InsertHappyHoursPricing,
   type FoodItem,
   type InsertFoodItem,
   type BookingHistory,
@@ -39,6 +41,7 @@ import {
   deviceConfigs,
   pricingConfigs,
   happyHoursConfigs,
+  happyHoursPricing,
   foodItems,
   bookingHistory,
   users,
@@ -106,6 +109,11 @@ export interface IStorage {
   upsertHappyHoursConfigs(category: string, configs: InsertHappyHoursConfig[]): Promise<HappyHoursConfig[]>;
   deleteHappyHoursConfig(category: string): Promise<boolean>;
   isHappyHoursActive(category: string): Promise<boolean>;
+  
+  getAllHappyHoursPricing(): Promise<HappyHoursPricing[]>;
+  getHappyHoursPricingByCategory(category: string): Promise<HappyHoursPricing[]>;
+  upsertHappyHoursPricing(category: string, configs: InsertHappyHoursPricing[]): Promise<HappyHoursPricing[]>;
+  deleteHappyHoursPricing(category: string): Promise<boolean>;
   
   getAllFoodItems(): Promise<FoodItem[]>;
   getFoodItem(id: string): Promise<FoodItem | undefined>;
@@ -540,6 +548,35 @@ export class DatabaseStorage implements IStorage {
     }
     
     return false;
+  }
+
+  async getAllHappyHoursPricing(): Promise<HappyHoursPricing[]> {
+    return await db.select().from(happyHoursPricing);
+  }
+
+  async getHappyHoursPricingByCategory(category: string): Promise<HappyHoursPricing[]> {
+    return await db
+      .select()
+      .from(happyHoursPricing)
+      .where(eq(happyHoursPricing.category, category));
+  }
+
+  async upsertHappyHoursPricing(category: string, configs: InsertHappyHoursPricing[]): Promise<HappyHoursPricing[]> {
+    // Delete existing configs for this category
+    await db.delete(happyHoursPricing).where(eq(happyHoursPricing.category, category));
+    
+    if (configs.length === 0) {
+      return [];
+    }
+    
+    // Insert new configs
+    const result = await db.insert(happyHoursPricing).values(configs).returning();
+    return result;
+  }
+
+  async deleteHappyHoursPricing(category: string): Promise<boolean> {
+    const result = await db.delete(happyHoursPricing).where(eq(happyHoursPricing.category, category));
+    return result.rowCount ? result.rowCount > 0 : false;
   }
 
   async getAllFoodItems(): Promise<FoodItem[]> {

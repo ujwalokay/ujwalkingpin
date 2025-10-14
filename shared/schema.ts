@@ -84,13 +84,36 @@ export const happyHoursConfigs = pgTable("happy_hours_configs", {
   category: varchar("category").notNull(),
   startTime: varchar("start_time").notNull(), // e.g., "14:00"
   endTime: varchar("end_time").notNull(), // e.g., "18:00"
-  pricePerHour: real("price_per_hour").notNull(),
   enabled: integer("enabled").notNull().default(1), // 1 = enabled, 0 = disabled
 });
 
 export const insertHappyHoursConfigSchema = createInsertSchema(happyHoursConfigs).omit({ id: true });
 export type InsertHappyHoursConfig = z.infer<typeof insertHappyHoursConfigSchema>;
 export type HappyHoursConfig = typeof happyHoursConfigs.$inferSelect;
+
+export const happyHoursPricing = pgTable("happy_hours_pricing", {
+  id: varchar("id").primaryKey().$defaultFn(() => crypto.randomUUID()),
+  category: varchar("category").notNull(),
+  duration: varchar("duration").notNull(),
+  price: varchar("price").notNull(),
+  personCount: integer("person_count").notNull().default(1),
+});
+
+export const insertHappyHoursPricingSchema = createInsertSchema(happyHoursPricing).omit({ id: true }).refine(
+  (data) => {
+    // Only PS5 category can have personCount > 1, all others must be 1
+    if (data.category !== "PS5" && data.personCount && data.personCount > 1) {
+      return false;
+    }
+    return true;
+  },
+  {
+    message: "Only PS5 category can have person count greater than 1",
+    path: ["personCount"],
+  }
+);
+export type InsertHappyHoursPricing = z.infer<typeof insertHappyHoursPricingSchema>;
+export type HappyHoursPricing = typeof happyHoursPricing.$inferSelect;
 
 export const bookingHistory = pgTable("booking_history", {
   id: varchar("id").primaryKey().$defaultFn(() => crypto.randomUUID()),

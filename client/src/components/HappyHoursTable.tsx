@@ -16,7 +16,6 @@ import { useAuth } from "@/contexts/AuthContext";
 interface HappyHoursSlot {
   startTime: string;
   endTime: string;
-  pricePerHour: number;
 }
 
 interface HappyHoursData {
@@ -40,10 +39,10 @@ export function HappyHoursTable({
   const { isAdmin } = useAuth();
   const [enabled, setEnabled] = useState(initialEnabled);
   const [slots, setSlots] = useState<HappyHoursSlot[]>(
-    initialSlots.length > 0 ? initialSlots : [{ startTime: "10:00", endTime: "12:00", pricePerHour: 0 }]
+    initialSlots.length > 0 ? initialSlots : [{ startTime: "10:00", endTime: "12:00" }]
   );
 
-  const handleSlotChange = (index: number, field: keyof HappyHoursSlot, value: string | number) => {
+  const handleSlotChange = (index: number, field: keyof HappyHoursSlot, value: string) => {
     const newSlots = [...slots];
     newSlots[index] = { ...newSlots[index], [field]: value };
     setSlots(newSlots);
@@ -51,7 +50,7 @@ export function HappyHoursTable({
   };
 
   const addSlot = () => {
-    const newSlots = [...slots, { startTime: "10:00", endTime: "12:00", pricePerHour: 0 }];
+    const newSlots = [...slots, { startTime: "10:00", endTime: "12:00" }];
     setSlots(newSlots);
     onUpdate({ enabled, slots: newSlots });
   };
@@ -93,7 +92,7 @@ export function HappyHoursTable({
         <div className="space-y-4">
           {slots.map((slot, index) => (
             <div key={index} className="flex flex-col gap-3 p-3 border rounded-lg bg-muted/50">
-              <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                 <div className="space-y-2">
                   <Label htmlFor={`start-${category}-${index}`} className="text-sm">
                     Start Time
@@ -111,30 +110,14 @@ export function HappyHoursTable({
                   <Label htmlFor={`end-${category}-${index}`} className="text-sm">
                     End Time
                   </Label>
-                  <Input
-                    id={`end-${category}-${index}`}
-                    type="time"
-                    value={slot.endTime}
-                    onChange={(e) => handleSlotChange(index, "endTime", e.target.value)}
-                    disabled={!isAdmin}
-                    data-testid={`input-happy-hours-end-${category.toLowerCase()}-${index}`}
-                  />
-                </div>
-                <div className="space-y-2">
-                  <Label htmlFor={`price-${category}-${index}`} className="text-sm">
-                    Price/Hour (₹)
-                  </Label>
                   <div className="flex gap-2">
                     <Input
-                      id={`price-${category}-${index}`}
-                      type="number"
-                      value={slot.pricePerHour}
-                      onChange={(e) => handleSlotChange(index, "pricePerHour", parseFloat(e.target.value) || 0)}
-                      placeholder="0"
-                      min="0"
-                      step="0.01"
+                      id={`end-${category}-${index}`}
+                      type="time"
+                      value={slot.endTime}
+                      onChange={(e) => handleSlotChange(index, "endTime", e.target.value)}
                       disabled={!isAdmin}
-                      data-testid={`input-happy-hours-price-${category.toLowerCase()}-${index}`}
+                      data-testid={`input-happy-hours-end-${category.toLowerCase()}-${index}`}
                     />
                     {isAdmin && slots.length > 1 && (
                       <Button
