@@ -46,11 +46,6 @@ const menuItems = [
     icon: BarChart3,
   },
   {
-    title: "Game Updates",
-    url: "/game-updates",
-    icon: Gamepad2,
-  },
-  {
     title: "Food",
     url: "/food",
     icon: UtensilsCrossed,
