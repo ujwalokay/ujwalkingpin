@@ -568,7 +568,7 @@ export function AddBookingDialog({ open, onOpenChange, onConfirm, availableSeats
             />
           </div>
 
-          {selectedSlot && selectedSlot.personCount && selectedSlot.personCount > 1 && (
+          {category === "PS5" && selectedSlot && selectedSlot.personCount && selectedSlot.personCount > 1 && (
             <div className="space-y-2">
               <Label>Number of Persons</Label>
               <div className="flex items-center gap-2">
