@@ -48,6 +48,7 @@ interface Booking {
   status: BookingStatus;
   foodOrders?: FoodOrder[];
   pausedRemainingTime?: number | null;
+  createdAt?: Date;
 }
 
 interface BookingTableProps {
@@ -104,6 +105,7 @@ export function BookingTable({ bookings, onExtend, onEnd, onComplete, onAddFood,
               <TableHead>WhatsApp</TableHead>
               <TableHead className="w-12">Loyalty</TableHead>
               {showDateColumn && <TableHead>Date</TableHead>}
+              <TableHead>Booked At</TableHead>
               <TableHead>Start Time</TableHead>
               <TableHead>End Time</TableHead>
               <TableHead>Time Left</TableHead>
@@ -117,7 +119,7 @@ export function BookingTable({ bookings, onExtend, onEnd, onComplete, onAddFood,
           <TableBody>
             {filteredBookings.length === 0 ? (
               <TableRow>
-                <TableCell colSpan={showDateColumn ? 15 : 14} className="text-center text-muted-foreground">
+                <TableCell colSpan={showDateColumn ? 16 : 15} className="text-center text-muted-foreground">
                   No bookings found
                 </TableCell>
               </TableRow>
@@ -175,6 +177,23 @@ export function BookingTable({ bookings, onExtend, onEnd, onComplete, onAddFood,
                         })}
                       </TableCell>
                     )}
+                    <TableCell data-testid={`text-created-${booking.id}`}>
+                      {booking.createdAt ? (
+                        <div className="text-sm">
+                          <div>{new Date(booking.createdAt).toLocaleDateString('en-GB', { 
+                            day: '2-digit', 
+                            month: 'short' 
+                          })}</div>
+                          <div className="text-muted-foreground text-xs">
+                            {new Date(booking.createdAt).toLocaleTimeString('en-US', { 
+                              hour: '2-digit', 
+                              minute: '2-digit',
+                              hour12: true 
+                            })}
+                          </div>
+                        </div>
+                      ) : '-'}
+                    </TableCell>
                     <TableCell data-testid={`text-start-${booking.id}`}>
                       {booking.startTime.toLocaleTimeString()}
                     </TableCell>
