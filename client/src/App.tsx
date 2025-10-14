@@ -8,8 +8,9 @@ import { AppSidebar } from "@/components/AppSidebar";
 import { ThemeProvider } from "@/components/ThemeProvider";
 import { ThemeToggle } from "@/components/ThemeToggle";
 import { AuthProvider } from "@/contexts/AuthContext";
-import { Lock } from "lucide-react";
+import { Lock, Sparkles } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { useLocation } from "wouter";
 import Dashboard from "@/pages/Dashboard";
 import Settings from "@/pages/Settings";
 import Reports from "@/pages/Reports";
@@ -66,6 +67,7 @@ function App() {
   const [showLogin, setShowLogin] = useState(false);
   const [showSplash, setShowSplash] = useState(true);
   const { toast } = useToast();
+  const [, setLocation] = useLocation();
 
   const style = {
     "--sidebar-width": "16rem",
@@ -121,6 +123,10 @@ function App() {
         variant: "destructive",
       });
     }
+  };
+
+  const handleTakeTour = () => {
+    setLocation("/?tour=true");
   };
 
   if (!isAuthenticated) {
@@ -190,6 +196,17 @@ function App() {
                         })}
                       </div>
                       <ThemeToggle />
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        onClick={handleTakeTour}
+                        data-testid="button-take-tour"
+                        aria-label="Take Tour"
+                        className="hidden sm:flex items-center gap-1"
+                      >
+                        <Sparkles className="h-4 w-4" />
+                        <span className="hidden md:inline">Take Tour</span>
+                      </Button>
                       <Button
                         variant="ghost"
                         size="icon"

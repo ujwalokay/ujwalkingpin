@@ -97,7 +97,13 @@ export default function Dashboard() {
   }, [deviceConfigs]);
 
   useEffect(() => {
-    if (!onboardingCompleted && user) {
+    const urlParams = new URLSearchParams(window.location.search);
+    const tourParam = urlParams.get('tour');
+    
+    if (tourParam === 'true') {
+      setShowTour(true);
+      window.history.replaceState({}, '', window.location.pathname);
+    } else if (!onboardingCompleted && user) {
       setShowTour(true);
     }
   }, [onboardingCompleted, user]);
