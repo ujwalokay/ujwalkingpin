@@ -122,8 +122,10 @@ export interface IStorage {
   deleteFoodItem(id: string): Promise<boolean>;
   
   getUserByUsername(username: string): Promise<User | undefined>;
+  getUserById(id: string): Promise<User | undefined>;
   createUser(user: InsertUser): Promise<User>;
   validatePassword(username: string, password: string): Promise<User | null>;
+  updateUserOnboarding(userId: string, completed: boolean): Promise<boolean>;
   
   getAllExpenses(): Promise<Expense[]>;
   getExpense(id: string): Promise<Expense | undefined>;
@@ -694,6 +696,18 @@ export class DatabaseStorage implements IStorage {
   async getUserByUsername(username: string): Promise<User | undefined> {
     const [user] = await db.select().from(users).where(eq(users.username, username));
     return user || undefined;
+  }
+
+  async getUserById(id: string): Promise<User | undefined> {
+    const [user] = await db.select().from(users).where(eq(users.id, id));
+    return user || undefined;
+  }
+
+  async updateUserOnboarding(userId: string, completed: boolean): Promise<boolean> {
+    const result = await db.update(users)
+      .set({ onboardingCompleted: completed ? 1 : 0 })
+      .where(eq(users.id, userId));
+    return true;
   }
 
   async createUser(user: InsertUser): Promise<User> {

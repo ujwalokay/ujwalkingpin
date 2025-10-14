@@ -81,11 +81,21 @@ export async function getCurrentUserHandler(req: Request, res: Response) {
     return res.status(401).json({ message: "Not authenticated" });
   }
   
-  res.json({
-    id: req.session.userId,
-    username: req.session.username,
-    role: req.session.role,
-  });
+  try {
+    const user = await storage.getUserById(req.session.userId);
+    if (!user) {
+      return res.status(404).json({ message: "User not found" });
+    }
+    
+    res.json({
+      id: user.id,
+      username: user.username,
+      role: user.role,
+      onboardingCompleted: user.onboardingCompleted === 1,
+    });
+  } catch (error: any) {
+    res.status(500).json({ message: error.message });
+  }
 }
 
 export function requireAuth(req: Request, res: Response, next: NextFunction) {
@@ -119,6 +129,17 @@ export function registerAuthRoutes(app: Express) {
   app.post("/api/auth/login", loginLimiter, loginHandler);
   app.post("/api/auth/logout", logoutHandler);
   app.get("/api/auth/me", getCurrentUserHandler);
+  app.post("/api/auth/complete-onboarding", requireAuth, async (req: Request, res: Response) => {
+    try {
+      if (!req.session.userId) {
+        return res.status(401).json({ message: "Not authenticated" });
+      }
+      await storage.updateUserOnboarding(req.session.userId, true);
+      res.json({ success: true });
+    } catch (error: any) {
+      res.status(500).json({ message: error.message });
+    }
+  });
 }
 
 // Extend Express session types
