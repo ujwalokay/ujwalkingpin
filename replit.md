@@ -7,6 +7,19 @@ This project is a local admin panel web application designed for managing a gami
 ## Recent Changes
 
 **October 14, 2025:**
+- **Restricted Person Count to PS5 Category Only:**
+  - Modified AddBookingDialog to show person counter (+/-) only for PS5 category bookings
+  - PC bookings no longer display person field regardless of pricing configuration
+  - Person-based pricing now applies exclusively to PS5 category
+- **Removed Game Updates Feature:**
+  - Deleted GameUpdates.tsx page component and all related UI
+  - Removed Game Updates navigation from sidebar and App.tsx routes
+  - Removed all Game Updates API endpoints from server/routes.ts
+  - Removed Game Updates storage methods from server/storage.ts
+  - Removed gameUpdates schema and types from shared/schema.ts
+  - Dropped game_updates table from database
+  - Updated documentation to remove Game Updates references
+  - Cleaned up codebase by removing unused functionality
 - **Implemented Happy Hours Feature:**
   - Added `happy_hours_configs` table to database with category, pricePerHour, startTime, endTime, and enabled fields
   - Created HappyHoursTable component in Settings page for configuring time-based special pricing
@@ -53,7 +66,6 @@ This project is a local admin panel web application designed for managing a gami
     - Food Management: Disabled add/edit/delete food items on mobile/tablet
     - Expense Tracker: Disabled add/edit/delete expenses on mobile/tablet
     - Loyalty Program: Disabled settings configuration on mobile/tablet
-    - Game Updates: Added restriction alert for consistency
   - Design decision: Mobile/tablet = read-only for admin/staff, PC = full access
 
 **October 12, 2025:**
