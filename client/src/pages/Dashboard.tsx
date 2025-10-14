@@ -714,6 +714,8 @@ export default function Dashboard() {
         open={extendDialog.open}
         onOpenChange={(open) => setExtendDialog({ ...extendDialog, open })}
         seatName={bookings.find(b => b.id === extendDialog.bookingId)?.seatName || ""}
+        category={bookings.find(b => b.id === extendDialog.bookingId)?.category || ""}
+        personCount={bookings.find(b => b.id === extendDialog.bookingId)?.personCount || 1}
         onConfirm={handleConfirmExtend}
       />
 
