@@ -190,7 +190,7 @@ export default function Dashboard() {
     duration: string;
     price: string;
     personCount: number;
-    bookingType: "walk-in" | "upcoming";
+    bookingType: "walk-in" | "upcoming" | "happy-hours";
     bookingDate?: Date;
     timeSlot?: string;
   }) => {
@@ -204,7 +204,7 @@ export default function Dashboard() {
       const minutes = durationMap[newBooking.duration] || 60;
       
       let startTime: Date;
-      if (newBooking.bookingType === "walk-in") {
+      if (newBooking.bookingType === "walk-in" || newBooking.bookingType === "happy-hours") {
         startTime = now;
       } else {
         if (newBooking.bookingDate && newBooking.timeSlot) {
@@ -235,7 +235,7 @@ export default function Dashboard() {
           endTime: endTime.toISOString() as any,
           price: newBooking.price,
           personCount: newBooking.personCount,
-          status: newBooking.bookingType === "walk-in" ? "running" : "upcoming",
+          status: (newBooking.bookingType === "walk-in" || newBooking.bookingType === "happy-hours") ? "running" : "upcoming",
           bookingType: newBooking.bookingType,
           foodOrders: [],
         });
