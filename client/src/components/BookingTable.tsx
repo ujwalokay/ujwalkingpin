@@ -43,7 +43,7 @@ interface Booking {
   whatsappNumber?: string;
   startTime: Date;
   endTime: Date;
-  price: number;
+  price: string;
   personCount?: number;
   status: BookingStatus;
   foodOrders?: FoodOrder[];
@@ -127,7 +127,7 @@ export function BookingTable({ bookings, onExtend, onEnd, onComplete, onAddFood,
                 const foodTotal = hasFoodOrders 
                   ? booking.foodOrders!.reduce((sum, order) => sum + parseFloat(order.price) * order.quantity, 0)
                   : 0;
-                const totalAmount = booking.price + foodTotal;
+                const totalAmount = parseFloat(booking.price) + foodTotal;
                 
                 return (
                   <TableRow key={booking.id} data-testid={`row-booking-${booking.id}`}>
@@ -364,7 +364,7 @@ export function BookingTable({ bookings, onExtend, onEnd, onComplete, onAddFood,
             const foodTotal = hasFoodOrders 
               ? selectedLoyaltyBooking.foodOrders!.reduce((sum, order) => sum + parseFloat(order.price) * order.quantity, 0)
               : 0;
-            return selectedLoyaltyBooking.price + foodTotal;
+            return parseFloat(selectedLoyaltyBooking.price) + foodTotal;
           })()}
         />
       )}

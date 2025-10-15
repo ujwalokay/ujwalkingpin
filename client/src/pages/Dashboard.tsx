@@ -36,7 +36,7 @@ interface Booking {
   whatsappNumber?: string;
   startTime: Date;
   endTime: Date;
-  price: number;
+  price: string;
   personCount?: number;
   status: BookingStatus;
   bookingType: "walk-in" | "upcoming" | "happy-hours";
@@ -118,7 +118,7 @@ export default function Dashboard() {
       whatsappNumber: dbBooking.whatsappNumber || undefined,
       startTime: new Date(dbBooking.startTime),
       endTime: new Date(dbBooking.endTime),
-      price: parseFloat(dbBooking.price),
+      price: dbBooking.price,
       personCount: dbBooking.personCount,
       status: dbBooking.status as BookingStatus,
       bookingType: dbBooking.bookingType as "walk-in" | "upcoming" | "happy-hours",
@@ -300,7 +300,7 @@ export default function Dashboard() {
       
       const minutes = parseDuration(duration);
       const newEndTime = new Date(booking.endTime.getTime() + minutes * 60 * 1000);
-      const newPrice = (booking.price + parseFloat(price)).toFixed(2);
+      const newPrice = (parseFloat(booking.price) + parseFloat(price)).toFixed(2);
       
       await extendBookingMutation.mutateAsync({
         id: extendDialog.bookingId,
@@ -464,7 +464,7 @@ export default function Dashboard() {
     const foodItemCost = parseFloat(foodItem.price) * foodItem.quantity;
     
     const updatedFoodOrders = booking.foodOrders.filter((_, index) => index !== foodIndex);
-    const newPrice = (booking.price - foodItemCost).toString();
+    const newPrice = (parseFloat(booking.price) - foodItemCost).toString();
     
     await completeBookingMutation.mutateAsync({
       id: bookingId,
@@ -520,7 +520,7 @@ export default function Dashboard() {
       const foodTotal = booking.foodOrders 
         ? booking.foodOrders.reduce((fSum, order) => fSum + parseFloat(order.price) * order.quantity, 0)
         : 0;
-      return sum + booking.price + foodTotal;
+      return sum + parseFloat(booking.price) + foodTotal;
     }, 0);
     
     toast({
