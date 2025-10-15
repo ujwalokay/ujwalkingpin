@@ -203,7 +203,7 @@ export function BookingTable({ bookings, onExtend, onEnd, onComplete, onAddFood,
                       })()}
                     </TableCell>
                     <TableCell className="font-bold text-primary" data-testid={`text-price-${booking.id}`}>
-                      ₹{totalAmount.toFixed(0)}
+                      ₹{booking.price}
                     </TableCell>
                     <TableCell>
                       <StatusBadge status={booking.status} />
