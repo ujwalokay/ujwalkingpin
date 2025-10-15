@@ -11,9 +11,8 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { StatusBadge } from "./StatusBadge";
 import { SessionTimer } from "./SessionTimer";
-import { Clock, X, Check, UtensilsCrossed, Search, Plus, MoreVertical, StopCircle, Trash2, Play, Pause, Award } from "lucide-react";
+import { Clock, X, Check, UtensilsCrossed, Search, Plus, MoreVertical, StopCircle, Trash2, Play, Pause } from "lucide-react";
 import { Checkbox } from "@/components/ui/checkbox";
-import { LoyaltyRedemptionDialog } from "./LoyaltyRedemptionDialog";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -65,8 +64,6 @@ interface BookingTableProps {
 
 export function BookingTable({ bookings, onExtend, onEnd, onComplete, onAddFood, onStopTimer, onDeleteFood, showDateColumn = false, selectedBookings, onToggleSelection }: BookingTableProps) {
   const [searchTerm, setSearchTerm] = useState("");
-  const [loyaltyDialogOpen, setLoyaltyDialogOpen] = useState(false);
-  const [selectedLoyaltyBooking, setSelectedLoyaltyBooking] = useState<Booking | null>(null);
   const { isAdmin, canMakeChanges } = useAuth();
 
   const filteredBookings = bookings.filter((booking) => {
@@ -102,7 +99,6 @@ export function BookingTable({ bookings, onExtend, onEnd, onComplete, onAddFood,
               <TableHead>Customer</TableHead>
               <TableHead>Persons</TableHead>
               <TableHead>WhatsApp</TableHead>
-              <TableHead className="w-12">Loyalty</TableHead>
               {showDateColumn && <TableHead>Date</TableHead>}
               <TableHead>Start Time</TableHead>
               <TableHead>End Time</TableHead>
@@ -117,7 +113,7 @@ export function BookingTable({ bookings, onExtend, onEnd, onComplete, onAddFood,
           <TableBody>
             {filteredBookings.length === 0 ? (
               <TableRow>
-                <TableCell colSpan={showDateColumn ? 15 : 14} className="text-center text-muted-foreground">
+                <TableCell colSpan={showDateColumn ? 14 : 13} className="text-center text-muted-foreground">
                   No bookings found
                 </TableCell>
               </TableRow>
@@ -149,22 +145,6 @@ export function BookingTable({ bookings, onExtend, onEnd, onComplete, onAddFood,
                     </TableCell>
                     <TableCell data-testid={`text-whatsapp-${booking.id}`}>
                       {booking.whatsappNumber || "-"}
-                    </TableCell>
-                    <TableCell>
-                      {booking.whatsappNumber && (
-                        <Button
-                          variant="ghost"
-                          size="sm"
-                          className="h-8 w-8 p-0"
-                          onClick={() => {
-                            setSelectedLoyaltyBooking(booking);
-                            setLoyaltyDialogOpen(true);
-                          }}
-                          data-testid={`button-loyalty-${booking.id}`}
-                        >
-                          <Award className="h-4 w-4 text-amber-500" />
-                        </Button>
-                      )}
                     </TableCell>
                     {showDateColumn && (
                       <TableCell data-testid={`text-date-${booking.id}`}>
@@ -352,22 +332,6 @@ export function BookingTable({ bookings, onExtend, onEnd, onComplete, onAddFood,
           </TableBody>
         </Table>
       </div>
-
-      {selectedLoyaltyBooking && (
-        <LoyaltyRedemptionDialog
-          open={loyaltyDialogOpen}
-          onOpenChange={setLoyaltyDialogOpen}
-          whatsappNumber={selectedLoyaltyBooking.whatsappNumber || ""}
-          customerName={selectedLoyaltyBooking.customerName}
-          totalAmount={(() => {
-            const hasFoodOrders = selectedLoyaltyBooking.foodOrders && selectedLoyaltyBooking.foodOrders.length > 0;
-            const foodTotal = hasFoodOrders 
-              ? selectedLoyaltyBooking.foodOrders!.reduce((sum, order) => sum + parseFloat(order.price) * order.quantity, 0)
-              : 0;
-            return parseFloat(selectedLoyaltyBooking.price) + foodTotal;
-          })()}
-        />
-      )}
     </div>
   );
 }

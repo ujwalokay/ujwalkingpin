@@ -100,31 +100,6 @@ export default function Settings() {
   const [showAddDialog, setShowAddDialog] = useState(false);
   const [newCategoryName, setNewCategoryName] = useState("");
 
-  // Loyalty configuration state
-  const { data: loyaltyConfig } = useQuery<{
-    pointsPerCurrency: number;
-    currencySymbol: string;
-    tierThresholds: { bronze: number; silver: number; gold: number; platinum: number };
-  }>({
-    queryKey: ["/api/loyalty/config"],
-  });
-
-  const [loyaltySettings, setLoyaltySettings] = useState({
-    pointsPerCurrency: 1,
-    currencySymbol: "₹",
-    tierThresholds: { bronze: 0, silver: 100, gold: 500, platinum: 1000 },
-  });
-
-  useEffect(() => {
-    if (loyaltyConfig) {
-      setLoyaltySettings({
-        pointsPerCurrency: loyaltyConfig.pointsPerCurrency || 1,
-        currencySymbol: loyaltyConfig.currencySymbol || "₹",
-        tierThresholds: loyaltyConfig.tierThresholds || { bronze: 0, silver: 100, gold: 500, platinum: 1000 },
-      });
-    }
-  }, [loyaltyConfig]);
-
   useEffect(() => {
     if (deviceConfigs && pricingConfigs && happyHoursConfigs && happyHoursPricingConfigs) {
       const categoryMap = new Map<string, CategoryState>();

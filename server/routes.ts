@@ -13,8 +13,7 @@ import {
   insertGamingCenterInfoSchema,
   insertGalleryImageSchema,
   insertFacilitySchema,
-  insertGameSchema,
-  insertLoyaltyConfigSchema
+  insertGameSchema
 } from "@shared/schema";
 import { z } from "zod";
 
@@ -960,65 +959,6 @@ export async function registerRoutes(app: Express): Promise<Server> {
     try {
       const pricing = await storage.getAllPricingConfigs();
       res.json(pricing);
-    } catch (error: any) {
-      res.status(500).json({ message: error.message });
-    }
-  });
-
-  // Loyalty system routes
-  app.get("/api/loyalty/member/:whatsappNumber", requireAuth, async (req, res) => {
-    try {
-      const { whatsappNumber } = req.params;
-      const member = await storage.getLoyaltyMemberByWhatsapp(whatsappNumber);
-      if (!member) {
-        return res.status(404).json({ message: "Customer is not a loyalty member" });
-      }
-      res.json(member);
-    } catch (error: any) {
-      res.status(500).json({ message: error.message });
-    }
-  });
-
-  app.post("/api/loyalty/redeem", requireAuth, async (req, res) => {
-    try {
-      const { whatsappNumber, pointsToRedeem } = req.body;
-      const result = await storage.redeemLoyaltyPoints(whatsappNumber, pointsToRedeem);
-      res.json(result);
-    } catch (error: any) {
-      res.status(400).json({ message: error.message });
-    }
-  });
-
-  app.get("/api/loyalty/config", requireAuth, async (req, res) => {
-    try {
-      const config = await storage.getLoyaltyConfig();
-      if (!config) {
-        return res.json({
-          pointsPerCurrency: 1,
-          currencySymbol: "₹",
-          tierThresholds: { bronze: 0, silver: 100, gold: 500, platinum: 1000 },
-        });
-      }
-      res.json(config);
-    } catch (error: any) {
-      res.status(500).json({ message: error.message });
-    }
-  });
-
-  app.post("/api/loyalty/config", async (req, res) => {
-    try {
-      const validatedConfig = insertLoyaltyConfigSchema.parse(req.body);
-      const config = await storage.upsertLoyaltyConfig(validatedConfig);
-      res.json(config);
-    } catch (error: any) {
-      res.status(500).json({ message: error.message });
-    }
-  });
-
-  app.get("/api/loyalty/members", requireAuth, async (req, res) => {
-    try {
-      const members = await storage.getAllLoyaltyMembers();
-      res.json(members);
     } catch (error: any) {
       res.status(500).json({ message: error.message });
     }

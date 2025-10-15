@@ -36,11 +36,6 @@ const menuItems = [
     icon: ScrollText,
   },
   {
-    title: "Loyalty",
-    url: "/loyalty",
-    icon: Award,
-  },
-  {
     title: "Analytics",
     url: "/analytics",
     icon: BarChart3,
@@ -98,7 +93,7 @@ export function AppSidebar() {
           <SidebarGroupContent>
             <SidebarMenu>
               {menuItems.map((item) => {
-                const hasAI = ['Loyalty', 'Analytics', 'Game Updates'].includes(item.title);
+                const hasAI = ['Analytics'].includes(item.title);
                 return (
                   <SidebarMenuItem key={item.title}>
                     <SidebarMenuButton asChild isActive={location === item.url} data-testid={`link-${item.title.toLowerCase()}`}>

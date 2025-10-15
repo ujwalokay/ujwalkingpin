@@ -31,12 +31,6 @@ import {
   type InsertLoadMetric,
   type LoadPrediction,
   type InsertLoadPrediction,
-  type LoyaltyMember,
-  type InsertLoyaltyMember,
-  type LoyaltyEvent,
-  type InsertLoyaltyEvent,
-  type LoyaltyConfig,
-  type InsertLoyaltyConfig,
   bookings,
   deviceConfigs,
   pricingConfigs,
@@ -52,10 +46,7 @@ import {
   facilities,
   games,
   loadMetrics,
-  loadPredictions,
-  loyaltyMembers,
-  loyaltyEvents,
-  loyaltyConfig
+  loadPredictions
 } from "@shared/schema";
 import { db } from "./db";
 import { eq, and, gte, lte, desc } from "drizzle-orm";
@@ -168,22 +159,6 @@ export interface IStorage {
   getAllLoadPredictions(): Promise<LoadPrediction[]>;
   getRecentLoadPredictions(limit: number): Promise<LoadPrediction[]>;
   createLoadPrediction(prediction: InsertLoadPrediction): Promise<LoadPrediction>;
-  
-  getAllLoyaltyMembers(): Promise<LoyaltyMember[]>;
-  getLoyaltyMember(id: string): Promise<LoyaltyMember | undefined>;
-  getLoyaltyMemberByWhatsapp(whatsappNumber: string): Promise<LoyaltyMember | undefined>;
-  createLoyaltyMember(member: InsertLoyaltyMember): Promise<LoyaltyMember>;
-  updateLoyaltyMember(id: string, member: Partial<InsertLoyaltyMember>): Promise<LoyaltyMember | undefined>;
-  deleteLoyaltyMember(id: string): Promise<boolean>;
-  
-  getAllLoyaltyEvents(): Promise<LoyaltyEvent[]>;
-  getLoyaltyEventsByMember(memberId: string): Promise<LoyaltyEvent[]>;
-  createLoyaltyEvent(event: InsertLoyaltyEvent): Promise<LoyaltyEvent>;
-  
-  getLoyaltyConfig(): Promise<LoyaltyConfig | undefined>;
-  upsertLoyaltyConfig(config: InsertLoyaltyConfig): Promise<LoyaltyConfig>;
-  awardLoyaltyPoints(whatsappNumber: string, customerName: string, amount: number): Promise<void>;
-  redeemLoyaltyPoints(whatsappNumber: string, pointsToRedeem: number): Promise<{ discountAmount: number; remainingPoints: number }>;
   
   initializeDefaults(): Promise<void>;
 }
@@ -658,34 +633,6 @@ export class DatabaseStorage implements IStorage {
       await db.delete(bookings).where(eq(bookings.id, id));
     }
 
-    for (const booking of completed) {
-      if (booking.whatsappNumber) {
-        const totalAmount = parseFloat(booking.price);
-        if (isNaN(totalAmount) || !isFinite(totalAmount)) {
-          continue;
-        }
-        
-        const foodTotal = (booking.foodOrders || []).reduce((sum, order) => {
-          const orderPrice = parseFloat(order.price);
-          if (isNaN(orderPrice) || !isFinite(orderPrice)) {
-            return sum;
-          }
-          return sum + (orderPrice * order.quantity);
-        }, 0);
-        
-        const grandTotal = totalAmount + foodTotal;
-        if (isNaN(grandTotal) || !isFinite(grandTotal) || grandTotal <= 0) {
-          continue;
-        }
-        
-        await this.awardLoyaltyPoints(
-          booking.whatsappNumber,
-          booking.customerName,
-          grandTotal
-        );
-      }
-    }
-
     return bookingsToArchive.length;
   }
 
@@ -953,215 +900,6 @@ export class DatabaseStorage implements IStorage {
   async createLoadPrediction(prediction: InsertLoadPrediction): Promise<LoadPrediction> {
     const [created] = await db.insert(loadPredictions).values(prediction).returning();
     return created;
-  }
-
-  async getAllLoyaltyMembers(): Promise<LoyaltyMember[]> {
-    return await db.select().from(loyaltyMembers);
-  }
-
-  async getLoyaltyMember(id: string): Promise<LoyaltyMember | undefined> {
-    const [member] = await db.select()
-      .from(loyaltyMembers)
-      .where(eq(loyaltyMembers.id, id));
-    return member;
-  }
-
-  async getLoyaltyMemberByWhatsapp(whatsappNumber: string): Promise<LoyaltyMember | undefined> {
-    const [member] = await db.select()
-      .from(loyaltyMembers)
-      .where(eq(loyaltyMembers.whatsappNumber, whatsappNumber));
-    return member;
-  }
-
-  async createLoyaltyMember(member: InsertLoyaltyMember): Promise<LoyaltyMember> {
-    const [created] = await db.insert(loyaltyMembers).values(member as any).returning();
-    return created;
-  }
-
-  async updateLoyaltyMember(id: string, member: Partial<InsertLoyaltyMember>): Promise<LoyaltyMember | undefined> {
-    const [updated] = await db
-      .update(loyaltyMembers)
-      .set(member as any)
-      .where(eq(loyaltyMembers.id, id))
-      .returning();
-    return updated;
-  }
-
-  async deleteLoyaltyMember(id: string): Promise<boolean> {
-    const result = await db.delete(loyaltyMembers).where(eq(loyaltyMembers.id, id));
-    return result.rowCount ? result.rowCount > 0 : false;
-  }
-
-  async getAllLoyaltyEvents(): Promise<LoyaltyEvent[]> {
-    return await db.select().from(loyaltyEvents);
-  }
-
-  async getLoyaltyEventsByMember(memberId: string): Promise<LoyaltyEvent[]> {
-    return await db.select()
-      .from(loyaltyEvents)
-      .where(eq(loyaltyEvents.memberId, memberId));
-  }
-
-  async createLoyaltyEvent(event: InsertLoyaltyEvent): Promise<LoyaltyEvent> {
-    const [created] = await db.insert(loyaltyEvents).values(event).returning();
-    return created;
-  }
-
-  async getLoyaltyConfig(): Promise<LoyaltyConfig | undefined> {
-    const [config] = await db.select().from(loyaltyConfig).limit(1);
-    return config;
-  }
-
-  async upsertLoyaltyConfig(config: InsertLoyaltyConfig): Promise<LoyaltyConfig> {
-    const existing = await this.getLoyaltyConfig();
-    
-    if (existing) {
-      const [updated] = await db
-        .update(loyaltyConfig)
-        .set({ ...config, updatedAt: new Date() } as any)
-        .where(eq(loyaltyConfig.id, existing.id))
-        .returning();
-      return updated;
-    } else {
-      const [created] = await db.insert(loyaltyConfig).values(config as any).returning();
-      return created;
-    }
-  }
-
-  async awardLoyaltyPoints(whatsappNumber: string, customerName: string, amount: number): Promise<void> {
-    if (isNaN(amount) || !isFinite(amount) || amount <= 0 || !whatsappNumber) {
-      return;
-    }
-
-    const config = await this.getLoyaltyConfig();
-    if (!config) {
-      return;
-    }
-
-    const pointsToAward = Math.floor(amount * config.pointsPerCurrency);
-    if (isNaN(pointsToAward) || !isFinite(pointsToAward) || pointsToAward <= 0) {
-      return;
-    }
-
-    let member = await this.getLoyaltyMemberByWhatsapp(whatsappNumber);
-    
-    // Count unique visit days from booking history for this customer
-    const customerBookings = await db.select()
-      .from(bookingHistory)
-      .where(eq(bookingHistory.whatsappNumber, whatsappNumber));
-    
-    const uniqueVisitDays = new Set(
-      customerBookings.map(b => new Date(b.createdAt).toDateString())
-    ).size;
-
-    const totalSpent = customerBookings.reduce((sum, b) => {
-      const bookingPrice = parseFloat(b.price) || 0;
-      const foodPrice = (b.foodOrders || []).reduce((fSum, f) => fSum + (parseFloat(f.price) * f.quantity), 0);
-      return sum + bookingPrice + foodPrice;
-    }, 0) + amount;
-    
-    if (!member) {
-      // Auto-enroll only after 3 visits
-      if (uniqueVisitDays >= 3) {
-        member = await this.createLoyaltyMember({
-          customerName,
-          whatsappNumber,
-          tier: "bronze",
-          points: 0,
-          visitCount: uniqueVisitDays,
-          lastVisit: new Date(),
-          totalSpent: totalSpent.toString(),
-          redemptionHistory: [],
-        });
-      } else {
-        // Not enough visits yet, just return
-        return;
-      }
-    }
-
-    // Update member with new points and visit stats
-    const newPoints = member.points + pointsToAward;
-    
-    const tierThresholds = config.tierThresholds || { bronze: 0, silver: 100, gold: 500, platinum: 1000 };
-    let newTier = "bronze";
-    if (newPoints >= tierThresholds.platinum) {
-      newTier = "platinum";
-    } else if (newPoints >= tierThresholds.gold) {
-      newTier = "gold";
-    } else if (newPoints >= tierThresholds.silver) {
-      newTier = "silver";
-    }
-
-    await this.updateLoyaltyMember(member.id, {
-      points: newPoints,
-      tier: newTier,
-      visitCount: uniqueVisitDays,
-      lastVisit: new Date(),
-      totalSpent: totalSpent.toString(),
-    });
-
-    await this.createLoyaltyEvent({
-      memberId: member.id,
-      type: "booking_completed",
-      deltaPoints: pointsToAward,
-      metadata: {
-        bookingAmount: amount.toString(),
-        currencySymbol: config.currencySymbol || "$",
-      } as any,
-    });
-  }
-
-  async redeemLoyaltyPoints(whatsappNumber: string, pointsToRedeem: number): Promise<{ discountAmount: number; remainingPoints: number }> {
-    if (!whatsappNumber || pointsToRedeem <= 0) {
-      throw new Error("Invalid redemption request");
-    }
-
-    const member = await this.getLoyaltyMemberByWhatsapp(whatsappNumber);
-    if (!member) {
-      throw new Error("Customer is not a loyalty member");
-    }
-
-    if (member.points < pointsToRedeem) {
-      throw new Error(`Insufficient points. Available: ${member.points}, Requested: ${pointsToRedeem}`);
-    }
-
-    const config = await this.getLoyaltyConfig();
-    if (!config) {
-      throw new Error("Loyalty configuration not found");
-    }
-
-    // Calculate discount amount (1 point = 1/pointsPerCurrency in currency)
-    const discountAmount = pointsToRedeem / config.pointsPerCurrency;
-    const newPoints = member.points - pointsToRedeem;
-
-    // Update member points
-    await this.updateLoyaltyMember(member.id, {
-      points: newPoints,
-      redemptionHistory: [
-        ...(member.redemptionHistory || []),
-        {
-          date: new Date().toISOString(),
-          points: pointsToRedeem,
-          reward: `Discount of ${config.currencySymbol}${discountAmount.toFixed(2)}`,
-        }
-      ] as any,
-    });
-
-    // Log the redemption event
-    await this.createLoyaltyEvent({
-      memberId: member.id,
-      type: "points_redeemed",
-      deltaPoints: -pointsToRedeem,
-      metadata: {
-        discountAmount: discountAmount.toString(),
-        currencySymbol: config.currencySymbol || "$",
-      } as any,
-    });
-
-    return {
-      discountAmount: Math.floor(discountAmount),
-      remainingPoints: newPoints,
-    };
   }
 
 }
