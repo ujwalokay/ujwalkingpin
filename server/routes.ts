@@ -138,14 +138,12 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.patch("/api/bookings/:id", requireAuth, async (req, res) => {
     try {
       const { id } = req.params;
-      console.log('PATCH /api/bookings/:id - Request body:', JSON.stringify(req.body, null, 2));
       const updated = await storage.updateBooking(id, req.body);
       if (!updated) {
         return res.status(404).json({ message: "Booking not found" });
       }
       res.json(updated);
     } catch (error: any) {
-      console.error('PATCH /api/bookings/:id - Error:', error.message, error.stack);
       res.status(400).json({ message: error.message });
     }
   });
