@@ -8,18 +8,18 @@ import {
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Keyboard } from "lucide-react";
 import { formatShortcut, type KeyboardShortcut } from "@/hooks/useKeyboardShortcuts";
+import { useShortcutsContext } from "@/contexts/ShortcutsContext";
 
 interface KeyboardShortcutsDialogProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
-  shortcuts: KeyboardShortcut[];
 }
 
 export function KeyboardShortcutsDialog({ 
   open, 
-  onOpenChange,
-  shortcuts 
+  onOpenChange 
 }: KeyboardShortcutsDialogProps) {
+  const { shortcuts } = useShortcutsContext();
   // Group shortcuts by category
   const groupedShortcuts = shortcuts.reduce((acc, shortcut) => {
     const category = shortcut.category || 'General';

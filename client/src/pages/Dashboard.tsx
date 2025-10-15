@@ -17,7 +17,8 @@ import type { Booking as DBBooking, DeviceConfig } from "@shared/schema";
 import { useServerTime } from "@/hooks/useServerTime";
 import { useAuth } from "@/contexts/AuthContext";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
-import { useKeyboardShortcut } from "@/hooks/useKeyboardShortcuts";
+import { useKeyboardShortcuts } from "@/hooks/useKeyboardShortcuts";
+import { useRegisterShortcuts } from "@/contexts/ShortcutsContext";
 
 type BookingStatus = "available" | "running" | "expired" | "upcoming" | "completed" | "paused";
 
@@ -79,39 +80,45 @@ export default function Dashboard() {
   const [showTour, setShowTour] = useState(false);
 
   // Dashboard keyboard shortcuts
-  useKeyboardShortcut({
-    key: 'n',
-    ctrlKey: true,
-    description: 'Add new booking',
-    action: () => {
-      if (canMakeChanges) {
-        setAddDialog(true);
-      }
+  const dashboardShortcuts = useMemo(() => [
+    {
+      key: 'n',
+      ctrlKey: true,
+      description: 'Add new booking',
+      action: () => {
+        if (canMakeChanges) {
+          setAddDialog(true);
+        }
+      },
+      category: 'Dashboard'
     },
-    category: 'Dashboard'
-  });
-
-  useKeyboardShortcut({
-    key: 'r',
-    ctrlKey: true,
-    description: 'Refresh data',
-    action: () => {
-      queryClient.invalidateQueries({ queryKey: ['bookings'] });
-      queryClient.invalidateQueries({ queryKey: ['device-configs'] });
-      toast({
-        title: "Data Refreshed",
-        description: "Bookings and device configs have been refreshed",
-      });
+    {
+      key: 'r',
+      ctrlKey: true,
+      description: 'Refresh data',
+      action: () => {
+        queryClient.invalidateQueries({ queryKey: ['bookings'] });
+        queryClient.invalidateQueries({ queryKey: ['device-configs'] });
+        toast({
+          title: "Data Refreshed",
+          description: "Bookings and device configs have been refreshed",
+        });
+      },
+      category: 'Dashboard'
     },
-    category: 'Dashboard'
-  });
+    {
+      key: 'h',
+      description: 'Toggle completed bookings',
+      action: () => setHideCompleted(prev => !prev),
+      category: 'Dashboard'
+    }
+  ], [canMakeChanges, queryClient, toast]);
 
-  useKeyboardShortcut({
-    key: 'h',
-    description: 'Toggle completed bookings',
-    action: () => setHideCompleted(prev => !prev),
-    category: 'Dashboard'
-  });
+  // Register dashboard shortcuts with context
+  useRegisterShortcuts(dashboardShortcuts);
+
+  // Apply shortcuts
+  useKeyboardShortcuts(dashboardShortcuts);
 
   const { data: dbBookings = [], isLoading } = useQuery({ 
     queryKey: ['bookings'], 

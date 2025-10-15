@@ -12,7 +12,8 @@ import { Lock, Sparkles, Keyboard } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useLocation } from "wouter";
 import { KeyboardShortcutsDialog } from "@/components/KeyboardShortcutsDialog";
-import { useKeyboardShortcut, type KeyboardShortcut } from "@/hooks/useKeyboardShortcuts";
+import { useKeyboardShortcuts, type KeyboardShortcut } from "@/hooks/useKeyboardShortcuts";
+import { ShortcutsProvider } from "@/contexts/ShortcutsContext";
 import Dashboard from "@/pages/Dashboard";
 import Settings from "@/pages/Settings";
 import Reports from "@/pages/Reports";
@@ -73,33 +74,6 @@ function App() {
   const style = {
     "--sidebar-width": "16rem",
   };
-
-  useEffect(() => {
-    // Check if user is already authenticated via session
-    const checkAuth = async () => {
-      try {
-        const response = await fetch("/api/auth/me");
-        if (response.ok) {
-          const userData = await response.json();
-          setUser(userData);
-          setIsAuthenticated(true);
-        } else {
-          setShowLogin(true);
-        }
-      } catch (error) {
-        setShowLogin(true);
-      }
-    };
-    checkAuth();
-  }, []);
-
-  if (showSplash) {
-    return (
-      <ThemeProvider>
-        <SplashScreen onComplete={() => setShowSplash(false)} />
-      </ThemeProvider>
-    );
-  }
 
   const handleLoginSuccess = (userData: User) => {
     setUser(userData);
@@ -239,9 +213,34 @@ function App() {
   ];
 
   // Register global shortcuts
-  globalShortcuts.forEach(shortcut => {
-    useKeyboardShortcut(shortcut);
-  });
+  useKeyboardShortcuts(globalShortcuts);
+
+  useEffect(() => {
+    // Check if user is already authenticated via session
+    const checkAuth = async () => {
+      try {
+        const response = await fetch("/api/auth/me");
+        if (response.ok) {
+          const userData = await response.json();
+          setUser(userData);
+          setIsAuthenticated(true);
+        } else {
+          setShowLogin(true);
+        }
+      } catch (error) {
+        setShowLogin(true);
+      }
+    };
+    checkAuth();
+  }, []);
+
+  if (showSplash) {
+    return (
+      <ThemeProvider>
+        <SplashScreen onComplete={() => setShowSplash(false)} />
+      </ThemeProvider>
+    );
+  }
 
   if (!isAuthenticated) {
     return (
@@ -287,77 +286,78 @@ function App() {
   return (
     <ThemeProvider>
       <QueryClientProvider client={queryClient}>
-        <AuthProvider user={user}>
-          <TooltipProvider>
-            <SidebarProvider style={style as React.CSSProperties}>
-              <div className="flex h-screen w-full">
-                <AppSidebar />
-                <div className="flex flex-col flex-1">
-                  <header className="flex items-center justify-between p-3 md:p-4 border-b sticky top-0 z-50 glass">
-                    <SidebarTrigger data-testid="button-sidebar-toggle" />
-                    <div className="flex items-center gap-2 md:gap-4">
-                      {user && (
-                        <div className="text-xs md:text-sm font-medium hidden sm:block" data-testid="text-user-info">
-                          {user.username} <span className="text-xs text-muted-foreground hidden md:inline">({user.role})</span>
+        <ShortcutsProvider globalShortcuts={globalShortcuts}>
+          <AuthProvider user={user}>
+            <TooltipProvider>
+              <SidebarProvider style={style as React.CSSProperties}>
+                <div className="flex h-screen w-full">
+                  <AppSidebar />
+                  <div className="flex flex-col flex-1">
+                    <header className="flex items-center justify-between p-3 md:p-4 border-b sticky top-0 z-50 glass">
+                      <SidebarTrigger data-testid="button-sidebar-toggle" />
+                      <div className="flex items-center gap-2 md:gap-4">
+                        {user && (
+                          <div className="text-xs md:text-sm font-medium hidden sm:block" data-testid="text-user-info">
+                            {user.username} <span className="text-xs text-muted-foreground hidden md:inline">({user.role})</span>
+                          </div>
+                        )}
+                        <div className="text-xs md:text-sm text-muted-foreground hidden md:block">
+                          {new Date().toLocaleDateString('en-IN', { 
+                            weekday: 'short', 
+                            year: 'numeric', 
+                            month: 'short', 
+                            day: 'numeric' 
+                          })}
                         </div>
-                      )}
-                      <div className="text-xs md:text-sm text-muted-foreground hidden md:block">
-                        {new Date().toLocaleDateString('en-IN', { 
-                          weekday: 'short', 
-                          year: 'numeric', 
-                          month: 'short', 
-                          day: 'numeric' 
-                        })}
+                        <ThemeToggle />
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          onClick={() => setShowShortcuts(true)}
+                          data-testid="button-shortcuts"
+                          aria-label="Keyboard shortcuts"
+                          className="h-8 w-8 md:h-10 md:w-10"
+                        >
+                          <Keyboard className="h-4 w-4 md:h-5 md:w-5" />
+                        </Button>
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          onClick={handleTakeTour}
+                          data-testid="button-take-tour"
+                          aria-label="Take Tour"
+                          className="hidden sm:flex items-center gap-1"
+                        >
+                          <Sparkles className="h-4 w-4" />
+                          <span className="hidden md:inline">Take Tour</span>
+                        </Button>
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          onClick={handleLock}
+                          data-testid="button-lock"
+                          aria-label="Lock screen"
+                          className="h-8 w-8 md:h-10 md:w-10"
+                        >
+                          <Lock className="h-4 w-4 md:h-5 md:w-5" />
+                        </Button>
                       </div>
-                      <ThemeToggle />
-                      <Button
-                        variant="ghost"
-                        size="icon"
-                        onClick={() => setShowShortcuts(true)}
-                        data-testid="button-shortcuts"
-                        aria-label="Keyboard shortcuts"
-                        className="h-8 w-8 md:h-10 md:w-10"
-                      >
-                        <Keyboard className="h-4 w-4 md:h-5 md:w-5" />
-                      </Button>
-                      <Button
-                        variant="ghost"
-                        size="sm"
-                        onClick={handleTakeTour}
-                        data-testid="button-take-tour"
-                        aria-label="Take Tour"
-                        className="hidden sm:flex items-center gap-1"
-                      >
-                        <Sparkles className="h-4 w-4" />
-                        <span className="hidden md:inline">Take Tour</span>
-                      </Button>
-                      <Button
-                        variant="ghost"
-                        size="icon"
-                        onClick={handleLock}
-                        data-testid="button-lock"
-                        aria-label="Lock screen"
-                        className="h-8 w-8 md:h-10 md:w-10"
-                      >
-                        <Lock className="h-4 w-4 md:h-5 md:w-5" />
-                      </Button>
-                    </div>
-                  </header>
-                  <main className="flex-1 overflow-auto p-3 sm:p-4 md:p-6">
-                    <Router />
-                  </main>
+                    </header>
+                    <main className="flex-1 overflow-auto p-3 sm:p-4 md:p-6">
+                      <Router />
+                    </main>
+                  </div>
                 </div>
-              </div>
-            </SidebarProvider>
-            <KeyboardShortcutsDialog 
-              open={showShortcuts} 
-              onOpenChange={setShowShortcuts}
-              shortcuts={globalShortcuts}
-            />
-            <CursorTrail />
-            <Toaster />
-          </TooltipProvider>
-        </AuthProvider>
+              </SidebarProvider>
+              <KeyboardShortcutsDialog 
+                open={showShortcuts} 
+                onOpenChange={setShowShortcuts}
+              />
+              <CursorTrail />
+              <Toaster />
+            </TooltipProvider>
+          </AuthProvider>
+        </ShortcutsProvider>
       </QueryClientProvider>
     </ThemeProvider>
   );
