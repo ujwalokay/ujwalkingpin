@@ -2,6 +2,8 @@ import type { Express } from "express";
 import { createServer, type Server } from "http";
 import { storage } from "./storage";
 import { requireAuth, requireAdmin, requireAdminOrStaff, webhookLimiter, publicApiLimiter } from "./auth";
+import { retentionService } from "./retention";
+import { cleanupScheduler } from "./scheduler";
 import { 
   insertBookingSchema, 
   insertDeviceConfigSchema, 
@@ -960,6 +962,53 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const pricing = await storage.getAllPricingConfigs();
       res.json(pricing);
     } catch (error: any) {
+      res.status(500).json({ message: error.message });
+    }
+  });
+
+  // Data Retention Endpoints
+  app.get("/api/retention/config", requireAdmin, async (req, res) => {
+    try {
+      const config = retentionService.getConfig();
+      res.json(config);
+    } catch (error: any) {
+      res.status(500).json({ message: error.message });
+    }
+  });
+
+  app.post("/api/retention/cleanup", requireAdmin, async (req, res) => {
+    try {
+      const result = await cleanupScheduler.runNow();
+      res.json({ 
+        message: "Cleanup completed successfully",
+        result 
+      });
+    } catch (error: any) {
+      res.status(500).json({ message: error.message });
+    }
+  });
+
+  app.put("/api/retention/config", requireAdmin, async (req, res) => {
+    try {
+      const updateSchema = z.object({
+        bookingHistory: z.number().min(1).optional(),
+        activityLogs: z.number().min(1).optional(),
+        loadMetrics: z.number().min(1).optional(),
+        loadPredictions: z.number().min(1).optional(),
+        expenses: z.number().min(1).optional(),
+      });
+      
+      const validatedData = updateSchema.parse(req.body);
+      retentionService.updateConfig(validatedData);
+      
+      res.json({ 
+        message: "Retention config updated successfully",
+        config: retentionService.getConfig()
+      });
+    } catch (error: any) {
+      if (error instanceof z.ZodError) {
+        return res.status(400).json({ message: "Invalid retention config", errors: error.errors });
+      }
       res.status(500).json({ message: error.message });
     }
   });
