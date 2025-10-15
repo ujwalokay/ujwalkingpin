@@ -3,24 +3,29 @@ import { getServerTime } from "@/lib/api";
 
 let timeOffset: number | null = null;
 let offsetPromise: Promise<void> | null = null;
+let isInitializing = false;
 
 async function initializeTimeOffset() {
   if (timeOffset !== null) return;
-  if (offsetPromise) {
-    await offsetPromise;
+  
+  if (isInitializing) {
+    if (offsetPromise) {
+      await offsetPromise;
+    }
     return;
   }
 
+  isInitializing = true;
   offsetPromise = (async () => {
     try {
       const serverTime = await getServerTime();
       const clientTime = new Date();
       timeOffset = serverTime.getTime() - clientTime.getTime();
     } catch (error) {
-      console.error("Failed to get server time, using client time", error);
       timeOffset = 0;
     } finally {
       offsetPromise = null;
+      isInitializing = false;
     }
   })();
 

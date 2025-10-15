@@ -3,7 +3,8 @@ import type { Booking, InsertBooking, DeviceConfig, PricingConfig } from "@share
 export async function fetchBookings(): Promise<Booking[]> {
   const response = await fetch("/api/bookings");
   if (!response.ok) {
-    throw new Error("Failed to fetch bookings");
+    const errorData = await response.json().catch(() => ({ message: "Failed to fetch bookings" }));
+    throw new Error(errorData.message || "Failed to fetch bookings");
   }
   return response.json();
 }
@@ -39,14 +40,16 @@ export async function deleteBooking(id: string): Promise<void> {
     method: "DELETE",
   });
   if (!response.ok) {
-    throw new Error("Failed to delete booking");
+    const errorData = await response.json().catch(() => ({ message: "Failed to delete booking" }));
+    throw new Error(errorData.message || "Failed to delete booking");
   }
 }
 
 export async function fetchDeviceConfigs(): Promise<DeviceConfig[]> {
   const response = await fetch("/api/device-config");
   if (!response.ok) {
-    throw new Error("Failed to fetch device configs");
+    const errorData = await response.json().catch(() => ({ message: "Failed to fetch device configs" }));
+    throw new Error(errorData.message || "Failed to fetch device configs");
   }
   return response.json();
 }
@@ -54,7 +57,8 @@ export async function fetchDeviceConfigs(): Promise<DeviceConfig[]> {
 export async function fetchPricingConfigs(): Promise<PricingConfig[]> {
   const response = await fetch("/api/pricing-config");
   if (!response.ok) {
-    throw new Error("Failed to fetch pricing configs");
+    const errorData = await response.json().catch(() => ({ message: "Failed to fetch pricing configs" }));
+    throw new Error(errorData.message || "Failed to fetch pricing configs");
   }
   return response.json();
 }
@@ -62,7 +66,8 @@ export async function fetchPricingConfigs(): Promise<PricingConfig[]> {
 export async function getServerTime(): Promise<Date> {
   const response = await fetch("/api/server-time");
   if (!response.ok) {
-    throw new Error("Failed to fetch server time");
+    const errorData = await response.json().catch(() => ({ message: "Failed to fetch server time" }));
+    throw new Error(errorData.message || "Failed to fetch server time");
   }
   const data = await response.json();
   return new Date(data.serverTime);

@@ -52,7 +52,7 @@ import {
   retentionConfig
 } from "@shared/schema";
 import { db } from "./db";
-import { eq, and, gte, lte, lt, desc } from "drizzle-orm";
+import { eq, and, gte, lte, lt, desc, inArray } from "drizzle-orm";
 import bcrypt from "bcrypt";
 
 export interface BookingStats {
@@ -641,8 +641,8 @@ export class DatabaseStorage implements IStorage {
     await db.insert(bookingHistory).values(historyRecords as any);
 
     const bookingIds = bookingsToArchive.map(b => b.id);
-    for (const id of bookingIds) {
-      await db.delete(bookings).where(eq(bookings.id, id));
+    if (bookingIds.length > 0) {
+      await db.delete(bookings).where(inArray(bookings.id, bookingIds));
     }
 
     return bookingsToArchive.length;

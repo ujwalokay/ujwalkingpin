@@ -103,10 +103,9 @@ export default function Login({ onLoginSuccess }: LoginProps) {
     }
   };
 
-  const handleKeyPress = (e: React.KeyboardEvent) => {
-    if (e.key === "Enter" && !isLoggingIn && !(lockoutTime && Date.now() < lockoutTime)) {
-      handleLogin();
-    }
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    handleLogin();
   };
 
   const isLockedOut = !!(lockoutTime && Date.now() < lockoutTime);
@@ -142,7 +141,7 @@ export default function Login({ onLoginSuccess }: LoginProps) {
               </div>
 
               {/* Form */}
-              <div className="space-y-5">
+              <form onSubmit={handleSubmit} className="space-y-5">
                 <div className="space-y-2">
                   <Label htmlFor="username" className="text-gray-700 dark:text-gray-300 font-medium">
                     Username
@@ -154,7 +153,6 @@ export default function Login({ onLoginSuccess }: LoginProps) {
                     placeholder="Enter your username"
                     value={username}
                     onChange={(e) => setUsername(e.target.value)}
-                    onKeyPress={handleKeyPress}
                     disabled={isLockedOut}
                     className="bg-white dark:bg-gray-900 border-gray-300 dark:border-gray-600 h-12 text-base rounded-xl"
                   />
@@ -172,7 +170,6 @@ export default function Login({ onLoginSuccess }: LoginProps) {
                       placeholder="Enter your password"
                       value={password}
                       onChange={(e) => setPassword(e.target.value)}
-                      onKeyPress={handleKeyPress}
                       className="bg-white dark:bg-gray-900 border-gray-300 dark:border-gray-600 h-12 text-base pr-12 rounded-xl"
                       disabled={isLockedOut}
                     />
@@ -194,7 +191,7 @@ export default function Login({ onLoginSuccess }: LoginProps) {
                 </div>
 
                 <Button
-                  onClick={handleLogin}
+                  type="submit"
                   className="w-full h-12 text-base font-semibold bg-gradient-to-r from-purple-600 via-purple-500 to-pink-600 hover:from-purple-700 hover:via-purple-600 hover:to-pink-700 text-white rounded-xl shadow-lg hover:shadow-purple-500/50 transition-all duration-200"
                   data-testid="button-login"
                   disabled={isLoggingIn || isLockedOut}
@@ -217,7 +214,7 @@ export default function Login({ onLoginSuccess }: LoginProps) {
                     Login as {isAdminLogin ? "Staff" : "Admin"}
                   </button>
                 </div>
-              </div>
+              </form>
             </div>
           </div>
 
