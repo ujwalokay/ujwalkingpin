@@ -8,6 +8,7 @@ import { registerAuthRoutes } from "./auth";
 import { setupVite, serveStatic, log } from "./vite";
 import { storage } from "./storage";
 import { pool } from "./db";
+import { cleanupScheduler } from "./scheduler";
 
 const app = express();
 
@@ -129,6 +130,9 @@ app.use((req, res, next) => {
 (async () => {
   // Initialize database with defaults
   await storage.initializeDefaults();
+  
+  // Start automatic data cleanup scheduler
+  cleanupScheduler.start();
   
   // Register authentication routes
   registerAuthRoutes(app);
