@@ -49,7 +49,7 @@ import {
   loadPredictions
 } from "@shared/schema";
 import { db } from "./db";
-import { eq, and, gte, lte, desc } from "drizzle-orm";
+import { eq, and, gte, lte, lt, desc } from "drizzle-orm";
 import bcrypt from "bcrypt";
 
 export interface BookingStats {
@@ -159,6 +159,12 @@ export interface IStorage {
   getAllLoadPredictions(): Promise<LoadPrediction[]>;
   getRecentLoadPredictions(limit: number): Promise<LoadPrediction[]>;
   createLoadPrediction(prediction: InsertLoadPrediction): Promise<LoadPrediction>;
+  
+  deleteOldBookingHistory(olderThanDays: number): Promise<number>;
+  deleteOldActivityLogs(olderThanDays: number): Promise<number>;
+  deleteOldLoadMetrics(olderThanDays: number): Promise<number>;
+  deleteOldLoadPredictions(olderThanDays: number): Promise<number>;
+  deleteOldExpenses(olderThanDays: number): Promise<number>;
   
   initializeDefaults(): Promise<void>;
 }
@@ -900,6 +906,61 @@ export class DatabaseStorage implements IStorage {
   async createLoadPrediction(prediction: InsertLoadPrediction): Promise<LoadPrediction> {
     const [created] = await db.insert(loadPredictions).values(prediction).returning();
     return created;
+  }
+
+  async deleteOldBookingHistory(olderThanDays: number): Promise<number> {
+    const cutoffDate = new Date();
+    cutoffDate.setDate(cutoffDate.getDate() - olderThanDays);
+    
+    const result = await db
+      .delete(bookingHistory)
+      .where(lt(bookingHistory.archivedAt, cutoffDate));
+    
+    return result.rowCount || 0;
+  }
+
+  async deleteOldActivityLogs(olderThanDays: number): Promise<number> {
+    const cutoffDate = new Date();
+    cutoffDate.setDate(cutoffDate.getDate() - olderThanDays);
+    
+    const result = await db
+      .delete(activityLogs)
+      .where(lt(activityLogs.createdAt, cutoffDate));
+    
+    return result.rowCount || 0;
+  }
+
+  async deleteOldLoadMetrics(olderThanDays: number): Promise<number> {
+    const cutoffDate = new Date();
+    cutoffDate.setDate(cutoffDate.getDate() - olderThanDays);
+    
+    const result = await db
+      .delete(loadMetrics)
+      .where(lt(loadMetrics.timestamp, cutoffDate));
+    
+    return result.rowCount || 0;
+  }
+
+  async deleteOldLoadPredictions(olderThanDays: number): Promise<number> {
+    const cutoffDate = new Date();
+    cutoffDate.setDate(cutoffDate.getDate() - olderThanDays);
+    
+    const result = await db
+      .delete(loadPredictions)
+      .where(lt(loadPredictions.timestamp, cutoffDate));
+    
+    return result.rowCount || 0;
+  }
+
+  async deleteOldExpenses(olderThanDays: number): Promise<number> {
+    const cutoffDate = new Date();
+    cutoffDate.setDate(cutoffDate.getDate() - olderThanDays);
+    
+    const result = await db
+      .delete(expenses)
+      .where(lt(expenses.date, cutoffDate));
+    
+    return result.rowCount || 0;
   }
 
 }
