@@ -389,11 +389,9 @@ export default function Dashboard() {
       
       const existingFoodOrders = booking.foodOrders || [];
       const allFoodOrders = [...existingFoodOrders, ...foodOrders];
-      const newPrice = (parseFloat(booking.price.toString()) + additionalCost).toFixed(2);
       
       return updateBooking(id, { 
-        foodOrders: allFoodOrders as any,
-        price: newPrice 
+        foodOrders: allFoodOrders as any
       });
     },
     onSuccess: () => {
@@ -461,16 +459,13 @@ export default function Dashboard() {
     if (!booking || !booking.foodOrders) return;
     
     const foodItem = booking.foodOrders[foodIndex];
-    const foodItemCost = parseFloat(foodItem.price) * foodItem.quantity;
     
     const updatedFoodOrders = booking.foodOrders.filter((_, index) => index !== foodIndex);
-    const newPrice = (parseFloat(booking.price) - foodItemCost).toString();
     
     await completeBookingMutation.mutateAsync({
       id: bookingId,
       data: { 
-        foodOrders: updatedFoodOrders as any,
-        price: newPrice
+        foodOrders: updatedFoodOrders as any
       },
     });
     
