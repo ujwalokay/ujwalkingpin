@@ -8,9 +8,11 @@ import { AppSidebar } from "@/components/AppSidebar";
 import { ThemeProvider } from "@/components/ThemeProvider";
 import { ThemeToggle } from "@/components/ThemeToggle";
 import { AuthProvider } from "@/contexts/AuthContext";
-import { Lock, Sparkles } from "lucide-react";
+import { Lock, Sparkles, Keyboard } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useLocation } from "wouter";
+import { KeyboardShortcutsDialog } from "@/components/KeyboardShortcutsDialog";
+import { useKeyboardShortcut, type KeyboardShortcut } from "@/hooks/useKeyboardShortcuts";
 import Dashboard from "@/pages/Dashboard";
 import Settings from "@/pages/Settings";
 import Reports from "@/pages/Reports";
@@ -64,6 +66,7 @@ function App() {
   const [user, setUser] = useState<User | null>(null);
   const [showLogin, setShowLogin] = useState(false);
   const [showSplash, setShowSplash] = useState(true);
+  const [showShortcuts, setShowShortcuts] = useState(false);
   const { toast } = useToast();
   const [, setLocation] = useLocation();
 
@@ -126,6 +129,119 @@ function App() {
   const handleTakeTour = () => {
     setLocation("/?tour=true");
   };
+
+  // Define global keyboard shortcuts
+  const globalShortcuts: KeyboardShortcut[] = [
+    {
+      key: '?',
+      shiftKey: true,
+      description: 'Show keyboard shortcuts',
+      action: () => setShowShortcuts(true),
+      category: 'General'
+    },
+    {
+      key: 'k',
+      ctrlKey: true,
+      description: 'Show keyboard shortcuts',
+      action: () => setShowShortcuts(true),
+      category: 'General'
+    },
+    {
+      key: 'l',
+      ctrlKey: true,
+      description: 'Lock screen',
+      action: handleLock,
+      category: 'General'
+    },
+    {
+      key: 't',
+      ctrlKey: true,
+      description: 'Toggle theme',
+      action: () => {
+        const themeToggle = document.querySelector('[data-testid="button-theme-toggle"]') as HTMLButtonElement;
+        themeToggle?.click();
+      },
+      category: 'General'
+    },
+    {
+      key: 'b',
+      ctrlKey: true,
+      description: 'Toggle sidebar',
+      action: () => {
+        const sidebarToggle = document.querySelector('[data-testid="button-sidebar-toggle"]') as HTMLButtonElement;
+        sidebarToggle?.click();
+      },
+      category: 'General'
+    },
+    {
+      key: '1',
+      altKey: true,
+      description: 'Go to Dashboard',
+      action: () => setLocation('/'),
+      category: 'Navigation'
+    },
+    {
+      key: '2',
+      altKey: true,
+      description: 'Go to Timeline',
+      action: () => setLocation('/timeline'),
+      category: 'Navigation'
+    },
+    {
+      key: '3',
+      altKey: true,
+      description: 'Go to History',
+      action: () => setLocation('/history'),
+      category: 'Navigation'
+    },
+    {
+      key: '4',
+      altKey: true,
+      description: 'Go to Activity Logs',
+      action: () => setLocation('/activity-logs'),
+      category: 'Navigation'
+    },
+    {
+      key: '5',
+      altKey: true,
+      description: 'Go to Analytics',
+      action: () => setLocation('/analytics'),
+      category: 'Navigation'
+    },
+    {
+      key: '6',
+      altKey: true,
+      description: 'Go to Food Management',
+      action: () => setLocation('/food'),
+      category: 'Navigation'
+    },
+    {
+      key: '7',
+      altKey: true,
+      description: 'Go to Expenses',
+      action: () => setLocation('/expenses'),
+      category: 'Navigation'
+    },
+    {
+      key: '8',
+      altKey: true,
+      description: 'Go to Settings',
+      action: () => setLocation('/settings'),
+      category: 'Navigation'
+    },
+    {
+      key: '9',
+      altKey: true,
+      description: 'Go to Reports',
+      action: () => setLocation('/reports'),
+      category: 'Navigation'
+    }
+  ];
+
+  // Register global shortcuts
+  globalShortcuts.forEach(shortcut => {
+    useKeyboardShortcut(shortcut);
+  });
 
   if (!isAuthenticated) {
     return (
@@ -196,6 +312,16 @@ function App() {
                       <ThemeToggle />
                       <Button
                         variant="ghost"
+                        size="icon"
+                        onClick={() => setShowShortcuts(true)}
+                        data-testid="button-shortcuts"
+                        aria-label="Keyboard shortcuts"
+                        className="h-8 w-8 md:h-10 md:w-10"
+                      >
+                        <Keyboard className="h-4 w-4 md:h-5 md:w-5" />
+                      </Button>
+                      <Button
+                        variant="ghost"
                         size="sm"
                         onClick={handleTakeTour}
                         data-testid="button-take-tour"
@@ -223,6 +349,11 @@ function App() {
                 </div>
               </div>
             </SidebarProvider>
+            <KeyboardShortcutsDialog 
+              open={showShortcuts} 
+              onOpenChange={setShowShortcuts}
+              shortcuts={globalShortcuts}
+            />
             <CursorTrail />
             <Toaster />
           </TooltipProvider>
