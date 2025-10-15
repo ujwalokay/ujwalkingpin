@@ -2,135 +2,7 @@
 
 ## Overview
 
-This project is a local admin panel web application designed for managing a gaming center's Point-of-Sale (POS) system. It facilitates real-time tracking of gaming sessions across various device types (PC, PS5, VR, car simulators), handles both walk-in and advance bookings, and provides comprehensive reporting, including an expense tracker. The application is a full-stack TypeScript project, running locally on the shop's computer, and features a gaming-themed dark mode UI inspired by Discord and Steam. Its primary purpose is to streamline operations, manage inventory, track expenses, and improve customer service in a gaming center environment.
-
-## Recent Changes
-
-**October 14, 2025:**
-- **Enhanced Onboarding Tour Feature:**
-  - Expanded tutorial from 5 to 11 comprehensive steps covering all major features
-  - Added detailed explanations for: Dashboard, Creating Bookings, Managing Sessions, Food Orders, Settings, Happy Hours, Analytics, Expenses, History, and Getting Started
-  - Enhanced each step with:
-    - Multi-paragraph descriptions (3-4 sentences)
-    - `features` array with icons and detailed descriptions
-    - `tips` array with practical advice and pro tips
-  - Improved UI with scrollable content, visual separators, progress indicators
-  - Added "Step X of Y" counter for better navigation
-  - Tour accessible via "Take Tour" button in header (sparkle icon)
-  - Provides comprehensive, actionable guidance for new users
-- **Fixed Extend Session Feature:**
-  - Extend dialog now fetches pricing from Settings based on device category (PC, PS5, etc.)
-  - Fixed price calculation bug (was adding number + string, now correctly adds numbers)
-  - Added support for decimal durations (1.5 hours, 2.5 hr, etc.)
-  - Normalized personCount handling so category-level pricing displays correctly
-  - Extended sessions now show configured pricing instead of hardcoded values
-- **Restructured Happy Hours Configuration System:**
-  - Separated Happy Hours into two distinct parts for better configuration:
-    - **Happy Hours Time Slots**: Defines WHEN happy hours are active (start/end times per category)
-    - **Happy Hours Pricing**: Defines pricing tiers that apply DURING those time slots (similar to PC/PS5 pricing)
-  - Added new `happy_hours_pricing_configs` database table for pricing tiers
-  - Removed `pricePerHour` field from `happy_hours_configs` table (now only stores time windows)
-  - Created HappyHoursPricing component matching PricingTable structure (duration + price tiers)
-  - Updated Settings page to show both time slots and pricing sections for Happy Hours
-  - Improved responsive layout with 4-column grid for 2K/4K displays, better spacing on PC
-  - Complete CRUD operations for both time slots and pricing configurations
-  - Architecture matches regular pricing system for consistency and maintainability
-- **Enhanced PS5 Person Count Controls:**
-  - Modified AddBookingDialog to ALWAYS show person counter (+/-) for ALL PS5 bookings
-  - Person count controls now appear regardless of whether pricing slot has personCount configured
-  - Improved responsive layout with flex-col sm:flex-row pattern for better mobile/tablet experience
-  - **Fixed pricing: PS5 configured price is now FINAL/TOTAL price (no multiplication)**
-  - Person count is tracked for information only, NOT used for price calculation
-  - Example: "1 hour + 3 person = ₹100" means ₹100 is the total price, regardless of actual persons selected
-  - Enhanced seats grid with better column distribution (3 cols on mobile, up to 6 on large screens)
-  - Improved time slot filter buttons with grid layout for consistent button sizing
-  - PS5 remains the only category with always-visible person count controls (PS5 is unique)
-  - Happy Hours bookings correctly exclude person count multiplier
-- **Improved Pricing Configuration Layout:**
-  - Enhanced PricingTable component with responsive mobile/tablet layout
-  - Person count field now completely hidden for PC (not just disabled) - only visible for PS5
-  - Edit mode now uses flex-col on mobile, flex-row on larger screens for better UX
-  - Action buttons and price inputs properly sized for different screen sizes
-  - Display text conditionally shows "+ X person" only for PS5 category
-- **Restricted Person Count to PS5 Category Only:**
-  - Modified AddBookingDialog to show person counter (+/-) only for PS5 category bookings
-  - PC bookings no longer display person field regardless of pricing configuration
-  - Person-based pricing now applies exclusively to PS5 category
-- **Removed Game Updates Feature:**
-  - Deleted GameUpdates.tsx page component and all related UI
-  - Removed Game Updates navigation from sidebar and App.tsx routes
-  - Removed all Game Updates API endpoints from server/routes.ts
-  - Removed Game Updates storage methods from server/storage.ts
-  - Removed gameUpdates schema and types from shared/schema.ts
-  - Dropped game_updates table from database
-  - Updated documentation to remove Game Updates references
-  - Cleaned up codebase by removing unused functionality
-- **Implemented Happy Hours Feature:**
-  - Added `happy_hours_configs` table to database with category, pricePerHour, startTime, endTime, and enabled fields
-  - Created HappyHoursTable component in Settings page for configuring time-based special pricing
-  - Added "Happy Hours" tab to Dashboard for viewing Happy Hours bookings
-  - Updated AddBookingDialog to support Happy Hours booking type with:
-    - Active time validation (only available during configured time windows)
-    - Hourly rate pricing display (price per hour × duration in hours)
-    - Visual indicators for Happy Hours availability status
-  - Happy Hours bookings start immediately (like walk-in) but only during configured time windows
-  - Pricing uses hourly rate system: pricePerHour × (duration in hours)
-  - All Happy Hours bookings are marked as "running" status when created
-  - Flexible system: any device category can have Happy Hours pricing configured
-
-**October 13, 2025:**
-- **Implemented Person-Based Pricing System:**
-  - Added `personCount` field to pricing configuration schema (database table: pricing_configs)
-  - Updated PricingTable component to support person-based pricing input (format: "30 mins + 1 person")
-  - Admin can now configure person count for any pricing slot in Settings
-  - Person count selector appears in AddBookingDialog when selected pricing slot has personCount > 1
-  - Booking price automatically multiplies by person count (e.g., 30 min @ ₹10 × 3 persons = ₹30)
-  - Person count defaults to 1 and resets when switching device categories or pricing slots
-  - "Persons" column in BookingTable displays person count for all bookings
-  - Dashboard properly persists and displays person count for all bookings
-  - Flexible system: any device category can now use person-based pricing, not just PS5
-- **Removed Mini Webview Feature:**
-  - Removed `/mini-webview` public route and related components
-  - Removed mini_webview_settings table from database
-  - Cleaned up 603 lines of code for simplified codebase
-- **Removed Two-Factor Authentication (2FA):**
-  - Removed OTP verification system
-  - Removed email functionality and Nodemailer dependency
-  - Simplified login flow for all users (both admin and staff)
-  - No longer requires SMTP configuration or email setup
-  - Streamlined authentication without OTP verification
-- **Implemented Device-Based Access Control for Mobile/Tablet:**
-  - Created device detection hook (`use-device-type.tsx`) to identify PC, mobile, and tablet devices
-  - Updated AuthContext with device-aware permissions (`canMakeChanges` flag)
-  - Admin/staff users can now only VIEW on mobile and tablet devices (screen width < 1024px)
-  - All editing capabilities (Add, Edit, Delete, Settings) are restricted to PC/desktop only
-  - Added DeviceRestrictionAlert component to inform users of access limitations
-  - Updated all admin pages with device restrictions:
-    - Dashboard and BookingTable: Disabled all booking actions on mobile/tablet
-    - Settings: Disabled configuration changes on mobile/tablet
-    - Food Management: Disabled add/edit/delete food items on mobile/tablet
-    - Expense Tracker: Disabled add/edit/delete expenses on mobile/tablet
-    - Loyalty Program: Disabled settings configuration on mobile/tablet
-  - Design decision: Mobile/tablet = read-only for admin/staff, PC = full access
-
-**October 12, 2025:**
-- Updated Analytics Dashboard to display only walk-in booking data (excludes upcoming bookings)
-- Analytics API endpoint now filters for `bookingType === "walk-in"` and `status !== "upcoming"`
-- All metrics (occupancy, revenue, hourly usage) now reflect active walk-in sessions only
-- **Enhanced Analytics Page with Gaming Cafe Metrics:**
-  - Added unique customer tracking for walk-ins
-  - Added average session duration calculation
-  - Added food order statistics (total orders and revenue)
-  - Improved layout with two-row metric cards for better visibility
-  - All metrics now properly calculate from walk-in bookings only
-- **Removed Unused Chat Functionality:**
-  - Removed chat sessions and chat messages from database schema
-  - Dropped chat_sessions and chat_messages tables from database
-  - Cleaned up storage.ts to remove chat-related interfaces and methods
-- **Fixed Loyalty Settings Save Issue:**
-  - Updated insertLoyaltyConfigSchema to use z.coerce.number() for automatic string-to-number conversion
-  - Added default values for all tier threshold fields to handle partial payloads
-  - Resolved "Failed to update loyalty settings" error
+This project is a local admin panel web application for managing a gaming center's Point-of-Sale (POS) system. It tracks gaming sessions across various device types (PC, PS5, VR, car simulators), handles walk-in and advance bookings, and provides comprehensive reporting, including an expense tracker. The application is a full-stack TypeScript project, running locally, designed to streamline operations, manage inventory, track expenses, and improve customer service in a gaming center environment. It features a gaming-themed dark mode UI inspired by Discord and Steam.
 
 ## User Preferences
 
@@ -168,12 +40,13 @@ Preferred communication style: Simple, everyday language.
 
 **Data Models:**
 - `Bookings`: Manages active sessions, status, timing, and pricing.
-- `Booking History`: Archives completed/expired bookings for audit.
+- `Booking History`: Archives completed/expired bookings.
 - `Device Configs`: Stores dynamic device categories and seat configurations.
-- `Pricing Configs`: Defines pricing rules per category and duration.
+- `Pricing Configs`: Defines pricing rules per category and duration, including person-based pricing for PS5.
 - `Food Items`: Stores available food and beverage options.
-- `Settings`: General admin configurations (e.g., delete PIN).
-- `Expenses`: Tracks operational costs by category, description, amount, and date.
+- `Settings`: General admin configurations.
+- `Expenses`: Tracks operational costs.
+- `Happy Hours Configs`: Defines time slots and pricing for special happy hour rates.
 
 ### Key Architectural Decisions
 
@@ -182,7 +55,7 @@ Preferred communication style: Simple, everyday language.
 
 **Real-time Features:**
 - Client-side interval timers for session countdowns.
-- Polling for updates (no WebSockets for simplicity).
+- Polling for updates.
 - Audio/visual notifications for expired sessions.
 
 **Styling Architecture:**
@@ -194,15 +67,16 @@ Preferred communication style: Simple, everyday language.
 - React Hook Form for form state and validation.
 - Zod schemas for robust input validation.
 
-**Key Features Implemented:**
-- Dynamic Device Category Management: Add/delete device types, affecting dashboard and pricing.
-- Smart Upcoming Booking Flow: Date/time-based seat availability, preventing conflicts.
-- Booking History Archival: Dedicated storage for past bookings.
-- Pause/Resume Timer Functionality: For active gaming sessions.
-- Expense Tracker: Comprehensive system for operational costs with CSV/PDF export.
-- WhatsApp Bot Integration: Automated device availability queries via Twilio WhatsApp API.
-- Public Status Board: Customer-facing real-time availability display at `/status` route (no authentication required). Auto-refreshes with visual indicators.
-- Device-Based Access Control: Admin/staff users restricted to view-only mode on mobile/tablet devices (< 1024px), with full editing capabilities available only on PC/desktop (≥ 1024px).
+**Feature Specifications:**
+- Dynamic Device Category Management: Add/delete device types.
+- Smart Upcoming Booking Flow: Date/time-based seat availability.
+- Pause/Resume Timer Functionality.
+- Expense Tracker: Comprehensive system with CSV/PDF export.
+- WhatsApp Bot Integration: Automated device availability queries via Twilio.
+- Public Status Board: Customer-facing real-time availability display at `/status`.
+- Device-Based Access Control: Admin/staff users restricted to view-only mode on mobile/tablet devices (< 1024px), with full editing capabilities only on PC/desktop (≥ 1024px).
+- Happy Hours Feature: Configurable time-based special pricing.
+- Onboarding Tour: Comprehensive step-by-step guide for new users.
 
 ## External Dependencies
 
@@ -229,12 +103,4 @@ Preferred communication style: Simple, everyday language.
 - **class-variance-authority**: Type-safe variant API for components.
 
 ### Communication
-- **Twilio**: For WhatsApp bot integration (sending and receiving messages).
-
-## Setup Requirements
-
-### Environment Variables
-The following environment variables need to be configured:
-- `ADMIN_USERNAME`: Initial admin account username
-- `ADMIN_PASSWORD`: Initial admin account password
-- `DATABASE_URL`: PostgreSQL connection string (auto-configured by Replit)
+- **Twilio**: For WhatsApp bot integration.
