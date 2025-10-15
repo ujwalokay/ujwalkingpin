@@ -158,7 +158,7 @@ function App() {
       ctrlKey: true,
       description: 'Toggle theme',
       action: () => {
-        const themeToggle = document.querySelector('[data-testid="button-theme-toggle"]') as HTMLButtonElement;
+        const themeToggle = document.querySelector('[data-testid="button-toggle-theme"]') as HTMLButtonElement;
         themeToggle?.click();
       },
       category: 'General'

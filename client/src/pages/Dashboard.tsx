@@ -17,6 +17,7 @@ import type { Booking as DBBooking, DeviceConfig } from "@shared/schema";
 import { useServerTime } from "@/hooks/useServerTime";
 import { useAuth } from "@/contexts/AuthContext";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
+import { useKeyboardShortcut } from "@/hooks/useKeyboardShortcuts";
 
 type BookingStatus = "available" | "running" | "expired" | "upcoming" | "completed" | "paused";
 
@@ -76,6 +77,41 @@ export default function Dashboard() {
   const [hideCompleted, setHideCompleted] = useState(false);
   const [selectedBookings, setSelectedBookings] = useState<Set<string>>(new Set());
   const [showTour, setShowTour] = useState(false);
+
+  // Dashboard keyboard shortcuts
+  useKeyboardShortcut({
+    key: 'n',
+    ctrlKey: true,
+    description: 'Add new booking',
+    action: () => {
+      if (canMakeChanges) {
+        setAddDialog(true);
+      }
+    },
+    category: 'Dashboard'
+  });
+
+  useKeyboardShortcut({
+    key: 'r',
+    ctrlKey: true,
+    description: 'Refresh data',
+    action: () => {
+      queryClient.invalidateQueries({ queryKey: ['bookings'] });
+      queryClient.invalidateQueries({ queryKey: ['device-configs'] });
+      toast({
+        title: "Data Refreshed",
+        description: "Bookings and device configs have been refreshed",
+      });
+    },
+    category: 'Dashboard'
+  });
+
+  useKeyboardShortcut({
+    key: 'h',
+    description: 'Toggle completed bookings',
+    action: () => setHideCompleted(prev => !prev),
+    category: 'Dashboard'
+  });
 
   const { data: dbBookings = [], isLoading } = useQuery({ 
     queryKey: ['bookings'], 
