@@ -31,6 +31,8 @@ import {
   type InsertLoadMetric,
   type LoadPrediction,
   type InsertLoadPrediction,
+  type RetentionConfig,
+  type InsertRetentionConfig,
   bookings,
   deviceConfigs,
   pricingConfigs,
@@ -46,7 +48,8 @@ import {
   facilities,
   games,
   loadMetrics,
-  loadPredictions
+  loadPredictions,
+  retentionConfig
 } from "@shared/schema";
 import { db } from "./db";
 import { eq, and, gte, lte, lt, desc } from "drizzle-orm";
@@ -165,6 +168,9 @@ export interface IStorage {
   deleteOldLoadMetrics(olderThanDays: number): Promise<number>;
   deleteOldLoadPredictions(olderThanDays: number): Promise<number>;
   deleteOldExpenses(olderThanDays: number): Promise<number>;
+  
+  getRetentionConfig(): Promise<RetentionConfig>;
+  updateRetentionConfig(config: Partial<InsertRetentionConfig>): Promise<RetentionConfig>;
   
   initializeDefaults(): Promise<void>;
 }
@@ -961,6 +967,35 @@ export class DatabaseStorage implements IStorage {
       .where(lt(expenses.date, cutoffDate));
     
     return result.rowCount || 0;
+  }
+
+  async getRetentionConfig(): Promise<RetentionConfig> {
+    const configs = await db.select().from(retentionConfig).limit(1);
+    
+    if (configs.length === 0) {
+      const [newConfig] = await db.insert(retentionConfig).values({
+        bookingHistoryDays: 730,
+        activityLogsDays: 180,
+        loadMetricsDays: 90,
+        loadPredictionsDays: 90,
+        expensesDays: 2555,
+      }).returning();
+      return newConfig;
+    }
+    
+    return configs[0];
+  }
+
+  async updateRetentionConfig(config: Partial<InsertRetentionConfig>): Promise<RetentionConfig> {
+    const current = await this.getRetentionConfig();
+    
+    const [updated] = await db
+      .update(retentionConfig)
+      .set({ ...config, updatedAt: new Date() })
+      .where(eq(retentionConfig.id, current.id))
+      .returning();
+    
+    return updated;
   }
 
 }

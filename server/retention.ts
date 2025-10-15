@@ -1,21 +1,5 @@
 import { storage } from "./storage";
 
-export interface RetentionConfig {
-  bookingHistory: number; // days
-  activityLogs: number; // days
-  loadMetrics: number; // days
-  loadPredictions: number; // days
-  expenses: number; // days - keep longer for accounting
-}
-
-export const DEFAULT_RETENTION_CONFIG: RetentionConfig = {
-  bookingHistory: 730, // 2 years
-  activityLogs: 180, // 6 months
-  loadMetrics: 90, // 3 months
-  loadPredictions: 90, // 3 months
-  expenses: 2555, // 7 years (for tax/accounting purposes)
-};
-
 export interface CleanupResult {
   bookingHistory: number;
   activityLogs: number;
@@ -26,12 +10,6 @@ export interface CleanupResult {
 }
 
 export class RetentionService {
-  private config: RetentionConfig;
-
-  constructor(config: RetentionConfig = DEFAULT_RETENTION_CONFIG) {
-    this.config = config;
-  }
-
   async runCleanup(): Promise<CleanupResult> {
     console.log('🧹 Starting data retention cleanup...');
     
@@ -45,24 +23,26 @@ export class RetentionService {
     };
 
     try {
+      const config = await storage.getRetentionConfig();
+      
       // Clean booking history older than retention period
-      results.bookingHistory = await storage.deleteOldBookingHistory(this.config.bookingHistory);
+      results.bookingHistory = await storage.deleteOldBookingHistory(config.bookingHistoryDays);
       console.log(`  ✓ Deleted ${results.bookingHistory} old booking history records`);
 
       // Clean activity logs
-      results.activityLogs = await storage.deleteOldActivityLogs(this.config.activityLogs);
+      results.activityLogs = await storage.deleteOldActivityLogs(config.activityLogsDays);
       console.log(`  ✓ Deleted ${results.activityLogs} old activity logs`);
 
       // Clean load metrics
-      results.loadMetrics = await storage.deleteOldLoadMetrics(this.config.loadMetrics);
+      results.loadMetrics = await storage.deleteOldLoadMetrics(config.loadMetricsDays);
       console.log(`  ✓ Deleted ${results.loadMetrics} old load metrics`);
 
       // Clean load predictions
-      results.loadPredictions = await storage.deleteOldLoadPredictions(this.config.loadPredictions);
+      results.loadPredictions = await storage.deleteOldLoadPredictions(config.loadPredictionsDays);
       console.log(`  ✓ Deleted ${results.loadPredictions} old load predictions`);
 
-      // Clean old expenses (7 years default for tax purposes)
-      results.expenses = await storage.deleteOldExpenses(this.config.expenses);
+      // Clean old expenses
+      results.expenses = await storage.deleteOldExpenses(config.expensesDays);
       console.log(`  ✓ Deleted ${results.expenses} old expenses`);
 
       results.totalDeleted = Object.values(results).reduce((sum, count) => 
@@ -78,13 +58,20 @@ export class RetentionService {
     }
   }
 
-  getConfig(): RetentionConfig {
-    return { ...this.config };
+  async getConfig() {
+    return await storage.getRetentionConfig();
   }
 
-  updateConfig(newConfig: Partial<RetentionConfig>): void {
-    this.config = { ...this.config, ...newConfig };
-    console.log('📝 Retention config updated:', this.config);
+  async updateConfig(newConfig: Partial<{ 
+    bookingHistoryDays?: number;
+    activityLogsDays?: number;
+    loadMetricsDays?: number;
+    loadPredictionsDays?: number;
+    expensesDays?: number;
+  }>) {
+    const updated = await storage.updateRetentionConfig(newConfig);
+    console.log('📝 Retention config updated:', updated);
+    return updated;
   }
 }
 

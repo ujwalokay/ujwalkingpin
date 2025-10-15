@@ -283,4 +283,18 @@ export const insertLoadPredictionSchema = createInsertSchema(loadPredictions).om
 export type InsertLoadPrediction = z.infer<typeof insertLoadPredictionSchema>;
 export type LoadPrediction = typeof loadPredictions.$inferSelect;
 
+export const retentionConfig = pgTable("retention_config", {
+  id: varchar("id").primaryKey().$defaultFn(() => crypto.randomUUID()),
+  bookingHistoryDays: integer("booking_history_days").notNull().default(730),
+  activityLogsDays: integer("activity_logs_days").notNull().default(180),
+  loadMetricsDays: integer("load_metrics_days").notNull().default(90),
+  loadPredictionsDays: integer("load_predictions_days").notNull().default(90),
+  expensesDays: integer("expenses_days").notNull().default(2555),
+  updatedAt: timestamp("updated_at").notNull().defaultNow(),
+});
+
+export const insertRetentionConfigSchema = createInsertSchema(retentionConfig).omit({ id: true, updatedAt: true });
+export type InsertRetentionConfig = z.infer<typeof insertRetentionConfigSchema>;
+export type RetentionConfig = typeof retentionConfig.$inferSelect;
+
 

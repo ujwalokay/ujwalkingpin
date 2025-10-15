@@ -969,7 +969,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Data Retention Endpoints
   app.get("/api/retention/config", requireAdmin, async (req, res) => {
     try {
-      const config = retentionService.getConfig();
+      const config = await retentionService.getConfig();
       res.json(config);
     } catch (error: any) {
       res.status(500).json({ message: error.message });
@@ -991,19 +991,19 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.put("/api/retention/config", requireAdmin, async (req, res) => {
     try {
       const updateSchema = z.object({
-        bookingHistory: z.number().min(1).optional(),
-        activityLogs: z.number().min(1).optional(),
-        loadMetrics: z.number().min(1).optional(),
-        loadPredictions: z.number().min(1).optional(),
-        expenses: z.number().min(1).optional(),
+        bookingHistoryDays: z.number().min(1).optional(),
+        activityLogsDays: z.number().min(1).optional(),
+        loadMetricsDays: z.number().min(1).optional(),
+        loadPredictionsDays: z.number().min(1).optional(),
+        expensesDays: z.number().min(1).optional(),
       });
       
       const validatedData = updateSchema.parse(req.body);
-      retentionService.updateConfig(validatedData);
+      const updated = await retentionService.updateConfig(validatedData);
       
       res.json({ 
         message: "Retention config updated successfully",
-        config: retentionService.getConfig()
+        config: updated
       });
     } catch (error: any) {
       if (error instanceof z.ZodError) {
