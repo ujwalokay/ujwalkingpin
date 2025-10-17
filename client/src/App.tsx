@@ -30,7 +30,6 @@ import ConsumerGallery from "@/pages/ConsumerGallery";
 import ConsumerFacilities from "@/pages/ConsumerFacilities";
 import ConsumerGames from "@/pages/ConsumerGames";
 import FeaturesShowcase from "@/pages/FeaturesShowcase";
-import RoiCalculator from "@/pages/RoiCalculator";
 import NotFound from "@/pages/not-found";
 import Login from "@/pages/Login";
 import { ConsumerNav } from "@/components/ConsumerNav";
@@ -51,7 +50,6 @@ function Router() {
       <Route path="/expenses" component={Expenses} />
       <Route path="/settings" component={Settings} />
       <Route path="/reports" component={Reports} />
-      <Route path="/roi-calculator" component={RoiCalculator} />
       <Route path="/terms" component={TermsAndConditions} />
       <Route component={NotFound} />
     </Switch>
