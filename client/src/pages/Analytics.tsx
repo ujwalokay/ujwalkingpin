@@ -2,8 +2,9 @@ import { useState, useMemo } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { AreaChart, Area, BarChart, Bar, PieChart, Pie, Cell, LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer, ComposedChart } from "recharts";
-import { Activity, TrendingUp, Users, DollarSign, Zap, RefreshCw, Calendar, Clock, ShoppingBag, UserCheck, Sparkles, Brain } from "lucide-react";
+import { Activity, TrendingUp, Users, DollarSign, Zap, RefreshCw, Calendar, Clock, ShoppingBag, UserCheck, Sparkles, Brain, Download } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { saveChartAsImage } from "@/lib/chartUtils";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 
@@ -332,10 +333,21 @@ export default function Analytics() {
 
         {/* Overview Tab */}
         <TabsContent value="overview" className="space-y-4 mt-6">
-          <Card>
-            <CardHeader>
-              <CardTitle>Occupancy Trend</CardTitle>
-              <CardDescription>Real-time seat utilization over time</CardDescription>
+          <Card id="occupancy-trend-chart">
+            <CardHeader className="flex flex-row items-center justify-between">
+              <div>
+                <CardTitle>Occupancy Trend</CardTitle>
+                <CardDescription>Real-time seat utilization over time</CardDescription>
+              </div>
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => saveChartAsImage("occupancy-trend-chart", "occupancy-trend")}
+                data-testid="button-save-occupancy-trend"
+              >
+                <Download className="h-4 w-4 mr-2" />
+                Save as Image
+              </Button>
             </CardHeader>
             <CardContent>
               {transformedStats?.realtimeData && transformedStats.realtimeData.length > 0 ? (
@@ -369,10 +381,21 @@ export default function Analytics() {
           </Card>
 
           <div className="grid gap-4 md:grid-cols-2">
-            <Card>
-              <CardHeader>
-                <CardTitle>Category Distribution</CardTitle>
-                <CardDescription>Usage by device category</CardDescription>
+            <Card id="category-distribution-chart">
+              <CardHeader className="flex flex-row items-center justify-between">
+                <div>
+                  <CardTitle>Category Distribution</CardTitle>
+                  <CardDescription>Usage by device category</CardDescription>
+                </div>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => saveChartAsImage("category-distribution-chart", "category-distribution")}
+                  data-testid="button-save-category-distribution"
+                >
+                  <Download className="h-4 w-4 mr-2" />
+                  Save as Image
+                </Button>
               </CardHeader>
               <CardContent>
                 {transformedStats?.categoryUsage && transformedStats.categoryUsage.length > 0 ? (
@@ -405,10 +428,21 @@ export default function Analytics() {
               </CardContent>
             </Card>
 
-            <Card>
-              <CardHeader>
-                <CardTitle>Hourly Activity</CardTitle>
-                <CardDescription>Bookings throughout the day</CardDescription>
+            <Card id="hourly-activity-chart">
+              <CardHeader className="flex flex-row items-center justify-between">
+                <div>
+                  <CardTitle>Hourly Activity</CardTitle>
+                  <CardDescription>Bookings throughout the day</CardDescription>
+                </div>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => saveChartAsImage("hourly-activity-chart", "hourly-activity")}
+                  data-testid="button-save-hourly-activity"
+                >
+                  <Download className="h-4 w-4 mr-2" />
+                  Save as Image
+                </Button>
               </CardHeader>
               <CardContent>
                 {transformedStats?.hourlyUsage && transformedStats.hourlyUsage.length > 0 ? (
@@ -436,10 +470,21 @@ export default function Analytics() {
 
         {/* Performance Tab */}
         <TabsContent value="performance" className="space-y-4 mt-6">
-          <Card>
-            <CardHeader>
-              <CardTitle>Revenue & Bookings</CardTitle>
-              <CardDescription>Combined performance metrics</CardDescription>
+          <Card id="revenue-bookings-chart">
+            <CardHeader className="flex flex-row items-center justify-between">
+              <div>
+                <CardTitle>Revenue & Bookings</CardTitle>
+                <CardDescription>Combined performance metrics</CardDescription>
+              </div>
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => saveChartAsImage("revenue-bookings-chart", "revenue-bookings")}
+                data-testid="button-save-revenue-bookings"
+              >
+                <Download className="h-4 w-4 mr-2" />
+                Save as Image
+              </Button>
             </CardHeader>
             <CardContent>
               {transformedStats?.hourlyUsage && transformedStats.hourlyUsage.length > 0 ? (
@@ -469,10 +514,21 @@ export default function Analytics() {
 
         {/* Insights Tab */}
         <TabsContent value="insights" className="space-y-4 mt-6">
-          <Card>
-            <CardHeader>
-              <CardTitle>Peak Hours</CardTitle>
-              <CardDescription>Top 3 busiest hours</CardDescription>
+          <Card id="peak-hours-chart">
+            <CardHeader className="flex flex-row items-center justify-between">
+              <div>
+                <CardTitle>Peak Hours</CardTitle>
+                <CardDescription>Top 3 busiest hours</CardDescription>
+              </div>
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => saveChartAsImage("peak-hours-chart", "peak-hours")}
+                data-testid="button-save-peak-hours"
+              >
+                <Download className="h-4 w-4 mr-2" />
+                Save as Image
+              </Button>
             </CardHeader>
             <CardContent>
               {metrics?.peakHours && metrics.peakHours.length > 0 ? (
