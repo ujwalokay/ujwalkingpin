@@ -79,6 +79,7 @@ Preferred communication style: Simple, everyday language.
 - Happy Hours Feature: Configurable time-based special pricing.
 - Onboarding Tour: Comprehensive step-by-step guide for new users.
 - Data Retention Policies: Automatic cleanup of old data with configurable retention periods (default: 2 years bookings, 6 months logs, 7 years expenses). Runs daily at 2:00 AM with admin controls for manual cleanup and configuration.
+- Analytics Chart Export: Save as Image functionality for all analytics charts (Occupancy Trend, Category Distribution, Hourly Activity, Revenue & Bookings, Peak Hours) using html2canvas for high-quality PNG exports.
 
 ## External Dependencies
 
