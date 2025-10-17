@@ -23,6 +23,7 @@ interface ROIInputs {
   daysPerMonth: number;
   weekdayUtilization: number;
   weekendUtilization: number;
+  avgSessionLength: number;
 
   // Revenue
   avgFBSpend: number;
@@ -75,6 +76,7 @@ export default function RoiCalculator() {
     daysPerMonth: 30,
     weekdayUtilization: 50,
     weekendUtilization: 75,
+    avgSessionLength: 2,
     avgFBSpend: 8,
     eventRevenue: 2000,
     membershipRevenue: 3000,
@@ -109,14 +111,17 @@ export default function RoiCalculator() {
 
     const avgUtilization = ((inputs.weekdayUtilization * 5) + (inputs.weekendUtilization * 2)) / 7 / 100;
     
-    const monthlyGamingRevenue = 
+    const totalGamingHours = 
       inputs.numStations * 
       avgUtilization * 
       inputs.hoursPerDay * 
-      inputs.daysPerMonth * 
-      inputs.pricePerHour;
+      inputs.daysPerMonth;
+    
+    const monthlyGamingRevenue = totalGamingHours * inputs.pricePerHour;
 
-    const estimatedCustomers = inputs.numStations * avgUtilization * inputs.hoursPerDay * inputs.daysPerMonth;
+    const estimatedCustomers = inputs.avgSessionLength > 0 
+      ? totalGamingHours / inputs.avgSessionLength 
+      : 0;
     const monthlyFBRevenue = estimatedCustomers * inputs.avgFBSpend;
 
     const totalMonthlyRevenue = 
@@ -141,11 +146,11 @@ export default function RoiCalculator() {
 
     const totalMonthlyOperatingCosts = totalFixedCosts + totalVariableCosts;
     const monthlyNetProfit = totalMonthlyRevenue - totalMonthlyOperatingCosts;
-    const monthlyROI = (monthlyNetProfit / totalStartupCost) * 100;
+    const monthlyROI = totalStartupCost > 0 ? (monthlyNetProfit / totalStartupCost) * 100 : 0;
     const annualROI = monthlyROI * 12;
     const breakEvenMonths = monthlyNetProfit > 0 ? totalStartupCost / monthlyNetProfit : 0;
-    const profitMargin = (monthlyNetProfit / totalMonthlyRevenue) * 100;
-    const revenuePerStation = totalMonthlyRevenue / inputs.numStations;
+    const profitMargin = totalMonthlyRevenue > 0 ? (monthlyNetProfit / totalMonthlyRevenue) * 100 : 0;
+    const revenuePerStation = inputs.numStations > 0 ? totalMonthlyRevenue / inputs.numStations : 0;
 
     setResults({
       totalStartupCost,
@@ -345,6 +350,17 @@ export default function RoiCalculator() {
                       value={inputs.weekendUtilization}
                       onChange={(e) => handleInputChange('weekendUtilization', e.target.value)}
                       data-testid="input-weekend-utilization"
+                    />
+                  </div>
+                  <div>
+                    <Label htmlFor="avgSessionLength">Avg Session Length (hours)</Label>
+                    <Input
+                      id="avgSessionLength"
+                      type="number"
+                      step="0.5"
+                      value={inputs.avgSessionLength}
+                      onChange={(e) => handleInputChange('avgSessionLength', e.target.value)}
+                      data-testid="input-avg-session-length"
                     />
                   </div>
                 </CardContent>
