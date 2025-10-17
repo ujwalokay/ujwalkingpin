@@ -1,4 +1,4 @@
-import { Settings, LayoutDashboard, FileText, UtensilsCrossed, CalendarClock, History, Scale, Wallet, ScrollText, Award, BarChart3, Gamepad2, Sparkles } from "lucide-react";
+import { Settings, LayoutDashboard, FileText, UtensilsCrossed, CalendarClock, History, Scale, Wallet, ScrollText, Award, BarChart3, Gamepad2, Sparkles, Calculator } from "lucide-react";
 import { Link, useLocation } from "wouter";
 import { useTheme } from "@/components/ThemeProvider";
 import {
@@ -59,6 +59,11 @@ const menuItems = [
     title: "Reports",
     url: "/reports",
     icon: FileText,
+  },
+  {
+    title: "ROI Calculator",
+    url: "/roi-calculator",
+    icon: Calculator,
   },
   {
     title: "Terms & Conditions",
