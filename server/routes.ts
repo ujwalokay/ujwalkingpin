@@ -24,6 +24,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
     res.json({ serverTime: new Date().toISOString() });
   });
 
+  app.get("/api/health", publicApiLimiter, async (req, res) => {
+    res.json({ status: "ok", timestamp: new Date().toISOString() });
+  });
+
   app.get("/api/bookings", requireAuth, async (req, res) => {
     try {
       const bookings = await storage.getAllBookings();

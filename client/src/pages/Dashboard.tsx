@@ -19,6 +19,7 @@ import { useAuth } from "@/contexts/AuthContext";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import { useKeyboardShortcuts } from "@/hooks/useKeyboardShortcuts";
 import { useRegisterShortcuts } from "@/contexts/ShortcutsContext";
+import { useKeepAlive } from "@/hooks/useKeepAlive";
 
 type BookingStatus = "available" | "running" | "expired" | "upcoming" | "completed" | "paused";
 
@@ -169,6 +170,12 @@ export default function Dashboard() {
       pausedRemainingTime: dbBooking.pausedRemainingTime,
     }));
   }, [dbBookings]);
+
+  const hasActiveTimers = useMemo(() => {
+    return bookings.some(booking => booking.status === "running");
+  }, [bookings]);
+
+  useKeepAlive(hasActiveTimers);
 
   const getOccupiedSeats = (category: string) => {
     return bookings
