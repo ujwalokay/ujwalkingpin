@@ -1,0 +1,113 @@
+2025-10-18T06:07:28.778835261Z ==> Downloading cache...
+2025-10-18T06:07:28.781288505Z ==> Cloning from https://github.com/ujwalokay/ujwalkingpin
+2025-10-18T06:07:29.854382176Z ==> Checking out commit bf852f97c74a3cbd581624d6f670f2540bdf6c0e in branch main
+2025-10-18T06:07:46.233817062Z ==> Transferred 234MB in 8s. Extraction took 8s.
+2025-10-18T06:07:59.0557994Z ==> Using Node.js version 22.16.0 (default)
+2025-10-18T06:07:59.083805876Z ==> Docs on specifying a Node.js version: https://render.com/docs/node-version
+2025-10-18T06:07:59.145116371Z ==> Running build command 'npm install --include=dev && npm run build'...
+2025-10-18T06:08:02.475659583Z 
+2025-10-18T06:08:02.475688584Z added 18 packages, and audited 691 packages in 3s
+2025-10-18T06:08:02.475698614Z 
+2025-10-18T06:08:02.475705924Z 80 packages are looking for funding
+2025-10-18T06:08:02.475742065Z   run `npm fund` for details
+2025-10-18T06:08:02.527972589Z 
+2025-10-18T06:08:02.52799414Z 10 vulnerabilities (3 low, 7 moderate)
+2025-10-18T06:08:02.52799886Z 
+2025-10-18T06:08:02.52800376Z To address issues that do not require attention, run:
+2025-10-18T06:08:02.52800804Z   npm audit fix
+2025-10-18T06:08:02.52801211Z 
+2025-10-18T06:08:02.52801728Z To address all issues possible (including breaking changes), run:
+2025-10-18T06:08:02.52802125Z   npm audit fix --force
+2025-10-18T06:08:02.52802387Z 
+2025-10-18T06:08:02.52802676Z Some issues need review, and may require choosing
+2025-10-18T06:08:02.52802948Z a different dependency.
+2025-10-18T06:08:02.52803213Z 
+2025-10-18T06:08:02.52803553Z Run `npm audit` for details.
+2025-10-18T06:08:02.855222682Z 
+2025-10-18T06:08:02.855250962Z > rest-express@1.0.0 build
+2025-10-18T06:08:02.855257682Z > npx vite build && npx esbuild server/index.ts --platform=node --packages=external --bundle --format=esm --outdir=dist
+2025-10-18T06:08:02.855263612Z 
+2025-10-18T06:08:03.375338488Z vite v5.4.20 building for production...
+2025-10-18T06:08:03.42683493Z transforming...
+2025-10-18T06:08:04.634316273Z 
+2025-10-18T06:08:04.634345154Z A PostCSS plugin did not pass the `from` option to `postcss.parse`. This may cause imported assets to be incorrectly transformed. If you've recently added a PostCSS plugin that raised this warning, please contact the package author to fix the issue.
+2025-10-18T06:08:12.844258418Z ✓ 3420 modules transformed.
+2025-10-18T06:08:13.632786437Z rendering chunks...
+2025-10-18T06:08:13.654664604Z computing gzip size...
+2025-10-18T06:08:13.690717672Z ../dist/public/index.html                                                                                             2.29 kB │ gzip:   0.93 kB
+2025-10-18T06:08:13.690995317Z 
+2025-10-18T06:08:13.723894469Z (!) Some chunks are larger than 500 kB after minification. Consider:
+2025-10-18T06:08:13.723905829Z - Using dynamic import() to code-split the application
+2025-10-18T06:08:13.723912109Z - Use build.rollupOptions.output.manualChunks to improve chunking: https://rollupjs.org/configuration-options/#output-manualchunks
+2025-10-18T06:08:13.723914339Z ../dist/public/assets/WhatsApp Image 2025-10-10 at 18.33.50_a4a3fc99_1760107172482-CJaR6HBG.jpg                      44.74 kB
+2025-10-18T06:08:13.723918019Z - Adjust chunk size limit for this warning via build.chunkSizeWarningLimit.
+2025-10-18T06:08:13.72393403Z ../dist/public/assets/WhatsApp Image 2025-10-10 at 18.33.50_d321359c_1760107172482-BwJavlwc.jpg                      56.48 kB
+2025-10-18T06:08:13.72394353Z ../dist/public/assets/WhatsApp_Image_2025-10-10_at_18.36.58_1fb5438e-removebg-preview_1760342704718-Cg0v57vU.png    110.23 kB
+2025-10-18T06:08:13.72396992Z ../dist/public/assets/purple_gaming_setup__c53078b3-DsAXQPOl.jpg                                                    110.50 kB
+2025-10-18T06:08:13.723975391Z ../dist/public/assets/index-GDXVWrUQ.css                                                                            109.16 kB │ gzip:  17.46 kB
+2025-10-18T06:08:13.723978771Z ../dist/public/assets/index-q8tRJGvE.js                                                                           1,345.74 kB │ gzip: 362.58 kB
+2025-10-18T06:08:13.723983211Z ✓ built in 10.29s
+2025-10-18T06:08:14.079699167Z 
+2025-10-18T06:08:14.079720528Z   dist/index.js  107.1kb
+2025-10-18T06:08:14.079732888Z 
+2025-10-18T06:08:14.079734848Z ⚡ Done in 8ms
+2025-10-18T06:08:41.969896466Z ==> Uploading build...
+2025-10-18T06:08:57.023342186Z ==> Uploaded in 9.3s. Compression took 5.8s
+2025-10-18T06:08:57.082292579Z ==> Build successful 🎉
+2025-10-18T06:09:00.216972467Z ==> Deploying...
+2025-10-18T06:09:23.284307444Z ==> Running 'npm run start'
+2025-10-18T06:09:24.283042331Z 
+2025-10-18T06:09:24.283071211Z > rest-express@1.0.0 start
+2025-10-18T06:09:24.283074521Z > npx drizzle-kit push && NODE_ENV=production node dist/index.js
+2025-10-18T06:09:24.283076211Z 
+2025-10-18T06:09:28.876497193Z No config path provided, using default 'drizzle.config.ts'
+2025-10-18T06:09:28.876899062Z Reading config file '/opt/render/project/src/drizzle.config.ts'
+2025-10-18T06:09:34.987866447Z Using 'pg' driver for database querying
+2025-10-18T06:09:38.288890217Z [⣷] Pulling schema from database...
+2025-10-18T06:09:38.487654082Z [⣯] Pulling schema from database...
+2025-10-18T06:09:38.615942631Z [⣟] Pulling schema from database...
+2025-10-18T06:09:38.744303882Z [⡿] Pulling schema from database...
+2025-10-18T06:09:38.872868077Z [⢿] Pulling schema from database...
+2025-10-18T06:09:39.001339961Z [⣻] Pulling schema from database...
+2025-10-18T06:09:39.13053217Z [⣽] Pulling schema from database...
+2025-10-18T06:09:39.258509192Z [⣷] Pulling schema from database...
+2025-10-18T06:09:39.386550956Z [⣯] Pulling schema from database...
+2025-10-18T06:09:39.514608009Z [⣟] Pulling schema from database...
+2025-10-18T06:09:39.643055332Z [⡿] Pulling schema from database...
+2025-10-18T06:09:39.771256829Z [⢿] Pulling schema from database...
+2025-10-18T06:09:39.82808638Z [✓] Pulling schema from database...
+2025-10-18T06:09:40.084898594Z · You're about to add users_email_unique unique constraint to the table, which contains 2 items. If this statement fails, you will receive an error from the database. Do you want to truncate users table?
+2025-10-18T06:09:40.084932124Z 
+2025-10-18T06:09:40.178077573Z ❯ No, add the constraint without truncating the table
+2025-10-18T06:10:02.337865737Z ==> Exited with status 1
+2025-10-18T06:10:02.354720016Z ==> Common ways to troubleshoot your deploy: https://render.com/docs/troubleshooting-deploys
+2025-10-18T06:10:07.71498935Z ==> Running 'npm run start'
+2025-10-18T06:10:08.623458764Z 
+2025-10-18T06:10:08.623492925Z > rest-express@1.0.0 start
+2025-10-18T06:10:08.623498145Z > npx drizzle-kit push && NODE_ENV=production node dist/index.js
+2025-10-18T06:10:08.623500735Z 
+2025-10-18T06:10:00.482932268Z file:///opt/render/project/src/dist/index.js:1476
+2025-10-18T06:10:00.482962039Z   throw new Error("Environment variable REPLIT_DOMAINS not provided");
+2025-10-18T06:10:00.482966809Z         ^
+2025-10-18T06:10:00.482970559Z 
+2025-10-18T06:10:00.482974419Z Error: Environment variable REPLIT_DOMAINS not provided
+2025-10-18T06:10:00.482978799Z     at file:///opt/render/project/src/dist/index.js:1476:9
+2025-10-18T06:10:00.482982739Z     at ModuleJob.run (node:internal/modules/esm/module_job:274:25)
+2025-10-18T06:10:00.482987339Z     at async onImport.tracePromise.__proto__ (node:internal/modules/esm/loader:644:26)
+2025-10-18T06:10:00.482991399Z     at async asyncRunEntryPointWithESMLoader (node:internal/modules/run_main:117:5)
+2025-10-18T06:10:00.4830254Z 
+2025-10-18T06:10:00.48303252Z Node.js v22.16.0
+2025-10-18T06:10:13.120063791Z No config path provided, using default 'drizzle.config.ts'
+2025-10-18T06:10:13.120310087Z Reading config file '/opt/render/project/src/drizzle.config.ts'
+2025-10-18T06:10:20.316814197Z Using 'pg' driver for database querying
+2025-10-18T06:10:23.318705557Z [⣷] Pulling schema from database...
+2025-10-18T06:10:23.612379111Z [⣯] Pulling schema from database...
+2025-10-18T06:10:23.740883955Z [⣟] Pulling schema from database...
+2025-10-18T06:10:23.868383146Z [⡿] Pulling schema from database...
+2025-10-18T06:10:23.998282742Z [⢿] Pulling schema from database...
+2025-10-18T06:10:24.124533104Z [⣻] Pulling schema from database...
+2025-10-18T06:10:24.25309879Z [⣽] Pulling schema from database...
+2025-10-18T06:10:24.315366086Z [✓] Pulling schema from database...
+2025-10-18T06:10:24.711431181Z · You're about to add users_email_unique unique constraint to the table, which contains 2 items. If this statement fails, you will receive an error from the database. Do you want to truncate users table?
+2025-10-18T06:10:24.711459402Z 
+2025-10-18T06:10:24.713858587Z ❯ No, add the constraint without truncating the table
