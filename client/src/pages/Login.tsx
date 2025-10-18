@@ -21,12 +21,8 @@ export default function Login({ onLoginSuccess }: LoginProps) {
   const [lockoutTime, setLockoutTime] = useState<number | null>(null);
   const [remainingTime, setRemainingTime] = useState(0);
   const [isAdminLogin, setIsAdminLogin] = useState(false);
-  // Start with staff login on non-Replit environments
-  const [showStaffLogin, setShowStaffLogin] = useState(!import.meta.env.VITE_REPLIT_ENVIRONMENT);
+  const [showStaffLogin, setShowStaffLogin] = useState(false);
   const { toast } = useToast();
-  
-  // Check if Google login is available (Replit environment)
-  const isGoogleLoginAvailable = import.meta.env.VITE_REPLIT_ENVIRONMENT === 'true';
 
   const handleGoogleLogin = () => {
     window.location.href = "/api/login";
@@ -253,18 +249,16 @@ export default function Login({ onLoginSuccess }: LoginProps) {
                   >
                     Login as {isAdminLogin ? "Staff" : "Admin"}
                   </button>
-                  {isGoogleLoginAvailable && (
-                    <div>
-                      <button
-                        type="button"
-                        onClick={() => setShowStaffLogin(false)}
-                        className="text-sm text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white transition-colors"
-                        data-testid="button-back-to-google"
-                      >
-                        ← Back to Google Login
-                      </button>
-                    </div>
-                  )}
+                  <div>
+                    <button
+                      type="button"
+                      onClick={() => setShowStaffLogin(false)}
+                      className="text-sm text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white transition-colors"
+                      data-testid="button-back-to-google"
+                    >
+                      ← Back to Google Login
+                    </button>
+                  </div>
                 </div>
               </form>
                 </>

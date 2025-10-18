@@ -71,18 +71,15 @@ export async function setupAuth(app: Express) {
   app.use(passport.initialize());
   app.use(passport.session());
 
-  // Only setup Replit OAuth if in Replit environment
-  if (!isReplitEnvironment) {
-    console.log("⚠️  Replit Auth disabled - not running in Replit environment");
+  // Check if required environment variables are set for Google login
+  if (!process.env.REPLIT_DOMAINS) {
+    console.warn("⚠️  REPLIT_DOMAINS not set - Google login will not work");
+    console.log("ℹ️  To enable Google login, set: REPLIT_DOMAINS, REPL_ID, and ISSUER_URL");
     console.log("ℹ️  Use staff/admin login with username and password instead");
     return;
   }
 
-  if (!process.env.REPLIT_DOMAINS) {
-    console.warn("⚠️  REPLIT_DOMAINS not set - Replit Auth will not work");
-    return;
-  }
-
+  console.log("✅ Setting up Google OAuth authentication...");
   const config = await getOidcConfig();
 
   const verify: VerifyFunction = async (

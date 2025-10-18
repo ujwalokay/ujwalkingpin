@@ -28,13 +28,14 @@ NODE_ENV=production
 ALLOWED_EMAIL=youremail@gmail.com
 ```
 
-#### **Optional (for Google login on Render - Advanced):**
-If you want Google login to work on Render, you need to set up your own OAuth:
+#### **For Google Login on Render:**
+To enable Google login on Render:
 ```
 REPLIT_DOMAINS=your-render-domain.onrender.com
 REPL_ID=your-app-name
 ISSUER_URL=https://replit.com/oidc
 ```
+**Note:** You'll also need to register your Render domain in Replit's OAuth settings (see Step 6 below).
 
 ---
 
@@ -85,7 +86,41 @@ Or use any random 32+ character string.
 
 ---
 
-### **Step 5: Create Admin User**
+### **Step 5: Enable Google Login on Render (Optional)**
+
+If you want users to log in with Google on Render:
+
+1. **Add these environment variables on Render:**
+   ```
+   REPLIT_DOMAINS=your-app-name.onrender.com
+   REPL_ID=ankylo-gaming-render
+   ISSUER_URL=https://replit.com/oidc
+   ```
+   Replace `your-app-name` with your actual Render domain.
+
+2. **Register your Render domain with Replit:**
+   - Go to https://replit.com (log in to your Replit account)
+   - Click your profile → **Account Settings**
+   - Navigate to **OAuth Applications** (or similar section)
+   - Add your Render domain as an authorized redirect URI:
+     ```
+     https://your-app-name.onrender.com/api/callback
+     ```
+
+3. **Test Google Login:**
+   - Visit your Render URL
+   - Click "Continue with Google"
+   - You should be redirected to Google for authentication
+   - After authenticating, you'll be redirected back to your app
+
+**Troubleshooting Google Login:**
+- If you see "redirect_uri_mismatch" error, make sure your Render domain is registered in Replit OAuth settings
+- Make sure `REPLIT_DOMAINS` matches your exact Render domain
+- Check that `ISSUER_URL` is set to `https://replit.com/oidc`
+
+---
+
+### **Step 6: Create Admin User**
 
 After deployment, you need to create an admin user to log in:
 
@@ -112,14 +147,18 @@ The app will automatically create an admin user on startup.
 
 ---
 
-### **Step 6: Access Your App**
+### **Step 7: Access Your App**
 
 1. Wait for deployment to complete (check Render logs)
 2. Open your Render URL: `https://your-app-name.onrender.com`
-3. You should see the **staff login page** (no Google button)
-4. Log in with:
-   - **Username:** admin (or what you set)
-   - **Password:** (what you set in ADMIN_PASSWORD)
+3. You should see the login page with:
+   - **"Continue with Google"** button (if you set up Google login)
+   - **"Staff/Admin Login"** link for username/password login
+4. Log in with either:
+   - **Google:** Click "Continue with Google"
+   - **Staff/Admin:** Click staff login link, then use:
+     - Username: admin (or what you set)
+     - Password: (what you set in ADMIN_PASSWORD)
 
 ---
 
@@ -135,7 +174,11 @@ The app will automatically create an admin user on startup.
 **Solution:** Add `ADMIN_USERNAME` and `ADMIN_PASSWORD` to your Render environment variables.
 
 ### **Issue: Google login not working on Render**
-**Expected behavior.** Google login (Replit Auth) only works in Replit environment. On Render, use staff/admin username/password login.
+**Solution:** Make sure you:
+1. Set `REPLIT_DOMAINS` to your Render domain
+2. Set `REPL_ID` to your app name
+3. Set `ISSUER_URL` to `https://replit.com/oidc`
+4. Registered your Render callback URL in Replit OAuth settings
 
 ### **Issue: "Access Denied" when logging in**
 If you set `ALLOWED_EMAIL`, make sure you're logging in with that exact email address.
