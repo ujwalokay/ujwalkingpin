@@ -20,7 +20,7 @@ export function CategoryCard({ title, icon: Icon, available, total, color }: Cat
         <Icon className={`h-7 w-7 ${color} group-hover:scale-110 transition-transform duration-300`} />
       </CardHeader>
       <CardContent className="flex flex-col justify-between h-full">
-        <div className="text-4xl font-bold text-foreground mb-2" data-testid={`text-availability-${title.toLowerCase()}`}>
+        <div className="text-4xl font-bold text-foreground mb-3" data-testid={`text-availability-${title.toLowerCase()}`}>
           {available}<span className="text-xl text-muted-foreground">/{total}</span>
         </div>
         <div className="mt-auto">
