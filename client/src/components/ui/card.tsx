@@ -9,7 +9,8 @@ const Card = React.forwardRef<
   <div
     ref={ref}
     className={cn(
-      "shadcn-card glass-card rounded-2xl text-card-foreground",
+      "shadcn-card glass-card text-card-foreground",
+      !className?.includes('shape-') && 'rounded-2xl',
       className
     )}
     {...props}
