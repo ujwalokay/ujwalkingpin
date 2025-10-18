@@ -23,7 +23,8 @@ export default function Login({ onLoginSuccess }: LoginProps) {
   const [lockoutTime, setLockoutTime] = useState<number | null>(null);
   const [remainingTime, setRemainingTime] = useState(0);
   const [isAdminLogin, setIsAdminLogin] = useState(false);
-  const [showStaffLogin, setShowStaffLogin] = useState(location === '/staff');
+  const [googleVerified, setGoogleVerified] = useState(false);
+  const [googleEmail, setGoogleEmail] = useState("");
   const { toast } = useToast();
 
   const handleGoogleLogin = () => {
@@ -31,18 +32,42 @@ export default function Login({ onLoginSuccess }: LoginProps) {
   };
 
   useEffect(() => {
-    // Check if we're on the /staff route
-    if (location === '/staff') {
-      setShowStaffLogin(true);
-    }
-  }, [location]);
+    // Check authentication status on component mount
+    const checkAuthStatus = async () => {
+      try {
+        const response = await fetch("/api/auth/me");
+        if (response.ok) {
+          const data = await response.json();
+          if (data.needsStaffLogin) {
+            // Google verified, need staff login
+            setGoogleVerified(true);
+            setGoogleEmail(data.googleEmail || "");
+          } else if (data.twoStepComplete) {
+            // Already fully authenticated
+            onLoginSuccess(data);
+          }
+        }
+      } catch (error) {
+        // Not authenticated, stay on login page
+      }
+    };
 
-  useEffect(() => {
-    // Check for access denied error in URL
+    checkAuthStatus();
+
+    // Check for URL parameters
     const urlParams = new URLSearchParams(window.location.search);
     const error = urlParams.get('error');
+    const googleVerifiedParam = urlParams.get('google_verified');
     
-    if (error === 'access_denied') {
+    if (googleVerifiedParam === 'true') {
+      setGoogleVerified(true);
+      toast({
+        title: "Google Authentication Successful",
+        description: "Please enter your staff/admin credentials to continue.",
+        duration: 5000,
+      });
+      window.history.replaceState({}, '', window.location.pathname);
+    } else if (error === 'access_denied') {
       toast({
         title: "Access Denied",
         description: "Your email is not authorized to access this application. Please contact the administrator.",
@@ -67,7 +92,7 @@ export default function Login({ onLoginSuccess }: LoginProps) {
       });
       window.history.replaceState({}, '', window.location.pathname);
     }
-  }, [toast]);
+  }, [toast, onLoginSuccess]);
 
   useEffect(() => {
     if (lockoutTime) {
@@ -180,15 +205,20 @@ export default function Login({ onLoginSuccess }: LoginProps) {
               {/* Title */}
               <div>
                 <h2 className="text-3xl font-bold text-gray-900 dark:text-white mb-2">
-                  {showStaffLogin ? (isAdminLogin ? "Admin Login" : "Staff Login") : "Welcome"}
+                  {googleVerified ? (isAdminLogin ? "Admin Login" : "Staff Login") : "Welcome"}
                 </h2>
                 <p className="text-gray-600 dark:text-gray-400">
-                  {showStaffLogin ? `Sign in to access the ${isAdminLogin ? "admin" : "staff"} panel` : "Sign in to access the staff panel"}
+                  {googleVerified ? `Sign in to access the ${isAdminLogin ? "admin" : "staff"} panel` : "Sign in to access the staff panel"}
                 </p>
+                {googleVerified && googleEmail && (
+                  <p className="text-sm text-green-600 dark:text-green-400 mt-2">
+                    ✓ Google account verified: {googleEmail}
+                  </p>
+                )}
               </div>
 
-              {!showStaffLogin ? (
-                // Google Login Only
+              {!googleVerified ? (
+                // Step 1: Google Login Only
                 <div className="space-y-6">
                   <Button
                     type="button"
@@ -201,7 +231,7 @@ export default function Login({ onLoginSuccess }: LoginProps) {
                   </Button>
                 </div>
               ) : (
-                // Staff/Admin Login Form
+                // Step 2: Staff/Admin Login Form
                 <>
                 <form onSubmit={handleSubmit} className="space-y-5">
                 <div className="space-y-2">
@@ -275,16 +305,6 @@ export default function Login({ onLoginSuccess }: LoginProps) {
                   >
                     Login as {isAdminLogin ? "Staff" : "Admin"}
                   </button>
-                  <div>
-                    <button
-                      type="button"
-                      onClick={() => setShowStaffLogin(false)}
-                      className="text-sm text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white transition-colors"
-                      data-testid="button-back-to-google"
-                    >
-                      ← Back to Google Login
-                    </button>
-                  </div>
                 </div>
               </form>
                 </>
