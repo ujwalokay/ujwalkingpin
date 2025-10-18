@@ -29,7 +29,6 @@ import Home from "@/pages/Home";
 import ConsumerGallery from "@/pages/ConsumerGallery";
 import ConsumerFacilities from "@/pages/ConsumerFacilities";
 import ConsumerGames from "@/pages/ConsumerGames";
-import FeaturesShowcase from "@/pages/FeaturesShowcase";
 import NotFound from "@/pages/not-found";
 import Login from "@/pages/Login";
 import { ConsumerNav } from "@/components/ConsumerNav";
@@ -256,7 +255,6 @@ function App() {
           <TooltipProvider>
             <Switch>
               <Route path="/status" component={PublicStatus} />
-              <Route path="/features" component={FeaturesShowcase} />
               <Route path="/analytics" component={Analytics} />
               <Route path="/history" component={History} />
               <Route path="/home">
