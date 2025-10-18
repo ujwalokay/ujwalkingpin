@@ -21,20 +21,20 @@ export function ParallelogramCard({
   return (
     <div 
       className={cn(
-        "relative group bg-card border border-border/40 rounded-xl p-6 md:p-8 hover:border-primary/40 hover:shadow-xl hover:shadow-primary/10 transition-all duration-300",
+        "relative group overflow-hidden",
         className
       )}
       data-testid={testId}
     >
-      <div className="space-y-6">
-        <div className={cn("p-3 rounded-xl bg-primary/10 w-fit group-hover:scale-110 transition-transform duration-300", iconColor)}>
-          <div className="w-10 h-10 md:w-12 md:h-12 flex items-center justify-center">
-            {icon}
-          </div>
+      <div className="absolute inset-0 bg-gradient-to-br from-card/90 to-card/60 backdrop-blur-sm border border-border/50 transform skew-x-[-2deg] group-hover:border-primary/50 transition-all duration-300 group-hover:shadow-lg group-hover:shadow-primary/20"></div>
+      
+      <div className="relative p-6 md:p-8 flex flex-col gap-4">
+        <div className={cn("w-12 h-12 md:w-14 md:h-14", iconColor)}>
+          {icon}
         </div>
         
-        <div className="space-y-3">
-          <h3 className="text-xl md:text-2xl font-bold text-foreground uppercase tracking-wide">
+        <div className="space-y-2">
+          <h3 className="text-xl md:text-2xl font-bold tracking-tight uppercase">
             {title}
           </h3>
           <p className="text-sm md:text-base text-muted-foreground leading-relaxed">
@@ -42,6 +42,8 @@ export function ParallelogramCard({
           </p>
         </div>
       </div>
+
+      <div className="absolute top-0 right-0 w-32 h-32 bg-gradient-to-br from-primary/10 to-transparent blur-2xl group-hover:from-primary/20 transition-all duration-300"></div>
     </div>
   );
 }
