@@ -43,11 +43,8 @@ app.use(cors({
       return callback(null, true);
     }
     
-    // If ALLOWED_ORIGINS is not set in production, allow all origins (for flexibility)
-    if (!process.env.ALLOWED_ORIGINS) {
-      return callback(null, true);
-    }
-    
+    // In production, reject if not in allowed list
+    console.warn(`CORS blocked request from origin: ${origin}`);
     callback(new Error('Not allowed by CORS'));
   },
   credentials: true,

@@ -201,7 +201,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  app.get("/api/booking-history", async (req, res) => {
+  app.get("/api/booking-history", requireAuth, async (req, res) => {
     try {
       const history = await storage.getAllBookingHistory();
       res.json(history);
@@ -272,7 +272,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  app.get("/api/analytics/usage", async (req, res) => {
+  app.get("/api/analytics/usage", requireAuth, async (req, res) => {
     try {
       const timeRange = req.query.timeRange as string || "today";
       const allBookings = await storage.getAllBookings();
