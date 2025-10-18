@@ -222,8 +222,15 @@ function App() {
         const response = await fetch("/api/auth/me");
         if (response.ok) {
           const userData = await response.json();
-          setUser(userData);
-          setIsAuthenticated(true);
+          
+          // Only grant full access if BOTH Google and staff/admin login are complete
+          if (userData.twoStepComplete && userData.id) {
+            setUser(userData);
+            setIsAuthenticated(true);
+          } else {
+            // Google verified but needs staff/admin login, or not authenticated
+            setShowLogin(true);
+          }
         } else {
           setShowLogin(true);
         }
