@@ -4,6 +4,7 @@ import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
 import { useToast } from "@/hooks/use-toast";
+import { SiGoogle } from "react-icons/si";
 import loginImage from "@assets/stock_images/purple_gaming_setup,_c53078b3.jpg";
 import logoDark from "@assets/WhatsApp Image 2025-10-10 at 18.33.50_a4a3fc99_1760107172482.jpg";
 
@@ -20,7 +21,12 @@ export default function Login({ onLoginSuccess }: LoginProps) {
   const [lockoutTime, setLockoutTime] = useState<number | null>(null);
   const [remainingTime, setRemainingTime] = useState(0);
   const [isAdminLogin, setIsAdminLogin] = useState(false);
+  const [showStaffLogin, setShowStaffLogin] = useState(false);
   const { toast } = useToast();
+
+  const handleGoogleLogin = () => {
+    window.location.href = "/api/login";
+  };
 
   useEffect(() => {
     if (lockoutTime) {
@@ -133,15 +139,41 @@ export default function Login({ onLoginSuccess }: LoginProps) {
               {/* Title */}
               <div>
                 <h2 className="text-3xl font-bold text-gray-900 dark:text-white mb-2">
-                  {isAdminLogin ? "Admin Login" : "Staff Login"}
+                  {showStaffLogin ? (isAdminLogin ? "Admin Login" : "Staff Login") : "Welcome"}
                 </h2>
                 <p className="text-gray-600 dark:text-gray-400">
-                  Sign in to access the {isAdminLogin ? "admin" : "staff"} panel
+                  {showStaffLogin ? `Sign in to access the ${isAdminLogin ? "admin" : "staff"} panel` : "Sign in to access the staff panel"}
                 </p>
               </div>
 
-              {/* Form */}
-              <form onSubmit={handleSubmit} className="space-y-5">
+              {!showStaffLogin ? (
+                // Google Login First
+                <div className="space-y-4">
+                  <Button
+                    type="button"
+                    onClick={handleGoogleLogin}
+                    className="w-full h-12 text-base font-medium bg-white dark:bg-gray-800 text-gray-900 dark:text-white hover:bg-gray-50 dark:hover:bg-gray-700 border-2 border-gray-300 dark:border-gray-600"
+                    data-testid="button-google-login"
+                  >
+                    <SiGoogle className="mr-2 h-5 w-5" />
+                    Continue with Google
+                  </Button>
+
+                  <div className="text-center pt-4">
+                    <button
+                      type="button"
+                      onClick={() => setShowStaffLogin(true)}
+                      className="text-sm text-purple-600 dark:text-purple-400 hover:text-purple-700 dark:hover:text-purple-300 font-medium transition-colors"
+                      data-testid="button-show-staff-login"
+                    >
+                      Login as Staff / Admin
+                    </button>
+                  </div>
+                </div>
+              ) : (
+                // Staff/Admin Login Form
+                <>
+                <form onSubmit={handleSubmit} className="space-y-5">
                 <div className="space-y-2">
                   <Label htmlFor="username" className="text-gray-700 dark:text-gray-300 font-medium">
                     Username
@@ -199,7 +231,7 @@ export default function Login({ onLoginSuccess }: LoginProps) {
                   {isLoggingIn ? "Signing in..." : isLockedOut ? `Wait ${remainingTime}s` : "Sign In"}
                 </Button>
 
-                <div className="text-center pt-4">
+                <div className="text-center pt-4 space-y-2">
                   <button
                     type="button"
                     onClick={() => {
@@ -213,8 +245,20 @@ export default function Login({ onLoginSuccess }: LoginProps) {
                   >
                     Login as {isAdminLogin ? "Staff" : "Admin"}
                   </button>
+                  <div>
+                    <button
+                      type="button"
+                      onClick={() => setShowStaffLogin(false)}
+                      className="text-sm text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white transition-colors"
+                      data-testid="button-back-to-google"
+                    >
+                      ← Back to Google Login
+                    </button>
+                  </div>
                 </div>
               </form>
+                </>
+              )}
             </div>
           </div>
 

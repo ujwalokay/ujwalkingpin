@@ -1,6 +1,19 @@
 import { z } from "zod";
-import { pgTable, varchar, integer, timestamp, text, jsonb, real } from "drizzle-orm/pg-core";
+import { sql } from "drizzle-orm";
+import { pgTable, varchar, integer, timestamp, text, jsonb, real, index } from "drizzle-orm/pg-core";
 import { createInsertSchema } from "drizzle-zod";
+
+// Session storage table for Replit Auth
+// IMPORTANT: This table is mandatory for Replit Auth, don't drop it.
+export const sessions = pgTable(
+  "sessions",
+  {
+    sid: varchar("sid").primaryKey(),
+    sess: jsonb("sess").notNull(),
+    expire: timestamp("expire").notNull(),
+  },
+  (table) => [index("IDX_session_expire").on(table.expire)],
+);
 
 // Drizzle table definitions
 export const bookings = pgTable("bookings", {
@@ -144,17 +157,30 @@ export const insertBookingHistorySchema = createInsertSchema(bookingHistory).omi
 export type InsertBookingHistory = z.infer<typeof insertBookingHistorySchema>;
 export type BookingHistory = typeof bookingHistory.$inferSelect;
 
+// User storage table - supports both Replit Auth and staff/admin authentication
 export const users = pgTable("users", {
-  id: varchar("id").primaryKey().$defaultFn(() => crypto.randomUUID()),
-  username: varchar("username").notNull().unique(),
-  passwordHash: varchar("password_hash").notNull(),
-  email: varchar("email"),
-  role: varchar("role").notNull().default("admin"),
-  onboardingCompleted: integer("onboarding_completed").notNull().default(0),
-  createdAt: timestamp("created_at").notNull().defaultNow(),
+  // IMPORTANT: Keep default() for existing ID compatibility
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  
+  // Replit Auth fields
+  email: varchar("email").unique(),
+  firstName: varchar("first_name"),
+  lastName: varchar("last_name"),
+  profileImageUrl: varchar("profile_image_url"),
+  
+  // Staff/Admin auth fields (nullable for Replit Auth users)
+  username: varchar("username").unique(),
+  passwordHash: varchar("password_hash"),
+  role: varchar("role"),
+  onboardingCompleted: integer("onboarding_completed").default(0),
+  
+  // Timestamps
+  createdAt: timestamp("created_at").defaultNow(),
+  updatedAt: timestamp("updated_at").defaultNow(),
 });
 
-export const insertUserSchema = createInsertSchema(users).omit({ id: true, createdAt: true, passwordHash: true }).extend({
+// Insert schema for staff/admin users (with username/password)
+export const insertUserSchema = createInsertSchema(users).omit({ id: true, createdAt: true, updatedAt: true, passwordHash: true }).extend({
   password: z.string()
     .min(8, "Password must be at least 8 characters")
     .regex(/[A-Za-z]/, "Password must contain at least one letter")
@@ -167,6 +193,9 @@ export const insertUserSchema = createInsertSchema(users).omit({ id: true, creat
 });
 export type InsertUser = z.infer<typeof insertUserSchema>;
 export type User = typeof users.$inferSelect;
+
+// UpsertUser type for Replit Auth (upserts user on login)
+export type UpsertUser = typeof users.$inferInsert;
 
 export const loginSchema = z.object({
   username: z.string().min(1, "Username is required"),

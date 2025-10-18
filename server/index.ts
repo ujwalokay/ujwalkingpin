@@ -1,13 +1,11 @@
 import express, { type Request, Response, NextFunction } from "express";
-import session from "express-session";
-import connectPgSimple from "connect-pg-simple";
 import helmet from "helmet";
 import cors from "cors";
 import { registerRoutes } from "./routes";
 import { registerAuthRoutes } from "./auth";
+import { setupAuth } from "./replitAuth";
 import { setupVite, serveStatic, log } from "./vite";
 import { storage } from "./storage";
-import { pool } from "./db";
 import { cleanupScheduler } from "./scheduler";
 
 const app = express();
@@ -67,36 +65,6 @@ app.use(
 app.use(express.json({ limit: '1mb' }));
 app.use(express.urlencoded({ extended: false, limit: '1mb' }));
 
-// Validate session secret in production
-if (process.env.NODE_ENV === "production" && !process.env.SESSION_SECRET) {
-  console.error('❌ FATAL ERROR: SESSION_SECRET environment variable is required in production!');
-  console.error('❌ Generate a secure secret: node -e "console.log(require(\'crypto\').randomBytes(32).toString(\'hex\'))"');
-  process.exit(1);
-}
-
-// PostgreSQL session store for persistent sessions
-const PgSession = connectPgSimple(session);
-
-// Session configuration with PostgreSQL store
-app.use(
-  session({
-    store: new PgSession({
-      pool: pool,
-      tableName: 'session',
-      createTableIfMissing: true,
-    }),
-    secret: process.env.SESSION_SECRET || "dev-secret-DO-NOT-USE-IN-PRODUCTION",
-    resave: false,
-    saveUninitialized: false,
-    cookie: {
-      secure: process.env.NODE_ENV === "production",
-      httpOnly: true,
-      maxAge: 24 * 60 * 60 * 1000, // 24 hours
-      sameSite: "lax",
-    },
-  })
-);
-
 app.use((req, res, next) => {
   const start = Date.now();
   const path = req.path;
@@ -134,7 +102,10 @@ app.use((req, res, next) => {
   // Start automatic data cleanup scheduler
   cleanupScheduler.start();
   
-  // Register authentication routes
+  // Setup Replit Auth (Google login) - this also sets up session middleware
+  await setupAuth(app);
+  
+  // Register staff/admin authentication routes
   registerAuthRoutes(app);
   
   const server = await registerRoutes(app);

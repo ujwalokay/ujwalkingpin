@@ -15,6 +15,7 @@ import {
   type InsertBookingHistory,
   type User,
   type InsertUser,
+  type UpsertUser,
   type Expense,
   type InsertExpense,
   type ActivityLog,
@@ -117,7 +118,9 @@ export interface IStorage {
   
   getUserByUsername(username: string): Promise<User | undefined>;
   getUserById(id: string): Promise<User | undefined>;
+  getUser(id: string): Promise<User | undefined>;
   createUser(user: InsertUser): Promise<User>;
+  upsertUser(user: UpsertUser): Promise<User>;
   validatePassword(username: string, password: string): Promise<User | null>;
   updateUserOnboarding(userId: string, completed: boolean): Promise<boolean>;
   
@@ -690,12 +693,32 @@ export class DatabaseStorage implements IStorage {
       return null;
     }
     
-    const isValid = await bcrypt.compare(password, user.passwordHash);
+    const isValid = await bcrypt.compare(password, user.passwordHash!);
     
     if (!isValid) {
       return null;
     }
     
+    return user;
+  }
+
+  async getUser(id: string): Promise<User | undefined> {
+    const [user] = await db.select().from(users).where(eq(users.id, id));
+    return user || undefined;
+  }
+
+  async upsertUser(userData: UpsertUser): Promise<User> {
+    const [user] = await db
+      .insert(users)
+      .values(userData)
+      .onConflictDoUpdate({
+        target: users.id,
+        set: {
+          ...userData,
+          updatedAt: new Date(),
+        },
+      })
+      .returning();
     return user;
   }
 
