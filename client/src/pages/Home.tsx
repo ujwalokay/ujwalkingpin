@@ -2,8 +2,9 @@ import { useQuery } from "@tanstack/react-query";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
-import { Phone, Mail, MapPin, Clock, Gamepad2, Monitor } from "lucide-react";
+import { Phone, Mail, MapPin, Clock, Gamepad2, Monitor, Zap, Gift, Lock, Crown } from "lucide-react";
 import type { GamingCenterInfo } from "@shared/schema";
+import { ParallelogramCard } from "@/components/ParallelogramCard";
 
 interface Availability {
   category: string;
@@ -34,7 +35,7 @@ export default function Home() {
   }
 
   return (
-    <div className="container mx-auto p-6 space-y-8">
+    <div className="container mx-auto p-6 space-y-12">
       <div className="text-center space-y-4">
         <h1 className="text-4xl md:text-6xl font-bold bg-gradient-to-r from-purple-600 to-blue-600 bg-clip-text text-transparent" data-testid="text-center-name">
           {centerInfo?.name || "Ankylo Gaming Center"}
@@ -43,6 +44,49 @@ export default function Home() {
           {centerInfo?.description || "Experience the ultimate gaming destination"}
         </p>
       </div>
+
+      <section className="py-8">
+        <div className="text-center mb-8">
+          <h2 className="text-3xl md:text-4xl font-bold mb-3">
+            Join <span className="bg-gradient-to-r from-purple-600 to-pink-600 bg-clip-text text-transparent">The Pantheon</span>
+          </h2>
+          <p className="text-muted-foreground text-lg">Power Comes to Those Who Wait.</p>
+        </div>
+
+        <div className="grid md:grid-cols-2 gap-6 max-w-6xl mx-auto">
+          <ParallelogramCard
+            icon={<Zap className="w-full h-full" />}
+            title="Early Access to the App"
+            description="Be the first to book arenas and dominate leaderboards."
+            iconColor="text-green-500"
+            testId="card-early-access"
+          />
+          
+          <ParallelogramCard
+            icon={<Gift className="w-full h-full" />}
+            title="Exclusive Hashdrop Rewards"
+            description="Get limited-edition merch, coins, and tournament invites."
+            iconColor="text-purple-500"
+            testId="card-rewards"
+          />
+          
+          <ParallelogramCard
+            icon={<Crown className="w-full h-full" />}
+            title="Founding Member Badge"
+            description="Your tag will carry legacy. Forever."
+            iconColor="text-yellow-500"
+            testId="card-badge"
+          />
+          
+          <ParallelogramCard
+            icon={<Lock className="w-full h-full" />}
+            title="Private Discord Access"
+            description="Strategize with top gamers and influencers before launch."
+            iconColor="text-cyan-500"
+            testId="card-discord"
+          />
+        </div>
+      </section>
 
       <div className="grid md:grid-cols-2 gap-6">
         <Card data-testid="card-availability">
