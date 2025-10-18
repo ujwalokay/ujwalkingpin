@@ -10,7 +10,8 @@ interface CategoryCardProps {
 }
 
 export function CategoryCard({ title, icon: Icon, available, total, color }: CategoryCardProps) {
-  const percentage = total > 0 ? (available / total) * 100 : 0;
+  const occupied = total - available;
+  const percentage = total > 0 ? (occupied / total) * 100 : 0;
   
   return (
     <Card className="glass-card group cursor-pointer shape-diagonal-rounded card-rectangular overflow-hidden" data-testid={`card-category-${title.toLowerCase()}`}>
