@@ -190,6 +190,27 @@ export default function Login({ onLoginSuccess }: LoginProps) {
                     <SiGoogle className="mr-2 h-5 w-5" />
                     Continue with Google
                   </Button>
+
+                  <div className="relative">
+                    <div className="absolute inset-0 flex items-center">
+                      <span className="w-full border-t border-gray-300 dark:border-gray-600"></span>
+                    </div>
+                    <div className="relative flex justify-center text-xs uppercase">
+                      <span className="bg-gradient-to-br from-gray-50 via-purple-50 to-pink-50 dark:from-gray-900 dark:via-purple-950 dark:to-gray-950 px-2 text-gray-500 dark:text-gray-400">
+                        Or
+                      </span>
+                    </div>
+                  </div>
+
+                  <Button
+                    type="button"
+                    onClick={() => setShowStaffLogin(true)}
+                    variant="outline"
+                    className="w-full h-12 text-base font-medium border-2 border-purple-600 dark:border-purple-500 text-purple-600 dark:text-purple-400 hover:bg-purple-50 dark:hover:bg-purple-950/50"
+                    data-testid="button-show-staff-login"
+                  >
+                    Staff / Admin Login
+                  </Button>
                 </div>
               ) : (
                 // Staff/Admin Login Form
