@@ -13,7 +13,7 @@ export function CategoryCard({ title, icon: Icon, available, total, color }: Cat
   const percentage = total > 0 ? (available / total) * 100 : 0;
   
   return (
-    <Card className="glass-card group cursor-pointer shape-left-rounded card-rectangular overflow-hidden" data-testid={`card-category-${title.toLowerCase()}`}>
+    <Card className="glass-card group cursor-pointer shape-diagonal-rounded card-rectangular overflow-hidden" data-testid={`card-category-${title.toLowerCase()}`}>
       <CardHeader className="flex flex-row items-center justify-between gap-2 space-y-0 pb-3">
         <CardTitle className="text-base font-bold text-foreground">{title}</CardTitle>
         <Icon className={`h-7 w-7 ${color} group-hover:scale-110 transition-transform duration-300`} />
@@ -26,9 +26,9 @@ export function CategoryCard({ title, icon: Icon, available, total, color }: Cat
           <p className="text-xs text-muted-foreground mb-2 font-medium">
             Available seats
           </p>
-          <div className="h-2.5 shape-left-rounded glass overflow-hidden">
+          <div className="h-3 rounded-full bg-muted/50 overflow-hidden">
             <div 
-              className={`h-full ${color} bg-current transition-all duration-500 ease-out shape-left-rounded`}
+              className={`h-full ${color} bg-current transition-all duration-500 ease-out rounded-full`}
               style={{ width: `${percentage}%` }}
             />
           </div>
