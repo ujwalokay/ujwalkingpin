@@ -32,9 +32,9 @@ export function CategoryCard({ title, icon: Icon, available, total, color }: Cat
               {Math.round(percentage)}%
             </p>
           </div>
-          <div className="h-5 rounded-lg bg-secondary/80 overflow-hidden shadow-inner border border-border/40">
+          <div className="h-6 rounded-lg bg-gray-200 dark:bg-gray-700 overflow-hidden shadow-inner border-2 border-gray-300 dark:border-gray-600">
             <div 
-              className={`h-full ${color} bg-current transition-all duration-500 ease-out shadow-sm`}
+              className={`h-full ${color} bg-current transition-all duration-500 ease-out`}
               style={{ width: `${percentage}%` }}
             />
           </div>
