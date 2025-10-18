@@ -78,6 +78,21 @@ export async function logoutHandler(req: Request, res: Response) {
 }
 
 export async function getCurrentUserHandler(req: Request, res: Response) {
+  // Check Google OAuth authentication (Passport.js)
+  if (req.isAuthenticated && req.isAuthenticated() && req.user) {
+    const googleUser = req.user as any;
+    return res.json({
+      id: googleUser.id,
+      username: googleUser.email || googleUser.firstName,
+      role: "admin",
+      email: googleUser.email,
+      firstName: googleUser.firstName,
+      lastName: googleUser.lastName,
+      profileImageUrl: googleUser.profileImageUrl,
+    });
+  }
+  
+  // Check staff/admin session authentication
   if (!req.session.userId) {
     return res.status(401).json({ message: "Not authenticated" });
   }
