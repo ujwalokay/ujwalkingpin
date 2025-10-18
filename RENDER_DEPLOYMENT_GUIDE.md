@@ -1,18 +1,34 @@
 # Render Deployment Guide for Ankylo Gaming
 
-## ✅ Fixes Applied
+## ✅ No Replit Dependencies!
 
-Your app has been updated to work on **both Replit and Render**:
-- ✅ Fixed `REPLIT_DOMAINS` requirement - now optional
-- ✅ Fixed database migration stuck on user input - uses `--force` flag
-- ✅ Google login disabled on Render (only staff/admin login available)
-- ✅ Added environment variable checks
+Your app now uses **standard Google OAuth** - completely independent of Replit:
+- ✅ No Replit account required
+- ✅ Use your own Google Cloud OAuth credentials
+- ✅ Works on any platform (Render, Vercel, AWS, etc.)
+- ✅ Email whitelist feature included
+- ✅ Fixed database migration (uses `--force` flag)
 
 ---
 
 ## 🚀 Step-by-Step Deployment on Render
 
-### **Step 1: Environment Variables on Render**
+### **Step 1: Set Up Google OAuth Credentials**
+
+**Before deploying**, you need to create Google OAuth credentials:
+
+👉 **Follow the complete guide:** `GOOGLE_OAUTH_SETUP.md`
+
+Quick summary:
+1. Create a project in [Google Cloud Console](https://console.cloud.google.com/)
+2. Enable Google+ API
+3. Configure OAuth consent screen
+4. Create OAuth 2.0 credentials (Web application)
+5. Get your `GOOGLE_CLIENT_ID` and `GOOGLE_CLIENT_SECRET`
+
+---
+
+### **Step 2: Environment Variables on Render**
 
 Go to your Render service → **Environment** tab and add these variables:
 
@@ -21,21 +37,16 @@ Go to your Render service → **Environment** tab and add these variables:
 DATABASE_URL=your-neon-postgres-connection-string
 SESSION_SECRET=generate-a-random-32-character-string
 NODE_ENV=production
+GOOGLE_CLIENT_ID=your-google-client-id-from-step-1
+GOOGLE_CLIENT_SECRET=your-google-client-secret-from-step-1
 ```
 
-#### **Optional (for email whitelist):**
+#### **Optional Variables:**
 ```
 ALLOWED_EMAIL=youremail@gmail.com
+ADMIN_USERNAME=admin
+ADMIN_PASSWORD=your-secure-password
 ```
-
-#### **For Google Login on Render:**
-To enable Google login on Render:
-```
-REPLIT_DOMAINS=your-render-domain.onrender.com
-REPL_ID=your-app-name
-ISSUER_URL=https://replit.com/oidc
-```
-**Note:** You'll also need to register your Render domain in Replit's OAuth settings (see Step 6 below).
 
 ---
 

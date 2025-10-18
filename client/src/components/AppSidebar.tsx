@@ -76,21 +76,8 @@ export function AppSidebar() {
 
   const handleLogout = async () => {
     try {
-      const response = await fetch("/api/logout", {
-        method: "GET",
-        credentials: "include",
-      });
-
-      if (response.redirected) {
-        window.location.href = response.url;
-      } else {
-        window.location.href = "/";
-      }
-      
-      toast({
-        title: "Logged out",
-        description: "You have been logged out successfully",
-      });
+      // Try Google logout first
+      window.location.href = "/api/auth/google/logout";
     } catch (error) {
       toast({
         title: "Error",

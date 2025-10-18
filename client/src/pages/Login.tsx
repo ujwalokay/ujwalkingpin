@@ -25,20 +25,37 @@ export default function Login({ onLoginSuccess }: LoginProps) {
   const { toast } = useToast();
 
   const handleGoogleLogin = () => {
-    window.location.href = "/api/login";
+    window.location.href = "/api/auth/google";
   };
 
   useEffect(() => {
     // Check for access denied error in URL
     const urlParams = new URLSearchParams(window.location.search);
-    if (urlParams.get('error') === 'access_denied') {
+    const error = urlParams.get('error');
+    
+    if (error === 'access_denied') {
       toast({
         title: "Access Denied",
         description: "Your email is not authorized to access this application. Please contact the administrator.",
         variant: "destructive",
         duration: 8000,
       });
-      // Remove the error parameter from URL
+      window.history.replaceState({}, '', window.location.pathname);
+    } else if (error === 'google_auth_failed') {
+      toast({
+        title: "Google Authentication Failed",
+        description: "Failed to authenticate with Google. Please try again.",
+        variant: "destructive",
+        duration: 6000,
+      });
+      window.history.replaceState({}, '', window.location.pathname);
+    } else if (error === 'authentication_failed') {
+      toast({
+        title: "Authentication Failed",
+        description: "Authentication failed. Please try again.",
+        variant: "destructive",
+        duration: 6000,
+      });
       window.history.replaceState({}, '', window.location.pathname);
     }
   }, [toast]);

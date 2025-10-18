@@ -3,10 +3,11 @@ import helmet from "helmet";
 import cors from "cors";
 import { registerRoutes } from "./routes";
 import { registerAuthRoutes } from "./auth";
-import { setupAuth } from "./replitAuth";
+import { setupGoogleAuth, getSession } from "./googleAuth";
 import { setupVite, serveStatic, log } from "./vite";
 import { storage } from "./storage";
 import { cleanupScheduler } from "./scheduler";
+import passport from "passport";
 
 const app = express();
 
@@ -102,8 +103,14 @@ app.use((req, res, next) => {
   // Start automatic data cleanup scheduler
   cleanupScheduler.start();
   
-  // Setup Replit Auth (Google login) - this also sets up session middleware
-  await setupAuth(app);
+  // Setup session middleware
+  app.set("trust proxy", 1);
+  app.use(getSession());
+  app.use(passport.initialize());
+  app.use(passport.session());
+  
+  // Setup Google OAuth (independent of Replit)
+  await setupGoogleAuth(app);
   
   // Register staff/admin authentication routes
   registerAuthRoutes(app);
