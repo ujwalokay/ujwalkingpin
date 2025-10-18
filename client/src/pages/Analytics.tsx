@@ -169,7 +169,7 @@ export default function Analytics() {
 
       {/* Key Metrics Grid */}
       <div className="grid gap-4 grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5">
-        <Card className="hover:shadow-lg transition-shadow">
+        <Card className="hover:shadow-lg transition-shadow shape-left-rounded">
           <CardHeader className="flex flex-row items-center justify-between pb-2">
             <CardTitle className="text-sm font-medium">Occupancy</CardTitle>
             <Users className="h-4 w-4 text-violet-500" />
@@ -184,7 +184,7 @@ export default function Analytics() {
           </CardContent>
         </Card>
 
-        <Card className="hover:shadow-lg transition-shadow">
+        <Card className="hover:shadow-lg transition-shadow shape-right-rounded">
           <CardHeader className="flex flex-row items-center justify-between pb-2">
             <CardTitle className="text-sm font-medium">Occupancy Rate</CardTitle>
             <TrendingUp className="h-4 w-4 text-blue-500" />
@@ -199,7 +199,7 @@ export default function Analytics() {
           </CardContent>
         </Card>
 
-        <Card className="hover:shadow-lg transition-shadow">
+        <Card className="hover:shadow-lg transition-shadow shape-diagonal-rounded">
           <CardHeader className="flex flex-row items-center justify-between pb-2">
             <CardTitle className="text-sm font-medium">Active Sessions</CardTitle>
             <Activity className="h-4 w-4 text-green-500" />
@@ -214,7 +214,7 @@ export default function Analytics() {
           </CardContent>
         </Card>
 
-        <Card className="hover:shadow-lg transition-shadow">
+        <Card className="hover:shadow-lg transition-shadow shape-left-rounded">
           <CardHeader className="flex flex-row items-center justify-between pb-2">
             <CardTitle className="text-sm font-medium">Available</CardTitle>
             <Calendar className="h-4 w-4 text-orange-500" />
@@ -229,7 +229,7 @@ export default function Analytics() {
           </CardContent>
         </Card>
 
-        <Card className="hover:shadow-lg transition-shadow">
+        <Card className="hover:shadow-lg transition-shadow shape-right-rounded">
           <CardHeader className="flex flex-row items-center justify-between pb-2">
             <CardTitle className="text-sm font-medium">Revenue</CardTitle>
             <DollarSign className="h-4 w-4 text-emerald-500" />
@@ -244,7 +244,7 @@ export default function Analytics() {
           </CardContent>
         </Card>
 
-        <Card className="hover:shadow-lg transition-shadow">
+        <Card className="hover:shadow-lg transition-shadow shape-diagonal-rounded">
           <CardHeader className="flex flex-row items-center justify-between pb-2">
             <CardTitle className="text-sm font-medium">Customers</CardTitle>
             <UserCheck className="h-4 w-4 text-pink-500" />
@@ -262,7 +262,7 @@ export default function Analytics() {
 
       {/* Additional Metrics Grid */}
       <div className="grid gap-4 grid-cols-1 sm:grid-cols-2 lg:grid-cols-4">
-        <Card className="hover:shadow-lg transition-shadow">
+        <Card className="hover:shadow-lg transition-shadow shape-left-rounded">
           <CardHeader className="flex flex-row items-center justify-between pb-2">
             <CardTitle className="text-sm font-medium">Avg Session</CardTitle>
             <Clock className="h-4 w-4 text-blue-500" />
@@ -277,7 +277,7 @@ export default function Analytics() {
           </CardContent>
         </Card>
 
-        <Card className="hover:shadow-lg transition-shadow">
+        <Card className="hover:shadow-lg transition-shadow shape-right-rounded">
           <CardHeader className="flex flex-row items-center justify-between pb-2">
             <CardTitle className="text-sm font-medium">Food Orders</CardTitle>
             <ShoppingBag className="h-4 w-4 text-orange-500" />
@@ -292,7 +292,7 @@ export default function Analytics() {
           </CardContent>
         </Card>
 
-        <Card className="hover:shadow-lg transition-shadow">
+        <Card className="hover:shadow-lg transition-shadow shape-diagonal-rounded">
           <CardHeader className="flex flex-row items-center justify-between pb-2">
             <CardTitle className="text-sm font-medium">Food Revenue</CardTitle>
             <DollarSign className="h-4 w-4 text-green-500" />
@@ -307,7 +307,7 @@ export default function Analytics() {
           </CardContent>
         </Card>
 
-        <Card className="hover:shadow-lg transition-shadow">
+        <Card className="hover:shadow-lg transition-shadow shape-left-rounded">
           <CardHeader className="flex flex-row items-center justify-between pb-2">
             <CardTitle className="text-sm font-medium">Avg/Hour</CardTitle>
             <Zap className="h-4 w-4 text-purple-500" />
