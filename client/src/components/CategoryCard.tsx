@@ -19,12 +19,12 @@ export function CategoryCard({ title, icon: Icon, available, total, color }: Cat
         <CardTitle className="text-base font-bold text-foreground">{title}</CardTitle>
         <Icon className={`h-7 w-7 ${color} group-hover:scale-110 transition-transform duration-300`} />
       </CardHeader>
-      <CardContent className="flex flex-col justify-between h-full">
-        <div className="text-4xl font-bold text-foreground mb-3" data-testid={`text-availability-${title.toLowerCase()}`}>
-          {available}<span className="text-xl text-muted-foreground">/{total}</span>
+      <CardContent className="flex flex-col gap-4 pb-4">
+        <div className="text-3xl sm:text-4xl font-bold text-foreground" data-testid={`text-availability-${title.toLowerCase()}`}>
+          {available}<span className="text-lg sm:text-xl text-muted-foreground">/{total}</span>
         </div>
-        <div className="mt-auto">
-          <div className="flex justify-between items-center mb-2">
+        <div>
+          <div className="flex justify-between items-center mb-1.5">
             <p className="text-xs text-muted-foreground font-medium">
               Seat occupancy
             </p>
@@ -32,7 +32,7 @@ export function CategoryCard({ title, icon: Icon, available, total, color }: Cat
               {Math.round(percentage)}%
             </p>
           </div>
-          <div className="h-6 rounded-lg bg-gray-200 dark:bg-gray-700 overflow-hidden shadow-inner border-2 border-gray-300 dark:border-gray-600">
+          <div className="h-5 sm:h-6 rounded-lg bg-gray-200 dark:bg-gray-700 overflow-hidden shadow-inner border-2 border-gray-300 dark:border-gray-600">
             <div 
               className={`h-full ${color} bg-current transition-all duration-500 ease-out`}
               style={{ width: `${percentage}%` }}
