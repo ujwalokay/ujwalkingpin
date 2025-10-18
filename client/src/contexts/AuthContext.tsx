@@ -1,5 +1,4 @@
 import { createContext, useContext, ReactNode } from "react";
-import { useIsDesktop } from "@/hooks/use-device-type";
 
 interface User {
   id: string;
@@ -20,11 +19,10 @@ const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
 export function AuthProvider({ children, user }: { children: ReactNode; user: User | null }) {
   const isAdmin = user?.role === "admin";
-  const isDesktop = useIsDesktop();
   
   const isStaffOrAdmin = user?.role === "admin" || user?.role === "staff";
-  const canMakeChanges = isStaffOrAdmin ? isDesktop : true;
-  const deviceRestricted = isStaffOrAdmin && !isDesktop;
+  const canMakeChanges = isStaffOrAdmin ? true : true;
+  const deviceRestricted = false;
   const onboardingCompleted = user?.onboardingCompleted ?? true;
 
   return (
