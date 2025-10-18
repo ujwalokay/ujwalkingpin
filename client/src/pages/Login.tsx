@@ -158,17 +158,6 @@ export default function Login({ onLoginSuccess }: LoginProps) {
                     <SiGoogle className="mr-2 h-5 w-5" />
                     Continue with Google
                   </Button>
-
-                  <div className="text-center pt-4">
-                    <button
-                      type="button"
-                      onClick={() => setShowStaffLogin(true)}
-                      className="text-sm text-purple-600 dark:text-purple-400 hover:text-purple-700 dark:hover:text-purple-300 font-medium transition-colors"
-                      data-testid="button-show-staff-login"
-                    >
-                      Login as Staff / Admin
-                    </button>
-                  </div>
                 </div>
               ) : (
                 // Staff/Admin Login Form
