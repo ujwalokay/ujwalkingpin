@@ -63,6 +63,7 @@ Preferred communication style: Simple, everyday language.
 - CSS custom properties for theme tokens.
 - Tailwind utility classes and `clsx`/`tailwind-merge` for styling.
 - Gaming aesthetic with neon accents and status-based color coding.
+- **Card Design System**: ALL cards use uniform `shape-diagonal-rounded` (top-left and bottom-right corners rounded) for consistent gaming aesthetic across metric cards, chart cards, and category availability cards.
 
 **Form Handling:**
 - React Hook Form for form state and validation.
