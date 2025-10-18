@@ -297,4 +297,36 @@
   .dark .glow {
     box-shadow: 0 0 30px rgba(157, 78, 221, 0.5);
   }
+
+  /* Custom Rounded Corner Shapes */
+  .shape-left-rounded {
+    border-radius: 2rem 0.5rem 0.5rem 2rem;
+  }
+
+  .shape-diagonal-rounded {
+    border-radius: 2rem 0.5rem 2rem 0.5rem;
+  }
+
+  .shape-right-rounded {
+    border-radius: 0.5rem 2rem 2rem 0.5rem;
+  }
+
+  .shape-top-rounded {
+    border-radius: 2rem 2rem 0.5rem 0.5rem;
+  }
+
+  .shape-bottom-rounded {
+    border-radius: 0.5rem 0.5rem 2rem 2rem;
+  }
+
+  /* Rectangular cards with custom aspect ratios */
+  .card-rectangular {
+    aspect-ratio: 3 / 2;
+    min-height: 140px;
+  }
+
+  .card-square-lg {
+    aspect-ratio: 1 / 1;
+    min-height: 160px;
+  }
 }
