@@ -1,0 +1,102 @@
+2025-10-18T06:35:50.472923731Z ==> Downloading cache...
+2025-10-18T06:35:50.475422952Z ==> Cloning from https://github.com/ujwalokay/ujwalkingpin
+2025-10-18T06:35:51.624594018Z ==> Checking out commit 0a4c13e5f567266806f8d650dbc94ffddb34c06a in branch main
+2025-10-18T06:36:07.255247096Z ==> Transferred 235MB in 8s. Extraction took 7s.
+2025-10-18T06:36:27.05309755Z ==> Using Node.js version 22.16.0 (default)
+2025-10-18T06:36:27.080279449Z ==> Docs on specifying a Node.js version: https://render.com/docs/node-version
+2025-10-18T06:36:27.144509939Z ==> Running build command 'npm install --include=dev && npm run build'...
+2025-10-18T06:36:29.864897351Z 
+2025-10-18T06:36:29.864921942Z added 8 packages, and audited 699 packages in 3s
+2025-10-18T06:36:29.864939402Z 
+2025-10-18T06:36:29.864965172Z 81 packages are looking for funding
+2025-10-18T06:36:29.864990083Z   run `npm fund` for details
+2025-10-18T06:36:29.894274227Z 
+2025-10-18T06:36:29.937444095Z 10 vulnerabilities (3 low, 7 moderate)
+2025-10-18T06:36:29.937462715Z 
+2025-10-18T06:36:29.937469355Z To address issues that do not require attention, run:
+2025-10-18T06:36:29.937474975Z   npm audit fix
+2025-10-18T06:36:29.937480285Z 
+2025-10-18T06:36:29.937487485Z To address all issues possible (including breaking changes), run:
+2025-10-18T06:36:29.937492866Z   npm audit fix --force
+2025-10-18T06:36:29.937496146Z 
+2025-10-18T06:36:29.937499606Z Some issues need review, and may require choosing
+2025-10-18T06:36:29.937503026Z a different dependency.
+2025-10-18T06:36:29.937506456Z 
+2025-10-18T06:36:29.937510526Z Run `npm audit` for details.
+2025-10-18T06:36:30.234814095Z 
+2025-10-18T06:36:30.234837605Z > rest-express@1.0.0 build
+2025-10-18T06:36:30.234843935Z > npx vite build && npx esbuild server/index.ts --platform=node --packages=external --bundle --format=esm --outdir=dist
+2025-10-18T06:36:30.234850526Z 
+2025-10-18T06:36:30.886345374Z vite v5.4.20 building for production...
+2025-10-18T06:36:30.938992035Z transforming...
+2025-10-18T06:36:32.376546698Z 
+2025-10-18T06:36:32.376574819Z A PostCSS plugin did not pass the `from` option to `postcss.parse`. This may cause imported assets to be incorrectly transformed. If you've recently added a PostCSS plugin that raised this warning, please contact the package author to fix the issue.
+2025-10-18T06:36:39.716580927Z ✓ 3420 modules transformed.
+2025-10-18T06:36:40.332003612Z rendering chunks...
+2025-10-18T06:36:40.345133334Z computing gzip size...
+2025-10-18T06:36:40.377130362Z ../dist/public/index.html                                                                                             2.29 kB │ gzip:   0.93 kB
+2025-10-18T06:36:40.377203473Z ../dist/public/assets/WhatsApp Image 2025-10-10 at 18.33.50_a4a3fc99_1760107172482-CJaR6HBG.jpg                      44.74 kB
+2025-10-18T06:36:40.377227044Z ../dist/public/assets/WhatsApp Image 2025-10-10 at 18.33.50_d321359c_1760107172482-BwJavlwc.jpg                      56.48 kB
+2025-10-18T06:36:40.377385246Z ../dist/public/assets/WhatsApp_Image_2025-10-10_at_18.36.58_1fb5438e-removebg-preview_1760342704718-Cg0v57vU.png    110.23 kB
+2025-10-18T06:36:40.377396406Z ../dist/public/assets/purple_gaming_setup__c53078b3-DsAXQPOl.jpg                                                    110.50 kB
+2025-10-18T06:36:40.377423207Z ../dist/public/assets/index-GDXVWrUQ.css                                                                            109.16 kB │ gzip:  17.46 kB
+2025-10-18T06:36:40.377429887Z ../dist/public/assets/index-5y4JGsU5.js                                                                           1,347.09 kB │ gzip: 362.91 kB
+2025-10-18T06:36:40.377502118Z 
+2025-10-18T06:36:40.377506638Z (!) Some chunks are larger than 500 kB after minification. Consider:
+2025-10-18T06:36:40.377509018Z - Using dynamic import() to code-split the application
+2025-10-18T06:36:40.377511408Z - Use build.rollupOptions.output.manualChunks to improve chunking: https://rollupjs.org/configuration-options/#output-manualchunks
+2025-10-18T06:36:40.377513378Z - Adjust chunk size limit for this warning via build.chunkSizeWarningLimit.
+2025-10-18T06:36:40.377744962Z ✓ built in 9.47s
+2025-10-18T06:36:40.731809789Z 
+2025-10-18T06:36:40.731827249Z   dist/index.js  108.0kb
+2025-10-18T06:36:40.73182936Z 
+2025-10-18T06:36:40.73183126Z ⚡ Done in 8ms
+2025-10-18T06:36:44.89861231Z ==> Uploading build...
+2025-10-18T06:36:59.124746683Z ==> Uploaded in 7.5s. Compression took 6.7s
+2025-10-18T06:36:59.182321504Z ==> Build successful 🎉
+2025-10-18T06:37:06.072936753Z ==> Deploying...
+2025-10-18T06:37:29.187614116Z ==> Running 'npm run start'
+2025-10-18T06:37:30.196667719Z 
+2025-10-18T06:37:30.19668696Z > rest-express@1.0.0 start
+2025-10-18T06:37:30.19669207Z > npx drizzle-kit push --force && NODE_ENV=production node dist/index.js
+2025-10-18T06:37:30.1966947Z 
+2025-10-18T06:37:34.891391115Z No config path provided, using default 'drizzle.config.ts'
+2025-10-18T06:37:34.891664369Z Reading config file '/opt/render/project/src/drizzle.config.ts'
+2025-10-18T06:37:41.595087516Z Using 'pg' driver for database querying
+2025-10-18T06:37:44.287914457Z [⣷] Pulling schema from database...
+2025-10-18T06:37:44.487201509Z [⣯] Pulling schema from database...
+2025-10-18T06:37:44.614941238Z [⣟] Pulling schema from database...
+2025-10-18T06:37:44.743330159Z [⡿] Pulling schema from database...
+2025-10-18T06:37:44.872050826Z [⢿] Pulling schema from database...
+2025-10-18T06:37:45.000182003Z [⣻] Pulling schema from database...
+2025-10-18T06:37:45.129753695Z [⣽] Pulling schema from database...
+2025-10-18T06:37:45.258869589Z [⣷] Pulling schema from database...
+2025-10-18T06:37:45.386675479Z [⣯] Pulling schema from database...
+2025-10-18T06:37:45.514421919Z [⣟] Pulling schema from database...
+2025-10-18T06:37:45.643310109Z [⡿] Pulling schema from database...
+2025-10-18T06:37:45.728157019Z [✓] Pulling schema from database...
+2025-10-18T06:37:45.997214442Z · You're about to add users_email_unique unique constraint to the table, which contains 2 items. If this statement fails, you will receive an error from the database. Do you want to truncate users table?
+2025-10-18T06:37:45.997234352Z 
+2025-10-18T06:37:46.089447025Z ❯ No, add the constraint without truncating the table
+2025-10-18T06:38:07.114499373Z   Yes, truncate the tableDatabase initialized with default data
+2025-10-18T06:38:07.114604646Z ⏰ Starting automatic data cleanup scheduler...
+2025-10-18T06:38:07.114653146Z 📅 Cleanup will run daily at 2:00 AM
+2025-10-18T06:38:07.191654907Z ⏰ Next cleanup scheduled for: 10/19/2025, 2:00:00 AM
+2025-10-18T06:38:07.193703173Z ✅ Setting up Google OAuth authentication...
+2025-10-18T06:38:07.193718624Z 📍 Callback URL: https://ujwalkingpin.onrender.com/api/auth/google/callback
+2025-10-18T06:38:07.200678188Z 6:38:07 AM [express] serving on port 10000
+2025-10-18T06:38:17.457553418Z ==> Your service is live 🎉
+2025-10-18T06:38:17.492101725Z ==> 
+2025-10-18T06:38:17.522196763Z ==> ///////////////////////////////////////////////////////////
+2025-10-18T06:38:17.553175251Z ==> 
+2025-10-18T06:38:17.584367218Z ==> Available at your primary URL https://ujwalkingpin.onrender.com
+2025-10-18T06:38:17.614349196Z ==> 
+2025-10-18T06:38:17.645336353Z ==> ///////////////////////////////////////////////////////////
+2025-10-18T06:38:26.306312005Z 6:38:26 AM [express] GET /api/auth/me 401 in 4ms :: {"message":"Not authenticated"}
+2025-10-18T06:38:30.42742339Z 6:38:30 AM [express] GET /api/auth/google 302 in 5ms
+2025-10-18T06:43:04.120802331Z 6:43:04 AM [express] GET /api/auth/google 302 in 36ms
+2025-10-18T06:43:16.62825991Z ==> Detected service running on port 10000
+2025-10-18T06:43:16.796421113Z ==> Docs on specifying a port: https://render.com/docs/web-services#port-binding
+2025-10-18T06:43:23.446606634Z 6:43:23 AM [express] GET /api/auth/me 401 in 1ms :: {"message":"Not authenticated"}
+2025-10-18T06:43:27.715815205Z 6:43:27 AM [express] GET /api/auth/google 302 in 1ms
+2025-10-18T06:45:13.148268265Z 6:45:13 AM [express] GET /api/auth/google 302 in 0ms
