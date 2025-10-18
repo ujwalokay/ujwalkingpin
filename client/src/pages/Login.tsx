@@ -5,6 +5,7 @@ import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
 import { useToast } from "@/hooks/use-toast";
 import { SiGoogle } from "react-icons/si";
+import { useLocation } from "wouter";
 import loginImage from "@assets/stock_images/purple_gaming_setup,_c53078b3.jpg";
 import logoDark from "@assets/WhatsApp Image 2025-10-10 at 18.33.50_a4a3fc99_1760107172482.jpg";
 
@@ -13,6 +14,7 @@ interface LoginProps {
 }
 
 export default function Login({ onLoginSuccess }: LoginProps) {
+  const [location] = useLocation();
   const [username, setUsername] = useState("");
   const [password, setPassword] = useState("");
   const [isLoggingIn, setIsLoggingIn] = useState(false);
@@ -21,12 +23,19 @@ export default function Login({ onLoginSuccess }: LoginProps) {
   const [lockoutTime, setLockoutTime] = useState<number | null>(null);
   const [remainingTime, setRemainingTime] = useState(0);
   const [isAdminLogin, setIsAdminLogin] = useState(false);
-  const [showStaffLogin, setShowStaffLogin] = useState(false);
+  const [showStaffLogin, setShowStaffLogin] = useState(location === '/staff');
   const { toast } = useToast();
 
   const handleGoogleLogin = () => {
     window.location.href = "/api/auth/google";
   };
+
+  useEffect(() => {
+    // Check if we're on the /staff route
+    if (location === '/staff') {
+      setShowStaffLogin(true);
+    }
+  }, [location]);
 
   useEffect(() => {
     // Check for access denied error in URL
@@ -179,7 +188,7 @@ export default function Login({ onLoginSuccess }: LoginProps) {
               </div>
 
               {!showStaffLogin ? (
-                // Google Login First
+                // Google Login Only
                 <div className="space-y-6">
                   <Button
                     type="button"
@@ -190,17 +199,6 @@ export default function Login({ onLoginSuccess }: LoginProps) {
                     <SiGoogle className="mr-2 h-5 w-5" />
                     Continue with Google
                   </Button>
-
-                  <div className="text-center">
-                    <button
-                      type="button"
-                      onClick={() => setShowStaffLogin(true)}
-                      className="text-sm text-gray-600 dark:text-gray-400 hover:text-purple-600 dark:hover:text-purple-400 transition-colors underline"
-                      data-testid="button-show-staff-login"
-                    >
-                      Staff or Admin? Click here to login
-                    </button>
-                  </div>
                 </div>
               ) : (
                 // Staff/Admin Login Form
