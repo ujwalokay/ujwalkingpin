@@ -75,7 +75,7 @@ Preferred communication style: Simple, everyday language.
 - Expense Tracker: Comprehensive system with CSV/PDF export.
 - WhatsApp Bot Integration: Automated device availability queries via Twilio.
 - Public Status Board: Customer-facing real-time availability display at `/status`.
-- Device-Based Access Control: Admin/staff users restricted to view-only mode on mobile/tablet devices (< 1024px), with full editing capabilities only on PC/desktop (≥ 1024px).
+- Fully Responsive Design: Admin/staff users can access and edit all features on mobile, tablet, and desktop devices with a responsive, touch-friendly interface.
 - Happy Hours Feature: Configurable time-based special pricing.
 - Onboarding Tour: Comprehensive step-by-step guide for new users.
 - Data Retention Policies: Automatic cleanup of old data with configurable retention periods (default: 2 years bookings, 6 months logs, 7 years expenses). Runs daily at 2:00 AM with admin controls for manual cleanup and configuration.
