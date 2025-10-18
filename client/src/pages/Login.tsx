@@ -29,6 +29,21 @@ export default function Login({ onLoginSuccess }: LoginProps) {
   };
 
   useEffect(() => {
+    // Check for access denied error in URL
+    const urlParams = new URLSearchParams(window.location.search);
+    if (urlParams.get('error') === 'access_denied') {
+      toast({
+        title: "Access Denied",
+        description: "Your email is not authorized to access this application. Please contact the administrator.",
+        variant: "destructive",
+        duration: 8000,
+      });
+      // Remove the error parameter from URL
+      window.history.replaceState({}, '', window.location.pathname);
+    }
+  }, [toast]);
+
+  useEffect(() => {
     if (lockoutTime) {
       const interval = setInterval(() => {
         const now = Date.now();

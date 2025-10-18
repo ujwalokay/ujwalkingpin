@@ -78,9 +78,23 @@ export async function setupAuth(app: Express) {
     tokens: client.TokenEndpointResponse & client.TokenEndpointResponseHelpers,
     verified: passport.AuthenticateCallback
   ) => {
+    const claims = tokens.claims();
+    if (!claims) {
+      return verified(new Error("Failed to retrieve user claims"), false);
+    }
+    
+    const userEmail = claims["email"];
+    
+    // Check if email whitelist is enabled
+    const allowedEmail = process.env.ALLOWED_EMAIL;
+    if (allowedEmail && userEmail !== allowedEmail) {
+      console.log(`Access denied for email: ${userEmail}. Only ${allowedEmail} is allowed.`);
+      return verified(new Error("Access denied. Your email is not authorized to use this application."), false);
+    }
+    
     const user = {};
     updateUserSession(user, tokens);
-    await upsertUser(tokens.claims());
+    await upsertUser(claims);
     verified(null, user);
   };
 
@@ -109,9 +123,25 @@ export async function setupAuth(app: Express) {
   });
 
   app.get("/api/callback", (req, res, next) => {
-    passport.authenticate(`replitauth:${req.hostname}`, {
-      successReturnToOrRedirect: "/",
-      failureRedirect: "/api/login",
+    passport.authenticate(`replitauth:${req.hostname}`, (err: any, user: any, info: any) => {
+      if (err) {
+        // Check if it's an access denied error
+        if (err.message && err.message.includes("Access denied")) {
+          return res.redirect("/?error=access_denied");
+        }
+        return res.redirect("/api/login");
+      }
+      
+      if (!user) {
+        return res.redirect("/api/login");
+      }
+      
+      req.logIn(user, (loginErr) => {
+        if (loginErr) {
+          return next(loginErr);
+        }
+        return res.redirect("/");
+      });
     })(req, res, next);
   });
 
