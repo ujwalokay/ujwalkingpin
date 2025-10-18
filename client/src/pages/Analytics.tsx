@@ -333,7 +333,7 @@ export default function Analytics() {
 
         {/* Overview Tab */}
         <TabsContent value="overview" className="space-y-4 mt-6">
-          <Card id="occupancy-trend-chart">
+          <Card id="occupancy-trend-chart" className="shape-diagonal-rounded">
             <CardHeader className="flex flex-row items-center justify-between">
               <div>
                 <CardTitle>Occupancy Trend</CardTitle>
@@ -381,7 +381,7 @@ export default function Analytics() {
           </Card>
 
           <div className="grid gap-4 md:grid-cols-2">
-            <Card id="category-distribution-chart">
+            <Card id="category-distribution-chart" className="shape-diagonal-rounded">
               <CardHeader className="flex flex-row items-center justify-between">
                 <div>
                   <CardTitle>Category Distribution</CardTitle>
@@ -428,7 +428,7 @@ export default function Analytics() {
               </CardContent>
             </Card>
 
-            <Card id="hourly-activity-chart">
+            <Card id="hourly-activity-chart" className="shape-diagonal-rounded">
               <CardHeader className="flex flex-row items-center justify-between">
                 <div>
                   <CardTitle>Hourly Activity</CardTitle>
@@ -470,7 +470,7 @@ export default function Analytics() {
 
         {/* Performance Tab */}
         <TabsContent value="performance" className="space-y-4 mt-6">
-          <Card id="revenue-bookings-chart">
+          <Card id="revenue-bookings-chart" className="shape-diagonal-rounded">
             <CardHeader className="flex flex-row items-center justify-between">
               <div>
                 <CardTitle>Revenue & Bookings</CardTitle>
@@ -514,7 +514,7 @@ export default function Analytics() {
 
         {/* Insights Tab */}
         <TabsContent value="insights" className="space-y-4 mt-6">
-          <Card id="peak-hours-chart">
+          <Card id="peak-hours-chart" className="shape-diagonal-rounded">
             <CardHeader className="flex flex-row items-center justify-between">
               <div>
                 <CardTitle>Peak Hours</CardTitle>
