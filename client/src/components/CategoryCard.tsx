@@ -24,12 +24,17 @@ export function CategoryCard({ title, icon: Icon, available, total, color }: Cat
           {available}<span className="text-xl text-muted-foreground">/{total}</span>
         </div>
         <div className="mt-auto">
-          <p className="text-xs text-muted-foreground mb-2 font-medium">
-            Available seats
-          </p>
-          <div className="h-3 rounded-full bg-muted/50 overflow-hidden">
+          <div className="flex justify-between items-center mb-2">
+            <p className="text-xs text-muted-foreground font-medium">
+              Seat occupancy
+            </p>
+            <p className="text-xs font-bold text-foreground">
+              {Math.round(percentage)}%
+            </p>
+          </div>
+          <div className="h-5 rounded-lg bg-secondary/80 overflow-hidden shadow-inner border border-border/40">
             <div 
-              className={`h-full ${color} bg-current transition-all duration-500 ease-out rounded-full`}
+              className={`h-full ${color} bg-current transition-all duration-500 ease-out shadow-sm`}
               style={{ width: `${percentage}%` }}
             />
           </div>
