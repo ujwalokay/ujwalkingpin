@@ -32,6 +32,13 @@ export const publicApiLimiter = rateLimit({
 
 export async function loginHandler(req: Request, res: Response) {
   try {
+    // Check if Google authentication is verified
+    if (!req.session.googleVerified) {
+      return res.status(401).json({ 
+        message: "Please complete Google authentication first" 
+      });
+    }
+
     const { username, password } = loginSchema.parse(req.body);
     
     const user = await storage.validatePassword(username, password);
@@ -54,13 +61,14 @@ export async function loginHandler(req: Request, res: Response) {
       action: 'login',
       entityType: null,
       entityId: null,
-      details: `${user.role} logged in`
+      details: `${user.role} logged in via two-step auth (Google: ${req.session.googleEmail})`
     });
     
     res.json({
       id: user.id,
       username: user.username,
       role: user.role,
+      googleEmail: req.session.googleEmail,
     });
   } catch (error: any) {
     res.status(400).json({ message: error.message });
@@ -78,45 +86,45 @@ export async function logoutHandler(req: Request, res: Response) {
 }
 
 export async function getCurrentUserHandler(req: Request, res: Response) {
-  // Check Google OAuth authentication (Passport.js)
-  if (req.isAuthenticated && req.isAuthenticated() && req.user) {
-    const googleUser = req.user as any;
-    return res.json({
-      id: googleUser.id,
-      username: googleUser.email || googleUser.firstName,
-      role: "admin",
-      email: googleUser.email,
-      firstName: googleUser.firstName,
-      lastName: googleUser.lastName,
-      profileImageUrl: googleUser.profileImageUrl,
-    });
-  }
-  
-  // Check staff/admin session authentication
-  if (!req.session.userId) {
-    return res.status(401).json({ message: "Not authenticated" });
-  }
-  
-  try {
-    const user = await storage.getUserById(req.session.userId);
-    if (!user) {
-      return res.status(404).json({ message: "User not found" });
+  // Check if Google authentication is verified
+  if (req.session.googleVerified) {
+    // If both Google and staff/admin credentials are verified
+    if (req.session.userId) {
+      try {
+        const user = await storage.getUserById(req.session.userId);
+        if (!user) {
+          return res.status(404).json({ message: "User not found" });
+        }
+        
+        return res.json({
+          id: user.id,
+          username: user.username,
+          role: user.role,
+          googleEmail: req.session.googleEmail,
+          onboardingCompleted: user.onboardingCompleted === 1,
+          twoStepComplete: true,
+        });
+      } catch (error: any) {
+        return res.status(500).json({ message: error.message });
+      }
     }
     
-    res.json({
-      id: user.id,
-      username: user.username,
-      role: user.role,
-      onboardingCompleted: user.onboardingCompleted === 1,
+    // Google verified but not staff/admin login yet
+    return res.status(200).json({
+      googleVerified: true,
+      googleEmail: req.session.googleEmail,
+      needsStaffLogin: true,
     });
-  } catch (error: any) {
-    res.status(500).json({ message: error.message });
   }
+  
+  // Not authenticated at all
+  return res.status(401).json({ message: "Not authenticated" });
 }
 
 export function requireAuth(req: Request, res: Response, next: NextFunction) {
-  if (!req.session.userId) {
-    return res.status(401).json({ message: "Authentication required" });
+  // Require both Google verification AND staff/admin login
+  if (!req.session.googleVerified || !req.session.userId) {
+    return res.status(401).json({ message: "Complete two-step authentication required" });
   }
   next();
 }
@@ -178,5 +186,8 @@ declare module "express-session" {
     userId: string;
     username: string;
     role: string;
+    googleVerified: boolean;
+    googleUserId: string;
+    googleEmail: string;
   }
 }

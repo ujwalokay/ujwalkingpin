@@ -121,7 +121,15 @@ export async function setupGoogleAuth(app: Express) {
       if (!req.user) {
         return res.redirect("/?error=authentication_failed");
       }
-      res.redirect("/");
+      
+      // Set Google verification in session
+      const googleUser = req.user as any;
+      req.session.googleVerified = true;
+      req.session.googleUserId = googleUser.id;
+      req.session.googleEmail = googleUser.email;
+      
+      // Redirect to show staff/admin login form
+      res.redirect("/?google_verified=true");
     }
   );
 
