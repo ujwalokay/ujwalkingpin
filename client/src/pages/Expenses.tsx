@@ -15,7 +15,6 @@ import type { Expense } from "@shared/schema";
 import { format } from "date-fns";
 import { useAuth } from "@/contexts/AuthContext";
 import { getAdjustedTime } from "@/hooks/useServerTime";
-import { DeviceRestrictionAlert } from "@/components/DeviceRestrictionAlert";
 
 const EXPENSE_CATEGORIES = [
   "Equipment Maintenance",
@@ -311,8 +310,6 @@ export default function Expenses() {
 
   return (
     <div className="space-y-4 md:space-y-6">
-      <DeviceRestrictionAlert show={deviceRestricted} userRole={user?.role} />
-      
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
         <div>
           <h1 className="text-2xl sm:text-3xl font-bold text-foreground">Expense Tracker</h1>

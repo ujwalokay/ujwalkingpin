@@ -22,7 +22,6 @@ import {
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import type { Booking } from "@shared/schema";
 import { useAuth } from "@/contexts/AuthContext";
-import { DeviceRestrictionAlert } from "@/components/DeviceRestrictionAlert";
 
 interface DeviceConfig {
   id: string;
@@ -382,8 +381,6 @@ export default function Settings() {
 
   return (
     <div className="space-y-6 p-4 sm:p-6">
-      <DeviceRestrictionAlert show={deviceRestricted} userRole={user?.role} />
-      
       <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
         <div>
           <h1 className="text-2xl font-bold text-foreground sm:text-3xl">Settings</h1>

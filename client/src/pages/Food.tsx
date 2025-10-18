@@ -9,7 +9,6 @@ import { Label } from "@/components/ui/label";
 import { queryClient } from "@/lib/queryClient";
 import type { FoodItem } from "@shared/schema";
 import { useAuth } from "@/contexts/AuthContext";
-import { DeviceRestrictionAlert } from "@/components/DeviceRestrictionAlert";
 
 export default function Food() {
   const { toast } = useToast();
@@ -115,8 +114,6 @@ export default function Food() {
 
   return (
     <div className="space-y-4 md:space-y-6">
-      <DeviceRestrictionAlert show={deviceRestricted} userRole={user?.role} />
-      
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
         <div>
           <h1 className="text-2xl sm:text-3xl font-bold text-foreground">Food Management</h1>

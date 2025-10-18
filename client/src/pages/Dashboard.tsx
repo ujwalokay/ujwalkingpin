@@ -8,7 +8,6 @@ import { AddBookingDialog } from "@/components/AddBookingDialog";
 import { ExtendSessionDialog } from "@/components/ExtendSessionDialog";
 import { EndSessionDialog } from "@/components/EndSessionDialog";
 import { AddFoodToBookingDialog } from "@/components/AddFoodToBookingDialog";
-import { DeviceRestrictionAlert } from "@/components/DeviceRestrictionAlert";
 import { OnboardingTour } from "@/components/OnboardingTour";
 import { Plus, Monitor, Gamepad2, Glasses, Car, Cpu, Tv, Radio, Box, RefreshCw, Calculator } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
@@ -625,35 +624,19 @@ export default function Dashboard() {
 
   return (
     <div className="space-y-4 md:space-y-6">
-      <DeviceRestrictionAlert show={deviceRestricted} userRole={user?.role} />
-      
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 sm:gap-4">
         <div>
           <h1 className="text-2xl sm:text-3xl font-bold text-foreground">Seat Management</h1>
           <p className="text-sm sm:text-base text-muted-foreground">Monitor and manage all gaming seats</p>
         </div>
-        <TooltipProvider>
-          <Tooltip>
-            <TooltipTrigger asChild>
-              <span className="w-full sm:w-auto">
-                <Button 
-                  onClick={() => setAddDialog(true)} 
-                  data-testid="button-add-booking" 
-                  className="w-full sm:w-auto"
-                  disabled={!canMakeChanges}
-                >
-                  <Plus className="mr-2 h-4 w-4" />
-                  Add Booking
-                </Button>
-              </span>
-            </TooltipTrigger>
-            {!canMakeChanges && (
-              <TooltipContent>
-                <p>Desktop access required to add bookings</p>
-              </TooltipContent>
-            )}
-          </Tooltip>
-        </TooltipProvider>
+        <Button 
+          onClick={() => setAddDialog(true)} 
+          data-testid="button-add-booking" 
+          className="w-full sm:w-auto"
+        >
+          <Plus className="mr-2 h-4 w-4" />
+          Add Booking
+        </Button>
       </div>
 
       <div className="grid gap-3 grid-cols-2 md:grid-cols-2 lg:grid-cols-4">
