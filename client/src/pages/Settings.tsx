@@ -390,7 +390,7 @@ export default function Settings() {
           <Button 
             onClick={handleSave} 
             data-testid="button-save-settings"
-            disabled={!canMakeChanges || saveDeviceConfigMutation.isPending || savePricingConfigMutation.isPending}
+            disabled={saveDeviceConfigMutation.isPending || savePricingConfigMutation.isPending}
             className="w-full sm:w-auto"
           >
             <Save className="mr-2 h-4 w-4" />
@@ -408,7 +408,6 @@ export default function Settings() {
               onClick={() => setShowAddDialog(true)}
               data-testid="button-add-category"
               className="w-full sm:w-auto"
-              disabled={!canMakeChanges}
             >
               <Plus className="mr-2 h-4 w-4" />
               Add Category

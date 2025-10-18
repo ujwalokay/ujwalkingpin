@@ -227,7 +227,6 @@ export function BookingTable({ bookings, onExtend, onEnd, onComplete, onAddFood,
                                           className="h-6 w-6 text-destructive hover:text-destructive"
                                           onClick={() => onDeleteFood(booking.id, index)}
                                           data-testid={`button-delete-food-${booking.id}-${index}`}
-                                          disabled={!canMakeChanges}
                                         >
                                           <Trash2 className="h-3 w-3" />
                                         </Button>
@@ -261,7 +260,6 @@ export function BookingTable({ bookings, onExtend, onEnd, onComplete, onAddFood,
                             variant="ghost"
                             size="icon"
                             data-testid={`button-actions-${booking.id}`}
-                            disabled={!canMakeChanges}
                           >
                             <MoreVertical className="h-4 w-4" />
                           </Button>

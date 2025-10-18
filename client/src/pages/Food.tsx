@@ -119,7 +119,7 @@ export default function Food() {
           <h1 className="text-2xl sm:text-3xl font-bold text-foreground">Food Management</h1>
           <p className="text-sm sm:text-base text-muted-foreground">Manage food items available for customers</p>
         </div>
-        <Button onClick={() => setAddDialog(true)} data-testid="button-add-food" className="w-full sm:w-auto" disabled={!canMakeChanges}>
+        <Button onClick={() => setAddDialog(true)} data-testid="button-add-food" className="w-full sm:w-auto">
           <Plus className="mr-2 h-4 w-4" />
           Add Food Item
         </Button>
@@ -152,7 +152,6 @@ export default function Food() {
                   size="icon"
                   onClick={() => openEditDialog(item)}
                   data-testid={`button-edit-food-${item.id}`}
-                  disabled={!canMakeChanges}
                 >
                   <Pencil className="h-4 w-4" />
                 </Button>
@@ -161,7 +160,6 @@ export default function Food() {
                   size="icon"
                   onClick={() => openDeleteDialog(item.id, item.name)}
                   data-testid={`button-delete-food-${item.id}`}
-                  disabled={!canMakeChanges}
                 >
                   <Trash2 className="h-4 w-4 text-destructive" />
                 </Button>
