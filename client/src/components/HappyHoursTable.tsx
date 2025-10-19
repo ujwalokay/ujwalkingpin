@@ -42,6 +42,13 @@ export function HappyHoursTable({
     initialSlots.length > 0 ? initialSlots : [{ startTime: "10:00", endTime: "12:00" }]
   );
 
+  const formatTimeToAMPM = (time: string) => {
+    const [hours, minutes] = time.split(':').map(Number);
+    const period = hours < 12 ? 'AM' : 'PM';
+    const displayHour = hours === 0 ? 12 : hours > 12 ? hours - 12 : hours;
+    return `${displayHour}:${minutes.toString().padStart(2, '0')} ${period}`;
+  };
+
   const handleSlotChange = (index: number, field: keyof HappyHoursSlot, value: string) => {
     const newSlots = [...slots];
     newSlots[index] = { ...newSlots[index], [field]: value };
@@ -97,34 +104,45 @@ export function HappyHoursTable({
                   <Label htmlFor={`start-${category}-${index}`} className="text-sm">
                     Start Time
                   </Label>
-                  <Input
-                    id={`start-${category}-${index}`}
-                    type="time"
-                    value={slot.startTime}
-                    onChange={(e) => handleSlotChange(index, "startTime", e.target.value)}
-                    disabled={!isAdmin}
-                    data-testid={`input-happy-hours-start-${category.toLowerCase()}-${index}`}
-                  />
+                  <div className="space-y-1">
+                    <Input
+                      id={`start-${category}-${index}`}
+                      type="time"
+                      value={slot.startTime}
+                      onChange={(e) => handleSlotChange(index, "startTime", e.target.value)}
+                      disabled={!isAdmin}
+                      data-testid={`input-happy-hours-start-${category.toLowerCase()}-${index}`}
+                    />
+                    <div className="text-xs text-muted-foreground font-medium px-1">
+                      {formatTimeToAMPM(slot.startTime)}
+                    </div>
+                  </div>
                 </div>
                 <div className="space-y-2">
                   <Label htmlFor={`end-${category}-${index}`} className="text-sm">
                     End Time
                   </Label>
                   <div className="flex gap-2">
-                    <Input
-                      id={`end-${category}-${index}`}
-                      type="time"
-                      value={slot.endTime}
-                      onChange={(e) => handleSlotChange(index, "endTime", e.target.value)}
-                      disabled={!isAdmin}
-                      data-testid={`input-happy-hours-end-${category.toLowerCase()}-${index}`}
-                    />
+                    <div className="flex-1 space-y-1">
+                      <Input
+                        id={`end-${category}-${index}`}
+                        type="time"
+                        value={slot.endTime}
+                        onChange={(e) => handleSlotChange(index, "endTime", e.target.value)}
+                        disabled={!isAdmin}
+                        data-testid={`input-happy-hours-end-${category.toLowerCase()}-${index}`}
+                      />
+                      <div className="text-xs text-muted-foreground font-medium px-1">
+                        {formatTimeToAMPM(slot.endTime)}
+                      </div>
+                    </div>
                     {isAdmin && slots.length > 1 && (
                       <Button
                         variant="ghost"
                         size="icon"
                         onClick={() => removeSlot(index)}
                         data-testid={`button-remove-happy-hours-slot-${category.toLowerCase()}-${index}`}
+                        className="mt-0"
                       >
                         <Trash2 className="h-4 w-4" />
                       </Button>
