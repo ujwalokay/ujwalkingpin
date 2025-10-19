@@ -226,7 +226,8 @@ export function AddBookingDialog({ open, onOpenChange, onConfirm, availableSeats
         // Happy Hours pricing - support multi-person for PS5
         if (category === "PS5") {
           finalPersonCount = personCount;
-          totalPrice = selectedHappyHoursSlot!.price.toString(); // Total price for all persons
+          const basePrice = parseFloat(selectedHappyHoursSlot!.price.toString());
+          totalPrice = (basePrice * personCount).toFixed(2); // Multiply by person count and round to 2 decimals
         } else {
           finalPersonCount = 1;
           totalPrice = selectedHappyHoursSlot!.price.toString();
@@ -628,7 +629,11 @@ export function AddBookingDialog({ open, onOpenChange, onConfirm, availableSeats
                 </div>
               </div>
               <p className="text-xs text-muted-foreground">
-                {duration} for {personCount} {personCount === 1 ? 'person' : 'persons'}: ₹{bookingType === "happy-hours" ? selectedHappyHoursSlot!.price : selectedSlot!.price} (Total Price)
+                {duration} for {personCount} {personCount === 1 ? 'person' : 'persons'}: ₹{
+                  bookingType === "happy-hours" 
+                    ? (parseFloat(selectedHappyHoursSlot!.price.toString()) * personCount).toFixed(2)
+                    : selectedSlot!.price
+                } (Total Price)
               </p>
             </div>
           )}
