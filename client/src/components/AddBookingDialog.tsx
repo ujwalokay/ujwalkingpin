@@ -133,6 +133,9 @@ export function AddBookingDialog({ open, onOpenChange, onConfirm, availableSeats
     return !!config;
   }, [category, bookingType, happyHoursConfigs]);
 
+  // Check if happy hours is both enabled AND currently active (within time slots)
+  const isHappyHoursActiveNow = isHappyHoursEnabled && happyHoursStatus?.active;
+
   const { data: allBookings = [] } = useQuery<Booking[]>({
     queryKey: ["/api/bookings"],
     enabled: bookingType === "upcoming" && !!bookingDate,
@@ -224,7 +227,7 @@ export function AddBookingDialog({ open, onOpenChange, onConfirm, availableSeats
     
     // Validate Happy Hours
     if (bookingType === "happy-hours") {
-      if (!isHappyHoursEnabled) {
+      if (!isHappyHoursActiveNow) {
         return; // Validation will show error message
       }
     }
@@ -390,8 +393,13 @@ export function AddBookingDialog({ open, onOpenChange, onConfirm, availableSeats
                 <Label htmlFor="happy-hours" className="cursor-pointer font-normal">Happy Hours (Special Pricing)</Label>
               </div>
             </RadioGroup>
-            {bookingType === "happy-hours" && category && !isHappyHoursEnabled && (
-              <p className="text-sm text-destructive">Happy Hours is not enabled for {category}. Please select a different booking type.</p>
+            {bookingType === "happy-hours" && category && !isHappyHoursActiveNow && (
+              <p className="text-sm text-destructive">
+                {!isHappyHoursEnabled 
+                  ? `Happy Hours is not enabled for ${category}. Please select a different booking type.`
+                  : `Happy Hours is not currently active for ${category}. Current time is outside the configured time slots.`
+                }
+              </p>
             )}
           </div>
 
@@ -778,7 +786,7 @@ export function AddBookingDialog({ open, onOpenChange, onConfirm, availableSeats
               !customerName || 
               !duration || 
               (bookingType === "upcoming" && (!whatsappNumber.trim() || !bookingDate || !timeSlot)) ||
-              (bookingType === "happy-hours" && (!selectedHappyHoursSlot || !isHappyHoursEnabled))
+              (bookingType === "happy-hours" && (!selectedHappyHoursSlot || !isHappyHoursActiveNow))
             }
             data-testid="button-confirm-booking"
             className="w-full sm:w-auto"
