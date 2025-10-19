@@ -534,7 +534,7 @@ export class DatabaseStorage implements IStorage {
     const currentTime = `${now.getHours().toString().padStart(2, '0')}:${now.getMinutes().toString().padStart(2, '0')}`;
     
     for (const config of configs) {
-      if (currentTime >= config.startTime && currentTime <= config.endTime) {
+      if (currentTime >= config.startTime && currentTime < config.endTime) {
         return true;
       }
     }
