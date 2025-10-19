@@ -193,8 +193,21 @@ export function AddBookingDialog({ open, onOpenChange, onConfirm, availableSeats
   };
 
   const duration = getDurationString(durationMinutes);
-  const selectedSlot = slots.find(s => s.duration === duration);
-  const selectedHappyHoursSlot = happyHoursSlots.find(s => s.duration === duration);
+  // For PS5, match both duration and personCount; for others, just match duration
+  const selectedSlot = category === "PS5" 
+    ? slots.find(s => s.duration === duration && s.personCount === personCount)
+    : slots.find(s => s.duration === duration);
+  const selectedHappyHoursSlot = category === "PS5"
+    ? happyHoursSlots.find(s => s.duration === duration && s.personCount === personCount)
+    : happyHoursSlots.find(s => s.duration === duration);
+  
+  // Check if next person count has pricing configured (for PS5)
+  const hasNextPersonPricing = category === "PS5" && bookingType !== "happy-hours"
+    ? slots.some(s => s.duration === duration && s.personCount === personCount + 1)
+    : false;
+  const hasNextPersonHappyHoursPricing = category === "PS5" && bookingType === "happy-hours"
+    ? happyHoursSlots.some(s => s.duration === duration && s.personCount === personCount + 1)
+    : false;
 
   const toggleSeat = (seatNumber: number) => {
     setSelectedSeats(prev =>
@@ -223,25 +236,17 @@ export function AddBookingDialog({ open, onOpenChange, onConfirm, availableSeats
       let finalPersonCount: number;
       
       if (bookingType === "happy-hours") {
-        // Happy Hours pricing - support multi-person for PS5
-        if (category === "PS5") {
-          finalPersonCount = personCount;
-          const basePrice = parseFloat(selectedHappyHoursSlot!.price.toString());
-          totalPrice = (basePrice * personCount).toFixed(2); // Multiply by person count and round to 2 decimals
-        } else {
-          finalPersonCount = 1;
-          totalPrice = selectedHappyHoursSlot!.price.toString();
-        }
+        // Happy Hours pricing - use configured price directly
+        finalPersonCount = category === "PS5" ? personCount : 1;
+        totalPrice = selectedHappyHoursSlot!.price.toString();
       } else if (category === "PS5") {
-        // PS5 price is final/total (no multiplication needed)
+        // PS5 pricing - use configured price for duration + personCount
         finalPersonCount = personCount;
         totalPrice = selectedSlot!.price.toString();
       } else {
-        // Other categories only use multi-person pricing if slot defines it
-        const slotPersonCount = selectedSlot!.personCount || 1;
-        finalPersonCount = slotPersonCount > 1 ? personCount : 1;
-        const basePrice = parseFloat(selectedSlot!.price.toString());
-        totalPrice = slotPersonCount > 1 ? (basePrice * personCount).toString() : basePrice.toString();
+        // Other categories - use configured price directly
+        finalPersonCount = 1;
+        totalPrice = selectedSlot!.price.toString();
       }
       
       onConfirm?.({
@@ -597,7 +602,7 @@ export function AddBookingDialog({ open, onOpenChange, onConfirm, availableSeats
             />
           </div>
 
-          {category === "PS5" && ((bookingType !== "happy-hours" && selectedSlot) || (bookingType === "happy-hours" && selectedHappyHoursSlot)) && (
+          {category === "PS5" && (
             <div className="space-y-2">
               <Label>Number of Persons</Label>
               <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-3">
@@ -621,6 +626,7 @@ export function AddBookingDialog({ open, onOpenChange, onConfirm, availableSeats
                     variant="outline"
                     size="icon"
                     onClick={increasePersonCount}
+                    disabled={bookingType === "happy-hours" ? !hasNextPersonHappyHoursPricing : !hasNextPersonPricing}
                     data-testid="button-increase-person"
                     className="shrink-0"
                   >
@@ -628,13 +634,19 @@ export function AddBookingDialog({ open, onOpenChange, onConfirm, availableSeats
                   </Button>
                 </div>
               </div>
-              <p className="text-xs text-muted-foreground">
-                {duration} for {personCount} {personCount === 1 ? 'person' : 'persons'}: ₹{
-                  bookingType === "happy-hours" 
-                    ? (parseFloat(selectedHappyHoursSlot!.price.toString()) * personCount).toFixed(2)
-                    : selectedSlot!.price
-                } (Total Price)
-              </p>
+              {(bookingType === "happy-hours" ? selectedHappyHoursSlot : selectedSlot) ? (
+                <p className="text-xs text-muted-foreground">
+                  {duration} for {personCount} {personCount === 1 ? 'person' : 'persons'}: ₹{
+                    bookingType === "happy-hours" 
+                      ? selectedHappyHoursSlot!.price
+                      : selectedSlot!.price
+                  } (Total Price)
+                </p>
+              ) : (
+                <p className="text-xs text-destructive">
+                  No pricing configured for {duration} with {personCount} {personCount === 1 ? 'person' : 'persons'}
+                </p>
+              )}
             </div>
           )}
 
