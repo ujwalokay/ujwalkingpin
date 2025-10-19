@@ -156,10 +156,22 @@ export function BookingTable({ bookings, onExtend, onEnd, onComplete, onAddFood,
                       </TableCell>
                     )}
                     <TableCell data-testid={`text-start-${booking.id}`}>
-                      {booking.startTime.toLocaleTimeString()}
+                      {(() => {
+                        const hours = booking.startTime.getHours();
+                        const minutes = booking.startTime.getMinutes();
+                        const period = hours < 12 ? 'AM' : 'PM';
+                        const displayHour = hours === 0 ? 12 : hours > 12 ? hours - 12 : hours;
+                        return `${displayHour}:${minutes.toString().padStart(2, '0')} ${period}`;
+                      })()}
                     </TableCell>
                     <TableCell data-testid={`text-end-${booking.id}`}>
-                      {booking.endTime.toLocaleTimeString()}
+                      {(() => {
+                        const hours = booking.endTime.getHours();
+                        const minutes = booking.endTime.getMinutes();
+                        const period = hours < 12 ? 'AM' : 'PM';
+                        const displayHour = hours === 0 ? 12 : hours > 12 ? hours - 12 : hours;
+                        return `${displayHour}:${minutes.toString().padStart(2, '0')} ${period}`;
+                      })()}
                     </TableCell>
                     <TableCell>
                       {booking.status === "running" && <SessionTimer endTime={booking.endTime} />}
