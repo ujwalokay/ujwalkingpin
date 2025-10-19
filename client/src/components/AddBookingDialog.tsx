@@ -58,8 +58,15 @@ interface HappyHoursConfig {
   category: string;
   startTime: string;
   endTime: string;
-  pricePerHour: number;
   enabled: number;
+}
+
+interface HappyHoursPricing {
+  id: string;
+  category: string;
+  duration: string;
+  price: string;
+  personCount: number;
 }
 
 interface Booking {
@@ -102,6 +109,10 @@ export function AddBookingDialog({ open, onOpenChange, onConfirm, availableSeats
 
   const { data: happyHoursConfigs = [] } = useQuery<HappyHoursConfig[]>({
     queryKey: ["/api/happy-hours-config"],
+  });
+
+  const { data: happyHoursPricing = [] } = useQuery<HappyHoursPricing[]>({
+    queryKey: ["/api/happy-hours-pricing"],
   });
 
   const { data: happyHoursStatus } = useQuery<{ active: boolean }>({
@@ -159,6 +170,13 @@ export function AddBookingDialog({ open, onOpenChange, onConfirm, availableSeats
         .map(config => ({ duration: config.duration, price: config.price, personCount: config.personCount }))
     : [];
   
+  // Get Happy Hours pricing slots for the category
+  const happyHoursSlots = category
+    ? happyHoursPricing
+        .filter(pricing => pricing.category === category)
+        .map(pricing => ({ duration: pricing.duration, price: pricing.price, personCount: pricing.personCount }))
+    : [];
+  
   const getDurationString = (mins: number) => {
     if (mins < 60) return `${mins} mins`;
     const hours = Math.floor(mins / 60);
@@ -169,11 +187,7 @@ export function AddBookingDialog({ open, onOpenChange, onConfirm, availableSeats
 
   const duration = getDurationString(durationMinutes);
   const selectedSlot = slots.find(s => s.duration === duration);
-  
-  // Calculate Happy Hours pricing
-  const happyHoursPrice = happyHoursConfig 
-    ? (happyHoursConfig.pricePerHour * (durationMinutes / 60)).toFixed(2)
-    : "0";
+  const selectedHappyHoursSlot = happyHoursSlots.find(s => s.duration === duration);
 
   const toggleSeat = (seatNumber: number) => {
     setSelectedSeats(prev =>
@@ -195,15 +209,15 @@ export function AddBookingDialog({ open, onOpenChange, onConfirm, availableSeats
       }
     }
     
-    const hasValidPrice = bookingType === "happy-hours" ? happyHoursConfig : selectedSlot;
+    const hasValidPrice = bookingType === "happy-hours" ? selectedHappyHoursSlot : selectedSlot;
     
     if (category && selectedSeats.length > 0 && customerName && duration && hasValidPrice && !isWhatsappRequired && !isDateRequired && !isTimeSlotRequired) {
       let totalPrice: string;
       let finalPersonCount: number;
       
       if (bookingType === "happy-hours") {
-        // Happy Hours pricing is per hour rate * duration
-        totalPrice = happyHoursPrice;
+        // Happy Hours pricing from pricing config
+        totalPrice = selectedHappyHoursSlot!.price.toString();
         finalPersonCount = 1; // Happy Hours doesn't use multi-person pricing
       } else if (category === "PS5") {
         // PS5 price is final/total (no multiplication needed)
@@ -502,9 +516,9 @@ export function AddBookingDialog({ open, onOpenChange, onConfirm, availableSeats
             </>
           )}
 
-          {(bookingType === "walk-in" || (bookingType === "upcoming" && bookingDate && timeSlot && durationMinutes > 0)) && (
+          {(bookingType === "walk-in" || bookingType === "happy-hours" || (bookingType === "upcoming" && bookingDate && timeSlot && durationMinutes > 0)) && (
             <div className="space-y-2">
-              <Label htmlFor="category">Category</Label>
+              <Label htmlFor="category">Category <span className="text-destructive">*</span></Label>
               <Select value={category} onValueChange={handleCategoryChange}>
                 <SelectTrigger id="category" data-testid="select-category">
                   <SelectValue placeholder="Select category" />
@@ -623,7 +637,7 @@ export function AddBookingDialog({ open, onOpenChange, onConfirm, availableSeats
             )}
           </div>
 
-          {bookingType === "walk-in" && category && (
+          {(bookingType === "walk-in" || bookingType === "happy-hours") && category && (
             <div className="space-y-2">
               <Label htmlFor="duration">Duration</Label>
               <div className="flex flex-col sm:flex-row items-start sm:items-center gap-3">
@@ -683,7 +697,7 @@ export function AddBookingDialog({ open, onOpenChange, onConfirm, availableSeats
                   </Button>
                 </div>
               </div>
-              {selectedSlot && (
+              {bookingType === "walk-in" && selectedSlot && (
                 <div className="text-sm text-muted-foreground" data-testid="text-price">
                   Price: ₹{selectedSlot.price}
                 </div>
@@ -697,21 +711,26 @@ export function AddBookingDialog({ open, onOpenChange, onConfirm, availableSeats
             </div>
           )}
 
-          {bookingType === "happy-hours" && category && happyHoursConfig && (
+          {bookingType === "happy-hours" && category && (
             <div className="space-y-2">
-              <div className="text-sm font-medium" data-testid="text-happy-hours-price">
-                Happy Hours Pricing: ₹{happyHoursConfig.pricePerHour}/hour
-              </div>
-              <div className="text-sm text-muted-foreground">
-                Total for {duration}: ₹{happyHoursPrice}
-              </div>
-              {happyHoursStatus?.active ? (
-                <div className="text-sm text-green-600 dark:text-green-400">
-                  ✓ Happy Hours is currently active
-                </div>
+              {selectedHappyHoursSlot ? (
+                <>
+                  <div className="text-sm font-medium" data-testid="text-happy-hours-price">
+                    Happy Hours Pricing: ₹{selectedHappyHoursSlot.price} for {duration}
+                  </div>
+                  {happyHoursStatus?.active ? (
+                    <div className="text-sm text-green-600 dark:text-green-400">
+                      ✓ Happy Hours is currently active
+                    </div>
+                  ) : (
+                    <div className="text-sm text-destructive">
+                      Happy Hours is not currently active
+                    </div>
+                  )}
+                </>
               ) : (
-                <div className="text-sm text-destructive">
-                  Happy Hours is not currently active
+                <div className="text-sm text-muted-foreground">
+                  No happy hours pricing configured for {duration}
                 </div>
               )}
             </div>
@@ -730,7 +749,7 @@ export function AddBookingDialog({ open, onOpenChange, onConfirm, availableSeats
               !customerName || 
               !duration || 
               (bookingType === "upcoming" && (!whatsappNumber.trim() || !bookingDate || !timeSlot)) ||
-              (bookingType === "happy-hours" && (!happyHoursConfig || !happyHoursStatus?.active))
+              (bookingType === "happy-hours" && (!selectedHappyHoursSlot || !happyHoursStatus?.active))
             }
             data-testid="button-confirm-booking"
             className="w-full sm:w-auto"
