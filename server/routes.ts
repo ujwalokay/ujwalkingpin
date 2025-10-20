@@ -1054,8 +1054,11 @@ export async function registerRoutes(app: Express): Promise<Server> {
         totalSessions: z.number().optional(),
         issuesReported: z.number().optional(),
         maintenanceNotes: z.string().optional(),
-        status: z.enum(["healthy", "warning", "needs_maintenance", "critical"]).optional(),
-        lastMaintenanceDate: z.union([z.string(), z.date()]).optional(),
+        status: z.string().optional(),
+        lastMaintenanceDate: z.union([z.string(), z.date()]).optional().transform(val => {
+          if (!val) return null;
+          return typeof val === 'string' ? new Date(val) : val;
+        }),
       });
 
       const validatedData = maintenanceSchema.parse(req.body);

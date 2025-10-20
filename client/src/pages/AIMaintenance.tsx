@@ -1,0 +1,389 @@
+import { useQuery, useMutation } from "@tanstack/react-query";
+import { useState } from "react";
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Alert, AlertDescription } from "@/components/ui/alert";
+import { Sparkles, Brain, AlertTriangle, CheckCircle2, Clock, Wrench, RefreshCw, TrendingUp } from "lucide-react";
+import { queryClient, apiRequest } from "@/lib/queryClient";
+import { useToast } from "@/hooks/use-toast";
+import { ScrollArea } from "@/components/ui/scroll-area";
+
+interface MaintenancePrediction {
+  category: string;
+  seatName: string;
+  riskLevel: "low" | "medium" | "high";
+  recommendedAction: string;
+  estimatedDaysUntilMaintenance: number;
+  reasoning: string;
+  metrics: {
+    usageHours: number;
+    totalSessions: number;
+    issuesReported: number;
+    daysSinceLastMaintenance: number | null;
+  };
+}
+
+interface AIMaintenanceInsights {
+  predictions: MaintenancePrediction[];
+  summary: {
+    highRiskDevices: number;
+    mediumRiskDevices: number;
+    lowRiskDevices: number;
+    totalDevices: number;
+    recommendedActions: string[];
+  };
+  generatedAt: string;
+}
+
+export default function AIMaintenance() {
+  const { toast } = useToast();
+  const [activeTab, setActiveTab] = useState("overview");
+
+  const { data: insights, isLoading, refetch } = useQuery<AIMaintenanceInsights>({
+    queryKey: ["/api/ai/maintenance/predictions"],
+  });
+
+  const updateStatusMutation = useMutation({
+    mutationFn: async ({ category, seatName, status, notes }: { category: string; seatName: string; status: string; notes?: string }) => {
+      const response = await fetch(`/api/maintenance/${category}/${encodeURIComponent(seatName)}/status`, {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ status, notes }),
+      });
+      if (!response.ok) throw new Error("Failed to update status");
+      return response.json();
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/ai/maintenance/predictions"] });
+      toast({
+        title: "Status Updated",
+        description: "Device maintenance status has been updated successfully.",
+      });
+    },
+    onError: (error: any) => {
+      toast({
+        title: "Update Failed",
+        description: error.message || "Failed to update device status.",
+        variant: "destructive",
+      });
+    },
+  });
+
+  const getRiskBadge = (riskLevel: string) => {
+    switch (riskLevel) {
+      case "high":
+        return <Badge variant="destructive" className="gap-1"><AlertTriangle className="h-3 w-3" />High Risk</Badge>;
+      case "medium":
+        return <Badge className="bg-yellow-600 hover:bg-yellow-700 gap-1"><Clock className="h-3 w-3" />Medium Risk</Badge>;
+      case "low":
+        return <Badge variant="secondary" className="gap-1"><CheckCircle2 className="h-3 w-3" />Low Risk</Badge>;
+      default:
+        return <Badge variant="outline">{riskLevel}</Badge>;
+    }
+  };
+
+  const getRiskColor = (riskLevel: string) => {
+    switch (riskLevel) {
+      case "high": return "border-red-500 dark:border-red-900 bg-red-50 dark:bg-red-950/20";
+      case "medium": return "border-yellow-500 dark:border-yellow-900 bg-yellow-50 dark:bg-yellow-950/20";
+      case "low": return "border-green-500 dark:border-green-900 bg-green-50 dark:bg-green-950/20";
+      default: return "";
+    }
+  };
+
+  const highRiskDevices = insights?.predictions.filter(p => p.riskLevel === "high") || [];
+  const mediumRiskDevices = insights?.predictions.filter(p => p.riskLevel === "medium") || [];
+  const lowRiskDevices = insights?.predictions.filter(p => p.riskLevel === "low") || [];
+
+  if (isLoading) {
+    return (
+      <div className="p-4 md:p-6 space-y-6">
+        <div>
+          <h1 className="text-2xl md:text-3xl font-bold tracking-tight flex items-center gap-2">
+            <Brain className="h-8 w-8 text-purple-600" />
+            AI Predictive Maintenance
+          </h1>
+          <p className="text-muted-foreground">Loading AI predictions...</p>
+        </div>
+      </div>
+    );
+  }
+
+  return (
+    <div className="p-4 md:p-6 space-y-4 md:space-y-6" data-testid="page-ai-maintenance">
+      <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
+        <div>
+          <h1 className="text-2xl md:text-3xl font-bold tracking-tight flex items-center gap-2" data-testid="text-page-title">
+            <Brain className="h-8 w-8 text-purple-600" />
+            AI Predictive Maintenance
+          </h1>
+          <p className="text-sm md:text-base text-muted-foreground flex items-center gap-2 mt-1">
+            <Sparkles className="h-4 w-4 text-purple-500" />
+            AI-powered device health analysis and maintenance predictions
+          </p>
+        </div>
+        <Button
+          onClick={() => refetch()}
+          variant="outline"
+          className="gap-2"
+          data-testid="button-refresh-predictions"
+        >
+          <RefreshCw className="h-4 w-4" />
+          Refresh Predictions
+        </Button>
+      </div>
+
+      {/* Summary Cards */}
+      <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
+        <Card>
+          <CardHeader className="pb-2">
+            <CardTitle className="text-sm font-medium text-muted-foreground">Total Devices</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="text-2xl font-bold">{insights?.summary.totalDevices || 0}</div>
+          </CardContent>
+        </Card>
+
+        <Card className="border-red-500/50 dark:border-red-900/50">
+          <CardHeader className="pb-2">
+            <CardTitle className="text-sm font-medium text-red-600 dark:text-red-400 flex items-center gap-1">
+              <AlertTriangle className="h-4 w-4" />
+              High Risk
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="text-2xl font-bold text-red-600 dark:text-red-400">
+              {insights?.summary.highRiskDevices || 0}
+            </div>
+          </CardContent>
+        </Card>
+
+        <Card className="border-yellow-500/50 dark:border-yellow-900/50">
+          <CardHeader className="pb-2">
+            <CardTitle className="text-sm font-medium text-yellow-600 dark:text-yellow-400 flex items-center gap-1">
+              <Clock className="h-4 w-4" />
+              Medium Risk
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="text-2xl font-bold text-yellow-600 dark:text-yellow-400">
+              {insights?.summary.mediumRiskDevices || 0}
+            </div>
+          </CardContent>
+        </Card>
+
+        <Card className="border-green-500/50 dark:border-green-900/50">
+          <CardHeader className="pb-2">
+            <CardTitle className="text-sm font-medium text-green-600 dark:text-green-400 flex items-center gap-1">
+              <CheckCircle2 className="h-4 w-4" />
+              Healthy
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="text-2xl font-bold text-green-600 dark:text-green-400">
+              {insights?.summary.lowRiskDevices || 0}
+            </div>
+          </CardContent>
+        </Card>
+      </div>
+
+      {/* AI Recommendations */}
+      {insights && insights.summary.recommendedActions.length > 0 && (
+        <Alert className="border-purple-500/50 bg-purple-50 dark:bg-purple-950/20">
+          <TrendingUp className="h-4 w-4 text-purple-600" />
+          <AlertDescription className="text-sm">
+            <strong className="font-semibold text-purple-900 dark:text-purple-100">AI Recommendations:</strong>
+            <ul className="mt-2 space-y-1 list-disc list-inside">
+              {insights.summary.recommendedActions.map((action, idx) => (
+                <li key={idx} className="text-purple-800 dark:text-purple-200">{action}</li>
+              ))}
+            </ul>
+          </AlertDescription>
+        </Alert>
+      )}
+
+      {/* Device Predictions Tabs */}
+      <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
+        <TabsList className="grid w-full grid-cols-4">
+          <TabsTrigger value="overview">Overview</TabsTrigger>
+          <TabsTrigger value="high" className="data-[state=active]:bg-red-500 data-[state=active]:text-white">
+            High Risk ({highRiskDevices.length})
+          </TabsTrigger>
+          <TabsTrigger value="medium" className="data-[state=active]:bg-yellow-600 data-[state=active]:text-white">
+            Medium ({mediumRiskDevices.length})
+          </TabsTrigger>
+          <TabsTrigger value="low">Healthy ({lowRiskDevices.length})</TabsTrigger>
+        </TabsList>
+
+        <TabsContent value="overview" className="space-y-4 mt-4">
+          <Card>
+            <CardHeader>
+              <CardTitle>All Devices</CardTitle>
+              <CardDescription>Complete overview of all device health predictions</CardDescription>
+            </CardHeader>
+            <CardContent>
+              <ScrollArea className="h-[600px] w-full">
+                <div className="space-y-3">
+                  {insights?.predictions.map((prediction, idx) => (
+                    <DevicePredictionCard
+                      key={idx}
+                      prediction={prediction}
+                      getRiskBadge={getRiskBadge}
+                      getRiskColor={getRiskColor}
+                      updateStatusMutation={updateStatusMutation}
+                    />
+                  ))}
+                </div>
+              </ScrollArea>
+            </CardContent>
+          </Card>
+        </TabsContent>
+
+        <TabsContent value="high" className="space-y-4 mt-4">
+          <ScrollArea className="h-[600px] w-full">
+            <div className="space-y-3">
+              {highRiskDevices.length === 0 ? (
+                <p className="text-center text-muted-foreground py-8">No high-risk devices found</p>
+              ) : (
+                highRiskDevices.map((prediction, idx) => (
+                  <DevicePredictionCard
+                    key={idx}
+                    prediction={prediction}
+                    getRiskBadge={getRiskBadge}
+                    getRiskColor={getRiskColor}
+                    updateStatusMutation={updateStatusMutation}
+                  />
+                ))
+              )}
+            </div>
+          </ScrollArea>
+        </TabsContent>
+
+        <TabsContent value="medium" className="space-y-4 mt-4">
+          <ScrollArea className="h-[600px] w-full">
+            <div className="space-y-3">
+              {mediumRiskDevices.length === 0 ? (
+                <p className="text-center text-muted-foreground py-8">No medium-risk devices found</p>
+              ) : (
+                mediumRiskDevices.map((prediction, idx) => (
+                  <DevicePredictionCard
+                    key={idx}
+                    prediction={prediction}
+                    getRiskBadge={getRiskBadge}
+                    getRiskColor={getRiskColor}
+                    updateStatusMutation={updateStatusMutation}
+                  />
+                ))
+              )}
+            </div>
+          </ScrollArea>
+        </TabsContent>
+
+        <TabsContent value="low" className="space-y-4 mt-4">
+          <ScrollArea className="h-[600px] w-full">
+            <div className="space-y-3">
+              {lowRiskDevices.length === 0 ? (
+                <p className="text-center text-muted-foreground py-8">No healthy devices found</p>
+              ) : (
+                lowRiskDevices.map((prediction, idx) => (
+                  <DevicePredictionCard
+                    key={idx}
+                    prediction={prediction}
+                    getRiskBadge={getRiskBadge}
+                    getRiskColor={getRiskColor}
+                    updateStatusMutation={updateStatusMutation}
+                  />
+                ))
+              )}
+            </div>
+          </ScrollArea>
+        </TabsContent>
+      </Tabs>
+    </div>
+  );
+}
+
+function DevicePredictionCard({
+  prediction,
+  getRiskBadge,
+  getRiskColor,
+  updateStatusMutation,
+}: {
+  prediction: MaintenancePrediction;
+  getRiskBadge: (level: string) => JSX.Element;
+  getRiskColor: (level: string) => string;
+  updateStatusMutation: any;
+}) {
+  return (
+    <Card className={`${getRiskColor(prediction.riskLevel)} border-2`} data-testid={`card-device-${prediction.category}-${prediction.seatName}`}>
+      <CardHeader className="pb-3">
+        <div className="flex items-start justify-between">
+          <div>
+            <CardTitle className="text-lg flex items-center gap-2">
+              {prediction.category} - {prediction.seatName}
+            </CardTitle>
+            <CardDescription className="mt-1">{getRiskBadge(prediction.riskLevel)}</CardDescription>
+          </div>
+          {prediction.riskLevel === "high" && (
+            <AlertTriangle className="h-6 w-6 text-red-600 dark:text-red-400 animate-pulse" />
+          )}
+        </div>
+      </CardHeader>
+      <CardContent className="space-y-3">
+        <div className="grid grid-cols-2 md:grid-cols-4 gap-2 text-sm">
+          <div>
+            <p className="text-muted-foreground text-xs">Usage Hours</p>
+            <p className="font-semibold">{prediction.metrics.usageHours.toFixed(1)}h</p>
+          </div>
+          <div>
+            <p className="text-muted-foreground text-xs">Sessions</p>
+            <p className="font-semibold">{prediction.metrics.totalSessions}</p>
+          </div>
+          <div>
+            <p className="text-muted-foreground text-xs">Issues</p>
+            <p className="font-semibold">{prediction.metrics.issuesReported}</p>
+          </div>
+          <div>
+            <p className="text-muted-foreground text-xs">Last Service</p>
+            <p className="font-semibold">
+              {prediction.metrics.daysSinceLastMaintenance ? `${prediction.metrics.daysSinceLastMaintenance}d ago` : 'Never'}
+            </p>
+          </div>
+        </div>
+
+        <div className="bg-background/50 dark:bg-background/30 p-3 rounded-lg">
+          <p className="text-sm font-medium mb-1">AI Analysis:</p>
+          <p className="text-sm text-muted-foreground">{prediction.reasoning}</p>
+        </div>
+
+        <div className="flex items-center justify-between gap-2">
+          <div className="flex-1">
+            <p className="text-sm font-medium text-foreground">{prediction.recommendedAction}</p>
+            <p className="text-xs text-muted-foreground mt-1">
+              Est. {prediction.estimatedDaysUntilMaintenance} days until next service
+            </p>
+          </div>
+          <Button
+            size="sm"
+            variant="outline"
+            className="gap-2"
+            onClick={() =>
+              updateStatusMutation.mutate({
+                category: prediction.category,
+                seatName: prediction.seatName,
+                status: "healthy",
+                notes: "Maintenance completed via AI predictions",
+              })
+            }
+            data-testid={`button-mark-maintained-${prediction.category}-${prediction.seatName}`}
+          >
+            <Wrench className="h-4 w-4" />
+            Mark Maintained
+          </Button>
+        </div>
+      </CardContent>
+    </Card>
+  );
+}

@@ -18,6 +18,7 @@ import Dashboard from "@/pages/Dashboard";
 import Settings from "@/pages/Settings";
 import Reports from "@/pages/Reports";
 import Analytics from "@/pages/Analytics";
+import AIMaintenance from "@/pages/AIMaintenance";
 import Food from "@/pages/Food";
 import Expenses from "@/pages/Expenses";
 import Timeline from "@/pages/Timeline";
@@ -45,6 +46,7 @@ function Router() {
       <Route path="/history" component={History} />
       <Route path="/activity-logs" component={ActivityLogs} />
       <Route path="/analytics" component={Analytics} />
+      <Route path="/ai-maintenance" component={AIMaintenance} />
       <Route path="/food" component={Food} />
       <Route path="/expenses" component={Expenses} />
       <Route path="/settings" component={Settings} />
