@@ -35,6 +35,22 @@ interface UsageStats {
   foodRevenue: number;
 }
 
+interface TrafficPrediction {
+  predictions: Array<{
+    hour: string;
+    predictedVisitors: number;
+    confidence: "low" | "medium" | "high";
+  }>;
+  summary: {
+    peakHour: string;
+    peakVisitors: number;
+    totalPredictedVisitors: number;
+    averageVisitors: number;
+    insights: string[];
+  };
+  generatedAt: string;
+}
+
 const COLORS = ['#8b5cf6', '#3b82f6', '#10b981', '#f59e0b', '#ef4444', '#ec4899'];
 
 export default function Analytics() {
@@ -43,6 +59,11 @@ export default function Analytics() {
 
   const { data: stats, isLoading, refetch, isFetching } = useQuery<UsageStats>({
     queryKey: [`/api/analytics/usage?timeRange=${timeRange}`],
+  });
+
+  const { data: trafficPrediction, isLoading: isLoadingPrediction } = useQuery<TrafficPrediction>({
+    queryKey: ["/api/ai/traffic/predictions"],
+    enabled: timeRange === "today",
   });
 
   // Convert UTC time to India Standard Time (Asia/Kolkata)
@@ -573,6 +594,175 @@ export default function Analytics() {
               )}
             </CardContent>
           </Card>
+
+          {/* AI Traffic Prediction Card */}
+          {timeRange === "today" && (
+            <Card id="ai-traffic-prediction-chart" className="shape-diagonal-rounded border-blue-500/20">
+              <CardHeader className="flex flex-row items-center justify-between">
+                <div>
+                  <div className="flex items-center gap-2">
+                    <Brain className="h-5 w-5 text-blue-500" />
+                    <CardTitle>AI Visitor Traffic Prediction</CardTitle>
+                  </div>
+                  <CardDescription>Predicted visitor count by hour for today</CardDescription>
+                </div>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => saveChartAsImage("ai-traffic-prediction-chart", "traffic-prediction")}
+                  data-testid="button-save-traffic-prediction"
+                >
+                  <Download className="h-4 w-4 mr-2" />
+                  Save as Image
+                </Button>
+              </CardHeader>
+              <CardContent>
+                {isLoadingPrediction ? (
+                  <div className="h-[400px] flex items-center justify-center">
+                    <div className="text-center space-y-4">
+                      <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary mx-auto"></div>
+                      <p className="text-sm text-muted-foreground">Generating AI predictions...</p>
+                    </div>
+                  </div>
+                ) : trafficPrediction?.predictions && trafficPrediction.predictions.length > 0 ? (
+                  <div className="space-y-6">
+                    {/* Summary Insights */}
+                    <div className="grid gap-4 grid-cols-1 sm:grid-cols-2 lg:grid-cols-4">
+                      <div className="p-4 bg-blue-50 dark:bg-blue-950/20 rounded-lg">
+                        <div className="flex items-center gap-2 mb-1">
+                          <TrendingUp className="h-4 w-4 text-blue-500" />
+                          <span className="text-sm font-medium">Peak Hour</span>
+                        </div>
+                        <p className="text-2xl font-bold text-blue-600 dark:text-blue-400">
+                          {trafficPrediction.summary.peakHour}
+                        </p>
+                      </div>
+                      <div className="p-4 bg-purple-50 dark:bg-purple-950/20 rounded-lg">
+                        <div className="flex items-center gap-2 mb-1">
+                          <Users className="h-4 w-4 text-purple-500" />
+                          <span className="text-sm font-medium">Peak Visitors</span>
+                        </div>
+                        <p className="text-2xl font-bold text-purple-600 dark:text-purple-400">
+                          {trafficPrediction.summary.peakVisitors}
+                        </p>
+                      </div>
+                      <div className="p-4 bg-green-50 dark:bg-green-950/20 rounded-lg">
+                        <div className="flex items-center gap-2 mb-1">
+                          <Activity className="h-4 w-4 text-green-500" />
+                          <span className="text-sm font-medium">Total Predicted</span>
+                        </div>
+                        <p className="text-2xl font-bold text-green-600 dark:text-green-400">
+                          {trafficPrediction.summary.totalPredictedVisitors}
+                        </p>
+                      </div>
+                      <div className="p-4 bg-orange-50 dark:bg-orange-950/20 rounded-lg">
+                        <div className="flex items-center gap-2 mb-1">
+                          <Zap className="h-4 w-4 text-orange-500" />
+                          <span className="text-sm font-medium">Avg/Hour</span>
+                        </div>
+                        <p className="text-2xl font-bold text-orange-600 dark:text-orange-400">
+                          {trafficPrediction.summary.averageVisitors}
+                        </p>
+                      </div>
+                    </div>
+
+                    {/* Chart */}
+                    <ResponsiveContainer width="100%" height={400}>
+                      <ComposedChart data={trafficPrediction.predictions}>
+                        <defs>
+                          <linearGradient id="trafficGradient" x1="0" y1="0" x2="0" y2="1">
+                            <stop offset="5%" stopColor="#3b82f6" stopOpacity={0.8}/>
+                            <stop offset="95%" stopColor="#3b82f6" stopOpacity={0.1}/>
+                          </linearGradient>
+                        </defs>
+                        <CartesianGrid strokeDasharray="3 3" className="stroke-muted" />
+                        <XAxis 
+                          dataKey="hour" 
+                          className="text-xs"
+                          angle={-45}
+                          textAnchor="end"
+                          height={80}
+                        />
+                        <YAxis className="text-xs" label={{ value: 'Visitors', angle: -90, position: 'insideLeft' }} />
+                        <Tooltip 
+                          contentStyle={{ 
+                            backgroundColor: 'hsl(var(--card))', 
+                            border: '1px solid hsl(var(--border))',
+                            borderRadius: '8px'
+                          }}
+                          content={({ active, payload }) => {
+                            if (active && payload && payload.length) {
+                              const data = payload[0].payload;
+                              return (
+                                <div className="bg-card border border-border p-3 rounded-lg shadow-lg">
+                                  <p className="font-semibold mb-1">{data.hour}</p>
+                                  <p className="text-sm text-blue-600 dark:text-blue-400">
+                                    Predicted: {data.predictedVisitors} visitors
+                                  </p>
+                                  <p className="text-xs text-muted-foreground mt-1">
+                                    Confidence: {data.confidence}
+                                  </p>
+                                </div>
+                              );
+                            }
+                            return null;
+                          }}
+                        />
+                        <Legend />
+                        <Area 
+                          type="monotone" 
+                          dataKey="predictedVisitors" 
+                          stroke="#3b82f6" 
+                          fill="url(#trafficGradient)" 
+                          name="Predicted Visitors"
+                          strokeWidth={2}
+                        />
+                        <Line 
+                          type="monotone" 
+                          dataKey="predictedVisitors" 
+                          stroke="#8b5cf6" 
+                          strokeWidth={3}
+                          dot={{ r: 4, fill: '#8b5cf6' }}
+                          name="Trend"
+                        />
+                      </ComposedChart>
+                    </ResponsiveContainer>
+
+                    {/* AI Insights */}
+                    {trafficPrediction.summary.insights && trafficPrediction.summary.insights.length > 0 && (
+                      <div className="p-4 bg-gradient-to-r from-blue-50 to-purple-50 dark:from-blue-950/20 dark:to-purple-950/20 rounded-lg">
+                        <div className="flex items-center gap-2 mb-3">
+                          <Sparkles className="h-5 w-5 text-blue-500" />
+                          <span className="font-semibold text-foreground">AI Insights</span>
+                        </div>
+                        <ul className="space-y-2">
+                          {trafficPrediction.summary.insights.map((insight, index) => (
+                            <li key={index} className="flex items-start gap-2 text-sm">
+                              <div className="h-1.5 w-1.5 rounded-full bg-blue-500 mt-1.5 flex-shrink-0"></div>
+                              <span className="text-muted-foreground">{insight}</span>
+                            </li>
+                          ))}
+                        </ul>
+                        <p className="text-xs text-muted-foreground mt-3">
+                          Generated at: {new Date(trafficPrediction.generatedAt).toLocaleString()}
+                        </p>
+                      </div>
+                    )}
+                  </div>
+                ) : (
+                  <div className="h-[400px] flex items-center justify-center border-2 border-dashed rounded-lg">
+                    <div className="text-center p-6">
+                      <Brain className="h-12 w-12 mx-auto mb-3 text-muted-foreground" />
+                      <p className="font-semibold">No Prediction Available</p>
+                      <p className="text-sm text-muted-foreground mt-1">
+                        AI needs historical data to make predictions
+                      </p>
+                    </div>
+                  </div>
+                )}
+              </CardContent>
+            </Card>
+          )}
         </TabsContent>
       </Tabs>
     </div>
