@@ -1,9 +1,7 @@
-import OpenAI from "openai";
+import { GoogleGenAI } from "@google/genai";
 import { storage } from "./storage";
 
-const openai = new OpenAI({
-  apiKey: process.env.OPENAI_API_KEY,
-});
+const ai = new GoogleGenAI({ apiKey: process.env.GEMINI_API_KEY || "" });
 
 export interface HourlyTrafficPrediction {
   hour: string;
@@ -80,11 +78,11 @@ export async function generateTrafficPredictions(): Promise<TrafficPredictionRes
 
   const todayBookings = [...todayActual, ...todayHistorical];
 
-  const hasOpenAI = !!process.env.OPENAI_API_KEY;
+  const hasGemini = !!process.env.GEMINI_API_KEY;
 
   let predictions: HourlyTrafficPrediction[] = [];
 
-  if (hasOpenAI && historicalData.length > 0) {
+  if (hasGemini && historicalData.length > 0) {
     try {
       predictions = await getAITrafficPrediction(
         historicalData,
@@ -232,29 +230,39 @@ Consider:
 - Typical gaming center peak hours (evening 18:00-22:00)
 - Be realistic with numbers (0-20 range typical)`;
 
-  const completion = await openai.chat.completions.create({
-    model: "gpt-4o-mini",
-    messages: [
-      {
-        role: "system",
-        content: "You are an expert in visitor traffic prediction for entertainment venues. Analyze patterns and provide structured JSON responses only.",
+  const response = await ai.models.generateContent({
+    model: "gemini-2.5-flash",
+    config: {
+      responseMimeType: "application/json",
+      responseSchema: {
+        type: "object",
+        properties: {
+          predictions: {
+            type: "array",
+            items: {
+              type: "object",
+              properties: {
+                hour: { type: "string" },
+                visitors: { type: "number" },
+                confidence: { type: "string" },
+              },
+              required: ["hour", "visitors", "confidence"],
+            },
+          },
+        },
+        required: ["predictions"],
       },
-      {
-        role: "user",
-        content: prompt,
-      },
-    ],
-    max_tokens: 500,
-    temperature: 0.5,
-    response_format: { type: "json_object" },
+      systemInstruction: "You are an expert in visitor traffic prediction for entertainment venues. Analyze patterns and provide structured JSON responses only.",
+    },
+    contents: prompt,
   });
 
-  const response = completion.choices[0]?.message?.content;
-  if (!response) {
-    throw new Error("No response from OpenAI");
+  const rawJson = response.text;
+  if (!rawJson) {
+    throw new Error("No response from Gemini AI");
   }
 
-  const parsed = JSON.parse(response);
+  const parsed = JSON.parse(rawJson);
   const aiPredictions = parsed.predictions || [];
 
   const predictions: HourlyTrafficPrediction[] = [];

@@ -1,10 +1,8 @@
-import OpenAI from "openai";
+import { GoogleGenAI } from "@google/genai";
 import { storage } from "./storage";
 import type { DeviceMaintenance } from "@shared/schema";
 
-const openai = new OpenAI({
-  apiKey: process.env.OPENAI_API_KEY,
-});
+const ai = new GoogleGenAI({ apiKey: process.env.GEMINI_API_KEY || "" });
 
 export interface MaintenancePrediction {
   category: string;
@@ -46,8 +44,7 @@ export async function generateMaintenancePredictions(): Promise<AIMaintenanceIns
 
   const predictions: MaintenancePrediction[] = [];
 
-  // Check if OpenAI is available
-  const hasOpenAI = !!process.env.OPENAI_API_KEY;
+  const hasGemini = !!process.env.GEMINI_API_KEY;
 
   for (const device of allDevices) {
     const maintenance = maintenanceRecords.find(
@@ -68,8 +65,7 @@ export async function generateMaintenancePredictions(): Promise<AIMaintenanceIns
     let recommendedAction = "Continue regular monitoring";
     let reasoning = "";
 
-    // Use AI prediction if OpenAI is available
-    if (hasOpenAI) {
+    if (hasGemini) {
       try {
         const aiAnalysis = await getAIPrediction({
           category: device.category,
@@ -86,7 +82,6 @@ export async function generateMaintenancePredictions(): Promise<AIMaintenanceIns
         reasoning = aiAnalysis.reasoning;
       } catch (error) {
         console.error(`AI prediction failed for ${device.category} - ${device.seatName}, falling back to heuristics:`, error);
-        // Fallback to heuristic-based prediction
         const heuristic = getHeuristicPrediction(usageHours, totalSessions, issuesReported, daysSinceLastMaintenance);
         riskLevel = heuristic.riskLevel;
         estimatedDays = heuristic.estimatedDays;
@@ -94,7 +89,6 @@ export async function generateMaintenancePredictions(): Promise<AIMaintenanceIns
         reasoning = heuristic.reasoning;
       }
     } else {
-      // Use heuristic-based prediction when OpenAI is not available
       const heuristic = getHeuristicPrediction(usageHours, totalSessions, issuesReported, daysSinceLastMaintenance);
       riskLevel = heuristic.riskLevel;
       estimatedDays = heuristic.estimatedDays;
@@ -212,29 +206,31 @@ Consider:
 - Devices never serviced or not serviced in 45+ days need attention
 - Be practical and specific in your recommendations`;
 
-  const completion = await openai.chat.completions.create({
-    model: "gpt-4o-mini",
-    messages: [
-      {
-        role: "system",
-        content: "You are an expert in predictive maintenance for gaming equipment. Analyze data and provide structured JSON responses only. Be concise and actionable.",
+  const response = await ai.models.generateContent({
+    model: "gemini-2.5-flash",
+    config: {
+      responseMimeType: "application/json",
+      responseSchema: {
+        type: "object",
+        properties: {
+          riskLevel: { type: "string" },
+          estimatedDays: { type: "number" },
+          recommendedAction: { type: "string" },
+          reasoning: { type: "string" },
+        },
+        required: ["riskLevel", "estimatedDays", "recommendedAction", "reasoning"],
       },
-      {
-        role: "user",
-        content: prompt,
-      },
-    ],
-    max_tokens: 200,
-    temperature: 0.3,
-    response_format: { type: "json_object" },
+      systemInstruction: "You are an expert in predictive maintenance for gaming equipment. Analyze data and provide structured JSON responses only. Be concise and actionable.",
+    },
+    contents: prompt,
   });
 
-  const response = completion.choices[0]?.message?.content;
-  if (!response) {
-    throw new Error("No response from OpenAI");
+  const rawJson = response.text;
+  if (!rawJson) {
+    throw new Error("No response from Gemini AI");
   }
 
-  const parsed = JSON.parse(response);
+  const parsed = JSON.parse(rawJson);
   
   return {
     riskLevel: parsed.riskLevel as "low" | "medium" | "high",
@@ -270,23 +266,15 @@ Provide a brief, actionable recommendation (2-3 sentences) focusing on:
 
 Keep it concise and practical for gaming center staff.`;
 
-    const completion = await openai.chat.completions.create({
-      model: "gpt-4o-mini",
-      messages: [
-        {
-          role: "system",
-          content: "You are an expert in predictive maintenance for gaming equipment. Provide concise, actionable recommendations.",
-        },
-        {
-          role: "user",
-          content: prompt,
-        },
-      ],
-      max_tokens: 150,
-      temperature: 0.7,
+    const response = await ai.models.generateContent({
+      model: "gemini-2.5-flash",
+      config: {
+        systemInstruction: "You are an expert in predictive maintenance for gaming equipment. Provide concise, actionable recommendations.",
+      },
+      contents: prompt,
     });
 
-    return completion.choices[0]?.message?.content || "Unable to generate recommendation at this time.";
+    return response.text || "Unable to generate recommendation at this time.";
   } catch (error) {
     console.error("Error getting AI recommendation:", error);
     return "AI recommendation unavailable. Please use rule-based predictions.";
