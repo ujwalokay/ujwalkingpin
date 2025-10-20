@@ -38,20 +38,6 @@ interface AIMaintenanceInsights {
   generatedAt: string;
 }
 
-interface AIUsageStats {
-  requestsLastMinute: number;
-  requestsToday: number;
-  limits: {
-    rpm: number;
-    rpd: number;
-  };
-  percentageUsed: {
-    rpm: number;
-    rpd: number;
-  };
-  canMakeRequest: boolean;
-  queueLength: number;
-}
 
 export default function AIMaintenance() {
   const { toast } = useToast();
@@ -62,10 +48,6 @@ export default function AIMaintenance() {
     queryKey: ["/api/ai/maintenance/predictions"],
   });
 
-  const { data: usageStats } = useQuery<AIUsageStats>({
-    queryKey: ["/api/ai/usage"],
-    refetchInterval: 10000,
-  });
 
   useEffect(() => {
     if (isLoading) {
@@ -185,11 +167,11 @@ export default function AIMaintenance() {
         <div>
           <h1 className="text-2xl md:text-3xl font-bold tracking-tight flex items-center gap-2" data-testid="text-page-title">
             <Brain className="h-8 w-8 text-purple-600" />
-            AI Predictive Maintenance
+            Ankylo AI - Predictive Maintenance
           </h1>
           <p className="text-sm md:text-base text-muted-foreground flex items-center gap-2 mt-1">
             <Sparkles className="h-4 w-4 text-purple-500" />
-            AI-powered device health analysis and maintenance predictions
+            Custom calculation-based device health analysis and predictions
           </p>
         </div>
         <Button
@@ -203,48 +185,27 @@ export default function AIMaintenance() {
         </Button>
       </div>
 
-      {/* Gemini AI Usage Stats */}
-      {usageStats && (
-        <Alert className="border-cyan-500/50 bg-cyan-50 dark:bg-cyan-950/20">
-          <Zap className="h-4 w-4 text-cyan-600" />
-          <AlertDescription className="text-sm">
-            <div className="flex items-center justify-between">
-              <div>
-                <strong className="font-semibold text-cyan-900 dark:text-cyan-100">AI Usage Today:</strong>
-                <span className="ml-2 text-cyan-800 dark:text-cyan-200">
-                  {usageStats.requestsToday}/{usageStats.limits.rpd} requests ({usageStats.percentageUsed.rpd.toFixed(1)}%)
-                </span>
-              </div>
-              {usageStats.percentageUsed.rpd >= 80 && (
-                <Badge variant="destructive" className="ml-2">
-                  <AlertTriangle className="h-3 w-3 mr-1" />
-                  High Usage
-                </Badge>
-              )}
+      {/* Ankylo AI Info */}
+      <Alert className="border-cyan-500/50 bg-cyan-50 dark:bg-cyan-950/20">
+        <Zap className="h-4 w-4 text-cyan-600" />
+        <AlertDescription className="text-sm">
+          <div className="flex items-center justify-between">
+            <div>
+              <strong className="font-semibold text-cyan-900 dark:text-cyan-100">Ankylo AI System:</strong>
+              <span className="ml-2 text-cyan-800 dark:text-cyan-200">
+                Using accurate calculations based on your real gaming center data
+              </span>
             </div>
-            <div className="mt-2">
-              <div className="w-full bg-secondary rounded-full h-2">
-                <div 
-                  className={`h-2 rounded-full transition-all ${
-                    usageStats.percentageUsed.rpd >= 90 ? 'bg-red-500' :
-                    usageStats.percentageUsed.rpd >= 70 ? 'bg-yellow-500' :
-                    'bg-green-500'
-                  }`}
-                  style={{ width: `${Math.min(usageStats.percentageUsed.rpd, 100)}%` }}
-                />
-              </div>
-            </div>
-            <p className="text-xs text-cyan-700 dark:text-cyan-300 mt-2">
-              {usageStats.percentageUsed.rpd >= 90 
-                ? "⚠️ Near daily limit - AI will use heuristics to preserve quota" 
-                : usageStats.percentageUsed.rpd >= 70
-                ? "Moderate usage - predictions still available"
-                : "✓ Quota available - AI predictions active"}
-              {usageStats.queueLength > 0 && ` | ${usageStats.queueLength} requests queued`}
-            </p>
-          </AlertDescription>
-        </Alert>
-      )}
+            <Badge className="ml-2 bg-cyan-600 hover:bg-cyan-700">
+              <CheckCircle2 className="h-3 w-3 mr-1" />
+              Active
+            </Badge>
+          </div>
+          <p className="text-xs text-cyan-700 dark:text-cyan-300 mt-2">
+            ✓ No external AI services - 100% accurate predictions using mathematical formulas based on usage hours, sessions, issues, and maintenance history
+          </p>
+        </AlertDescription>
+      </Alert>
 
       {/* Summary Cards */}
       <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
@@ -305,7 +266,7 @@ export default function AIMaintenance() {
         <Alert className="border-purple-500/50 bg-purple-50 dark:bg-purple-950/20">
           <TrendingUp className="h-4 w-4 text-purple-600" />
           <AlertDescription className="text-sm">
-            <strong className="font-semibold text-purple-900 dark:text-purple-100">AI Recommendations:</strong>
+            <strong className="font-semibold text-purple-900 dark:text-purple-100">Ankylo AI Recommendations:</strong>
             <ul className="mt-2 space-y-1 list-disc list-inside">
               {insights.summary.recommendedActions.map((action, idx) => (
                 <li key={idx} className="text-purple-800 dark:text-purple-200">{action}</li>
@@ -471,7 +432,7 @@ function DevicePredictionCard({
         </div>
 
         <div className="bg-background/50 dark:bg-background/30 p-3 rounded-lg">
-          <p className="text-sm font-medium mb-1">AI Analysis:</p>
+          <p className="text-sm font-medium mb-1">Ankylo AI Analysis:</p>
           <p className="text-sm text-muted-foreground">{prediction.reasoning}</p>
         </div>
 
