@@ -1,14 +1,25 @@
 import { useQuery } from "@tanstack/react-query";
+import { useState, useMemo } from "react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
+import { Input } from "@/components/ui/input";
+import { Button } from "@/components/ui/button";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { format } from "date-fns";
+import { Search, Filter, X, Calendar } from "lucide-react";
 import type { ActivityLog } from "@shared/schema";
+import { ScrollArea } from "@/components/ui/scroll-area";
 
 export default function ActivityLogs() {
   const { data: logs, isLoading } = useQuery<ActivityLog[]>({
     queryKey: ["/api/activity-logs"],
   });
+
+  const [searchQuery, setSearchQuery] = useState("");
+  const [roleFilter, setRoleFilter] = useState<string>("all");
+  const [actionFilter, setActionFilter] = useState<string>("all");
+  const [entityFilter, setEntityFilter] = useState<string>("all");
 
   const getActionBadge = (action: string, role: string) => {
     if (action === "login") {
@@ -33,131 +44,215 @@ export default function ActivityLogs() {
     return <Badge variant="secondary">Staff</Badge>;
   };
 
+  const uniqueActions = useMemo(() => {
+    if (!logs) return [];
+    return Array.from(new Set(logs.map(log => log.action)));
+  }, [logs]);
+
+  const uniqueEntities = useMemo(() => {
+    if (!logs) return [];
+    return Array.from(new Set(logs.map(log => log.entityType).filter(Boolean))) as string[];
+  }, [logs]);
+
+  const filteredLogs = useMemo(() => {
+    if (!logs) return [];
+    
+    return logs.filter(log => {
+      const matchesSearch = searchQuery === "" || 
+        log.username.toLowerCase().includes(searchQuery.toLowerCase()) ||
+        log.details?.toLowerCase().includes(searchQuery.toLowerCase()) ||
+        log.entityType?.toLowerCase().includes(searchQuery.toLowerCase());
+      
+      const matchesRole = roleFilter === "all" || log.userRole === roleFilter;
+      const matchesAction = actionFilter === "all" || log.action === actionFilter;
+      const matchesEntity = entityFilter === "all" || (log.entityType || "") === entityFilter;
+      
+      return matchesSearch && matchesRole && matchesAction && matchesEntity;
+    }).sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
+  }, [logs, searchQuery, roleFilter, actionFilter, entityFilter]);
+
+  const clearFilters = () => {
+    setSearchQuery("");
+    setRoleFilter("all");
+    setActionFilter("all");
+    setEntityFilter("all");
+  };
+
+  const hasActiveFilters = searchQuery !== "" || roleFilter !== "all" || actionFilter !== "all" || entityFilter !== "all";
+
   if (isLoading) {
     return (
-      <div className="p-6 space-y-6">
+      <div className="p-4 md:p-6 space-y-6">
         <div>
-          <h1 className="text-3xl font-bold tracking-tight">Activity History</h1>
+          <h1 className="text-2xl md:text-3xl font-bold tracking-tight">Activity History</h1>
           <p className="text-muted-foreground">Loading activity logs...</p>
         </div>
       </div>
     );
   }
 
-  const adminLogs = logs?.filter(log => log.userRole === "admin") || [];
-  const staffLogs = logs?.filter(log => log.userRole === "staff") || [];
-
   return (
-    <div className="p-6 space-y-6" data-testid="page-activity-logs">
+    <div className="p-4 md:p-6 space-y-4 md:space-y-6" data-testid="page-activity-logs">
       <div>
-        <h1 className="text-3xl font-bold tracking-tight" data-testid="text-page-title">Activity History</h1>
-        <p className="text-muted-foreground">View all admin changes and staff deletions</p>
+        <h1 className="text-2xl md:text-3xl font-bold tracking-tight" data-testid="text-page-title">Activity History</h1>
+        <p className="text-sm md:text-base text-muted-foreground">View and filter all admin and staff activity</p>
       </div>
 
-      {/* Admin Activity */}
-      <Card data-testid="card-admin-activity">
-        <CardHeader>
-          <CardTitle className="flex items-center gap-2">
-            Admin Activity
-            <Badge className="bg-purple-600 dark:bg-purple-700">{adminLogs.length}</Badge>
+      <Card data-testid="card-filters">
+        <CardHeader className="pb-3">
+          <CardTitle className="text-lg md:text-xl flex items-center gap-2">
+            <Filter className="h-5 w-5" />
+            Filters & Search
           </CardTitle>
-          <CardDescription>All actions performed by admin users</CardDescription>
+          <CardDescription className="text-xs md:text-sm">
+            Search and filter activity logs by user, action, or entity type
+          </CardDescription>
         </CardHeader>
-        <CardContent>
-          {adminLogs.length === 0 ? (
-            <p className="text-sm text-muted-foreground" data-testid="text-no-admin-logs">No admin activity yet</p>
-          ) : (
-            <div className="rounded-md border">
-              <Table>
-                <TableHeader>
-                  <TableRow>
-                    <TableHead>Time</TableHead>
-                    <TableHead>User</TableHead>
-                    <TableHead>Action</TableHead>
-                    <TableHead>Entity</TableHead>
-                    <TableHead>Details</TableHead>
-                  </TableRow>
-                </TableHeader>
-                <TableBody>
-                  {adminLogs.map((log) => (
-                    <TableRow key={log.id} data-testid={`row-admin-log-${log.id}`}>
-                      <TableCell className="font-medium" data-testid={`text-time-${log.id}`}>
-                        {format(new Date(log.createdAt), "MMM dd, yyyy HH:mm")}
-                      </TableCell>
-                      <TableCell>
-                        <div className="flex items-center gap-2">
-                          <span data-testid={`text-username-${log.id}`}>{log.username}</span>
-                          {getRoleBadge(log.userRole)}
-                        </div>
-                      </TableCell>
-                      <TableCell data-testid={`badge-action-${log.id}`}>
-                        {getActionBadge(log.action, log.userRole)}
-                      </TableCell>
-                      <TableCell data-testid={`text-entity-${log.id}`}>
-                        {log.entityType || "-"}
-                      </TableCell>
-                      <TableCell className="max-w-md truncate" data-testid={`text-details-${log.id}`}>
-                        {log.details || "-"}
-                      </TableCell>
-                    </TableRow>
-                  ))}
-                </TableBody>
-              </Table>
-            </div>
-          )}
+        <CardContent className="space-y-4">
+          {/* Search Input */}
+          <div className="relative">
+            <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+            <Input
+              placeholder="Search by username, entity, or details..."
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              className="pl-10"
+              data-testid="input-search"
+            />
+          </div>
+
+          {/* Filter Row */}
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
+            <Select value={roleFilter} onValueChange={setRoleFilter}>
+              <SelectTrigger data-testid="select-role-filter">
+                <SelectValue placeholder="Filter by Role" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">All Roles</SelectItem>
+                <SelectItem value="admin">Admin Only</SelectItem>
+                <SelectItem value="staff">Staff Only</SelectItem>
+              </SelectContent>
+            </Select>
+
+            <Select value={actionFilter} onValueChange={setActionFilter}>
+              <SelectTrigger data-testid="select-action-filter">
+                <SelectValue placeholder="Filter by Action" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">All Actions</SelectItem>
+                {uniqueActions.map(action => (
+                  <SelectItem key={action} value={action}>
+                    {action.charAt(0).toUpperCase() + action.slice(1)}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+
+            <Select value={entityFilter} onValueChange={setEntityFilter}>
+              <SelectTrigger data-testid="select-entity-filter">
+                <SelectValue placeholder="Filter by Entity" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">All Entities</SelectItem>
+                {uniqueEntities.map(entity => (
+                  <SelectItem key={entity} value={entity}>
+                    {entity}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+
+            {hasActiveFilters && (
+              <Button
+                variant="outline"
+                onClick={clearFilters}
+                className="w-full"
+                data-testid="button-clear-filters"
+              >
+                <X className="h-4 w-4 mr-2" />
+                Clear Filters
+              </Button>
+            )}
+          </div>
+
+          {/* Results Count */}
+          <div className="flex items-center justify-between text-sm">
+            <span className="text-muted-foreground">
+              Showing <span className="font-medium text-foreground">{filteredLogs.length}</span> of <span className="font-medium text-foreground">{logs?.length || 0}</span> logs
+            </span>
+            {hasActiveFilters && (
+              <Badge variant="secondary" className="text-xs">
+                Filtered
+              </Badge>
+            )}
+          </div>
         </CardContent>
       </Card>
 
-      {/* Staff Activity */}
-      <Card data-testid="card-staff-activity">
-        <CardHeader>
-          <CardTitle className="flex items-center gap-2">
-            Staff Activity
-            <Badge variant="secondary">{staffLogs.length}</Badge>
-          </CardTitle>
-          <CardDescription>All actions performed by staff users</CardDescription>
+      {/* Activity Table */}
+      <Card data-testid="card-activity-table">
+        <CardHeader className="pb-3">
+          <CardTitle className="text-lg md:text-xl">Activity Logs</CardTitle>
+          <CardDescription className="text-xs md:text-sm">
+            All activity sorted by most recent
+          </CardDescription>
         </CardHeader>
-        <CardContent>
-          {staffLogs.length === 0 ? (
-            <p className="text-sm text-muted-foreground" data-testid="text-no-staff-logs">No staff activity yet</p>
-          ) : (
-            <div className="rounded-md border">
-              <Table>
-                <TableHeader>
-                  <TableRow>
-                    <TableHead>Time</TableHead>
-                    <TableHead>User</TableHead>
-                    <TableHead>Action</TableHead>
-                    <TableHead>Entity</TableHead>
-                    <TableHead>Details</TableHead>
-                  </TableRow>
-                </TableHeader>
-                <TableBody>
-                  {staffLogs.map((log) => (
-                    <TableRow key={log.id} data-testid={`row-staff-log-${log.id}`}>
-                      <TableCell className="font-medium" data-testid={`text-time-${log.id}`}>
-                        {format(new Date(log.createdAt), "MMM dd, yyyy HH:mm")}
-                      </TableCell>
-                      <TableCell>
-                        <div className="flex items-center gap-2">
-                          <span data-testid={`text-username-${log.id}`}>{log.username}</span>
-                          {getRoleBadge(log.userRole)}
-                        </div>
-                      </TableCell>
-                      <TableCell data-testid={`badge-action-${log.id}`}>
-                        {getActionBadge(log.action, log.userRole)}
-                      </TableCell>
-                      <TableCell data-testid={`text-entity-${log.id}`}>
-                        {log.entityType || "-"}
-                      </TableCell>
-                      <TableCell className="max-w-md truncate" data-testid={`text-details-${log.id}`}>
-                        {log.details || "-"}
-                      </TableCell>
-                    </TableRow>
-                  ))}
-                </TableBody>
-              </Table>
+        <CardContent className="p-0">
+          {filteredLogs.length === 0 ? (
+            <div className="p-8 text-center">
+              <p className="text-sm text-muted-foreground" data-testid="text-no-logs">
+                {hasActiveFilters ? "No logs match your filters" : "No activity logs yet"}
+              </p>
             </div>
+          ) : (
+            <ScrollArea className="h-[600px] w-full">
+              <div className="min-w-full">
+                <Table>
+                  <TableHeader className="sticky top-0 bg-background z-10">
+                    <TableRow>
+                      <TableHead className="min-w-[140px]">Time</TableHead>
+                      <TableHead className="min-w-[120px]">User</TableHead>
+                      <TableHead className="min-w-[100px]">Action</TableHead>
+                      <TableHead className="min-w-[100px]">Entity</TableHead>
+                      <TableHead className="min-w-[200px]">Details</TableHead>
+                    </TableRow>
+                  </TableHeader>
+                  <TableBody>
+                    {filteredLogs.map((log) => (
+                      <TableRow key={log.id} data-testid={`row-log-${log.id}`}>
+                        <TableCell className="font-medium text-xs md:text-sm whitespace-nowrap" data-testid={`text-time-${log.id}`}>
+                          <div className="flex items-center gap-2">
+                            <Calendar className="h-3 w-3 text-muted-foreground hidden md:inline" />
+                            {format(new Date(log.createdAt), "MMM dd, yyyy HH:mm")}
+                          </div>
+                        </TableCell>
+                        <TableCell className="text-xs md:text-sm">
+                          <div className="flex flex-col gap-1">
+                            <span data-testid={`text-username-${log.id}`} className="font-medium">
+                              {log.username}
+                            </span>
+                            <div>{getRoleBadge(log.userRole)}</div>
+                          </div>
+                        </TableCell>
+                        <TableCell data-testid={`badge-action-${log.id}`}>
+                          {getActionBadge(log.action, log.userRole)}
+                        </TableCell>
+                        <TableCell className="text-xs md:text-sm" data-testid={`text-entity-${log.id}`}>
+                          <Badge variant="outline" className="text-xs">
+                            {log.entityType || "-"}
+                          </Badge>
+                        </TableCell>
+                        <TableCell className="text-xs md:text-sm max-w-xs" data-testid={`text-details-${log.id}`}>
+                          <p className="line-clamp-2 break-words">
+                            {log.details || "-"}
+                          </p>
+                        </TableCell>
+                      </TableRow>
+                    ))}
+                  </TableBody>
+                </Table>
+              </div>
+            </ScrollArea>
           )}
         </CardContent>
       </Card>
