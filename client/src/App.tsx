@@ -35,8 +35,10 @@ import Login from "@/pages/Login";
 import { ConsumerNav } from "@/components/ConsumerNav";
 import { CursorTrail } from "@/components/CursorTrail";
 import { SplashScreen } from "@/components/SplashScreen";
+import { NetworkAlert } from "@/components/NetworkAlert";
 import { useState, useEffect } from "react";
 import { useToast } from "@/hooks/use-toast";
+import { useNetworkMonitor } from "@/hooks/useNetworkMonitor";
 
 function Router() {
   return (
@@ -71,6 +73,7 @@ function App() {
   const [showShortcuts, setShowShortcuts] = useState(false);
   const { toast } = useToast();
   const [, setLocation] = useLocation();
+  const { showAlert, handleRefresh, handleDismiss } = useNetworkMonitor();
 
   const style = {
     "--sidebar-width": "16rem",
@@ -359,6 +362,11 @@ function App() {
               <KeyboardShortcutsDialog 
                 open={showShortcuts} 
                 onOpenChange={setShowShortcuts}
+              />
+              <NetworkAlert 
+                open={showAlert}
+                onRefresh={handleRefresh}
+                onDismiss={handleDismiss}
               />
               <CursorTrail />
               <Toaster />
