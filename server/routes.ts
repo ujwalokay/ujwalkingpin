@@ -1074,6 +1074,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
       const validatedData = maintenanceSchema.parse(req.body);
       const created = await storage.upsertDeviceMaintenance(validatedData);
+      
+      const { invalidateMaintenanceCache } = await import('./ai-maintenance');
+      invalidateMaintenanceCache();
+      
       res.json(created);
     } catch (error: any) {
       if (error instanceof z.ZodError) {
@@ -1102,6 +1106,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
       if (!updated) {
         return res.status(404).json({ message: "Device maintenance record not found" });
       }
+
+      const { invalidateMaintenanceCache } = await import('./ai-maintenance');
+      invalidateMaintenanceCache();
 
       res.json(updated);
     } catch (error: any) {
@@ -1157,6 +1164,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
         console.error("AI recommendation failed:", aiError);
         aiSuggestion = `${issueType === "repair" ? "Repair needed" : "Glitch detected"}. Please check the AI Maintenance predictions for detailed analysis.`;
       }
+
+      const { invalidateMaintenanceCache } = await import('./ai-maintenance');
+      invalidateMaintenanceCache();
 
       res.json({ 
         success: true, 

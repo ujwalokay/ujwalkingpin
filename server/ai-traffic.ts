@@ -3,6 +3,9 @@ import { storage } from "./storage";
 
 const ai = new GoogleGenAI({ apiKey: process.env.GEMINI_API_KEY || "" });
 
+let cachedTrafficPrediction: { data: TrafficPredictionResult; timestamp: number; date: string } | null = null;
+const CACHE_DURATION = 10 * 60 * 1000;
+
 export interface HourlyTrafficPrediction {
   hour: string;
   predictedVisitors: number;
@@ -23,11 +26,21 @@ export interface TrafficPredictionResult {
 
 export async function generateTrafficPredictions(): Promise<TrafficPredictionResult> {
   const now = new Date();
+  const today = now.toISOString().split('T')[0];
+  
+  if (cachedTrafficPrediction && 
+      cachedTrafficPrediction.date === today && 
+      Date.now() - cachedTrafficPrediction.timestamp < CACHE_DURATION) {
+    return cachedTrafficPrediction.data;
+  }
+
   const todayStart = new Date(now.getFullYear(), now.getMonth(), now.getDate(), 0, 0, 0);
   const todayEnd = new Date(now.getFullYear(), now.getMonth(), now.getDate(), 23, 59, 59);
 
-  const allBookings = await storage.getAllBookings();
-  const allHistoricalBookings = await storage.getAllBookingHistory();
+  const [allBookings, allHistoricalBookings] = await Promise.all([
+    storage.getAllBookings(),
+    storage.getAllBookingHistory()
+  ]);
 
   const historicalData = [];
   for (let daysAgo = 1; daysAgo <= 30; daysAgo++) {
@@ -125,7 +138,7 @@ export async function generateTrafficPredictions(): Promise<TrafficPredictionRes
     insights.push(`${highConfidence} hours have high-confidence predictions based on historical patterns`);
   }
 
-  return {
+  const result = {
     predictions,
     summary: {
       peakHour: peakPrediction.hour,
@@ -136,6 +149,10 @@ export async function generateTrafficPredictions(): Promise<TrafficPredictionRes
     },
     generatedAt: new Date(),
   };
+
+  cachedTrafficPrediction = { data: result, timestamp: Date.now(), date: today };
+
+  return result;
 }
 
 function getHeuristicTrafficPrediction(

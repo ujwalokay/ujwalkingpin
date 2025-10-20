@@ -31,9 +31,27 @@ export interface AIMaintenanceInsights {
   generatedAt: Date;
 }
 
+let cachedPredictions: { data: AIMaintenanceInsights; timestamp: number } | null = null;
+let cacheGeneration = 0;
+const CACHE_DURATION = 5 * 60 * 1000;
+
+export function invalidateMaintenanceCache() {
+  cachedPredictions = null;
+  cacheGeneration++;
+}
+
 export async function generateMaintenancePredictions(): Promise<AIMaintenanceInsights> {
-  const maintenanceRecords = await storage.getAllDeviceMaintenance();
-  const deviceConfigs = await storage.getAllDeviceConfigs();
+  if (cachedPredictions && Date.now() - cachedPredictions.timestamp < CACHE_DURATION) {
+    return cachedPredictions.data;
+  }
+
+  const currentGeneration = cacheGeneration;
+
+  const [maintenanceRecords, deviceConfigs, bookingHistory] = await Promise.all([
+    storage.getAllDeviceMaintenance(),
+    storage.getAllDeviceConfigs(),
+    storage.getAllBookingHistory()
+  ]);
 
   const allDevices: Array<{ category: string; seatName: string }> = [];
   deviceConfigs.forEach(config => {
@@ -42,17 +60,23 @@ export async function generateMaintenancePredictions(): Promise<AIMaintenanceIns
     });
   });
 
-  const predictions: MaintenancePrediction[] = [];
-
   const hasGemini = !!process.env.GEMINI_API_KEY;
 
-  for (const device of allDevices) {
+  const predictionPromises = allDevices.map(async (device) => {
     const maintenance = maintenanceRecords.find(
       m => m.category === device.category && m.seatName === device.seatName
     );
 
-    const usageHours = maintenance?.totalUsageHours || 0;
-    const totalSessions = maintenance?.totalSessions || 0;
+    const deviceBookings = bookingHistory.filter(
+      b => b.category === device.category && b.seatName === device.seatName
+    );
+    const historicalUsageHours = deviceBookings.reduce((sum, b) => {
+      const duration = new Date(b.endTime).getTime() - new Date(b.startTime).getTime();
+      return sum + (duration / (1000 * 60 * 60));
+    }, 0);
+
+    const usageHours = (maintenance?.totalUsageHours || 0) + historicalUsageHours;
+    const totalSessions = (maintenance?.totalSessions || 0) + deviceBookings.length;
     const issuesReported = maintenance?.issuesReported || 0;
     const lastMaintenance = maintenance?.lastMaintenanceDate;
     
@@ -96,7 +120,7 @@ export async function generateMaintenancePredictions(): Promise<AIMaintenanceIns
       reasoning = heuristic.reasoning;
     }
 
-    const prediction: MaintenancePrediction = {
+    return {
       category: device.category,
       seatName: device.seatName,
       riskLevel,
@@ -110,9 +134,9 @@ export async function generateMaintenancePredictions(): Promise<AIMaintenanceIns
         daysSinceLastMaintenance,
       },
     };
+  });
 
-    predictions.push(prediction);
-  }
+  const predictions = await Promise.all(predictionPromises);
 
   const highRisk = predictions.filter(p => p.riskLevel === "high");
   const mediumRisk = predictions.filter(p => p.riskLevel === "medium");
@@ -127,7 +151,7 @@ export async function generateMaintenancePredictions(): Promise<AIMaintenanceIns
   }
   recommendedActions.push(`${lowRisk.length} device(s) operating normally`);
 
-  return {
+  const result = {
     predictions: predictions.sort((a, b) => {
       const riskOrder = { high: 3, medium: 2, low: 1 };
       return riskOrder[b.riskLevel] - riskOrder[a.riskLevel];
@@ -141,6 +165,12 @@ export async function generateMaintenancePredictions(): Promise<AIMaintenanceIns
     },
     generatedAt: new Date(),
   };
+
+  if (currentGeneration === cacheGeneration) {
+    cachedPredictions = { data: result, timestamp: Date.now() };
+  }
+
+  return result;
 }
 
 function getHeuristicPrediction(

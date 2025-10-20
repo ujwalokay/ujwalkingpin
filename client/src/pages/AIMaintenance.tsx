@@ -1,5 +1,5 @@
 import { useQuery, useMutation } from "@tanstack/react-query";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -9,6 +9,7 @@ import { Sparkles, Brain, AlertTriangle, CheckCircle2, Clock, Wrench, RefreshCw,
 import { queryClient, apiRequest } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
 import { ScrollArea } from "@/components/ui/scroll-area";
+import { Progress } from "@/components/ui/progress";
 
 interface MaintenancePrediction {
   category: string;
@@ -40,10 +41,26 @@ interface AIMaintenanceInsights {
 export default function AIMaintenance() {
   const { toast } = useToast();
   const [activeTab, setActiveTab] = useState("overview");
+  const [loadingProgress, setLoadingProgress] = useState(0);
 
   const { data: insights, isLoading, refetch } = useQuery<AIMaintenanceInsights>({
     queryKey: ["/api/ai/maintenance/predictions"],
   });
+
+  useEffect(() => {
+    if (isLoading) {
+      setLoadingProgress(0);
+      const interval = setInterval(() => {
+        setLoadingProgress((prev) => {
+          if (prev >= 90) return prev;
+          return prev + 10;
+        });
+      }, 200);
+      return () => clearInterval(interval);
+    } else {
+      setLoadingProgress(100);
+    }
+  }, [isLoading]);
 
   const updateStatusMutation = useMutation({
     mutationFn: async ({ category, seatName, status, notes }: { category: string; seatName: string; status: string; notes?: string }) => {
@@ -132,7 +149,11 @@ export default function AIMaintenance() {
             <Brain className="h-8 w-8 text-purple-600" />
             AI Predictive Maintenance
           </h1>
-          <p className="text-muted-foreground">Loading AI predictions...</p>
+          <p className="text-muted-foreground mb-4">Analyzing device usage and generating predictions...</p>
+          <div className="space-y-2">
+            <Progress value={loadingProgress} className="h-2" />
+            <p className="text-xs text-muted-foreground">Processing {loadingProgress}%</p>
+          </div>
         </div>
       </div>
     );

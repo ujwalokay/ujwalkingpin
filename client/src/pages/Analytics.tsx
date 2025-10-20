@@ -634,7 +634,12 @@ export default function Analytics() {
                           <span className="text-sm font-medium">Peak Hour</span>
                         </div>
                         <p className="text-2xl font-bold text-blue-600 dark:text-blue-400">
-                          {trafficPrediction.summary.peakHour}
+                          {(() => {
+                            const [hour] = trafficPrediction.summary.peakHour.split(':').map(Number);
+                            const isPM = hour >= 12;
+                            const displayHour = hour === 0 ? 12 : hour > 12 ? hour - 12 : hour;
+                            return `${displayHour} ${isPM ? 'PM' : 'AM'}`;
+                          })()}
                         </p>
                       </div>
                       <div className="p-4 bg-purple-50 dark:bg-purple-950/20 rounded-lg">
@@ -668,7 +673,16 @@ export default function Analytics() {
 
                     {/* Chart */}
                     <ResponsiveContainer width="100%" height={400}>
-                      <ComposedChart data={trafficPrediction.predictions}>
+                      <ComposedChart data={trafficPrediction.predictions.map(p => ({
+                        ...p,
+                        displayHour: (() => {
+                          const [hour] = p.hour.split(':').map(Number);
+                          const isPM = hour >= 12;
+                          const displayHour = hour === 0 ? 12 : hour > 12 ? hour - 12 : hour;
+                          return `${displayHour} ${isPM ? 'PM' : 'AM'}`;
+                        })(),
+                        originalHour: p.hour
+                      }))}>
                         <defs>
                           <linearGradient id="trafficGradient" x1="0" y1="0" x2="0" y2="1">
                             <stop offset="5%" stopColor="#3b82f6" stopOpacity={0.8}/>
@@ -677,7 +691,7 @@ export default function Analytics() {
                         </defs>
                         <CartesianGrid strokeDasharray="3 3" className="stroke-muted" />
                         <XAxis 
-                          dataKey="hour" 
+                          dataKey="displayHour" 
                           className="text-xs"
                           angle={-45}
                           textAnchor="end"
@@ -695,7 +709,7 @@ export default function Analytics() {
                               const data = payload[0].payload;
                               return (
                                 <div className="bg-card border border-border p-3 rounded-lg shadow-lg">
-                                  <p className="font-semibold mb-1">{data.hour}</p>
+                                  <p className="font-semibold mb-1">{data.displayHour}</p>
                                   <p className="text-sm text-blue-600 dark:text-blue-400">
                                     Predicted: {data.predictedVisitors} visitors
                                   </p>
