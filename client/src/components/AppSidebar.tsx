@@ -83,75 +83,74 @@ export function AppSidebar() {
   };
 
   return (
-    <div className={`relative h-screen flex flex-col transition-all duration-300 ${isCollapsed ? 'w-20' : 'w-64'}`}>
-      {/* Sidebar Background with Gradient */}
-      <div className="absolute inset-0 bg-gradient-to-br from-purple-600 via-purple-600 to-purple-700 dark:from-purple-700 dark:via-purple-700 dark:to-purple-800"></div>
+    <div className={`relative h-screen flex flex-col transition-all duration-300 ${isCollapsed ? 'w-16 sm:w-20' : 'w-56 sm:w-64'}`}>
+      {/* Glass Background */}
+      <div className="absolute inset-0 bg-gradient-to-br from-purple-600/95 via-violet-600/95 to-purple-700/95 dark:from-purple-900/95 dark:via-violet-900/95 dark:to-purple-950/95 backdrop-blur-xl"></div>
+      <div className="absolute inset-0 bg-gradient-to-t from-black/20 to-transparent"></div>
       
       {/* Toggle Button */}
       <button
         onClick={() => setIsCollapsed(!isCollapsed)}
-        className="absolute -right-3 top-6 z-50 bg-white dark:bg-gray-800 rounded-full p-1.5 shadow-lg border border-gray-200 dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors"
+        className="absolute -right-3 top-6 z-50 bg-white/90 dark:bg-gray-800/90 backdrop-blur-sm rounded-full p-1.5 shadow-lg border border-purple-200 dark:border-purple-700 hover:bg-white dark:hover:bg-gray-700 transition-all hover:scale-110"
         data-testid="button-toggle-sidebar"
       >
         {isCollapsed ? (
-          <ChevronRight className="h-4 w-4 text-gray-600 dark:text-gray-300" />
+          <ChevronRight className="h-3.5 w-3.5 sm:h-4 sm:w-4 text-purple-600 dark:text-purple-400" />
         ) : (
-          <ChevronLeft className="h-4 w-4 text-gray-600 dark:text-gray-300" />
+          <ChevronLeft className="h-3.5 w-3.5 sm:h-4 sm:w-4 text-purple-600 dark:text-purple-400" />
         )}
       </button>
 
       {/* Logo Section */}
-      <div className={`relative flex items-center gap-3 p-6 ${isCollapsed ? 'justify-center px-4' : ''}`}>
-        <img 
-          src={theme === "dark" ? logoDark : logoLight} 
-          alt="Ankylo Gaming Logo" 
-          className={`object-cover rounded-xl transition-all ${isCollapsed ? 'h-10 w-10' : 'h-12 w-12'}`}
-        />
+      <div className={`relative flex items-center gap-2 sm:gap-3 p-4 sm:p-6 ${isCollapsed ? 'justify-center px-2 sm:px-4' : ''}`}>
+        <div className="relative">
+          <div className="absolute inset-0 bg-white/20 dark:bg-white/10 rounded-xl blur-lg"></div>
+          <img 
+            src={theme === "dark" ? logoDark : logoLight} 
+            alt="Ankylo Gaming Logo" 
+            className={`relative object-cover rounded-xl transition-all shadow-lg ${isCollapsed ? 'h-8 w-8 sm:h-10 sm:w-10' : 'h-10 w-10 sm:h-12 sm:w-12'}`}
+          />
+        </div>
         {!isCollapsed && (
           <div className="text-white">
-            <h2 className="text-lg font-bold">Ankylo Gaming</h2>
-            <p className="text-xs text-purple-100">Admin Panel</p>
+            <h2 className="text-sm sm:text-lg font-bold drop-shadow-lg">Ankylo Gaming</h2>
+            <p className="text-[10px] sm:text-xs text-purple-100 drop-shadow">Admin Panel</p>
           </div>
         )}
       </div>
 
       {/* Menu Items */}
-      <nav className="relative flex-1 px-3 py-4 overflow-y-auto scrollbar-thin scrollbar-thumb-white/20 scrollbar-track-transparent">
-        <ul className="space-y-1">
+      <nav className="relative flex-1 px-2 sm:px-3 py-2 sm:py-4 overflow-y-auto scrollbar-thin scrollbar-thumb-white/20 scrollbar-track-transparent">
+        <ul className="space-y-0.5 sm:space-y-1">
           {menuItems.map((item) => {
             const isActive = location === item.url;
             const hasAI = ['Analytics', 'AI Maintenance'].includes(item.title);
             
             return (
               <li key={item.title} className="relative">
-                {/* Curved Background for Active Item */}
-                {isActive && (
-                  <>
-                    <div className="absolute inset-0 bg-white dark:bg-gray-900 rounded-l-xl"></div>
-                    <div className="absolute -top-4 right-0 w-4 h-4">
-                      <div className="absolute inset-0 bg-transparent rounded-br-xl shadow-[0_8px_0_0_white] dark:shadow-[0_8px_0_0_rgb(17,24,39)]"></div>
-                    </div>
-                    <div className="absolute -bottom-4 right-0 w-4 h-4">
-                      <div className="absolute inset-0 bg-transparent rounded-tr-xl shadow-[0_-8px_0_0_white] dark:shadow-[0_-8px_0_0_rgb(17,24,39)]"></div>
-                    </div>
-                  </>
-                )}
-                
                 <Link href={item.url}>
                   <div
-                    className={`relative flex items-center gap-3 px-4 py-3 rounded-l-xl transition-all cursor-pointer group ${
+                    className={`relative flex items-center gap-2 sm:gap-3 px-2 sm:px-4 py-2 sm:py-3 rounded-lg sm:rounded-xl transition-all cursor-pointer group ${
                       isActive 
-                        ? 'text-purple-600 dark:text-purple-500' 
-                        : 'text-white hover:bg-white/10'
+                        ? 'bg-white/95 dark:bg-white/90 shadow-lg scale-105' 
+                        : 'hover:bg-white/10 hover:backdrop-blur-sm'
                     } ${isCollapsed ? 'justify-center' : ''}`}
                     data-testid={`link-${item.title.toLowerCase()}`}
                   >
-                    <item.icon className={`${isCollapsed ? 'h-6 w-6' : 'h-5 w-5'} flex-shrink-0`} />
+                    <item.icon className={`flex-shrink-0 ${isCollapsed ? 'h-4 w-4 sm:h-5 sm:w-5' : 'h-4 w-4 sm:h-5 sm:w-5'} ${
+                      isActive 
+                        ? 'text-purple-600 dark:text-purple-600' 
+                        : 'text-white group-hover:text-purple-100'
+                    }`} />
                     {!isCollapsed && (
-                      <span className="font-medium flex items-center gap-1.5">
+                      <span className={`text-xs sm:text-sm font-medium flex items-center gap-1.5 ${
+                        isActive 
+                          ? 'text-purple-700 dark:text-purple-700' 
+                          : 'text-white'
+                      }`}>
                         {item.title}
                         {hasAI && (
-                          <Sparkles className="h-3 w-3 text-purple-400 animate-pulse" />
+                          <Sparkles className="h-2.5 w-2.5 sm:h-3 sm:w-3 text-purple-500 animate-pulse" />
                         )}
                       </span>
                     )}
@@ -164,16 +163,16 @@ export function AppSidebar() {
       </nav>
 
       {/* Logout Button */}
-      <div className="relative p-3">
+      <div className="relative p-2 sm:p-3 border-t border-white/10">
         <button
           onClick={handleLogout}
-          className={`w-full flex items-center gap-3 px-4 py-3 text-white hover:bg-white/10 rounded-xl transition-all ${
+          className={`w-full flex items-center gap-2 sm:gap-3 px-2 sm:px-4 py-2 sm:py-3 text-white hover:bg-white/10 rounded-lg sm:rounded-xl transition-all backdrop-blur-sm ${
             isCollapsed ? 'justify-center' : ''
           }`}
           data-testid="button-logout"
         >
-          <LogOut className={`${isCollapsed ? 'h-6 w-6' : 'h-5 w-5'} flex-shrink-0`} />
-          {!isCollapsed && <span className="font-medium">Logout</span>}
+          <LogOut className={`flex-shrink-0 ${isCollapsed ? 'h-4 w-4 sm:h-5 sm:w-5' : 'h-4 w-4 sm:h-5 sm:w-5'}`} />
+          {!isCollapsed && <span className="text-xs sm:text-sm font-medium">Logout</span>}
         </button>
       </div>
     </div>
