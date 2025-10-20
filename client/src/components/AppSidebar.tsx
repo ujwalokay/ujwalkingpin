@@ -13,8 +13,8 @@ import {
   SidebarMenuItem,
   SidebarFooter,
 } from "@/components/ui/sidebar";
-import logoDark from "@assets/WhatsApp Image 2025-10-10 at 18.33.50_a4a3fc99_1760107172482.jpg";
-import logoLight from "@assets/WhatsApp Image 2025-10-10 at 18.33.50_d321359c_1760107172482.jpg";
+import logoDark from "@assets/20251020_115324_1760941507517.png";
+import logoLight from "@assets/20251020_115324_1760941507517.png";
 
 const menuItems = [
   {
