@@ -326,4 +326,22 @@ export const insertRetentionConfigSchema = createInsertSchema(retentionConfig).o
 export type InsertRetentionConfig = z.infer<typeof insertRetentionConfigSchema>;
 export type RetentionConfig = typeof retentionConfig.$inferSelect;
 
+export const deviceMaintenance = pgTable("device_maintenance", {
+  id: varchar("id").primaryKey().$defaultFn(() => crypto.randomUUID()),
+  category: varchar("category").notNull(),
+  seatName: varchar("seat_name").notNull(),
+  lastMaintenanceDate: timestamp("last_maintenance_date"),
+  totalUsageHours: real("total_usage_hours").notNull().default(0),
+  totalSessions: integer("total_sessions").notNull().default(0),
+  issuesReported: integer("issues_reported").notNull().default(0),
+  maintenanceNotes: text("maintenance_notes"),
+  status: varchar("status").notNull().default("healthy"),
+  createdAt: timestamp("created_at").notNull().defaultNow(),
+  updatedAt: timestamp("updated_at").notNull().defaultNow(),
+});
+
+export const insertDeviceMaintenanceSchema = createInsertSchema(deviceMaintenance).omit({ id: true, createdAt: true, updatedAt: true });
+export type InsertDeviceMaintenance = z.infer<typeof insertDeviceMaintenanceSchema>;
+export type DeviceMaintenance = typeof deviceMaintenance.$inferSelect;
+
 
