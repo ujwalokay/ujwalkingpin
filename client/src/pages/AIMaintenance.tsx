@@ -5,7 +5,7 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Alert, AlertDescription } from "@/components/ui/alert";
-import { Sparkles, Brain, AlertTriangle, CheckCircle2, Clock, Wrench, RefreshCw, TrendingUp } from "lucide-react";
+import { Sparkles, Brain, AlertTriangle, CheckCircle2, Clock, Wrench, RefreshCw, TrendingUp, AlertCircle, Bug } from "lucide-react";
 import { queryClient, apiRequest } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
 import { ScrollArea } from "@/components/ui/scroll-area";
@@ -66,6 +66,33 @@ export default function AIMaintenance() {
       toast({
         title: "Update Failed",
         description: error.message || "Failed to update device status.",
+        variant: "destructive",
+      });
+    },
+  });
+
+  const reportIssueMutation = useMutation({
+    mutationFn: async ({ category, seatName, issueType }: { category: string; seatName: string; issueType: string }) => {
+      const response = await fetch(`/api/maintenance/${category}/${encodeURIComponent(seatName)}/report-issue`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ issueType }),
+      });
+      if (!response.ok) throw new Error("Failed to report issue");
+      return response.json();
+    },
+    onSuccess: (data: any) => {
+      queryClient.invalidateQueries({ queryKey: ["/api/ai/maintenance/predictions"] });
+      toast({
+        title: "Issue Reported",
+        description: data.aiSuggestion || "Issue has been recorded and AI will analyze the device.",
+      });
+      refetch();
+    },
+    onError: (error: any) => {
+      toast({
+        title: "Report Failed",
+        description: error.message || "Failed to report issue.",
         variant: "destructive",
       });
     },
@@ -233,6 +260,7 @@ export default function AIMaintenance() {
                       getRiskBadge={getRiskBadge}
                       getRiskColor={getRiskColor}
                       updateStatusMutation={updateStatusMutation}
+                      reportIssueMutation={reportIssueMutation}
                     />
                   ))}
                 </div>
@@ -254,6 +282,7 @@ export default function AIMaintenance() {
                     getRiskBadge={getRiskBadge}
                     getRiskColor={getRiskColor}
                     updateStatusMutation={updateStatusMutation}
+                    reportIssueMutation={reportIssueMutation}
                   />
                 ))
               )}
@@ -274,6 +303,7 @@ export default function AIMaintenance() {
                     getRiskBadge={getRiskBadge}
                     getRiskColor={getRiskColor}
                     updateStatusMutation={updateStatusMutation}
+                    reportIssueMutation={reportIssueMutation}
                   />
                 ))
               )}
@@ -294,6 +324,7 @@ export default function AIMaintenance() {
                     getRiskBadge={getRiskBadge}
                     getRiskColor={getRiskColor}
                     updateStatusMutation={updateStatusMutation}
+                    reportIssueMutation={reportIssueMutation}
                   />
                 ))
               )}
@@ -310,11 +341,13 @@ function DevicePredictionCard({
   getRiskBadge,
   getRiskColor,
   updateStatusMutation,
+  reportIssueMutation,
 }: {
   prediction: MaintenancePrediction;
   getRiskBadge: (level: string) => JSX.Element;
   getRiskColor: (level: string) => string;
   updateStatusMutation: any;
+  reportIssueMutation: any;
 }) {
   return (
     <Card className={`${getRiskColor(prediction.riskLevel)} border-2`} data-testid={`card-device-${prediction.category}-${prediction.seatName}`}>
@@ -358,30 +391,69 @@ function DevicePredictionCard({
           <p className="text-sm text-muted-foreground">{prediction.reasoning}</p>
         </div>
 
-        <div className="flex items-center justify-between gap-2">
+        <div className="space-y-3">
           <div className="flex-1">
             <p className="text-sm font-medium text-foreground">{prediction.recommendedAction}</p>
             <p className="text-xs text-muted-foreground mt-1">
               Est. {prediction.estimatedDaysUntilMaintenance} days until next service
             </p>
           </div>
-          <Button
-            size="sm"
-            variant="outline"
-            className="gap-2"
-            onClick={() =>
-              updateStatusMutation.mutate({
-                category: prediction.category,
-                seatName: prediction.seatName,
-                status: "healthy",
-                notes: "Maintenance completed via AI predictions",
-              })
-            }
-            data-testid={`button-mark-maintained-${prediction.category}-${prediction.seatName}`}
-          >
-            <Wrench className="h-4 w-4" />
-            Mark Maintained
-          </Button>
+          
+          <div className="flex flex-wrap gap-2">
+            <Button
+              size="sm"
+              variant="outline"
+              className="gap-2 flex-1 min-w-[140px]"
+              onClick={() =>
+                updateStatusMutation.mutate({
+                  category: prediction.category,
+                  seatName: prediction.seatName,
+                  status: "healthy",
+                  notes: "Maintenance completed via AI predictions",
+                })
+              }
+              data-testid={`button-mark-maintained-${prediction.category}-${prediction.seatName}`}
+            >
+              <Wrench className="h-4 w-4" />
+              Mark Maintained
+            </Button>
+            
+            <Button
+              size="sm"
+              variant="outline"
+              className="gap-2 flex-1 min-w-[140px] border-orange-500 text-orange-600 hover:bg-orange-50 dark:hover:bg-orange-950/20"
+              onClick={() =>
+                reportIssueMutation.mutate({
+                  category: prediction.category,
+                  seatName: prediction.seatName,
+                  issueType: "repair",
+                })
+              }
+              disabled={reportIssueMutation.isPending}
+              data-testid={`button-report-repair-${prediction.category}-${prediction.seatName}`}
+            >
+              <AlertCircle className="h-4 w-4" />
+              Needs Repair
+            </Button>
+            
+            <Button
+              size="sm"
+              variant="outline"
+              className="gap-2 flex-1 min-w-[140px] border-purple-500 text-purple-600 hover:bg-purple-50 dark:hover:bg-purple-950/20"
+              onClick={() =>
+                reportIssueMutation.mutate({
+                  category: prediction.category,
+                  seatName: prediction.seatName,
+                  issueType: "glitch",
+                })
+              }
+              disabled={reportIssueMutation.isPending}
+              data-testid={`button-report-glitch-${prediction.category}-${prediction.seatName}`}
+            >
+              <Bug className="h-4 w-4" />
+              Has Glitch
+            </Button>
+          </div>
         </div>
       </CardContent>
     </Card>
