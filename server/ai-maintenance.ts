@@ -46,6 +46,9 @@ export async function generateMaintenancePredictions(): Promise<AIMaintenanceIns
 
   const predictions: MaintenancePrediction[] = [];
 
+  // Check if OpenAI is available
+  const hasOpenAI = !!process.env.OPENAI_API_KEY;
+
   for (const device of allDevices) {
     const maintenance = maintenanceRecords.find(
       m => m.category === device.category && m.seatName === device.seatName
@@ -63,15 +66,40 @@ export async function generateMaintenancePredictions(): Promise<AIMaintenanceIns
     let riskLevel: "low" | "medium" | "high" = "low";
     let estimatedDays = 90;
     let recommendedAction = "Continue regular monitoring";
+    let reasoning = "";
 
-    if (usageHours > 500 || (daysSinceLastMaintenance && daysSinceLastMaintenance > 60) || issuesReported > 2) {
-      riskLevel = "high";
-      estimatedDays = 7;
-      recommendedAction = "Schedule immediate maintenance";
-    } else if (usageHours > 300 || (daysSinceLastMaintenance && daysSinceLastMaintenance > 30) || issuesReported > 0) {
-      riskLevel = "medium";
-      estimatedDays = 30;
-      recommendedAction = "Plan maintenance within the month";
+    // Use AI prediction if OpenAI is available
+    if (hasOpenAI) {
+      try {
+        const aiAnalysis = await getAIPrediction({
+          category: device.category,
+          seatName: device.seatName,
+          usageHours,
+          totalSessions,
+          issuesReported,
+          daysSinceLastMaintenance,
+        });
+
+        riskLevel = aiAnalysis.riskLevel;
+        estimatedDays = aiAnalysis.estimatedDays;
+        recommendedAction = aiAnalysis.recommendedAction;
+        reasoning = aiAnalysis.reasoning;
+      } catch (error) {
+        console.error(`AI prediction failed for ${device.category} - ${device.seatName}, falling back to heuristics:`, error);
+        // Fallback to heuristic-based prediction
+        const heuristic = getHeuristicPrediction(usageHours, totalSessions, issuesReported, daysSinceLastMaintenance);
+        riskLevel = heuristic.riskLevel;
+        estimatedDays = heuristic.estimatedDays;
+        recommendedAction = heuristic.recommendedAction;
+        reasoning = heuristic.reasoning;
+      }
+    } else {
+      // Use heuristic-based prediction when OpenAI is not available
+      const heuristic = getHeuristicPrediction(usageHours, totalSessions, issuesReported, daysSinceLastMaintenance);
+      riskLevel = heuristic.riskLevel;
+      estimatedDays = heuristic.estimatedDays;
+      recommendedAction = heuristic.recommendedAction;
+      reasoning = heuristic.reasoning;
     }
 
     const prediction: MaintenancePrediction = {
@@ -80,7 +108,7 @@ export async function generateMaintenancePredictions(): Promise<AIMaintenanceIns
       riskLevel,
       recommendedAction,
       estimatedDaysUntilMaintenance: estimatedDays,
-      reasoning: `Based on ${usageHours}h usage, ${totalSessions} sessions, ${issuesReported} issues${daysSinceLastMaintenance ? `, ${daysSinceLastMaintenance} days since last maintenance` : ''}`,
+      reasoning,
       metrics: {
         usageHours,
         totalSessions,
@@ -118,6 +146,101 @@ export async function generateMaintenancePredictions(): Promise<AIMaintenanceIns
       recommendedActions,
     },
     generatedAt: new Date(),
+  };
+}
+
+function getHeuristicPrediction(
+  usageHours: number,
+  totalSessions: number,
+  issuesReported: number,
+  daysSinceLastMaintenance: number | null
+) {
+  let riskLevel: "low" | "medium" | "high" = "low";
+  let estimatedDays = 90;
+  let recommendedAction = "Continue regular monitoring";
+  let reasoning = "";
+
+  if (usageHours > 500 || (daysSinceLastMaintenance && daysSinceLastMaintenance > 60) || issuesReported > 2) {
+    riskLevel = "high";
+    estimatedDays = 7;
+    recommendedAction = "Schedule immediate maintenance";
+    reasoning = `High usage detected: ${usageHours}h usage, ${totalSessions} sessions, ${issuesReported} issues${daysSinceLastMaintenance ? `, ${daysSinceLastMaintenance} days since last maintenance` : ''}. Immediate attention required.`;
+  } else if (usageHours > 300 || (daysSinceLastMaintenance && daysSinceLastMaintenance > 30) || issuesReported > 0) {
+    riskLevel = "medium";
+    estimatedDays = 30;
+    recommendedAction = "Plan maintenance within the month";
+    reasoning = `Moderate usage detected: ${usageHours}h usage, ${totalSessions} sessions, ${issuesReported} issues${daysSinceLastMaintenance ? `, ${daysSinceLastMaintenance} days since last maintenance` : ''}. Preventive maintenance recommended.`;
+  } else {
+    reasoning = `Normal operation: ${usageHours}h usage, ${totalSessions} sessions, ${issuesReported} issues${daysSinceLastMaintenance ? `, ${daysSinceLastMaintenance} days since last maintenance` : ''}. Device is operating within normal parameters.`;
+  }
+
+  return { riskLevel, estimatedDays, recommendedAction, reasoning };
+}
+
+async function getAIPrediction(deviceData: {
+  category: string;
+  seatName: string;
+  usageHours: number;
+  totalSessions: number;
+  issuesReported: number;
+  daysSinceLastMaintenance: number | null;
+}): Promise<{
+  riskLevel: "low" | "medium" | "high";
+  estimatedDays: number;
+  recommendedAction: string;
+  reasoning: string;
+}> {
+  const prompt = `As a predictive maintenance AI for gaming center equipment, analyze this device and provide a structured assessment:
+
+Device: ${deviceData.category} - ${deviceData.seatName}
+Usage Hours: ${deviceData.usageHours}
+Total Sessions: ${deviceData.totalSessions}
+Issues Reported: ${deviceData.issuesReported}
+Days Since Last Maintenance: ${deviceData.daysSinceLastMaintenance || 'Never serviced'}
+
+Analyze the data and respond in this exact JSON format:
+{
+  "riskLevel": "low|medium|high",
+  "estimatedDays": <number of days until next maintenance needed>,
+  "recommendedAction": "<brief action to take>",
+  "reasoning": "<2-3 sentence explanation of your analysis>"
+}
+
+Consider:
+- Gaming equipment typically needs maintenance every 60-90 days
+- High usage (>400h) or many issues (>2) indicate higher risk
+- Devices never serviced or not serviced in 45+ days need attention
+- Be practical and specific in your recommendations`;
+
+  const completion = await openai.chat.completions.create({
+    model: "gpt-4o-mini",
+    messages: [
+      {
+        role: "system",
+        content: "You are an expert in predictive maintenance for gaming equipment. Analyze data and provide structured JSON responses only. Be concise and actionable.",
+      },
+      {
+        role: "user",
+        content: prompt,
+      },
+    ],
+    max_tokens: 200,
+    temperature: 0.3,
+    response_format: { type: "json_object" },
+  });
+
+  const response = completion.choices[0]?.message?.content;
+  if (!response) {
+    throw new Error("No response from OpenAI");
+  }
+
+  const parsed = JSON.parse(response);
+  
+  return {
+    riskLevel: parsed.riskLevel as "low" | "medium" | "high",
+    estimatedDays: parsed.estimatedDays,
+    recommendedAction: parsed.recommendedAction,
+    reasoning: parsed.reasoning,
   };
 }
 
