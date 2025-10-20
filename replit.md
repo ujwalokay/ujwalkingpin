@@ -48,6 +48,8 @@ Preferred communication style: Simple, everyday language.
 - `Expenses`: Tracks operational costs.
 - `Happy Hours Configs`: Defines time slots and pricing for special happy hour rates.
 - `Retention Config`: Stores data retention policy settings with database persistence.
+- `Tournaments`: Stores tournament information (name, game, date, max participants, prize pool, status).
+- `Tournament Participants`: Tracks participant registration with status and placement tracking.
 
 ### Key Architectural Decisions
 
@@ -82,6 +84,7 @@ Preferred communication style: Simple, everyday language.
 - Data Retention Policies: Automatic cleanup of old data with configurable retention periods (default: 2 years bookings, 6 months logs, 7 years expenses). Runs daily at 2:00 AM with admin controls for manual cleanup and configuration.
 - Analytics Chart Export: Save as Image functionality for all analytics charts (Occupancy Trend, Category Distribution, Hourly Activity, Revenue & Bookings, Peak Hours) using html2canvas for high-quality PNG exports.
 - Ankylo AI System: Custom calculation-based predictive maintenance and traffic forecasting. Uses deterministic risk-score algorithms based on device usage hours, session counts, issue reports, and maintenance history. Traffic predictions use weighted historical patterns with trend detection. No external AI services required - 100% accurate predictions using mathematical formulas.
+- Tournament Management: Complete system for organizing gaming tournaments with participant tracking, registration management, status updates (upcoming/ongoing/completed), and winner declarations. Includes real-time participant lists and tournament statistics.
 
 ## External Dependencies
 

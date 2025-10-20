@@ -175,8 +175,21 @@ export default function Tournaments() {
 
   const updateStatusMutation = useMutation({
     mutationFn: async ({ id, status }: { id: string; status: string }) => {
+      const tournament = tournaments.find(t => t.id === id);
+      if (!tournament) {
+        throw new Error("Tournament not found");
+      }
       return await apiRequest("PUT", `/api/tournaments/${id}`, {
-        ...tournaments.find(t => t.id === id),
+        name: tournament.name,
+        game: tournament.game,
+        category: tournament.category,
+        description: tournament.description || undefined,
+        startDate: tournament.startDate,
+        endDate: tournament.endDate || undefined,
+        maxParticipants: tournament.maxParticipants,
+        entryFee: tournament.entryFee,
+        prizePool: tournament.prizePool || undefined,
+        rules: tournament.rules || undefined,
         status,
       });
     },
