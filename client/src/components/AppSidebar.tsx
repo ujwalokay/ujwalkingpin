@@ -1,4 +1,4 @@
-import { Settings, LayoutDashboard, FileText, UtensilsCrossed, CalendarClock, History, Scale, Wallet, ScrollText, Award, BarChart3, Gamepad2, Sparkles, LogOut, Brain, Trophy } from "lucide-react";
+import { Settings, LayoutDashboard, FileText, UtensilsCrossed, CalendarClock, History, Scale, Wallet, ScrollText, Award, BarChart3, Gamepad2, Sparkles, LogOut, Brain } from "lucide-react";
 import { Link, useLocation } from "wouter";
 import { useTheme } from "@/components/ThemeProvider";
 import { useToast } from "@/hooks/use-toast";
@@ -46,11 +46,6 @@ const menuItems = [
     title: "AI Maintenance",
     url: "/ai-maintenance",
     icon: Brain,
-  },
-  {
-    title: "Tournaments",
-    url: "/tournaments",
-    icon: Trophy,
   },
   {
     title: "Food",

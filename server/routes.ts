@@ -204,6 +204,25 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  app.post("/api/bookings/payment-method", requireAuth, async (req, res) => {
+    try {
+      const { bookingIds, paymentMethod } = req.body;
+      
+      if (!bookingIds || !Array.isArray(bookingIds) || bookingIds.length === 0) {
+        return res.status(400).json({ message: "Booking IDs are required" });
+      }
+      
+      if (!paymentMethod || !["cash", "upi_online"].includes(paymentMethod)) {
+        return res.status(400).json({ message: "Valid payment method is required (cash or upi_online)" });
+      }
+      
+      const count = await storage.updatePaymentMethod(bookingIds, paymentMethod);
+      res.json({ success: true, count });
+    } catch (error: any) {
+      res.status(500).json({ message: error.message });
+    }
+  });
+
   app.get("/api/booking-history", requireAuth, async (req, res) => {
     try {
       const history = await storage.getAllBookingHistory();
@@ -1177,152 +1196,6 @@ export async function registerRoutes(app: Express): Promise<Server> {
         issuesReported: updatedIssues,
         aiSuggestion 
       });
-    } catch (error: any) {
-      res.status(500).json({ message: error.message });
-    }
-  });
-
-  // Tournament Routes
-  app.get("/api/tournaments", requireAuth, async (req, res) => {
-    try {
-      const tournaments = await db.select().from(schema.tournaments);
-      res.json(tournaments);
-    } catch (error: any) {
-      res.status(500).json({ message: error.message });
-    }
-  });
-
-  app.get("/api/tournaments/:id", requireAuth, async (req, res) => {
-    try {
-      const { id } = req.params;
-      const [tournament] = await db.select().from(schema.tournaments).where(eq(schema.tournaments.id, id));
-      if (!tournament) {
-        return res.status(404).json({ message: "Tournament not found" });
-      }
-      res.json(tournament);
-    } catch (error: any) {
-      res.status(500).json({ message: error.message });
-    }
-  });
-
-  app.post("/api/tournaments", requireAuth, async (req, res) => {
-    try {
-      const validatedData = schema.insertTournamentSchema.parse(req.body);
-      const [created] = await db.insert(schema.tournaments).values(validatedData).returning();
-      res.json(created);
-    } catch (error: any) {
-      if (error instanceof z.ZodError) {
-        return res.status(400).json({ message: "Invalid tournament data", errors: error.errors });
-      }
-      res.status(500).json({ message: error.message });
-    }
-  });
-
-  app.put("/api/tournaments/:id", requireAuth, async (req, res) => {
-    try {
-      const { id } = req.params;
-      const validatedData = schema.insertTournamentSchema.parse(req.body);
-      const [updated] = await db.update(schema.tournaments)
-        .set({ ...validatedData, updatedAt: new Date() })
-        .where(eq(schema.tournaments.id, id))
-        .returning();
-      
-      if (!updated) {
-        return res.status(404).json({ message: "Tournament not found" });
-      }
-      res.json(updated);
-    } catch (error: any) {
-      if (error instanceof z.ZodError) {
-        return res.status(400).json({ message: "Invalid tournament data", errors: error.errors });
-      }
-      res.status(500).json({ message: error.message });
-    }
-  });
-
-  app.delete("/api/tournaments/:id", requireAuth, async (req, res) => {
-    try {
-      const { id } = req.params;
-      await db.delete(schema.tournamentParticipants).where(eq(schema.tournamentParticipants.tournamentId, id));
-      const [deleted] = await db.delete(schema.tournaments).where(eq(schema.tournaments.id, id)).returning();
-      
-      if (!deleted) {
-        return res.status(404).json({ message: "Tournament not found" });
-      }
-      res.json({ message: "Tournament deleted successfully" });
-    } catch (error: any) {
-      res.status(500).json({ message: error.message });
-    }
-  });
-
-  // Tournament Participants Routes
-  app.get("/api/tournaments/:id/participants", requireAuth, async (req, res) => {
-    try {
-      const { id } = req.params;
-      const participants = await db.select().from(schema.tournamentParticipants)
-        .where(eq(schema.tournamentParticipants.tournamentId, id));
-      res.json(participants);
-    } catch (error: any) {
-      res.status(500).json({ message: error.message });
-    }
-  });
-
-  app.post("/api/tournaments/:id/participants", requireAuth, async (req, res) => {
-    try {
-      const { id } = req.params;
-      const validatedData = schema.insertTournamentParticipantSchema.parse({ ...req.body, tournamentId: id });
-      
-      const [tournament] = await db.select().from(schema.tournaments).where(eq(schema.tournaments.id, id));
-      if (!tournament) {
-        return res.status(404).json({ message: "Tournament not found" });
-      }
-
-      const participants = await db.select().from(schema.tournamentParticipants)
-        .where(eq(schema.tournamentParticipants.tournamentId, id));
-      
-      if (participants.length >= tournament.maxParticipants) {
-        return res.status(400).json({ message: "Tournament is full" });
-      }
-
-      const [created] = await db.insert(schema.tournamentParticipants).values(validatedData).returning();
-      res.json(created);
-    } catch (error: any) {
-      if (error instanceof z.ZodError) {
-        return res.status(400).json({ message: "Invalid participant data", errors: error.errors });
-      }
-      res.status(500).json({ message: error.message });
-    }
-  });
-
-  app.put("/api/tournaments/:tournamentId/participants/:participantId", requireAuth, async (req, res) => {
-    try {
-      const { participantId } = req.params;
-      const { placement, score, status } = req.body;
-
-      const [updated] = await db.update(schema.tournamentParticipants)
-        .set({ placement, score, status })
-        .where(eq(schema.tournamentParticipants.id, participantId))
-        .returning();
-      
-      if (!updated) {
-        return res.status(404).json({ message: "Participant not found" });
-      }
-      res.json(updated);
-    } catch (error: any) {
-      res.status(500).json({ message: error.message });
-    }
-  });
-
-  app.delete("/api/tournaments/:tournamentId/participants/:participantId", requireAuth, async (req, res) => {
-    try {
-      const { participantId } = req.params;
-      const [deleted] = await db.delete(schema.tournamentParticipants)
-        .where(eq(schema.tournamentParticipants.id, participantId))
-        .returning();
-      
-      if (!deleted) {
-        return res.status(404).json({ message: "Participant not found" });
-      }
-      res.json({ message: "Participant removed successfully" });
     } catch (error: any) {
       res.status(500).json({ message: error.message });
     }

@@ -56,7 +56,7 @@ import {
   deviceMaintenance
 } from "@shared/schema";
 import { db } from "./db";
-import { eq, and, gte, lte, lt, desc, inArray } from "drizzle-orm";
+import { eq, and, gte, lte, lt, desc, inArray, isNotNull } from "drizzle-orm";
 import bcrypt from "bcrypt";
 
 export interface BookingStats {
@@ -64,6 +64,8 @@ export interface BookingStats {
   totalFoodRevenue: number;
   totalSessions: number;
   avgSessionMinutes: number;
+  cashRevenue: number;
+  upiRevenue: number;
 }
 
 export interface BookingHistoryItem {
@@ -76,6 +78,7 @@ export interface BookingHistoryItem {
   price: string;
   foodAmount: number;
   totalAmount: number;
+  paymentMethod: string | null;
 }
 
 export interface IStorage {
@@ -371,6 +374,28 @@ export class DatabaseStorage implements IStorage {
       return sum;
     }, 0);
 
+    const cashRevenue = completedBookings
+      .filter(b => b.paymentMethod === "cash")
+      .reduce((sum, booking) => {
+        const sessionPrice = parseFloat(booking.price);
+        const foodPrice = booking.foodOrders && booking.foodOrders.length > 0
+          ? booking.foodOrders.reduce((foodSum, order) => 
+              foodSum + parseFloat(order.price) * order.quantity, 0)
+          : 0;
+        return sum + sessionPrice + foodPrice;
+      }, 0);
+
+    const upiRevenue = completedBookings
+      .filter(b => b.paymentMethod === "upi_online")
+      .reduce((sum, booking) => {
+        const sessionPrice = parseFloat(booking.price);
+        const foodPrice = booking.foodOrders && booking.foodOrders.length > 0
+          ? booking.foodOrders.reduce((foodSum, order) => 
+              foodSum + parseFloat(order.price) * order.quantity, 0)
+          : 0;
+        return sum + sessionPrice + foodPrice;
+      }, 0);
+
     const totalSessions = completedBookings.length;
 
     const totalMinutes = completedBookings.reduce((sum, booking) => {
@@ -384,7 +409,9 @@ export class DatabaseStorage implements IStorage {
       totalRevenue,
       totalFoodRevenue,
       totalSessions,
-      avgSessionMinutes
+      avgSessionMinutes,
+      cashRevenue,
+      upiRevenue
     };
   }
 
@@ -438,7 +465,8 @@ export class DatabaseStorage implements IStorage {
           durationMinutes,
           price: booking.price,
           foodAmount,
-          totalAmount
+          totalAmount,
+          paymentMethod: booking.paymentMethod
         };
       })
       .sort((a, b) => b.date.localeCompare(a.date));
@@ -607,13 +635,23 @@ export class DatabaseStorage implements IStorage {
     return result.rowCount ? result.rowCount > 0 : false;
   }
 
+  async updatePaymentMethod(bookingIds: string[], paymentMethod: string): Promise<number> {
+    const result = await db
+      .update(bookings)
+      .set({ paymentMethod })
+      .where(inArray(bookings.id, bookingIds));
+    
+    return result.rowCount || 0;
+  }
+
   async moveBookingsToHistory(): Promise<number> {
     const expiredAndCompleted = await db
       .select()
       .from(bookings)
       .where(
         and(
-          eq(bookings.status, "expired")
+          eq(bookings.status, "expired"),
+          isNotNull(bookings.paymentMethod)
         )
       );
 
@@ -622,7 +660,8 @@ export class DatabaseStorage implements IStorage {
       .from(bookings)
       .where(
         and(
-          eq(bookings.status, "completed")
+          eq(bookings.status, "completed"),
+          isNotNull(bookings.paymentMethod)
         )
       );
 
@@ -645,6 +684,8 @@ export class DatabaseStorage implements IStorage {
       status: booking.status,
       bookingType: booking.bookingType,
       pausedRemainingTime: booking.pausedRemainingTime,
+      personCount: booking.personCount,
+      paymentMethod: booking.paymentMethod,
       foodOrders: booking.foodOrders,
       createdAt: booking.createdAt,
     }));

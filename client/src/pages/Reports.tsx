@@ -21,6 +21,8 @@ interface BookingStats {
   totalFoodRevenue: number;
   totalSessions: number;
   avgSessionMinutes: number;
+  cashRevenue: number;
+  upiRevenue: number;
 }
 
 interface BookingHistoryItem {
@@ -32,6 +34,7 @@ interface BookingHistoryItem {
   price: string;
   foodAmount: number;
   totalAmount: number;
+  paymentMethod: string | null;
 }
 
 export default function Reports() {
@@ -299,6 +302,30 @@ export default function Reports() {
               </>
             )}
           </div>
+
+          <div className="grid gap-3 grid-cols-1 sm:grid-cols-2">
+            {statsLoading ? (
+              <>
+                <Skeleton className="h-32" />
+                <Skeleton className="h-32" />
+              </>
+            ) : (
+              <>
+                <RevenueCard
+                  title="Cash Revenue"
+                  amount={stats?.cashRevenue || 0}
+                  trend={0}
+                  icon={<IndianRupee className="h-4 w-4 text-green-600 dark:text-green-400" />}
+                />
+                <RevenueCard
+                  title="UPI/Online Revenue"
+                  amount={stats?.upiRevenue || 0}
+                  trend={0}
+                  icon={<IndianRupee className="h-4 w-4 text-blue-600 dark:text-blue-400" />}
+                />
+              </>
+            )}
+          </div>
         </TabsContent>
       </Tabs>
 
@@ -314,13 +341,14 @@ export default function Reports() {
                 <TableHead>Duration</TableHead>
                 <TableHead className="text-right">Session Price</TableHead>
                 <TableHead className="text-right">Food Amount</TableHead>
+                <TableHead>Payment</TableHead>
                 <TableHead className="text-right">Total</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
               {historyLoading ? (
                 <TableRow>
-                  <TableCell colSpan={7}>
+                  <TableCell colSpan={8}>
                     <Skeleton className="h-10 w-full" />
                   </TableCell>
                 </TableRow>
@@ -338,6 +366,9 @@ export default function Reports() {
                     </TableCell>
                     <TableCell className="text-right" data-testid={`text-food-amount-${record.id}`}>
                       ₹{(record.foodAmount || 0).toFixed(0)}
+                    </TableCell>
+                    <TableCell data-testid={`text-payment-${record.id}`}>
+                      {record.paymentMethod === 'cash' ? 'Cash' : record.paymentMethod === 'upi_online' ? 'UPI/Online' : '-'}
                     </TableCell>
                     <TableCell className="text-right font-bold text-green-600 dark:text-green-400" data-testid={`text-total-${record.id}`}>
                       ₹{(record.totalAmount || parseFloat(record.price)).toFixed(0)}

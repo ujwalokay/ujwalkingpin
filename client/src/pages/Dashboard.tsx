@@ -9,13 +9,14 @@ import { ExtendSessionDialog } from "@/components/ExtendSessionDialog";
 import { EndSessionDialog } from "@/components/EndSessionDialog";
 import { AddFoodToBookingDialog } from "@/components/AddFoodToBookingDialog";
 import { OnboardingTour } from "@/components/OnboardingTour";
-import { Plus, Monitor, Gamepad2, Glasses, Car, Cpu, Tv, Radio, Box, RefreshCw, Calculator } from "lucide-react";
+import { Plus, Monitor, Gamepad2, Glasses, Car, Cpu, Tv, Radio, Box, RefreshCw, Calculator, Wallet } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { fetchBookings, createBooking, updateBooking, deleteBooking, fetchDeviceConfigs, getServerTime } from "@/lib/api";
 import type { Booking as DBBooking, DeviceConfig } from "@shared/schema";
 import { useServerTime } from "@/hooks/useServerTime";
 import { useAuth } from "@/contexts/AuthContext";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
+import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { useKeyboardShortcuts } from "@/hooks/useKeyboardShortcuts";
 import { useRegisterShortcuts } from "@/contexts/ShortcutsContext";
 import { useKeepAlive } from "@/hooks/useKeepAlive";
@@ -78,6 +79,7 @@ export default function Dashboard() {
   const [hideCompleted, setHideCompleted] = useState(false);
   const [selectedBookings, setSelectedBookings] = useState<Set<string>>(new Set());
   const [showTour, setShowTour] = useState(false);
+  const [showPaymentDialog, setShowPaymentDialog] = useState(false);
 
   // Dashboard keyboard shortcuts
   const dashboardShortcuts = useMemo(() => [
@@ -573,6 +575,48 @@ export default function Dashboard() {
     });
   };
 
+  const handlePaymentMethod = async (method: "cash" | "upi_online") => {
+    if (selectedBookings.size === 0) {
+      toast({
+        title: "No Bookings Selected",
+        description: "Please select bookings from the list first",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    try {
+      const response = await fetch('/api/bookings/payment-method', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          bookingIds: Array.from(selectedBookings),
+          paymentMethod: method
+        }),
+      });
+
+      if (!response.ok) {
+        throw new Error('Failed to update payment method');
+      }
+
+      const data = await response.json();
+      
+      queryClient.invalidateQueries({ queryKey: ['bookings'] });
+      setShowPaymentDialog(false);
+      
+      toast({
+        title: "Payment Method Updated",
+        description: `${data.count} booking(s) marked as ${method === 'cash' ? 'Cash' : 'UPI/Online'}`,
+      });
+    } catch (error) {
+      toast({
+        title: "Error",
+        description: "Failed to update payment method",
+        variant: "destructive",
+      });
+    }
+  };
+
   const handleToggleSelection = (bookingId: string) => {
     setSelectedBookings(prev => {
       const newSet = new Set(prev);
@@ -685,6 +729,27 @@ export default function Dashboard() {
             <Button 
               variant="outline" 
               size="sm" 
+              onClick={() => {
+                if (selectedBookings.size === 0) {
+                  toast({
+                    title: "No Bookings Selected",
+                    description: "Please select bookings from the list first",
+                    variant: "destructive",
+                  });
+                } else {
+                  setShowPaymentDialog(true);
+                }
+              }}
+              data-testid="button-payment-method"
+              className="flex-1 sm:flex-none"
+            >
+              <Wallet className="mr-1 sm:mr-2 h-4 w-4" />
+              <span className="hidden sm:inline">Payment</span>
+              <span className="sm:hidden">Payment</span>
+            </Button>
+            <Button 
+              variant="outline" 
+              size="sm" 
               onClick={handleRefresh}
               data-testid="button-refresh-list"
               className="flex-1 sm:flex-none"
@@ -778,6 +843,39 @@ export default function Dashboard() {
         onComplete={handleCompleteTour}
         onSkip={handleCompleteTour}
       />
+
+      <Dialog open={showPaymentDialog} onOpenChange={setShowPaymentDialog}>
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle>Select Payment Method</DialogTitle>
+            <DialogDescription>
+              Choose how the payment was received for {selectedBookings.size} selected booking(s)
+            </DialogDescription>
+          </DialogHeader>
+          <div className="grid gap-3 py-4">
+            <Button
+              variant="outline"
+              size="lg"
+              onClick={() => handlePaymentMethod("cash")}
+              data-testid="button-payment-cash"
+              className="h-16 text-lg"
+            >
+              <Wallet className="mr-2 h-5 w-5" />
+              Cash
+            </Button>
+            <Button
+              variant="outline"
+              size="lg"
+              onClick={() => handlePaymentMethod("upi_online")}
+              data-testid="button-payment-upi"
+              className="h-16 text-lg"
+            >
+              <Wallet className="mr-2 h-5 w-5" />
+              UPI / Online Payment
+            </Button>
+          </div>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
