@@ -9,7 +9,7 @@ import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Trophy, Plus, Users, Calendar, DollarSign, Medal, Trash2, UserPlus, Award, Target, Gamepad2, Crown, Star } from "lucide-react";
+import { Trophy, Plus, Users, Calendar as CalendarIcon, DollarSign, Medal, Trash2, UserPlus, Award, Target, Gamepad2, Crown, Star, Image, X, Settings2 } from "lucide-react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
@@ -17,19 +17,28 @@ import { queryClient, apiRequest } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
 import { format } from "date-fns";
 import { ScrollArea } from "@/components/ui/scroll-area";
+import { DateTimePicker } from "@/components/ui/datetime-picker";
+import { Checkbox } from "@/components/ui/checkbox";
 
 const tournamentSchema = z.object({
   name: z.string().min(3, "Tournament name must be at least 3 characters"),
   game: z.string().min(1, "Game is required"),
   category: z.string().min(1, "Category is required"),
   description: z.string().optional(),
-  startDate: z.string().min(1, "Start date is required"),
-  endDate: z.string().optional(),
+  imageUrl: z.string().url("Must be a valid URL").optional().or(z.literal("")),
+  startDate: z.date({ required_error: "Start date is required" }),
+  endDate: z.date().optional(),
   maxParticipants: z.string().min(1, "Max participants is required"),
   entryFee: z.string().default("0"),
   prizePool: z.string().optional(),
   status: z.string().default("upcoming"),
   rules: z.string().optional(),
+  customFormFields: z.array(z.object({
+    name: z.string(),
+    label: z.string(),
+    type: z.enum(["text", "email", "tel", "number"]),
+    required: z.boolean(),
+  })).default([]),
   createdBy: z.string().default("admin"),
 });
 
@@ -37,6 +46,7 @@ const participantSchema = z.object({
   playerName: z.string().min(1, "Player name is required"),
   playerEmail: z.string().email("Invalid email").optional().or(z.literal("")),
   playerPhone: z.string().optional(),
+  customFields: z.record(z.string()).default({}),
   status: z.string().default("registered"),
 });
 
@@ -46,6 +56,7 @@ interface Tournament {
   game: string;
   category: string;
   description: string | null;
+  imageUrl: string | null;
   startDate: string;
   endDate: string | null;
   maxParticipants: number;
@@ -53,6 +64,12 @@ interface Tournament {
   prizePool: string | null;
   status: string;
   rules: string | null;
+  customFormFields: Array<{
+    name: string;
+    label: string;
+    type: "text" | "email" | "tel" | "number";
+    required: boolean;
+  }>;
   createdBy: string;
   createdAt: string;
   updatedAt: string;
@@ -64,6 +81,7 @@ interface Participant {
   playerName: string;
   playerEmail: string | null;
   playerPhone: string | null;
+  customFields: Record<string, string>;
   registeredAt: string;
   placement: number | null;
   score: string | null;
@@ -85,20 +103,22 @@ export default function Tournaments() {
     enabled: !!selectedTournament?.id,
   });
 
-  const form = useForm({
+  const form = useForm<z.infer<typeof tournamentSchema>>({
     resolver: zodResolver(tournamentSchema),
     defaultValues: {
       name: "",
       game: "",
       category: "PC",
       description: "",
-      startDate: "",
-      endDate: "",
+      imageUrl: "",
+      startDate: new Date(),
+      endDate: undefined,
       maxParticipants: "16",
       entryFee: "0",
       prizePool: "",
       status: "upcoming",
       rules: "",
+      customFormFields: [],
       createdBy: "admin",
     },
   });
@@ -109,6 +129,7 @@ export default function Tournaments() {
       playerName: "",
       playerEmail: "",
       playerPhone: "",
+      customFields: {} as Record<string, string>,
       status: "registered",
     },
   });
@@ -184,13 +205,16 @@ export default function Tournaments() {
         game: tournament.game,
         category: tournament.category,
         description: tournament.description || undefined,
-        startDate: tournament.startDate,
-        endDate: tournament.endDate || undefined,
+        imageUrl: tournament.imageUrl || undefined,
+        startDate: new Date(tournament.startDate),
+        endDate: tournament.endDate ? new Date(tournament.endDate) : undefined,
         maxParticipants: tournament.maxParticipants,
         entryFee: tournament.entryFee,
         prizePool: tournament.prizePool || undefined,
         rules: tournament.rules || undefined,
+        customFormFields: tournament.customFormFields || [],
         status,
+        createdBy: tournament.createdBy,
       });
     },
     onSuccess: () => {
@@ -336,6 +360,19 @@ export default function Tournaments() {
                     </FormItem>
                   )}
                 />
+                <FormField
+                  control={form.control}
+                  name="imageUrl"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Tournament Image URL (Optional)</FormLabel>
+                      <FormControl>
+                        <Input placeholder="https://example.com/image.jpg" {...field} data-testid="input-image-url" />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
                 <div className="grid grid-cols-2 gap-4">
                   <FormField
                     control={form.control}
@@ -344,7 +381,12 @@ export default function Tournaments() {
                       <FormItem>
                         <FormLabel>Start Date</FormLabel>
                         <FormControl>
-                          <Input type="datetime-local" {...field} data-testid="input-start-date" />
+                          <DateTimePicker
+                            value={field.value}
+                            onChange={field.onChange}
+                            placeholder="Select start date and time"
+                            data-testid="input-start-date"
+                          />
                         </FormControl>
                         <FormMessage />
                       </FormItem>
@@ -357,7 +399,12 @@ export default function Tournaments() {
                       <FormItem>
                         <FormLabel>End Date (Optional)</FormLabel>
                         <FormControl>
-                          <Input type="datetime-local" {...field} data-testid="input-end-date" />
+                          <DateTimePicker
+                            value={field.value}
+                            onChange={field.onChange}
+                            placeholder="Select end date and time"
+                            data-testid="input-end-date"
+                          />
                         </FormControl>
                         <FormMessage />
                       </FormItem>
@@ -414,6 +461,105 @@ export default function Tournaments() {
                       <FormControl>
                         <Textarea placeholder="Tournament rules and regulations..." {...field} data-testid="input-rules" />
                       </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+                <FormField
+                  control={form.control}
+                  name="customFormFields"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel className="flex items-center gap-2">
+                        <Settings2 className="h-4 w-4" />
+                        Custom Registration Fields
+                      </FormLabel>
+                      <div className="space-y-3 border rounded-lg p-4 bg-muted/50">
+                        {field.value.map((customField, index) => (
+                          <div key={index} className="flex gap-2 items-start bg-background p-3 rounded border">
+                            <div className="flex-1 grid grid-cols-3 gap-2">
+                              <Input
+                                placeholder="Field name"
+                                value={customField.name}
+                                onChange={(e) => {
+                                  const updated = [...field.value];
+                                  updated[index].name = e.target.value;
+                                  field.onChange(updated);
+                                }}
+                                data-testid={`input-custom-field-name-${index}`}
+                              />
+                              <Input
+                                placeholder="Field label"
+                                value={customField.label}
+                                onChange={(e) => {
+                                  const updated = [...field.value];
+                                  updated[index].label = e.target.value;
+                                  field.onChange(updated);
+                                }}
+                                data-testid={`input-custom-field-label-${index}`}
+                              />
+                              <Select
+                                value={customField.type}
+                                onValueChange={(value: "text" | "email" | "tel" | "number") => {
+                                  const updated = [...field.value];
+                                  updated[index].type = value;
+                                  field.onChange(updated);
+                                }}
+                              >
+                                <SelectTrigger data-testid={`select-custom-field-type-${index}`}>
+                                  <SelectValue />
+                                </SelectTrigger>
+                                <SelectContent>
+                                  <SelectItem value="text">Text</SelectItem>
+                                  <SelectItem value="email">Email</SelectItem>
+                                  <SelectItem value="tel">Phone</SelectItem>
+                                  <SelectItem value="number">Number</SelectItem>
+                                </SelectContent>
+                              </Select>
+                            </div>
+                            <div className="flex items-center gap-2">
+                              <Checkbox
+                                checked={customField.required}
+                                onCheckedChange={(checked) => {
+                                  const updated = [...field.value];
+                                  updated[index].required = checked === true;
+                                  field.onChange(updated);
+                                }}
+                                data-testid={`checkbox-custom-field-required-${index}`}
+                              />
+                              <span className="text-sm text-muted-foreground">Required</span>
+                              <Button
+                                type="button"
+                                variant="ghost"
+                                size="sm"
+                                onClick={() => {
+                                  const updated = field.value.filter((_, i) => i !== index);
+                                  field.onChange(updated);
+                                }}
+                                data-testid={`button-remove-custom-field-${index}`}
+                              >
+                                <X className="h-4 w-4" />
+                              </Button>
+                            </div>
+                          </div>
+                        ))}
+                        <Button
+                          type="button"
+                          variant="outline"
+                          size="sm"
+                          onClick={() => {
+                            field.onChange([
+                              ...field.value,
+                              { name: "", label: "", type: "text" as const, required: false },
+                            ]);
+                          }}
+                          className="w-full"
+                          data-testid="button-add-custom-field"
+                        >
+                          <Plus className="h-4 w-4 mr-2" />
+                          Add Custom Field
+                        </Button>
+                      </div>
                       <FormMessage />
                     </FormItem>
                   )}
@@ -631,6 +777,45 @@ export default function Tournaments() {
                                 </FormItem>
                               )}
                             />
+                            
+                            {selectedTournament.customFormFields && selectedTournament.customFormFields.length > 0 && (
+                              <div className="space-y-4 pt-2 border-t">
+                                <p className="text-sm font-medium text-muted-foreground">Additional Information</p>
+                                {selectedTournament.customFormFields.map((customField, index) => (
+                                  <FormField
+                                    key={customField.name}
+                                    control={participantForm.control}
+                                    name={`customFields.${customField.name}` as any}
+                                    render={({ field }) => (
+                                      <FormItem>
+                                        <FormLabel>
+                                          {customField.label}
+                                          {customField.required && <span className="text-red-500 ml-1">*</span>}
+                                        </FormLabel>
+                                        <FormControl>
+                                          <Input
+                                            type={customField.type}
+                                            placeholder={customField.label}
+                                            {...field}
+                                            value={participantForm.watch('customFields')?.[customField.name] || ''}
+                                            onChange={(e) => {
+                                              const currentCustomFields = participantForm.getValues('customFields') || {};
+                                              participantForm.setValue('customFields', {
+                                                ...currentCustomFields,
+                                                [customField.name]: e.target.value
+                                              });
+                                            }}
+                                            data-testid={`input-custom-${customField.name}`}
+                                          />
+                                        </FormControl>
+                                        <FormMessage />
+                                      </FormItem>
+                                    )}
+                                  />
+                                ))}
+                              </div>
+                            )}
+                            
                             <Button type="submit" className="w-full" disabled={addParticipantMutation.isPending} data-testid="button-submit-participant">
                               {addParticipantMutation.isPending ? "Adding..." : "Add Participant"}
                             </Button>
@@ -729,7 +914,7 @@ function TournamentCard({
         )}
 
         <div className="flex items-center gap-2 text-sm text-muted-foreground">
-          <Calendar className="h-4 w-4" />
+          <CalendarIcon className="h-4 w-4" />
           <span>{format(new Date(tournament.startDate), "MMM dd, yyyy 'at' hh:mm a")}</span>
         </div>
 
