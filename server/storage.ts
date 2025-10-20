@@ -1066,6 +1066,8 @@ export class DatabaseStorage implements IStorage {
   }
 
   async updateDeviceMaintenanceStatus(category: string, seatName: string, status: string, notes?: string): Promise<DeviceMaintenance | undefined> {
+    const existing = await this.getDeviceMaintenance(category, seatName);
+    
     const updateData: any = {
       status,
       updatedAt: new Date(),
@@ -1079,16 +1081,32 @@ export class DatabaseStorage implements IStorage {
       updateData.lastMaintenanceDate = new Date();
     }
     
-    const [updated] = await db
-      .update(deviceMaintenance)
-      .set(updateData)
-      .where(and(
-        eq(deviceMaintenance.category, category),
-        eq(deviceMaintenance.seatName, seatName)
-      ))
-      .returning();
-    
-    return updated;
+    if (existing) {
+      const [updated] = await db
+        .update(deviceMaintenance)
+        .set(updateData)
+        .where(and(
+          eq(deviceMaintenance.category, category),
+          eq(deviceMaintenance.seatName, seatName)
+        ))
+        .returning();
+      
+      return updated;
+    } else {
+      const newRecord = {
+        category,
+        seatName,
+        status,
+        maintenanceNotes: notes,
+        totalUsageHours: 0,
+        totalSessions: 0,
+        issuesReported: 0,
+        lastMaintenanceDate: status === "healthy" ? new Date() : null,
+      };
+      
+      const [created] = await db.insert(deviceMaintenance).values(newRecord).returning();
+      return created;
+    }
   }
 
 }
