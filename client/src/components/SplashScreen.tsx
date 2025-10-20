@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import { Sparkles, Zap, Gamepad2 } from "lucide-react";
-import splashLogo from "@assets/WhatsApp_Image_2025-10-10_at_18.36.58_1fb5438e-removebg-preview_1760342704718.png";
+import splashLogo from "@assets/20251020_115324_1760941507517.png";
 
 interface SplashScreenProps {
   onComplete: () => void;
