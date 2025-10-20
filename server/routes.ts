@@ -1109,6 +1109,65 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  app.post("/api/maintenance/:category/:seatName/report-issue", requireAuth, async (req, res) => {
+    try {
+      const { category, seatName } = req.params;
+      const { issueType } = req.body;
+
+      if (!issueType) {
+        return res.status(400).json({ message: "Issue type is required" });
+      }
+
+      const decodedSeatName = decodeURIComponent(seatName);
+      const existing = await storage.getDeviceMaintenance(category, decodedSeatName);
+
+      const currentIssues = existing?.issuesReported || 0;
+      const updatedIssues = currentIssues + 1;
+
+      await storage.upsertDeviceMaintenance({
+        category,
+        seatName: decodedSeatName,
+        totalUsageHours: existing?.totalUsageHours || 0,
+        totalSessions: existing?.totalSessions || 0,
+        issuesReported: updatedIssues,
+        status: issueType === "repair" ? "needs_repair" : "has_glitch",
+        maintenanceNotes: `${issueType === "repair" ? "Repair" : "Glitch"} reported by staff`,
+        lastMaintenanceDate: existing?.lastMaintenanceDate || null,
+      });
+
+      let aiSuggestion = `Issue reported successfully. Device now has ${updatedIssues} issue(s) on record.`;
+
+      try {
+        const { getAIMaintenanceRecommendation } = await import('./ai-maintenance');
+        const daysSince = existing?.lastMaintenanceDate 
+          ? Math.floor((Date.now() - new Date(existing.lastMaintenanceDate).getTime()) / (1000 * 60 * 60 * 24))
+          : null;
+
+        const recommendation = await getAIMaintenanceRecommendation({
+          category,
+          seatName: decodedSeatName,
+          usageHours: existing?.totalUsageHours || 0,
+          sessions: existing?.totalSessions || 0,
+          issues: updatedIssues,
+          daysSinceMaintenance: daysSince,
+        });
+
+        aiSuggestion = `${issueType === "repair" ? "Repair needed" : "Glitch detected"}: ${recommendation}`;
+      } catch (aiError) {
+        console.error("AI recommendation failed:", aiError);
+        aiSuggestion = `${issueType === "repair" ? "Repair needed" : "Glitch detected"}. Please check the AI Maintenance predictions for detailed analysis.`;
+      }
+
+      res.json({ 
+        success: true, 
+        issuesReported: updatedIssues,
+        aiSuggestion 
+      });
+    } catch (error: any) {
+      res.status(500).json({ message: error.message });
+    }
+  });
+
   const httpServer = createServer(app);
 
   return httpServer;
