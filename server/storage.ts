@@ -34,6 +34,8 @@ import {
   type InsertLoadPrediction,
   type RetentionConfig,
   type InsertRetentionConfig,
+  type DeviceMaintenance,
+  type InsertDeviceMaintenance,
   bookings,
   deviceConfigs,
   pricingConfigs,
@@ -50,7 +52,8 @@ import {
   games,
   loadMetrics,
   loadPredictions,
-  retentionConfig
+  retentionConfig,
+  deviceMaintenance
 } from "@shared/schema";
 import { db } from "./db";
 import { eq, and, gte, lte, lt, desc, inArray } from "drizzle-orm";
@@ -174,6 +177,11 @@ export interface IStorage {
   
   getRetentionConfig(): Promise<RetentionConfig>;
   updateRetentionConfig(config: Partial<InsertRetentionConfig>): Promise<RetentionConfig>;
+  
+  getAllDeviceMaintenance(): Promise<DeviceMaintenance[]>;
+  getDeviceMaintenance(category: string, seatName: string): Promise<DeviceMaintenance | undefined>;
+  upsertDeviceMaintenance(data: InsertDeviceMaintenance): Promise<DeviceMaintenance>;
+  updateDeviceMaintenanceStatus(category: string, seatName: string, status: string, notes?: string): Promise<DeviceMaintenance | undefined>;
   
   initializeDefaults(): Promise<void>;
 }
@@ -1016,6 +1024,68 @@ export class DatabaseStorage implements IStorage {
       .update(retentionConfig)
       .set({ ...config, updatedAt: new Date() })
       .where(eq(retentionConfig.id, current.id))
+      .returning();
+    
+    return updated;
+  }
+
+  async getAllDeviceMaintenance(): Promise<DeviceMaintenance[]> {
+    return await db.select().from(deviceMaintenance);
+  }
+
+  async getDeviceMaintenance(category: string, seatName: string): Promise<DeviceMaintenance | undefined> {
+    const records = await db
+      .select()
+      .from(deviceMaintenance)
+      .where(and(
+        eq(deviceMaintenance.category, category),
+        eq(deviceMaintenance.seatName, seatName)
+      ))
+      .limit(1);
+    
+    return records[0];
+  }
+
+  async upsertDeviceMaintenance(data: InsertDeviceMaintenance): Promise<DeviceMaintenance> {
+    const existing = await this.getDeviceMaintenance(data.category, data.seatName);
+    
+    if (existing) {
+      const [updated] = await db
+        .update(deviceMaintenance)
+        .set({ ...data, updatedAt: new Date() })
+        .where(and(
+          eq(deviceMaintenance.category, data.category),
+          eq(deviceMaintenance.seatName, data.seatName)
+        ))
+        .returning();
+      return updated;
+    }
+    
+    const [created] = await db.insert(deviceMaintenance).values(data).returning();
+    return created;
+  }
+
+  async updateDeviceMaintenanceStatus(category: string, seatName: string, status: string, notes?: string): Promise<DeviceMaintenance | undefined> {
+    const updateData: any = {
+      status,
+      updatedAt: new Date(),
+    };
+    
+    if (notes !== undefined) {
+      updateData.maintenanceNotes = notes;
+    }
+    
+    if (status === "healthy") {
+      updateData.lastMaintenanceDate = new Date();
+    }
+    
+    const [updated] = await db
+      .update(deviceMaintenance)
+      .set(updateData)
+      .where(and(
+        eq(deviceMaintenance.category, category),
+        eq(deviceMaintenance.seatName, seatName)
+      ))
       .returning();
     
     return updated;

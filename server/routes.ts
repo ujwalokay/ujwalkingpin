@@ -1025,6 +1025,76 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // AI Maintenance Prediction Routes
+  app.get("/api/ai/maintenance/predictions", requireAuth, async (req, res) => {
+    try {
+      const { generateMaintenancePredictions } = await import('./ai-maintenance');
+      const predictions = await generateMaintenancePredictions();
+      res.json(predictions);
+    } catch (error: any) {
+      res.status(500).json({ message: error.message });
+    }
+  });
+
+  app.get("/api/maintenance", requireAuth, async (req, res) => {
+    try {
+      const maintenanceRecords = await storage.getAllDeviceMaintenance();
+      res.json(maintenanceRecords);
+    } catch (error: any) {
+      res.status(500).json({ message: error.message });
+    }
+  });
+
+  app.post("/api/maintenance", requireAuth, async (req, res) => {
+    try {
+      const maintenanceSchema = z.object({
+        category: z.string(),
+        seatName: z.string(),
+        totalUsageHours: z.number().optional(),
+        totalSessions: z.number().optional(),
+        issuesReported: z.number().optional(),
+        maintenanceNotes: z.string().optional(),
+        status: z.enum(["healthy", "warning", "needs_maintenance", "critical"]).optional(),
+        lastMaintenanceDate: z.union([z.string(), z.date()]).optional(),
+      });
+
+      const validatedData = maintenanceSchema.parse(req.body);
+      const created = await storage.upsertDeviceMaintenance(validatedData);
+      res.json(created);
+    } catch (error: any) {
+      if (error instanceof z.ZodError) {
+        return res.status(400).json({ message: "Invalid maintenance data", errors: error.errors });
+      }
+      res.status(500).json({ message: error.message });
+    }
+  });
+
+  app.put("/api/maintenance/:category/:seatName/status", requireAuth, async (req, res) => {
+    try {
+      const { category, seatName } = req.params;
+      const { status, notes } = req.body;
+
+      if (!status) {
+        return res.status(400).json({ message: "Status is required" });
+      }
+
+      const updated = await storage.updateDeviceMaintenanceStatus(
+        category,
+        decodeURIComponent(seatName),
+        status,
+        notes
+      );
+
+      if (!updated) {
+        return res.status(404).json({ message: "Device maintenance record not found" });
+      }
+
+      res.json(updated);
+    } catch (error: any) {
+      res.status(500).json({ message: error.message });
+    }
+  });
+
   const httpServer = createServer(app);
 
   return httpServer;
