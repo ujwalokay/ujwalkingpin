@@ -1047,6 +1047,17 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Gemini AI Usage Stats
+  app.get("/api/ai/usage", requireAuth, async (req, res) => {
+    try {
+      const { getGeminiUsageStats } = await import('./gemini-rate-limiter');
+      const stats = getGeminiUsageStats();
+      res.json(stats);
+    } catch (error: any) {
+      res.status(500).json({ message: error.message });
+    }
+  });
+
   app.get("/api/maintenance", requireAuth, async (req, res) => {
     try {
       const maintenanceRecords = await storage.getAllDeviceMaintenance();

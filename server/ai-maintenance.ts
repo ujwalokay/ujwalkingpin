@@ -1,8 +1,6 @@
-import { GoogleGenAI } from "@google/genai";
 import { storage } from "./storage";
 import type { DeviceMaintenance } from "@shared/schema";
-
-const ai = new GoogleGenAI({ apiKey: process.env.GEMINI_API_KEY || "" });
+import { getGeminiRateLimiter } from "./gemini-rate-limiter";
 
 export interface MaintenancePrediction {
   category: string;
@@ -89,7 +87,7 @@ export async function generateMaintenancePredictions(): Promise<AIMaintenanceIns
     let recommendedAction = "Continue regular monitoring";
     let reasoning = "";
 
-    if (hasGemini) {
+    if (hasGemini && !getGeminiRateLimiter().shouldUseFallback()) {
       try {
         const aiAnalysis = await getAIPrediction({
           category: device.category,
@@ -104,8 +102,12 @@ export async function generateMaintenancePredictions(): Promise<AIMaintenanceIns
         estimatedDays = aiAnalysis.estimatedDays;
         recommendedAction = aiAnalysis.recommendedAction;
         reasoning = aiAnalysis.reasoning;
-      } catch (error) {
-        console.error(`AI prediction failed for ${device.category} - ${device.seatName}, falling back to heuristics:`, error);
+      } catch (error: any) {
+        if (error.message === "DAILY_LIMIT_REACHED") {
+          console.warn(`⚠️  Gemini daily limit reached. Using heuristics for ${device.category} - ${device.seatName}`);
+        } else {
+          console.error(`AI prediction failed for ${device.category} - ${device.seatName}, falling back to heuristics:`, error);
+        }
         const heuristic = getHeuristicPrediction(usageHours, totalSessions, issuesReported, daysSinceLastMaintenance);
         riskLevel = heuristic.riskLevel;
         estimatedDays = heuristic.estimatedDays;
@@ -236,7 +238,9 @@ Consider:
 - Devices never serviced or not serviced in 45+ days need attention
 - Be practical and specific in your recommendations`;
 
-  const response = await ai.models.generateContent({
+  const rateLimiter = getGeminiRateLimiter();
+  
+  const response = await rateLimiter.generateContent({
     model: "gemini-2.5-flash",
     config: {
       responseMimeType: "application/json",
@@ -296,7 +300,9 @@ Provide a brief, actionable recommendation (2-3 sentences) focusing on:
 
 Keep it concise and practical for gaming center staff.`;
 
-    const response = await ai.models.generateContent({
+    const rateLimiter = getGeminiRateLimiter();
+    
+    const response = await rateLimiter.generateContent({
       model: "gemini-2.5-flash",
       config: {
         systemInstruction: "You are an expert in predictive maintenance for gaming equipment. Provide concise, actionable recommendations.",
@@ -305,7 +311,10 @@ Keep it concise and practical for gaming center staff.`;
     });
 
     return response.text || "Unable to generate recommendation at this time.";
-  } catch (error) {
+  } catch (error: any) {
+    if (error.message === "DAILY_LIMIT_REACHED") {
+      return "AI daily limit reached. Device requires attention based on reported issues.";
+    }
     console.error("Error getting AI recommendation:", error);
     return "AI recommendation unavailable. Please use rule-based predictions.";
   }

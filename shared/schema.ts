@@ -15,6 +15,18 @@ export const sessions = pgTable(
   (table) => [index("IDX_session_expire").on(table.expire)],
 );
 
+export const geminiUsage = pgTable("gemini_usage", {
+  id: varchar("id").primaryKey().$defaultFn(() => "gemini_usage_singleton"),
+  requestsToday: integer("requests_today").notNull().default(0),
+  lastResetDate: varchar("last_reset_date").notNull(),
+  requestLog: jsonb("request_log").$type<Array<{ timestamp: number; model: string }>>().notNull().default([]),
+  updatedAt: timestamp("updated_at").notNull().defaultNow(),
+});
+
+export const insertGeminiUsageSchema = createInsertSchema(geminiUsage).omit({ id: true, updatedAt: true });
+export type InsertGeminiUsage = z.infer<typeof insertGeminiUsageSchema>;
+export type GeminiUsage = typeof geminiUsage.$inferSelect;
+
 // Drizzle table definitions
 export const bookings = pgTable("bookings", {
   id: varchar("id").primaryKey().$defaultFn(() => crypto.randomUUID()),

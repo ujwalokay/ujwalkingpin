@@ -1,7 +1,5 @@
-import { GoogleGenAI } from "@google/genai";
 import { storage } from "./storage";
-
-const ai = new GoogleGenAI({ apiKey: process.env.GEMINI_API_KEY || "" });
+import { getGeminiRateLimiter } from "./gemini-rate-limiter";
 
 let cachedTrafficPrediction: { data: TrafficPredictionResult; timestamp: number; date: string } | null = null;
 const CACHE_DURATION = 10 * 60 * 1000;
@@ -95,7 +93,7 @@ export async function generateTrafficPredictions(): Promise<TrafficPredictionRes
 
   let predictions: HourlyTrafficPrediction[] = [];
 
-  if (hasGemini && historicalData.length > 0) {
+  if (hasGemini && historicalData.length > 0 && !getGeminiRateLimiter().shouldUseFallback()) {
     try {
       predictions = await getAITrafficPrediction(
         historicalData,
@@ -103,8 +101,12 @@ export async function generateTrafficPredictions(): Promise<TrafficPredictionRes
         currentHour,
         todayBookings
       );
-    } catch (error) {
-      console.error("AI traffic prediction failed, falling back to heuristics:", error);
+    } catch (error: any) {
+      if (error.message === "DAILY_LIMIT_REACHED") {
+        console.warn("⚠️  Gemini daily limit reached. Using heuristics for traffic prediction.");
+      } else {
+        console.error("AI traffic prediction failed, falling back to heuristics:", error);
+      }
       predictions = getHeuristicTrafficPrediction(historicalData, todayDayOfWeek, currentHour, todayBookings);
     }
   } else {
@@ -247,7 +249,9 @@ Consider:
 - Typical gaming center peak hours (evening 18:00-22:00)
 - Be realistic with numbers (0-20 range typical)`;
 
-  const response = await ai.models.generateContent({
+  const rateLimiter = getGeminiRateLimiter();
+  
+  const response = await rateLimiter.generateContent({
     model: "gemini-2.5-flash",
     config: {
       responseMimeType: "application/json",

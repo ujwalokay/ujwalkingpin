@@ -5,7 +5,7 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Alert, AlertDescription } from "@/components/ui/alert";
-import { Sparkles, Brain, AlertTriangle, CheckCircle2, Clock, Wrench, RefreshCw, TrendingUp, AlertCircle, Bug } from "lucide-react";
+import { Sparkles, Brain, AlertTriangle, CheckCircle2, Clock, Wrench, RefreshCw, TrendingUp, AlertCircle, Bug, Zap, Info } from "lucide-react";
 import { queryClient, apiRequest } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
 import { ScrollArea } from "@/components/ui/scroll-area";
@@ -38,6 +38,21 @@ interface AIMaintenanceInsights {
   generatedAt: string;
 }
 
+interface AIUsageStats {
+  requestsLastMinute: number;
+  requestsToday: number;
+  limits: {
+    rpm: number;
+    rpd: number;
+  };
+  percentageUsed: {
+    rpm: number;
+    rpd: number;
+  };
+  canMakeRequest: boolean;
+  queueLength: number;
+}
+
 export default function AIMaintenance() {
   const { toast } = useToast();
   const [activeTab, setActiveTab] = useState("overview");
@@ -45,6 +60,11 @@ export default function AIMaintenance() {
 
   const { data: insights, isLoading, refetch } = useQuery<AIMaintenanceInsights>({
     queryKey: ["/api/ai/maintenance/predictions"],
+  });
+
+  const { data: usageStats } = useQuery<AIUsageStats>({
+    queryKey: ["/api/ai/usage"],
+    refetchInterval: 10000,
   });
 
   useEffect(() => {
@@ -182,6 +202,49 @@ export default function AIMaintenance() {
           Refresh Predictions
         </Button>
       </div>
+
+      {/* Gemini AI Usage Stats */}
+      {usageStats && (
+        <Alert className="border-cyan-500/50 bg-cyan-50 dark:bg-cyan-950/20">
+          <Zap className="h-4 w-4 text-cyan-600" />
+          <AlertDescription className="text-sm">
+            <div className="flex items-center justify-between">
+              <div>
+                <strong className="font-semibold text-cyan-900 dark:text-cyan-100">AI Usage Today:</strong>
+                <span className="ml-2 text-cyan-800 dark:text-cyan-200">
+                  {usageStats.requestsToday}/{usageStats.limits.rpd} requests ({usageStats.percentageUsed.rpd.toFixed(1)}%)
+                </span>
+              </div>
+              {usageStats.percentageUsed.rpd >= 80 && (
+                <Badge variant="destructive" className="ml-2">
+                  <AlertTriangle className="h-3 w-3 mr-1" />
+                  High Usage
+                </Badge>
+              )}
+            </div>
+            <div className="mt-2">
+              <div className="w-full bg-secondary rounded-full h-2">
+                <div 
+                  className={`h-2 rounded-full transition-all ${
+                    usageStats.percentageUsed.rpd >= 90 ? 'bg-red-500' :
+                    usageStats.percentageUsed.rpd >= 70 ? 'bg-yellow-500' :
+                    'bg-green-500'
+                  }`}
+                  style={{ width: `${Math.min(usageStats.percentageUsed.rpd, 100)}%` }}
+                />
+              </div>
+            </div>
+            <p className="text-xs text-cyan-700 dark:text-cyan-300 mt-2">
+              {usageStats.percentageUsed.rpd >= 90 
+                ? "⚠️ Near daily limit - AI will use heuristics to preserve quota" 
+                : usageStats.percentageUsed.rpd >= 70
+                ? "Moderate usage - predictions still available"
+                : "✓ Quota available - AI predictions active"}
+              {usageStats.queueLength > 0 && ` | ${usageStats.queueLength} requests queued`}
+            </p>
+          </AlertDescription>
+        </Alert>
+      )}
 
       {/* Summary Cards */}
       <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
