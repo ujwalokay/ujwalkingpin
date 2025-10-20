@@ -1036,6 +1036,17 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // AI Traffic Prediction Routes
+  app.get("/api/ai/traffic/predictions", requireAuth, async (req, res) => {
+    try {
+      const { generateTrafficPredictions } = await import('./ai-traffic');
+      const predictions = await generateTrafficPredictions();
+      res.json(predictions);
+    } catch (error: any) {
+      res.status(500).json({ message: error.message });
+    }
+  });
+
   app.get("/api/maintenance", requireAuth, async (req, res) => {
     try {
       const maintenanceRecords = await storage.getAllDeviceMaintenance();
