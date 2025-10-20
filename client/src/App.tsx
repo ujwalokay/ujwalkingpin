@@ -25,6 +25,7 @@ import Timeline from "@/pages/Timeline";
 import History from "@/pages/History";
 import ActivityLogs from "@/pages/ActivityLogs";
 import TermsAndConditions from "@/pages/TermsAndConditions";
+import Tournaments from "@/pages/Tournaments";
 import PublicStatus from "@/pages/PublicStatus";
 import Home from "@/pages/Home";
 import ConsumerGallery from "@/pages/ConsumerGallery";
@@ -47,6 +48,7 @@ function Router() {
       <Route path="/activity-logs" component={ActivityLogs} />
       <Route path="/analytics" component={Analytics} />
       <Route path="/ai-maintenance" component={AIMaintenance} />
+      <Route path="/tournaments" component={Tournaments} />
       <Route path="/food" component={Food} />
       <Route path="/expenses" component={Expenses} />
       <Route path="/settings" component={Settings} />

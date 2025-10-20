@@ -345,4 +345,48 @@ export const insertDeviceMaintenanceSchema = createInsertSchema(deviceMaintenanc
 export type InsertDeviceMaintenance = z.infer<typeof insertDeviceMaintenanceSchema>;
 export type DeviceMaintenance = typeof deviceMaintenance.$inferSelect;
 
+export const tournaments = pgTable("tournaments", {
+  id: varchar("id").primaryKey().$defaultFn(() => crypto.randomUUID()),
+  name: varchar("name").notNull(),
+  game: varchar("game").notNull(),
+  category: varchar("category").notNull(),
+  description: text("description"),
+  startDate: timestamp("start_date").notNull(),
+  endDate: timestamp("end_date"),
+  maxParticipants: integer("max_participants").notNull().default(16),
+  entryFee: varchar("entry_fee").notNull().default("0"),
+  prizePool: varchar("prize_pool"),
+  status: varchar("status").notNull().default("upcoming"),
+  rules: text("rules"),
+  createdBy: varchar("created_by").notNull(),
+  createdAt: timestamp("created_at").notNull().defaultNow(),
+  updatedAt: timestamp("updated_at").notNull().defaultNow(),
+});
+
+export const insertTournamentSchema = createInsertSchema(tournaments).omit({ id: true, createdAt: true, updatedAt: true }).extend({
+  startDate: z.union([z.string(), z.date()]).transform(val => typeof val === 'string' ? new Date(val) : val),
+  endDate: z.union([z.string(), z.date()]).optional().transform(val => {
+    if (!val) return null;
+    return typeof val === 'string' ? new Date(val) : val;
+  }),
+});
+export type InsertTournament = z.infer<typeof insertTournamentSchema>;
+export type Tournament = typeof tournaments.$inferSelect;
+
+export const tournamentParticipants = pgTable("tournament_participants", {
+  id: varchar("id").primaryKey().$defaultFn(() => crypto.randomUUID()),
+  tournamentId: varchar("tournament_id").notNull(),
+  playerName: varchar("player_name").notNull(),
+  playerEmail: varchar("player_email"),
+  playerPhone: varchar("player_phone"),
+  registeredAt: timestamp("registered_at").notNull().defaultNow(),
+  placement: integer("placement"),
+  score: varchar("score"),
+  status: varchar("status").notNull().default("registered"),
+});
+
+export const insertTournamentParticipantSchema = createInsertSchema(tournamentParticipants).omit({ id: true, registeredAt: true });
+export type InsertTournamentParticipant = z.infer<typeof insertTournamentParticipantSchema>;
+export type TournamentParticipant = typeof tournamentParticipants.$inferSelect;
+
 
