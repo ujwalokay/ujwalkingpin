@@ -534,7 +534,6 @@ export default function Dashboard() {
       });
       const data = await response.json();
       
-      setHideCompleted(true);
       queryClient.invalidateQueries({ queryKey: ['bookings'] });
       queryClient.invalidateQueries({ queryKey: ['/api/booking-history'] });
       
