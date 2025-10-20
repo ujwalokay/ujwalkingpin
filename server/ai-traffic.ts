@@ -1,5 +1,4 @@
 import { storage } from "./storage";
-import { getGeminiRateLimiter } from "./gemini-rate-limiter";
 
 let cachedTrafficPrediction: { data: TrafficPredictionResult; timestamp: number; date: string } | null = null;
 const CACHE_DURATION = 10 * 60 * 1000;
@@ -71,6 +70,7 @@ export async function generateTrafficPredictions(): Promise<TrafficPredictionRes
       date: dayStart.toISOString().split('T')[0],
       dayOfWeek: dayStart.toLocaleDateString('en-US', { weekday: 'long' }),
       hourlyPattern,
+      totalVisitors: dayBookings.length,
     });
   }
 
@@ -89,29 +89,12 @@ export async function generateTrafficPredictions(): Promise<TrafficPredictionRes
 
   const todayBookings = [...todayActual, ...todayHistorical];
 
-  const hasGemini = !!process.env.GEMINI_API_KEY;
-
-  let predictions: HourlyTrafficPrediction[] = [];
-
-  if (hasGemini && historicalData.length > 0 && !getGeminiRateLimiter().shouldUseFallback()) {
-    try {
-      predictions = await getAITrafficPrediction(
-        historicalData,
-        todayDayOfWeek,
-        currentHour,
-        todayBookings
-      );
-    } catch (error: any) {
-      if (error.message === "DAILY_LIMIT_REACHED") {
-        console.warn("⚠️  Gemini daily limit reached. Using heuristics for traffic prediction.");
-      } else {
-        console.error("AI traffic prediction failed, falling back to heuristics:", error);
-      }
-      predictions = getHeuristicTrafficPrediction(historicalData, todayDayOfWeek, currentHour, todayBookings);
-    }
-  } else {
-    predictions = getHeuristicTrafficPrediction(historicalData, todayDayOfWeek, currentHour, todayBookings);
-  }
+  const predictions = calculateTrafficPrediction(
+    historicalData,
+    todayDayOfWeek,
+    currentHour,
+    todayBookings
+  );
 
   const peakPrediction = predictions.reduce((max, p) => 
     p.predictedVisitors > max.predictedVisitors ? p : max
@@ -140,6 +123,24 @@ export async function generateTrafficPredictions(): Promise<TrafficPredictionRes
     insights.push(`${highConfidence} hours have high-confidence predictions based on historical patterns`);
   }
 
+  const todaySoFar = todayBookings.filter(b => {
+    const start = new Date(b.startTime);
+    return start.getHours() < currentHour;
+  }).length;
+  
+  if (todaySoFar > 0 && historicalData.length > 0) {
+    const sameDayAvg = historicalData
+      .filter(d => d.dayOfWeek === todayDayOfWeek)
+      .reduce((sum, d) => sum + d.hourlyPattern.slice(0, currentHour).reduce((a, b) => a + b, 0), 0) / 
+      Math.max(1, historicalData.filter(d => d.dayOfWeek === todayDayOfWeek).length);
+    
+    if (todaySoFar > sameDayAvg * 1.2) {
+      insights.push(`Today is busier than usual - ${Math.round((todaySoFar / sameDayAvg - 1) * 100)}% above average`);
+    } else if (todaySoFar < sameDayAvg * 0.8) {
+      insights.push(`Today is quieter than usual - ${Math.round((1 - todaySoFar / sameDayAvg) * 100)}% below average`);
+    }
+  }
+
   const result = {
     predictions,
     summary: {
@@ -157,7 +158,7 @@ export async function generateTrafficPredictions(): Promise<TrafficPredictionRes
   return result;
 }
 
-function getHeuristicTrafficPrediction(
+function calculateTrafficPrediction(
   historicalData: any[],
   todayDayOfWeek: string,
   currentHour: number,
@@ -166,6 +167,9 @@ function getHeuristicTrafficPrediction(
   const predictions: HourlyTrafficPrediction[] = [];
 
   const sameDayData = historicalData.filter(d => d.dayOfWeek === todayDayOfWeek);
+  const recentData = historicalData.slice(0, 7);
+  
+  const todayTrend = calculateTodayTrend(todayBookings, currentHour, sameDayData);
   
   for (let hour = 0; hour < 24; hour++) {
     if (hour < currentHour) {
@@ -183,19 +187,39 @@ function getHeuristicTrafficPrediction(
       let predictedVisitors = 0;
       let confidence: "low" | "medium" | "high" = "low";
 
-      if (sameDayData.length > 0) {
-        const hourlyAvg = sameDayData.reduce((sum, d) => sum + d.hourlyPattern[hour], 0) / sameDayData.length;
-        predictedVisitors = Math.round(hourlyAvg);
-        confidence = sameDayData.length >= 4 ? "high" : sameDayData.length >= 2 ? "medium" : "low";
-      } else if (historicalData.length > 0) {
-        const allDaysAvg = historicalData.reduce((sum, d) => sum + d.hourlyPattern[hour], 0) / historicalData.length;
-        predictedVisitors = Math.round(allDaysAvg);
+      if (sameDayData.length >= 3) {
+        const weights = sameDayData.map((_, idx) => Math.pow(0.85, idx));
+        const totalWeight = weights.reduce((a, b) => a + b, 0);
+        
+        const weightedAvg = sameDayData.reduce((sum, d, idx) => {
+          return sum + (d.hourlyPattern[hour] * weights[idx]);
+        }, 0) / totalWeight;
+        
+        predictedVisitors = Math.round(weightedAvg * (1 + todayTrend));
+        confidence = sameDayData.length >= 4 ? "high" : "medium";
+      } else if (recentData.length > 0) {
+        const allDaysAvg = recentData.reduce((sum, d) => sum + d.hourlyPattern[hour], 0) / recentData.length;
+        predictedVisitors = Math.round(allDaysAvg * (1 + todayTrend * 0.5));
         confidence = "medium";
+      } else if (historicalData.length > 0) {
+        const fallbackAvg = historicalData.reduce((sum, d) => sum + d.hourlyPattern[hour], 0) / historicalData.length;
+        predictedVisitors = Math.round(fallbackAvg);
+        confidence = "low";
+      }
+
+      const typicalPeakHours = [18, 19, 20, 21, 22];
+      if (typicalPeakHours.includes(hour) && predictedVisitors > 0) {
+        predictedVisitors = Math.round(predictedVisitors * 1.1);
+      }
+
+      const earlyMorningHours = [0, 1, 2, 3, 4, 5, 6, 7, 8];
+      if (earlyMorningHours.includes(hour) && predictedVisitors > 0) {
+        predictedVisitors = Math.round(predictedVisitors * 0.7);
       }
 
       predictions.push({
         hour: `${hour.toString().padStart(2, '0')}:00`,
-        predictedVisitors,
+        predictedVisitors: Math.max(0, predictedVisitors),
         confidence,
       });
     }
@@ -204,119 +228,33 @@ function getHeuristicTrafficPrediction(
   return predictions;
 }
 
-async function getAITrafficPrediction(
-  historicalData: any[],
-  todayDayOfWeek: string,
+function calculateTodayTrend(
+  todayBookings: any[],
   currentHour: number,
-  todayBookings: any[]
-): Promise<HourlyTrafficPrediction[]> {
-  const sameDayData = historicalData.filter(d => d.dayOfWeek === todayDayOfWeek).slice(0, 4);
-  
-  const historicalSummary = sameDayData.map((d, i) => {
-    const peakHour = d.hourlyPattern.indexOf(Math.max(...d.hourlyPattern));
-    const total = d.hourlyPattern.reduce((s: number, v: number) => s + v, 0);
-    return `Day ${i + 1} (${d.date}): Peak at ${peakHour}:00 with ${d.hourlyPattern[peakHour]} visitors, Total: ${total}`;
-  }).join('\n');
+  sameDayData: any[]
+): number {
+  if (currentHour === 0 || sameDayData.length === 0) {
+    return 0;
+  }
 
-  const todayPattern = Array.from({ length: currentHour }, (_, hour) => {
-    const count = todayBookings.filter(b => {
+  const todaySoFar = Array.from({ length: currentHour }, (_, hour) => {
+    return todayBookings.filter(b => {
       const start = new Date(b.startTime);
       return start.getHours() === hour;
     }).length;
-    return `${hour}:00 - ${count} visitors`;
-  }).join(', ');
-
-  const prompt = `As an AI traffic prediction system for a gaming center, analyze historical data and predict visitor traffic for the remaining hours of today.
-
-Today: ${todayDayOfWeek}
-Current Hour: ${currentHour}:00
-Today's Pattern So Far: ${todayPattern || 'No visitors yet'}
-
-Historical Data (same day of week):
-${historicalSummary}
-
-Predict visitor count for hours ${currentHour} to 23. Respond in this exact JSON format:
-{
-  "predictions": [
-    {"hour": "${currentHour}:00", "visitors": <number>, "confidence": "low|medium|high"},
-    ...continue for each remaining hour until 23:00
-  ]
-}
-
-Consider:
-- Similar day patterns from history
-- Today's trend so far
-- Typical gaming center peak hours (evening 18:00-22:00)
-- Be realistic with numbers (0-20 range typical)`;
-
-  const rateLimiter = getGeminiRateLimiter();
-  
-  const response = await rateLimiter.generateContent({
-    model: "gemini-2.5-flash",
-    config: {
-      responseMimeType: "application/json",
-      responseSchema: {
-        type: "object",
-        properties: {
-          predictions: {
-            type: "array",
-            items: {
-              type: "object",
-              properties: {
-                hour: { type: "string" },
-                visitors: { type: "number" },
-                confidence: { type: "string" },
-              },
-              required: ["hour", "visitors", "confidence"],
-            },
-          },
-        },
-        required: ["predictions"],
-      },
-      systemInstruction: "You are an expert in visitor traffic prediction for entertainment venues. Analyze patterns and provide structured JSON responses only.",
-    },
-    contents: prompt,
   });
 
-  const rawJson = response.text;
-  if (!rawJson) {
-    throw new Error("No response from Gemini AI");
-  }
+  const historicalAvgSoFar = Array.from({ length: currentHour }, (_, hour) => {
+    const avg = sameDayData.reduce((sum, d) => sum + d.hourlyPattern[hour], 0) / sameDayData.length;
+    return avg;
+  });
 
-  const parsed = JSON.parse(rawJson);
-  const aiPredictions = parsed.predictions || [];
+  const todayTotal = todaySoFar.reduce((a, b) => a + b, 0);
+  const historicalTotal = historicalAvgSoFar.reduce((a, b) => a + b, 0);
 
-  const predictions: HourlyTrafficPrediction[] = [];
+  if (historicalTotal === 0) return 0;
 
-  for (let hour = 0; hour < 24; hour++) {
-    if (hour < currentHour) {
-      const actualCount = todayBookings.filter(b => {
-        const start = new Date(b.startTime);
-        return start.getHours() === hour;
-      }).length;
-
-      predictions.push({
-        hour: `${hour.toString().padStart(2, '0')}:00`,
-        predictedVisitors: actualCount,
-        confidence: "high",
-      });
-    } else {
-      const aiPred = aiPredictions.find((p: any) => p.hour === `${hour}:00`);
-      if (aiPred) {
-        predictions.push({
-          hour: aiPred.hour,
-          predictedVisitors: Math.max(0, Math.round(aiPred.visitors)),
-          confidence: aiPred.confidence || "medium",
-        });
-      } else {
-        predictions.push({
-          hour: `${hour.toString().padStart(2, '0')}:00`,
-          predictedVisitors: 0,
-          confidence: "low",
-        });
-      }
-    }
-  }
-
-  return predictions;
+  const trend = (todayTotal - historicalTotal) / historicalTotal;
+  
+  return Math.max(-0.5, Math.min(0.5, trend));
 }
