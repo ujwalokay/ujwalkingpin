@@ -99,7 +99,7 @@ export function AppSidebar() {
             <img 
               src={theme === "dark" ? logoDark : logoLight} 
               alt="Ankylo Gaming Logo" 
-              className="h-10 w-10 sm:h-12 sm:w-12 object-cover rounded-xl"
+              className="h-16 w-16 sm:h-20 sm:w-20 object-contain"
             />
             <div>
               <h2 className="text-base sm:text-lg font-bold text-gray-900 dark:text-white">Ankylo Gaming</h2>

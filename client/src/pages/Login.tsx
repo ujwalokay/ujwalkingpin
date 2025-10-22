@@ -190,11 +190,11 @@ export default function Login({ onLoginSuccess }: LoginProps) {
           <div className="w-full md:w-1/2 p-8 md:p-12 lg:p-16 bg-gradient-to-br from-gray-50 via-purple-50 to-pink-50 dark:from-gray-900 dark:via-purple-950 dark:to-gray-950">
             <div className="max-w-md mx-auto space-y-8">
               {/* Logo */}
-              <div className="flex items-center gap-3">
+              <div className="flex items-center gap-4">
                 <img 
                   src={logoDark} 
                   alt="Ankylo Gaming"
-                  className="h-14 w-14 object-cover rounded-2xl shadow-lg ring-2 ring-purple-500/20"
+                  className="h-20 w-20 object-contain"
                 />
                 <div>
                   <h1 className="text-xl font-bold text-gray-900 dark:text-white">Ankylo Gaming</h1>
