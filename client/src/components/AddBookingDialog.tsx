@@ -779,9 +779,14 @@ export function AddBookingDialog({ open, onOpenChange, onConfirm, availableSeats
             </div>
           )}
 
-          {bookingType === "upcoming" && category && selectedSlot && (
+          {bookingType === "upcoming" && category && (useHappyHoursPricing ? selectedHappyHoursSlot : selectedSlot) && (
             <div className="text-sm text-muted-foreground" data-testid="text-price">
-              Price: ₹{selectedSlot.price} for {duration}
+              Price: ₹{useHappyHoursPricing && selectedHappyHoursSlot ? selectedHappyHoursSlot.price : selectedSlot?.price} for {duration}
+              {useHappyHoursPricing && selectedHappyHoursSlot && (
+                <span className="ml-2 text-green-600 dark:text-green-400 font-medium">
+                  (Happy Hours 🎉)
+                </span>
+              )}
             </div>
           )}
 
