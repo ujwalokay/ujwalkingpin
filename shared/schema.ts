@@ -247,6 +247,7 @@ export const gamingCenterInfo = pgTable("gaming_center_info", {
   phone: varchar("phone").notNull(),
   email: varchar("email"),
   hours: text("hours").notNull(),
+  timezone: varchar("timezone").notNull().default("Asia/Kolkata"),
   updatedAt: timestamp("updated_at").notNull().defaultNow(),
 });
 

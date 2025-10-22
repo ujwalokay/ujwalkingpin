@@ -572,8 +572,23 @@ export class DatabaseStorage implements IStorage {
       return false;
     }
 
+    // Get the configured timezone from gamingCenterInfo
+    const centerInfo = await this.getGamingCenterInfo();
+    const timezone = centerInfo?.timezone || 'Asia/Kolkata';
+
+    // Convert current UTC time to the configured timezone
     const now = new Date();
-    const currentTime = `${now.getHours().toString().padStart(2, '0')}:${now.getMinutes().toString().padStart(2, '0')}`;
+    const formatter = new Intl.DateTimeFormat('en-US', {
+      timeZone: timezone,
+      hour: '2-digit',
+      minute: '2-digit',
+      hour12: false,
+    });
+    
+    const parts = formatter.formatToParts(now);
+    const hour = parts.find(p => p.type === 'hour')?.value || '00';
+    const minute = parts.find(p => p.type === 'minute')?.value || '00';
+    const currentTime = `${hour}:${minute}`;
     
     for (const config of enabledConfigs) {
       // Handle time slots that cross midnight (e.g., 22:00 to 02:00)
