@@ -562,16 +562,32 @@ export class DatabaseStorage implements IStorage {
 
   async isHappyHoursActive(category: string): Promise<boolean> {
     const configs = await this.getHappyHoursConfigsByCategory(category);
-    if (configs.length === 0 || configs[0].enabled === 0) {
+    if (configs.length === 0) {
+      return false;
+    }
+
+    // Filter only enabled configs
+    const enabledConfigs = configs.filter(c => c.enabled === 1);
+    if (enabledConfigs.length === 0) {
       return false;
     }
 
     const now = new Date();
     const currentTime = `${now.getHours().toString().padStart(2, '0')}:${now.getMinutes().toString().padStart(2, '0')}`;
     
-    for (const config of configs) {
-      if (currentTime >= config.startTime && currentTime < config.endTime) {
-        return true;
+    for (const config of enabledConfigs) {
+      // Handle time slots that cross midnight (e.g., 22:00 to 02:00)
+      if (config.startTime <= config.endTime) {
+        // Normal case: start < end (e.g., 10:00 to 18:00)
+        if (currentTime >= config.startTime && currentTime < config.endTime) {
+          return true;
+        }
+      } else {
+        // Overnight case: start > end (e.g., 22:00 to 02:00)
+        // Current time is either >= start (e.g., 23:00) OR < end (e.g., 01:00)
+        if (currentTime >= config.startTime || currentTime < config.endTime) {
+          return true;
+        }
       }
     }
     
