@@ -651,7 +651,18 @@ export default function Dashboard() {
   const walkInBookings = filteredBookings.filter(b => b.bookingType === "walk-in");
   const upcomingBookings = filteredBookings.filter(b => b.bookingType === "upcoming");
   const happyHoursBookings = filteredBookings.filter(b => b.bookingType === "happy-hours");
-  const allBookings = filteredBookings;
+  
+  // Sort "All in One" view: Running sessions first, then others
+  const allBookings = [...filteredBookings].sort((a, b) => {
+    // Running status comes first
+    if (a.status === "running" && b.status !== "running") return -1;
+    if (a.status !== "running" && b.status === "running") return 1;
+    // Then paused sessions
+    if (a.status === "paused" && b.status !== "paused" && b.status !== "running") return -1;
+    if (a.status !== "paused" && b.status === "paused" && a.status !== "running") return 1;
+    // Then by start time (most recent first)
+    return b.startTime.getTime() - a.startTime.getTime();
+  });
 
   if (isLoading) {
     return (
@@ -699,9 +710,15 @@ export default function Dashboard() {
         })}
       </div>
 
-      <Tabs defaultValue="walk-in" className="space-y-3 md:space-y-4">
+      <Tabs defaultValue="all-in-one" className="space-y-3 md:space-y-4">
         <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
           <TabsList data-testid="tabs-bookings" className="w-full sm:w-auto grid grid-cols-2 sm:grid-cols-4">
+            <TabsTrigger value="all-in-one" data-testid="tab-all-in-one" className="text-xs sm:text-sm">
+              <List className="h-3.5 w-3.5 sm:h-4 sm:w-4 mr-1 sm:mr-2" />
+              <span className="hidden sm:inline">All in One</span>
+              <span className="sm:hidden">All</span>
+              <span className="ml-1 font-semibold">({allBookings.length})</span>
+            </TabsTrigger>
             <TabsTrigger value="walk-in" data-testid="tab-walk-in" className="text-xs sm:text-sm">
               <Users className="h-3.5 w-3.5 sm:h-4 sm:w-4 mr-1 sm:mr-2" />
               <span className="hidden sm:inline">Walk-in List</span>
@@ -719,12 +736,6 @@ export default function Dashboard() {
               <span className="hidden sm:inline">Happy Hours</span>
               <span className="sm:hidden">Happy Hr</span>
               <span className="ml-1 font-semibold">({happyHoursBookings.length})</span>
-            </TabsTrigger>
-            <TabsTrigger value="all-in-one" data-testid="tab-all-in-one" className="text-xs sm:text-sm">
-              <List className="h-3.5 w-3.5 sm:h-4 sm:w-4 mr-1 sm:mr-2" />
-              <span className="hidden sm:inline">All in One</span>
-              <span className="sm:hidden">All</span>
-              <span className="ml-1 font-semibold">({allBookings.length})</span>
             </TabsTrigger>
           </TabsList>
           <div className="flex gap-2">
@@ -773,6 +784,22 @@ export default function Dashboard() {
           </div>
         </div>
 
+        <TabsContent value="all-in-one" className="space-y-4">
+          <BookingTable
+            bookings={allBookings}
+            onExtend={handleExtend}
+            onEnd={handleDelete}
+            onComplete={handleComplete}
+            onAddFood={handleAddFood}
+            onStopTimer={handleStopTimer}
+            onDeleteFood={handleDeleteFood}
+            showDateColumn={true}
+            showTypeColumn={true}
+            selectedBookings={selectedBookings}
+            onToggleSelection={handleToggleSelection}
+          />
+        </TabsContent>
+
         <TabsContent value="walk-in" className="space-y-4">
           <BookingTable
             bookings={walkInBookings}
@@ -811,22 +838,6 @@ export default function Dashboard() {
             onStopTimer={handleStopTimer}
             onDeleteFood={handleDeleteFood}
             showDateColumn={true}
-            selectedBookings={selectedBookings}
-            onToggleSelection={handleToggleSelection}
-          />
-        </TabsContent>
-
-        <TabsContent value="all-in-one" className="space-y-4">
-          <BookingTable
-            bookings={allBookings}
-            onExtend={handleExtend}
-            onEnd={handleDelete}
-            onComplete={handleComplete}
-            onAddFood={handleAddFood}
-            onStopTimer={handleStopTimer}
-            onDeleteFood={handleDeleteFood}
-            showDateColumn={true}
-            showTypeColumn={true}
             selectedBookings={selectedBookings}
             onToggleSelection={handleToggleSelection}
           />
