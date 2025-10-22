@@ -36,7 +36,7 @@ interface AddBookingDialogProps {
     duration: string;
     price: string;
     personCount: number;
-    bookingType: "walk-in" | "upcoming" | "happy-hours";
+    bookingType: string[];
     bookingDate?: Date;
     timeSlot?: string;
   }) => void;
@@ -80,7 +80,7 @@ interface Booking {
   endTime: string;
   price: string;
   status: string;
-  bookingType: string;
+  bookingType: string[];
   pausedRemainingTime?: number;
   foodOrders: Array<{
     foodId: string;
@@ -267,6 +267,14 @@ export function AddBookingDialog({ open, onOpenChange, onConfirm, availableSeats
         totalPrice = selectedSlot!.price.toString();
       }
       
+      // Determine booking types array
+      let bookingTypes: string[];
+      if (bookingType === "upcoming" && useHappyHoursPricing) {
+        bookingTypes = ["upcoming", "happy-hours"];
+      } else {
+        bookingTypes = [bookingType];
+      }
+      
       onConfirm?.({
         category,
         seatNumbers: selectedSeats,
@@ -275,7 +283,7 @@ export function AddBookingDialog({ open, onOpenChange, onConfirm, availableSeats
         duration,
         price: totalPrice,
         personCount: finalPersonCount,
-        bookingType,
+        bookingType: bookingTypes,
         bookingDate: bookingType === "upcoming" ? bookingDate : undefined,
         timeSlot: bookingType === "upcoming" ? timeSlot : undefined,
       });

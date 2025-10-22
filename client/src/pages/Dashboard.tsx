@@ -42,7 +42,7 @@ interface Booking {
   price: string;
   personCount?: number;
   status: BookingStatus;
-  bookingType: "walk-in" | "upcoming" | "happy-hours";
+  bookingType: string[];
   foodOrders?: FoodOrder[];
   pausedRemainingTime?: number | null;
 }
@@ -166,7 +166,7 @@ export default function Dashboard() {
       price: dbBooking.price,
       personCount: dbBooking.personCount,
       status: dbBooking.status as BookingStatus,
-      bookingType: dbBooking.bookingType as "walk-in" | "upcoming" | "happy-hours",
+      bookingType: dbBooking.bookingType || [],
       foodOrders: dbBooking.foodOrders || [],
       pausedRemainingTime: dbBooking.pausedRemainingTime,
     }));
@@ -255,7 +255,7 @@ export default function Dashboard() {
     duration: string;
     price: string;
     personCount: number;
-    bookingType: "walk-in" | "upcoming" | "happy-hours";
+    bookingType: string[];
     bookingDate?: Date;
     timeSlot?: string;
   }) => {
@@ -269,7 +269,7 @@ export default function Dashboard() {
       const minutes = durationMap[newBooking.duration] || 60;
       
       let startTime: Date;
-      if (newBooking.bookingType === "walk-in" || newBooking.bookingType === "happy-hours") {
+      if (newBooking.bookingType.includes("walk-in") || (newBooking.bookingType.includes("happy-hours") && !newBooking.bookingType.includes("upcoming"))) {
         startTime = now;
       } else {
         if (newBooking.bookingDate && newBooking.timeSlot) {
@@ -300,7 +300,7 @@ export default function Dashboard() {
           endTime: endTime.toISOString() as any,
           price: newBooking.price,
           personCount: newBooking.personCount,
-          status: (newBooking.bookingType === "walk-in" || newBooking.bookingType === "happy-hours") ? "running" : "upcoming",
+          status: (newBooking.bookingType.includes("walk-in") || (newBooking.bookingType.includes("happy-hours") && !newBooking.bookingType.includes("upcoming"))) ? "running" : "upcoming",
           bookingType: newBooking.bookingType,
           foodOrders: [],
         });
@@ -648,9 +648,9 @@ export default function Dashboard() {
     return bookings;
   }, [bookings, hideCompleted]);
 
-  const walkInBookings = filteredBookings.filter(b => b.bookingType === "walk-in");
-  const upcomingBookings = filteredBookings.filter(b => b.bookingType === "upcoming");
-  const happyHoursBookings = filteredBookings.filter(b => b.bookingType === "happy-hours");
+  const walkInBookings = filteredBookings.filter(b => b.bookingType?.includes("walk-in"));
+  const upcomingBookings = filteredBookings.filter(b => b.bookingType?.includes("upcoming"));
+  const happyHoursBookings = filteredBookings.filter(b => b.bookingType?.includes("happy-hours"));
   
   // Sort "All in One" view: Running sessions first, then others
   const allBookings = [...filteredBookings].sort((a, b) => {

@@ -45,7 +45,7 @@ interface Booking {
   price: string;
   personCount?: number;
   status: BookingStatus;
-  bookingType?: "walk-in" | "upcoming" | "happy-hours";
+  bookingType?: string[];
   foodOrders?: FoodOrder[];
   pausedRemainingTime?: number | null;
 }
@@ -160,21 +160,23 @@ export function BookingTable({ bookings, onExtend, onEnd, onComplete, onAddFood,
                     )}
                     {showTypeColumn && (
                       <TableCell data-testid={`text-type-${booking.id}`}>
-                        {booking.bookingType === "walk-in" && (
-                          <span className="inline-flex items-center px-2.5 py-1 rounded-full text-xs font-semibold bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-400 border border-green-200 dark:border-green-800">
-                            Walk-in
-                          </span>
-                        )}
-                        {booking.bookingType === "upcoming" && (
-                          <span className="inline-flex items-center px-2.5 py-1 rounded-full text-xs font-semibold bg-blue-100 text-blue-800 dark:bg-blue-900/30 dark:text-blue-400 border border-blue-200 dark:border-blue-800">
-                            Upcoming
-                          </span>
-                        )}
-                        {booking.bookingType === "happy-hours" && (
-                          <span className="inline-flex items-center px-2.5 py-1 rounded-full text-xs font-semibold bg-purple-100 text-purple-800 dark:bg-purple-900/30 dark:text-purple-400 border border-purple-200 dark:border-purple-800">
-                            Happy Hours
-                          </span>
-                        )}
+                        <div className="flex flex-wrap gap-1">
+                          {booking.bookingType?.includes("walk-in") && (
+                            <span className="inline-flex items-center px-2.5 py-1 rounded-full text-xs font-semibold bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-400 border border-green-200 dark:border-green-800">
+                              Walk-in
+                            </span>
+                          )}
+                          {booking.bookingType?.includes("upcoming") && (
+                            <span className="inline-flex items-center px-2.5 py-1 rounded-full text-xs font-semibold bg-blue-100 text-blue-800 dark:bg-blue-900/30 dark:text-blue-400 border border-blue-200 dark:border-blue-800">
+                              Upcoming
+                            </span>
+                          )}
+                          {booking.bookingType?.includes("happy-hours") && (
+                            <span className="inline-flex items-center px-2.5 py-1 rounded-full text-xs font-semibold bg-purple-100 text-purple-800 dark:bg-purple-900/30 dark:text-purple-400 border border-purple-200 dark:border-purple-800">
+                              Happy Hours
+                            </span>
+                          )}
+                        </div>
                       </TableCell>
                     )}
                     <TableCell data-testid={`text-start-${booking.id}`}>
