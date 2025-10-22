@@ -185,6 +185,7 @@ export default function Settings() {
       queryClient.invalidateQueries({ queryKey: ["/api/pricing-config"] });
       queryClient.invalidateQueries({ queryKey: ["/api/happy-hours-config"] });
       queryClient.invalidateQueries({ queryKey: ["/api/happy-hours-pricing"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/happy-hours-active"] });
     },
   });
 
@@ -274,6 +275,7 @@ export default function Settings() {
 
       queryClient.invalidateQueries({ queryKey: ["/api/device-config"] });
       queryClient.invalidateQueries({ queryKey: ["/api/pricing-config"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/happy-hours-active"] });
 
       toast({
         title: "Category added",
@@ -349,6 +351,7 @@ export default function Settings() {
       queryClient.invalidateQueries({ queryKey: ["/api/pricing-config"] });
       queryClient.invalidateQueries({ queryKey: ["/api/happy-hours-config"] });
       queryClient.invalidateQueries({ queryKey: ["/api/happy-hours-pricing"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/happy-hours-active"] });
 
       toast({
         title: "Settings Saved",
