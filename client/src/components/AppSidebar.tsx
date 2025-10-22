@@ -12,8 +12,8 @@ import {
   SidebarMenuButton,
   SidebarFooter,
 } from "@/components/ui/sidebar";
-import logoDark from "@assets/20251020_115324_1760941507517.png";
-import logoLight from "@assets/20251020_115324_1760941507517.png";
+import logoDark from "@assets/WhatsApp_Image_2025-10-22_at_11.12.35_515bc8bb-removebg-preview_1761111967877.png";
+import logoLight from "@assets/WhatsApp_Image_2025-10-22_at_11.12.35_515bc8bb-removebg-preview_1761111967877.png";
 
 const menuItems = [
   {

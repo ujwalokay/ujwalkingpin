@@ -7,7 +7,7 @@ import { useToast } from "@/hooks/use-toast";
 import { SiGoogle } from "react-icons/si";
 import { useLocation } from "wouter";
 import loginImage from "@assets/stock_images/purple_gaming_setup,_c53078b3.jpg";
-import logoDark from "@assets/20251020_115324_1760941507517.png";
+import logoDark from "@assets/WhatsApp_Image_2025-10-22_at_11.12.35_515bc8bb-removebg-preview_1761111967877.png";
 
 interface LoginProps {
   onLoginSuccess: (userData: any) => void;
