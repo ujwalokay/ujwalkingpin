@@ -9,7 +9,7 @@ import { ExtendSessionDialog } from "@/components/ExtendSessionDialog";
 import { EndSessionDialog } from "@/components/EndSessionDialog";
 import { AddFoodToBookingDialog } from "@/components/AddFoodToBookingDialog";
 import { OnboardingTour } from "@/components/OnboardingTour";
-import { Plus, Monitor, Gamepad2, Glasses, Car, Cpu, Tv, Radio, Box, RefreshCw, Calculator, Wallet } from "lucide-react";
+import { Plus, Monitor, Gamepad2, Glasses, Car, Cpu, Tv, Radio, Box, RefreshCw, Calculator, Wallet, Users, Calendar, Clock, List } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { fetchBookings, createBooking, updateBooking, deleteBooking, fetchDeviceConfigs, getServerTime } from "@/lib/api";
 import type { Booking as DBBooking, DeviceConfig } from "@shared/schema";
@@ -703,20 +703,28 @@ export default function Dashboard() {
         <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
           <TabsList data-testid="tabs-bookings" className="w-full sm:w-auto grid grid-cols-2 sm:grid-cols-4">
             <TabsTrigger value="walk-in" data-testid="tab-walk-in" className="text-xs sm:text-sm">
+              <Users className="h-3.5 w-3.5 sm:h-4 sm:w-4 mr-1 sm:mr-2" />
               <span className="hidden sm:inline">Walk-in List</span>
-              <span className="sm:hidden">Walk-in</span> ({walkInBookings.length})
+              <span className="sm:hidden">Walk-in</span>
+              <span className="ml-1 font-semibold">({walkInBookings.length})</span>
             </TabsTrigger>
             <TabsTrigger value="upcoming" data-testid="tab-upcoming" className="text-xs sm:text-sm">
-              <span className="hidden sm:inline">Upcoming Bookings</span>
-              <span className="sm:hidden">Upcoming</span> ({upcomingBookings.length})
+              <Calendar className="h-3.5 w-3.5 sm:h-4 sm:w-4 mr-1 sm:mr-2" />
+              <span className="hidden sm:inline">Upcoming</span>
+              <span className="sm:hidden">Upcoming</span>
+              <span className="ml-1 font-semibold">({upcomingBookings.length})</span>
             </TabsTrigger>
             <TabsTrigger value="happy-hours" data-testid="tab-happy-hours" className="text-xs sm:text-sm">
+              <Clock className="h-3.5 w-3.5 sm:h-4 sm:w-4 mr-1 sm:mr-2" />
               <span className="hidden sm:inline">Happy Hours</span>
-              <span className="sm:hidden">Happy Hours</span> ({happyHoursBookings.length})
+              <span className="sm:hidden">Happy Hr</span>
+              <span className="ml-1 font-semibold">({happyHoursBookings.length})</span>
             </TabsTrigger>
             <TabsTrigger value="all-in-one" data-testid="tab-all-in-one" className="text-xs sm:text-sm">
-              <span className="hidden sm:inline">All in One View</span>
-              <span className="sm:hidden">All</span> ({allBookings.length})
+              <List className="h-3.5 w-3.5 sm:h-4 sm:w-4 mr-1 sm:mr-2" />
+              <span className="hidden sm:inline">All in One</span>
+              <span className="sm:hidden">All</span>
+              <span className="ml-1 font-semibold">({allBookings.length})</span>
             </TabsTrigger>
           </TabsList>
           <div className="flex gap-2">

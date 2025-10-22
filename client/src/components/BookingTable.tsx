@@ -160,9 +160,21 @@ export function BookingTable({ bookings, onExtend, onEnd, onComplete, onAddFood,
                     )}
                     {showTypeColumn && (
                       <TableCell data-testid={`text-type-${booking.id}`}>
-                        <span className="inline-flex items-center px-2 py-1 rounded-md text-xs font-medium bg-primary/10 text-primary">
-                          {booking.bookingType === "walk-in" ? "Walk-in" : booking.bookingType === "upcoming" ? "Upcoming" : "Happy Hours"}
-                        </span>
+                        {booking.bookingType === "walk-in" && (
+                          <span className="inline-flex items-center px-2.5 py-1 rounded-full text-xs font-semibold bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-400 border border-green-200 dark:border-green-800">
+                            Walk-in
+                          </span>
+                        )}
+                        {booking.bookingType === "upcoming" && (
+                          <span className="inline-flex items-center px-2.5 py-1 rounded-full text-xs font-semibold bg-blue-100 text-blue-800 dark:bg-blue-900/30 dark:text-blue-400 border border-blue-200 dark:border-blue-800">
+                            Upcoming
+                          </span>
+                        )}
+                        {booking.bookingType === "happy-hours" && (
+                          <span className="inline-flex items-center px-2.5 py-1 rounded-full text-xs font-semibold bg-purple-100 text-purple-800 dark:bg-purple-900/30 dark:text-purple-400 border border-purple-200 dark:border-purple-800">
+                            Happy Hours
+                          </span>
+                        )}
                       </TableCell>
                     )}
                     <TableCell data-testid={`text-start-${booking.id}`}>
