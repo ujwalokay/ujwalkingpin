@@ -45,6 +45,7 @@ interface Booking {
   price: string;
   personCount?: number;
   status: BookingStatus;
+  bookingType?: "walk-in" | "upcoming" | "happy-hours";
   foodOrders?: FoodOrder[];
   pausedRemainingTime?: number | null;
 }
@@ -58,11 +59,12 @@ interface BookingTableProps {
   onStopTimer?: (id: string) => void;
   onDeleteFood?: (bookingId: string, foodIndex: number) => void;
   showDateColumn?: boolean;
+  showTypeColumn?: boolean;
   selectedBookings?: Set<string>;
   onToggleSelection?: (bookingId: string) => void;
 }
 
-export function BookingTable({ bookings, onExtend, onEnd, onComplete, onAddFood, onStopTimer, onDeleteFood, showDateColumn = false, selectedBookings, onToggleSelection }: BookingTableProps) {
+export function BookingTable({ bookings, onExtend, onEnd, onComplete, onAddFood, onStopTimer, onDeleteFood, showDateColumn = false, showTypeColumn = false, selectedBookings, onToggleSelection }: BookingTableProps) {
   const [searchTerm, setSearchTerm] = useState("");
   const { isAdmin, canMakeChanges } = useAuth();
 
@@ -100,6 +102,7 @@ export function BookingTable({ bookings, onExtend, onEnd, onComplete, onAddFood,
               <TableHead>Persons</TableHead>
               <TableHead>WhatsApp</TableHead>
               {showDateColumn && <TableHead>Date</TableHead>}
+              {showTypeColumn && <TableHead>Type</TableHead>}
               <TableHead>Start Time</TableHead>
               <TableHead>End Time</TableHead>
               <TableHead>Time Left</TableHead>
@@ -113,7 +116,7 @@ export function BookingTable({ bookings, onExtend, onEnd, onComplete, onAddFood,
           <TableBody>
             {filteredBookings.length === 0 ? (
               <TableRow>
-                <TableCell colSpan={showDateColumn ? 14 : 13} className="text-center text-muted-foreground">
+                <TableCell colSpan={13 + (showDateColumn ? 1 : 0) + (showTypeColumn ? 1 : 0)} className="text-center text-muted-foreground">
                   No bookings found
                 </TableCell>
               </TableRow>
@@ -153,6 +156,13 @@ export function BookingTable({ bookings, onExtend, onEnd, onComplete, onAddFood,
                           month: 'short', 
                           year: 'numeric' 
                         })}
+                      </TableCell>
+                    )}
+                    {showTypeColumn && (
+                      <TableCell data-testid={`text-type-${booking.id}`}>
+                        <span className="inline-flex items-center px-2 py-1 rounded-md text-xs font-medium bg-primary/10 text-primary">
+                          {booking.bookingType === "walk-in" ? "Walk-in" : booking.bookingType === "upcoming" ? "Upcoming" : "Happy Hours"}
+                        </span>
                       </TableCell>
                     )}
                     <TableCell data-testid={`text-start-${booking.id}`}>

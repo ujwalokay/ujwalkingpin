@@ -651,6 +651,7 @@ export default function Dashboard() {
   const walkInBookings = filteredBookings.filter(b => b.bookingType === "walk-in");
   const upcomingBookings = filteredBookings.filter(b => b.bookingType === "upcoming");
   const happyHoursBookings = filteredBookings.filter(b => b.bookingType === "happy-hours");
+  const allBookings = filteredBookings;
 
   if (isLoading) {
     return (
@@ -700,18 +701,22 @@ export default function Dashboard() {
 
       <Tabs defaultValue="walk-in" className="space-y-3 md:space-y-4">
         <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
-          <TabsList data-testid="tabs-bookings" className="w-full sm:w-auto">
-            <TabsTrigger value="walk-in" data-testid="tab-walk-in" className="flex-1 sm:flex-none">
+          <TabsList data-testid="tabs-bookings" className="w-full sm:w-auto grid grid-cols-2 sm:grid-cols-4">
+            <TabsTrigger value="walk-in" data-testid="tab-walk-in" className="text-xs sm:text-sm">
               <span className="hidden sm:inline">Walk-in List</span>
               <span className="sm:hidden">Walk-in</span> ({walkInBookings.length})
             </TabsTrigger>
-            <TabsTrigger value="upcoming" data-testid="tab-upcoming" className="flex-1 sm:flex-none">
+            <TabsTrigger value="upcoming" data-testid="tab-upcoming" className="text-xs sm:text-sm">
               <span className="hidden sm:inline">Upcoming Bookings</span>
               <span className="sm:hidden">Upcoming</span> ({upcomingBookings.length})
             </TabsTrigger>
-            <TabsTrigger value="happy-hours" data-testid="tab-happy-hours" className="flex-1 sm:flex-none">
+            <TabsTrigger value="happy-hours" data-testid="tab-happy-hours" className="text-xs sm:text-sm">
               <span className="hidden sm:inline">Happy Hours</span>
               <span className="sm:hidden">Happy Hours</span> ({happyHoursBookings.length})
+            </TabsTrigger>
+            <TabsTrigger value="all-in-one" data-testid="tab-all-in-one" className="text-xs sm:text-sm">
+              <span className="hidden sm:inline">All in One View</span>
+              <span className="sm:hidden">All</span> ({allBookings.length})
             </TabsTrigger>
           </TabsList>
           <div className="flex gap-2">
@@ -798,6 +803,22 @@ export default function Dashboard() {
             onStopTimer={handleStopTimer}
             onDeleteFood={handleDeleteFood}
             showDateColumn={true}
+            selectedBookings={selectedBookings}
+            onToggleSelection={handleToggleSelection}
+          />
+        </TabsContent>
+
+        <TabsContent value="all-in-one" className="space-y-4">
+          <BookingTable
+            bookings={allBookings}
+            onExtend={handleExtend}
+            onEnd={handleDelete}
+            onComplete={handleComplete}
+            onAddFood={handleAddFood}
+            onStopTimer={handleStopTimer}
+            onDeleteFood={handleDeleteFood}
+            showDateColumn={true}
+            showTypeColumn={true}
             selectedBookings={selectedBookings}
             onToggleSelection={handleToggleSelection}
           />
