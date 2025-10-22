@@ -596,6 +596,22 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  app.get("/api/happy-hours-active-for-time/:category", publicApiLimiter, async (req, res) => {
+    try {
+      const { category } = req.params;
+      const { timeSlot } = req.query;
+      
+      if (!timeSlot || typeof timeSlot !== 'string') {
+        return res.status(400).json({ message: "timeSlot query parameter is required" });
+      }
+      
+      const isActive = await storage.isHappyHoursActiveForTime(category, timeSlot);
+      res.json({ active: isActive });
+    } catch (error: any) {
+      res.status(500).json({ message: error.message });
+    }
+  });
+
   app.get("/api/happy-hours-pricing", requireAuth, async (req, res) => {
     try {
       const configs = await storage.getAllHappyHoursPricing();

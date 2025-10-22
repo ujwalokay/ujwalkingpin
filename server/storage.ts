@@ -609,6 +609,40 @@ export class DatabaseStorage implements IStorage {
     return false;
   }
 
+  async isHappyHoursActiveForTime(category: string, timeSlot: string): Promise<boolean> {
+    const configs = await this.getHappyHoursConfigsByCategory(category);
+    if (configs.length === 0) {
+      return false;
+    }
+
+    // Filter only enabled configs
+    const enabledConfigs = configs.filter(c => c.enabled === 1);
+    if (enabledConfigs.length === 0) {
+      return false;
+    }
+
+    // timeSlot is in format "HH:MM" (e.g., "14:30")
+    const slotTime = timeSlot;
+    
+    for (const config of enabledConfigs) {
+      // Handle time slots that cross midnight (e.g., 22:00 to 02:00)
+      if (config.startTime <= config.endTime) {
+        // Normal case: start < end (e.g., 10:00 to 18:00)
+        if (slotTime >= config.startTime && slotTime < config.endTime) {
+          return true;
+        }
+      } else {
+        // Overnight case: start > end (e.g., 22:00 to 02:00)
+        // Slot time is either >= start (e.g., 23:00) OR < end (e.g., 01:00)
+        if (slotTime >= config.startTime || slotTime < config.endTime) {
+          return true;
+        }
+      }
+    }
+    
+    return false;
+  }
+
   async getAllHappyHoursPricing(): Promise<HappyHoursPricing[]> {
     return await db.select().from(happyHoursPricing);
   }

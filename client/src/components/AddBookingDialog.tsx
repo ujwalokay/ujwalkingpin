@@ -102,6 +102,7 @@ export function AddBookingDialog({ open, onOpenChange, onConfirm, availableSeats
   const [bookingDate, setBookingDate] = useState<Date>();
   const [timeSlot, setTimeSlot] = useState<string>("");
   const [timePeriodFilter, setTimePeriodFilter] = useState<"all" | "am" | "pm">("all");
+  const [useHappyHoursPricing, setUseHappyHoursPricing] = useState<boolean>(false);
 
   const { data: pricingConfig = [] } = useQuery<PricingConfig[]>({
     queryKey: ["/api/pricing-config"],
@@ -124,6 +125,18 @@ export function AddBookingDialog({ open, onOpenChange, onConfirm, availableSeats
       return response.json();
     },
     enabled: !!category && bookingType === "happy-hours",
+  });
+
+  // Check if Happy Hours is active for the selected upcoming time slot
+  const { data: upcomingHappyHoursStatus } = useQuery<{ active: boolean }>({
+    queryKey: ["/api/happy-hours-active-for-time", category, timeSlot],
+    queryFn: async () => {
+      if (!category || !timeSlot) return { active: false };
+      const response = await fetch(`/api/happy-hours-active-for-time/${category}?timeSlot=${timeSlot}`);
+      if (!response.ok) throw new Error('Failed to check happy hours status for time slot');
+      return response.json();
+    },
+    enabled: !!category && !!timeSlot && bookingType === "upcoming",
   });
 
   // Check if happy hours is enabled (not time-based) for the category
@@ -232,13 +245,15 @@ export function AddBookingDialog({ open, onOpenChange, onConfirm, availableSeats
       }
     }
     
-    const hasValidPrice = bookingType === "happy-hours" ? selectedHappyHoursSlot : selectedSlot;
+    // Determine which pricing to use
+    const shouldUseHappyHoursPricing = bookingType === "happy-hours" || (bookingType === "upcoming" && useHappyHoursPricing);
+    const hasValidPrice = shouldUseHappyHoursPricing ? selectedHappyHoursSlot : selectedSlot;
     
     if (category && selectedSeats.length > 0 && customerName && duration && hasValidPrice && !isWhatsappRequired && !isDateRequired && !isTimeSlotRequired) {
       let totalPrice: string;
       let finalPersonCount: number;
       
-      if (bookingType === "happy-hours") {
+      if (shouldUseHappyHoursPricing) {
         // Happy Hours pricing - use configured price directly
         finalPersonCount = category === "PS5" ? personCount : 1;
         totalPrice = selectedHappyHoursSlot!.price.toString();
@@ -273,6 +288,7 @@ export function AddBookingDialog({ open, onOpenChange, onConfirm, availableSeats
       setBookingType("walk-in");
       setBookingDate(undefined);
       setTimeSlot("");
+      setUseHappyHoursPricing(false);
       onOpenChange(false);
     }
   };
@@ -281,6 +297,7 @@ export function AddBookingDialog({ open, onOpenChange, onConfirm, availableSeats
     setCategory(newCategory);
     setSelectedSeats([]);
     setPersonCount(1);
+    setUseHappyHoursPricing(false);
   };
 
   const increaseDuration = () => {
@@ -539,6 +556,26 @@ export function AddBookingDialog({ open, onOpenChange, onConfirm, availableSeats
                   </SelectContent>
                 </Select>
               </div>
+
+              {/* Happy Hours Pricing Option for Upcoming Bookings */}
+              {category && upcomingHappyHoursStatus?.active && happyHoursSlots.length > 0 && (
+                <div className="flex items-center space-x-2 p-3 bg-yellow-50 dark:bg-yellow-900/20 rounded-md border border-yellow-200 dark:border-yellow-800">
+                  <Checkbox
+                    id="use-happy-hours-pricing"
+                    checked={useHappyHoursPricing}
+                    onCheckedChange={(checked) => setUseHappyHoursPricing(checked as boolean)}
+                    data-testid="checkbox-use-happy-hours-pricing"
+                  />
+                  <div className="flex-1">
+                    <Label htmlFor="use-happy-hours-pricing" className="cursor-pointer font-medium text-yellow-900 dark:text-yellow-100">
+                      Use Happy Hours Pricing 🎉
+                    </Label>
+                    <p className="text-xs text-yellow-700 dark:text-yellow-300 mt-1">
+                      This time slot falls within Happy Hours! Get special pricing.
+                    </p>
+                  </div>
+                </div>
+              )}
             </>
           )}
 
