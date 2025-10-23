@@ -898,14 +898,75 @@ export default function Dashboard() {
       <InstallPrompt />
 
       <Dialog open={showPaymentDialog} onOpenChange={setShowPaymentDialog}>
-        <DialogContent className="sm:max-w-md">
+        <DialogContent className="sm:max-w-2xl">
           <DialogHeader>
-            <DialogTitle>Select Payment Method</DialogTitle>
+            <DialogTitle>Payment Confirmation</DialogTitle>
             <DialogDescription>
-              Choose how the payment was received for {selectedBookings.size} selected booking(s)
+              Review selected bookings and choose payment method
             </DialogDescription>
           </DialogHeader>
-          <div className="grid gap-3 py-4">
+          
+          <div className="max-h-[400px] overflow-y-auto rounded-md border p-4 bg-muted/30">
+            <h3 className="font-semibold mb-3 text-sm text-muted-foreground uppercase">Selected Bookings Summary</h3>
+            {(() => {
+              const selectedBookingsList = filteredBookings.filter(b => selectedBookings.has(b.id));
+              const groupedByCustomer = selectedBookingsList.reduce((acc, booking) => {
+                const customerName = booking.customerName;
+                if (!acc[customerName]) {
+                  acc[customerName] = [];
+                }
+                acc[customerName].push(booking);
+                return acc;
+              }, {} as Record<string, typeof filteredBookings>);
+
+              return (
+                <div className="space-y-4">
+                  {Object.entries(groupedByCustomer).map(([customerName, customerBookings]) => {
+                    const customerTotal = customerBookings.reduce((sum, booking) => {
+                      const foodTotal = booking.foodOrders 
+                        ? booking.foodOrders.reduce((fSum, order) => fSum + parseFloat(order.price) * order.quantity, 0)
+                        : 0;
+                      return sum + parseFloat(booking.price) + foodTotal;
+                    }, 0);
+
+                    return (
+                      <div key={customerName} className="bg-background rounded-lg p-3 border">
+                        <div className="flex items-center justify-between mb-2">
+                          <h4 className="font-bold text-base">{customerName}</h4>
+                          <span className="text-sm font-semibold text-primary">₹{customerTotal.toFixed(0)}</span>
+                        </div>
+                        <div className="space-y-1">
+                          <p className="text-sm text-muted-foreground">
+                            {customerBookings.length} PC{customerBookings.length > 1 ? 's' : ''}: {' '}
+                            {customerBookings.map(b => b.seatName).join(', ')}
+                          </p>
+                        </div>
+                      </div>
+                    );
+                  })}
+                  <div className="pt-3 border-t mt-4">
+                    <div className="flex items-center justify-between">
+                      <span className="font-bold text-base">Grand Total</span>
+                      <span className="font-bold text-xl text-primary">
+                        ₹{selectedBookingsList.reduce((sum, booking) => {
+                          const foodTotal = booking.foodOrders 
+                            ? booking.foodOrders.reduce((fSum, order) => fSum + parseFloat(order.price) * order.quantity, 0)
+                            : 0;
+                          return sum + parseFloat(booking.price) + foodTotal;
+                        }, 0).toFixed(0)}
+                      </span>
+                    </div>
+                    <p className="text-sm text-muted-foreground mt-1">
+                      Total: {selectedBookings.size} booking{selectedBookings.size > 1 ? 's' : ''} from {Object.keys(groupedByCustomer).length} customer{Object.keys(groupedByCustomer).length > 1 ? 's' : ''}
+                    </p>
+                  </div>
+                </div>
+              );
+            })()}
+          </div>
+
+          <div className="grid gap-3 pt-4">
+            <p className="text-sm font-medium text-center text-muted-foreground">Select Payment Method</p>
             <Button
               variant="outline"
               size="lg"
