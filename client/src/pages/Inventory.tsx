@@ -2,7 +2,7 @@ import { useState } from "react";
 import { useQuery, useMutation } from "@tanstack/react-query";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Plus, Minus, Package, AlertTriangle, TrendingUp, TrendingDown, ShoppingCart, X } from "lucide-react";
+import { Plus, Minus, Package, AlertTriangle, TrendingUp, TrendingDown, ShoppingCart, X, RefreshCw } from "lucide-react";
 import { useToastWithSound } from "@/hooks/useToastWithSound";
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Label } from "@/components/ui/label";
@@ -143,6 +143,15 @@ export default function Inventory() {
     setSelectItemsDialog(true);
   };
 
+  const handleRefresh = () => {
+    queryClient.invalidateQueries({ queryKey: ["/api/food-items"] });
+    queryClient.invalidateQueries({ queryKey: ["/api/food-items/low-stock"] });
+    toast({ 
+      title: "Inventory Refreshed", 
+      description: "Food items data has been updated" 
+    });
+  };
+
   if (isLoading) {
     return (
       <div className="space-y-6">
@@ -164,20 +173,31 @@ export default function Inventory() {
           <h1 className="text-2xl sm:text-3xl font-bold text-foreground">Inventory Management</h1>
           <p className="text-sm sm:text-base text-muted-foreground">Track and manage stock levels for food items</p>
         </div>
-        <Button 
-          onClick={openSelectDialog}
-          disabled={!canMakeChanges}
-          data-testid="button-select-items"
-          className="w-full sm:w-auto"
-        >
-          <ShoppingCart className="h-4 w-4 mr-2" />
-          Select Items to Order
-          {itemsToOrder.size > 0 && (
-            <Badge variant="secondary" className="ml-2" data-testid="badge-order-count">
-              {itemsToOrder.size}
-            </Badge>
-          )}
-        </Button>
+        <div className="flex gap-2 w-full sm:w-auto">
+          <Button 
+            onClick={handleRefresh}
+            variant="outline"
+            data-testid="button-refresh-inventory"
+            className="flex-1 sm:flex-initial"
+          >
+            <RefreshCw className="h-4 w-4 mr-2" />
+            Refresh
+          </Button>
+          <Button 
+            onClick={openSelectDialog}
+            disabled={!canMakeChanges}
+            data-testid="button-select-items"
+            className="flex-1 sm:flex-initial"
+          >
+            <ShoppingCart className="h-4 w-4 mr-2" />
+            Select Items to Order
+            {itemsToOrder.size > 0 && (
+              <Badge variant="secondary" className="ml-2" data-testid="badge-order-count">
+                {itemsToOrder.size}
+              </Badge>
+            )}
+          </Button>
+        </div>
       </div>
 
       {/* Summary Cards */}
