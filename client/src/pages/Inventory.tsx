@@ -2,7 +2,7 @@ import { useState } from "react";
 import { useQuery, useMutation } from "@tanstack/react-query";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Plus, Minus, Package, AlertTriangle, TrendingUp, TrendingDown } from "lucide-react";
+import { Plus, Minus, Package, AlertTriangle, TrendingUp, TrendingDown, ShoppingCart, X } from "lucide-react";
 import { useToastWithSound } from "@/hooks/useToastWithSound";
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Label } from "@/components/ui/label";
@@ -12,6 +12,8 @@ import { useAuth } from "@/contexts/AuthContext";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { Checkbox } from "@/components/ui/checkbox";
+import { ScrollArea } from "@/components/ui/scroll-area";
 
 export default function Inventory() {
   const { toast } = useToastWithSound();
@@ -21,6 +23,9 @@ export default function Inventory() {
     item: null,
     type: 'add',
   });
+  const [selectItemsDialog, setSelectItemsDialog] = useState(false);
+  const [tempSelectedItems, setTempSelectedItems] = useState<Set<string>>(new Set());
+  const [itemsToOrder, setItemsToOrder] = useState<Set<string>>(new Set());
   const [quantity, setQuantity] = useState("");
 
   const { data: foodItems = [], isLoading } = useQuery<FoodItem[]>({
@@ -74,6 +79,70 @@ export default function Inventory() {
     return { label: "In Stock", color: "bg-green-500", textColor: "text-green-500" };
   };
 
+  const toggleItemSelection = (itemId: string) => {
+    const newSelected = new Set(tempSelectedItems);
+    if (newSelected.has(itemId)) {
+      newSelected.delete(itemId);
+    } else {
+      newSelected.add(itemId);
+    }
+    setTempSelectedItems(newSelected);
+  };
+
+  const handleSelectLowStockItems = () => {
+    const lowStockIds = new Set(lowStockItems.map(item => item.id));
+    setTempSelectedItems(lowStockIds);
+  };
+
+  const handleClearSelection = () => {
+    setTempSelectedItems(new Set());
+  };
+
+  const handleConfirmSelection = () => {
+    if (tempSelectedItems.size === 0) {
+      toast({ title: "No Items Selected", description: "Please select items you need to order", variant: "destructive" });
+      return;
+    }
+
+    setItemsToOrder(new Set(tempSelectedItems));
+    
+    const selectedItemNames = foodItems
+      .filter(item => tempSelectedItems.has(item.id))
+      .map(item => item.name);
+
+    toast({ 
+      title: "Items Added to Order List", 
+      description: `${tempSelectedItems.size} item(s) added: ${selectedItemNames.join(', ')}` 
+    });
+    
+    setSelectItemsDialog(false);
+    setTempSelectedItems(new Set());
+  };
+
+  const removeFromOrderList = (itemId: string) => {
+    const newItems = new Set(itemsToOrder);
+    newItems.delete(itemId);
+    setItemsToOrder(newItems);
+    
+    const item = foodItems.find(f => f.id === itemId);
+    if (item) {
+      toast({ 
+        title: "Item Removed", 
+        description: `${item.name} removed from order list` 
+      });
+    }
+  };
+
+  const clearOrderList = () => {
+    setItemsToOrder(new Set());
+    toast({ title: "Order List Cleared", description: "All items removed from order list" });
+  };
+
+  const openSelectDialog = () => {
+    setTempSelectedItems(new Set(itemsToOrder));
+    setSelectItemsDialog(true);
+  };
+
   if (isLoading) {
     return (
       <div className="space-y-6">
@@ -86,12 +155,29 @@ export default function Inventory() {
   const totalItems = foodItems.length;
   const totalStock = foodItems.reduce((sum, item) => sum + item.currentStock, 0);
   const lowStockCount = lowStockItems.length;
+  const itemsToOrderList = foodItems.filter(item => itemsToOrder.has(item.id));
 
   return (
     <div className="space-y-4 md:space-y-6">
-      <div>
-        <h1 className="text-2xl sm:text-3xl font-bold text-foreground">Inventory Management</h1>
-        <p className="text-sm sm:text-base text-muted-foreground">Track and manage stock levels for food items</p>
+      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+        <div>
+          <h1 className="text-2xl sm:text-3xl font-bold text-foreground">Inventory Management</h1>
+          <p className="text-sm sm:text-base text-muted-foreground">Track and manage stock levels for food items</p>
+        </div>
+        <Button 
+          onClick={openSelectDialog}
+          disabled={!canMakeChanges}
+          data-testid="button-select-items"
+          className="w-full sm:w-auto"
+        >
+          <ShoppingCart className="h-4 w-4 mr-2" />
+          Select Items to Order
+          {itemsToOrder.size > 0 && (
+            <Badge variant="secondary" className="ml-2" data-testid="badge-order-count">
+              {itemsToOrder.size}
+            </Badge>
+          )}
+        </Button>
       </div>
 
       {/* Summary Cards */}
@@ -121,6 +207,65 @@ export default function Inventory() {
           </CardContent>
         </Card>
       </div>
+
+      {/* Items to Order List */}
+      {itemsToOrder.size > 0 && (
+        <Card data-testid="card-order-list">
+          <CardHeader>
+            <div className="flex items-center justify-between">
+              <div>
+                <CardTitle>Items to Order</CardTitle>
+                <CardDescription>Food items selected for ordering</CardDescription>
+              </div>
+              <Button 
+                variant="outline" 
+                size="sm" 
+                onClick={clearOrderList}
+                data-testid="button-clear-order-list"
+              >
+                Clear All
+              </Button>
+            </div>
+          </CardHeader>
+          <CardContent>
+            <div className="space-y-2">
+              {itemsToOrderList.map((item) => {
+                const status = getStockStatus(item);
+                return (
+                  <div 
+                    key={item.id} 
+                    className="flex items-center justify-between p-3 border rounded-lg"
+                    data-testid={`order-item-${item.id}`}
+                  >
+                    <div className="flex items-center gap-4 flex-1">
+                      <div className="flex-1">
+                        <p className="font-medium" data-testid={`text-order-name-${item.id}`}>{item.name}</p>
+                        <p className="text-sm text-muted-foreground">₹{item.price}</p>
+                      </div>
+                      <div>
+                        <p className={`text-sm font-bold ${status.textColor}`}>
+                          Stock: {item.currentStock}
+                        </p>
+                      </div>
+                      <Badge variant={item.currentStock === 0 ? "destructive" : item.currentStock < item.minStockLevel ? "secondary" : "default"}>
+                        {status.label}
+                      </Badge>
+                    </div>
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      onClick={() => removeFromOrderList(item.id)}
+                      data-testid={`button-remove-order-${item.id}`}
+                    >
+                      <X className="h-4 w-4" />
+                    </Button>
+                  </div>
+                );
+              })}
+            </div>
+          </CardContent>
+        </Card>
+      )}
 
       {/* Low Stock Alert */}
       {lowStockItems.length > 0 && (
@@ -200,6 +345,107 @@ export default function Inventory() {
           </div>
         </CardContent>
       </Card>
+
+      {/* Select Items Dialog */}
+      <Dialog open={selectItemsDialog} onOpenChange={setSelectItemsDialog}>
+        <DialogContent className="max-w-2xl" data-testid="dialog-select-items">
+          <DialogHeader>
+            <DialogTitle>Select Items to Order</DialogTitle>
+            <DialogDescription>
+              Choose food items that need to be ordered or restocked
+            </DialogDescription>
+          </DialogHeader>
+          
+          <div className="space-y-4">
+            <div className="flex gap-2">
+              <Button 
+                variant="outline" 
+                size="sm"
+                onClick={handleSelectLowStockItems}
+                data-testid="button-select-low-stock"
+              >
+                Select Low Stock Items
+              </Button>
+              <Button 
+                variant="outline" 
+                size="sm"
+                onClick={handleClearSelection}
+                data-testid="button-clear-selection"
+              >
+                Clear Selection
+              </Button>
+            </div>
+
+            <ScrollArea className="h-[400px] border rounded-md">
+              <div className="p-4 space-y-3">
+                {foodItems.map((item) => {
+                  const status = getStockStatus(item);
+                  const isSelected = tempSelectedItems.has(item.id);
+                  
+                  return (
+                    <div 
+                      key={item.id} 
+                      className="flex items-center space-x-3 p-3 rounded-lg border hover:bg-muted/50"
+                      data-testid={`item-select-${item.id}`}
+                    >
+                      <Checkbox
+                        checked={isSelected}
+                        onCheckedChange={() => toggleItemSelection(item.id)}
+                        onClick={(e) => e.stopPropagation()}
+                        data-testid={`checkbox-item-${item.id}`}
+                      />
+                      <div 
+                        className="flex-1 grid grid-cols-4 gap-4 cursor-pointer"
+                        onClick={() => toggleItemSelection(item.id)}
+                      >
+                        <div>
+                          <p className="font-medium" data-testid={`text-select-name-${item.id}`}>{item.name}</p>
+                        </div>
+                        <div>
+                          <p className="text-sm text-muted-foreground">₹{item.price}</p>
+                        </div>
+                        <div>
+                          <p className={`text-sm font-bold ${status.textColor}`}>
+                            Stock: {item.currentStock}
+                          </p>
+                        </div>
+                        <div>
+                          <Badge variant={item.currentStock === 0 ? "destructive" : item.currentStock < item.minStockLevel ? "secondary" : "default"}>
+                            {status.label}
+                          </Badge>
+                        </div>
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+            </ScrollArea>
+
+            <div className="text-sm text-muted-foreground">
+              {tempSelectedItems.size} item{tempSelectedItems.size !== 1 ? 's' : ''} selected
+            </div>
+          </div>
+
+          <DialogFooter>
+            <Button
+              variant="outline"
+              onClick={() => {
+                setSelectItemsDialog(false);
+                setTempSelectedItems(new Set());
+              }}
+              data-testid="button-cancel-select"
+            >
+              Cancel
+            </Button>
+            <Button
+              onClick={handleConfirmSelection}
+              data-testid="button-confirm-select"
+            >
+              Confirm Selection
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
 
       {/* Adjust Stock Dialog */}
       <Dialog open={adjustDialog.open} onOpenChange={(open) => !open && setAdjustDialog({ open: false, item: null, type: 'add' })}>
