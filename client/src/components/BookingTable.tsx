@@ -439,7 +439,7 @@ export function BookingTable({ bookings, onExtend, onEnd, onComplete, onAddFood,
                     </TableCell>
                   </TableRow>
                 );
-              })
+              }),
                 ];
               }).flat()
             )}
