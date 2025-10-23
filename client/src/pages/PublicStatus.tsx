@@ -68,18 +68,18 @@ export default function PublicStatus() {
   const [isPricingOpen, setIsPricingOpen] = useState(false);
 
   const activeSettings = {
-    businessName: "Ankylo Gaming",
+    businessName: "Airavoto Gaming",
     logoUrl: undefined,
     headerTitle: "Live Availability",
     headerSubtitle: "Real-time status updated every 5 seconds",
     updateInterval: 5,
     showPricing: 1,
     showContactInfo: 1,
-    contactSectionTitle: "Ankylo Gaming Center",
+    contactSectionTitle: "Airavoto Gaming Center",
     address: "123 Gaming Street, Tech District, City - 400001",
     phone: "+91 98765 43210",
     hours: "10:00 AM - 11:00 PM (Mon-Sun)",
-    email: "info@ankylgaming.com",
+    email: "info@airavotogaming.com",
     showCallNowButton: 1,
     showDirectionsButton: 1,
     showFacilities: 1,

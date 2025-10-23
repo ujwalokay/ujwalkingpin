@@ -21,7 +21,7 @@ export function ConsumerNav() {
         <div className="flex items-center justify-between h-16">
           <Link href="/home">
             <a className="text-xl font-bold bg-gradient-to-r from-purple-600 to-blue-600 bg-clip-text text-transparent" data-testid="link-logo">
-              Ankylo Gaming
+              Airavoto Gaming
             </a>
           </Link>
 

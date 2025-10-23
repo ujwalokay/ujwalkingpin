@@ -7,7 +7,7 @@ import { useToast } from "@/hooks/use-toast";
 import { SiGoogle } from "react-icons/si";
 import { useLocation } from "wouter";
 import loginImage from "@assets/stock_images/purple_gaming_setup,_c53078b3.jpg";
-import logoDark from "@assets/WhatsApp_Image_2025-10-22_at_11.12.35_515bc8bb-removebg-preview_1761111967877.png";
+import logoDark from "@assets/airavoto_logo.png";
 
 interface LoginProps {
   onLoginSuccess: (userData: any) => void;
@@ -193,11 +193,11 @@ export default function Login({ onLoginSuccess }: LoginProps) {
               <div className="flex items-center gap-4">
                 <img 
                   src={logoDark} 
-                  alt="Ankylo Gaming"
+                  alt="Airavoto Gaming"
                   className="h-20 w-20 object-contain"
                 />
                 <div>
-                  <h1 className="text-xl font-bold text-gray-900 dark:text-white">Ankylo Gaming</h1>
+                  <h1 className="text-xl font-bold text-gray-900 dark:text-white">Airavoto Gaming</h1>
                   <p className="text-sm text-gray-600 dark:text-gray-400">Staff Panel</p>
                 </div>
               </div>
@@ -322,7 +322,7 @@ export default function Login({ onLoginSuccess }: LoginProps) {
             />
             <div className="absolute inset-0 bg-gradient-to-t from-purple-950/60 via-transparent to-purple-900/40 z-10"></div>
             <div className="absolute bottom-8 left-8 right-8 z-20 text-white">
-              <h3 className="text-3xl font-bold mb-2">Ankylo Gaming</h3>
+              <h3 className="text-3xl font-bold mb-2">Airavoto Gaming</h3>
               <p className="text-purple-200">Manage your gaming center with ease</p>
             </div>
           </div>

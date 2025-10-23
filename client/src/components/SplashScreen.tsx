@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import splashLogo from "@assets/WhatsApp_Image_2025-10-22_at_11.12.35_515bc8bb-removebg-preview_1761111967877.png";
+import splashLogo from "@assets/airavoto_logo.png";
 import iconPattern from "@assets/WhatsApp Image 2025-10-22 at 11.12.35_fa6763ad_1761112003243.jpg";
 
 interface SplashScreenProps {
@@ -61,7 +61,7 @@ export function SplashScreen({ onComplete }: SplashScreenProps) {
           <div className="relative">
             <img
               src={splashLogo}
-              alt="Ankylo Gaming Logo"
+              alt="Airavoto Gaming Logo"
               className="h-48 w-48 md:h-64 md:w-64 lg:h-80 lg:w-80 object-contain drop-shadow-2xl"
               data-testid="img-splash-logo"
             />
@@ -71,7 +71,7 @@ export function SplashScreen({ onComplete }: SplashScreenProps) {
         {/* Brand Name */}
         <div className={`text-center space-y-3 transition-all duration-1500 delay-300 ${showLogo ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-4'}`}>
           <h1 className="text-5xl md:text-6xl lg:text-7xl font-black text-transparent bg-clip-text bg-gradient-to-r from-purple-600 via-violet-600 to-purple-600 tracking-tight">
-            ANKYLO GAMING
+            AIRAVOTO GAMING
           </h1>
           <p className="text-purple-600 text-lg md:text-xl font-semibold">
             Ultimate Gaming Experience

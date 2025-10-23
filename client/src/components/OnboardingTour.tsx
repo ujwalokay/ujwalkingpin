@@ -46,10 +46,10 @@ interface TourStep {
 
 const tourSteps: TourStep[] = [
   {
-    title: "Welcome to Ankylo Gaming! 🎮",
+    title: "Welcome to Airavoto Gaming! 🎮",
     description: "Your complete gaming center management solution",
     icon: <Sparkles className="h-12 w-12 text-purple-500" />,
-    content: "Ankylo Gaming is designed to help you efficiently run your gaming center. From tracking gaming sessions in real-time to managing bookings, food orders, and revenue - everything you need is in one place.",
+    content: "Airavoto Gaming is designed to help you efficiently run your gaming center. From tracking gaming sessions in real-time to managing bookings, food orders, and revenue - everything you need is in one place.",
     tips: [
       "💡 All features are accessible from the sidebar on the left",
       "💡 Use the dashboard for day-to-day operations",
@@ -275,7 +275,7 @@ export function OnboardingTour({ open, onComplete, onSkip }: OnboardingTourProps
             <div className="flex justify-center mb-4">
               <Sparkles className="h-16 w-16 text-purple-500" />
             </div>
-            <DialogTitle className="text-center text-2xl">Welcome to Ankylo Gaming! 🎮</DialogTitle>
+            <DialogTitle className="text-center text-2xl">Welcome to Airavoto Gaming! 🎮</DialogTitle>
             <DialogDescription className="text-center text-base">
               Would you like a quick tour to learn about the key features and get started?
             </DialogDescription>

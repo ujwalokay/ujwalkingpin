@@ -167,7 +167,7 @@ export default function AIMaintenance() {
         <div>
           <h1 className="text-2xl md:text-3xl font-bold tracking-tight flex items-center gap-2" data-testid="text-page-title">
             <Brain className="h-8 w-8 text-purple-600" />
-            Ankylo AI - Predictive Maintenance
+            Airavoto AI - Predictive Maintenance
           </h1>
           <p className="text-sm md:text-base text-muted-foreground flex items-center gap-2 mt-1">
             <Sparkles className="h-4 w-4 text-purple-500" />
@@ -185,13 +185,13 @@ export default function AIMaintenance() {
         </Button>
       </div>
 
-      {/* Ankylo AI Info */}
+      {/* Airavoto AI Info */}
       <Alert className="border-cyan-500/50 bg-cyan-50 dark:bg-cyan-950/20">
         <Zap className="h-4 w-4 text-cyan-600" />
         <AlertDescription className="text-sm">
           <div className="flex items-center justify-between">
             <div>
-              <strong className="font-semibold text-cyan-900 dark:text-cyan-100">Ankylo AI System:</strong>
+              <strong className="font-semibold text-cyan-900 dark:text-cyan-100">Airavoto AI System:</strong>
               <span className="ml-2 text-cyan-800 dark:text-cyan-200">
                 Using accurate calculations based on your real gaming center data
               </span>
@@ -266,7 +266,7 @@ export default function AIMaintenance() {
         <Alert className="border-purple-500/50 bg-purple-50 dark:bg-purple-950/20">
           <TrendingUp className="h-4 w-4 text-purple-600" />
           <AlertDescription className="text-sm">
-            <strong className="font-semibold text-purple-900 dark:text-purple-100">Ankylo AI Recommendations:</strong>
+            <strong className="font-semibold text-purple-900 dark:text-purple-100">Airavoto AI Recommendations:</strong>
             <ul className="mt-2 space-y-1 list-disc list-inside">
               {insights.summary.recommendedActions.map((action, idx) => (
                 <li key={idx} className="text-purple-800 dark:text-purple-200">{action}</li>
@@ -432,7 +432,7 @@ function DevicePredictionCard({
         </div>
 
         <div className="bg-background/50 dark:bg-background/30 p-3 rounded-lg">
-          <p className="text-sm font-medium mb-1">Ankylo AI Analysis:</p>
+          <p className="text-sm font-medium mb-1">Airavoto AI Analysis:</p>
           <p className="text-sm text-muted-foreground">{prediction.reasoning}</p>
         </div>
 

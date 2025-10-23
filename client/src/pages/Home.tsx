@@ -38,7 +38,7 @@ export default function Home() {
     <div className="container mx-auto p-6 space-y-12">
       <div className="text-center space-y-4">
         <h1 className="text-4xl md:text-6xl font-bold bg-gradient-to-r from-purple-600 to-blue-600 bg-clip-text text-transparent" data-testid="text-center-name">
-          {centerInfo?.name || "Ankylo Gaming Center"}
+          {centerInfo?.name || "Airavoto Gaming Center"}
         </h1>
         <p className="text-lg md:text-xl text-muted-foreground max-w-3xl mx-auto" data-testid="text-center-description">
           {centerInfo?.description || "Experience the ultimate gaming destination"}

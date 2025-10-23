@@ -25,7 +25,7 @@ export default function TermsAndConditions() {
               <section>
                 <h2 className="text-2xl font-semibold mb-3">1. Acceptance of Terms</h2>
                 <p className="text-muted-foreground leading-relaxed">
-                  By accessing and using this Ankylo Gaming Admin Panel, you accept and agree to be bound by the terms and provision of this agreement. If you do not agree to these terms, please do not use this service.
+                  By accessing and using this Airavoto Gaming Admin Panel, you accept and agree to be bound by the terms and provision of this agreement. If you do not agree to these terms, please do not use this service.
                 </p>
               </section>
 
@@ -140,7 +140,7 @@ export default function TermsAndConditions() {
 
               <div className="mt-8 p-4 bg-muted rounded-lg">
                 <p className="text-sm text-muted-foreground text-center">
-                  By using this Ankylo Gaming Admin Panel, you acknowledge that you have read, understood, and agree to be bound by these Terms and Conditions.
+                  By using this Airavoto Gaming Admin Panel, you acknowledge that you have read, understood, and agree to be bound by these Terms and Conditions.
                 </p>
               </div>
             </div>

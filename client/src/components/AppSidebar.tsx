@@ -12,8 +12,8 @@ import {
   SidebarMenuButton,
   SidebarFooter,
 } from "@/components/ui/sidebar";
-import logoDark from "@assets/WhatsApp_Image_2025-10-22_at_11.12.35_515bc8bb-removebg-preview_1761111967877.png";
-import logoLight from "@assets/WhatsApp_Image_2025-10-22_at_11.12.35_515bc8bb-removebg-preview_1761111967877.png";
+import logoDark from "@assets/airavoto_logo.png";
+import logoLight from "@assets/airavoto_logo.png";
 
 const menuItems = [
   {
@@ -103,11 +103,11 @@ export function AppSidebar() {
           <div className="flex items-center gap-3 px-4 py-6 border-b border-gray-200 dark:border-gray-800">
             <img 
               src={theme === "dark" ? logoDark : logoLight} 
-              alt="Ankylo Gaming Logo" 
+              alt="Airavoto Gaming Logo" 
               className="h-16 w-16 sm:h-20 sm:w-20 object-contain"
             />
             <div>
-              <h2 className="text-base sm:text-lg font-bold text-gray-900 dark:text-white">Ankylo Gaming</h2>
+              <h2 className="text-base sm:text-lg font-bold text-gray-900 dark:text-white">Airavoto Gaming</h2>
               <p className="text-xs text-gray-500 dark:text-gray-400">Admin Panel</p>
             </div>
           </div>

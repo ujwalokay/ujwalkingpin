@@ -1,8 +1,8 @@
-# Gaming Center POS Admin Panel
+# Airavoto Gaming Center POS Admin Panel
 
 ## Overview
 
-This project is a local admin panel web application for managing a gaming center's Point-of-Sale (POS) system. It tracks gaming sessions across various device types (PC, PS5, VR, car simulators), handles walk-in and advance bookings, and provides comprehensive reporting, including an expense tracker. The application is a full-stack TypeScript project, running locally, designed to streamline operations, manage inventory, track expenses, and improve customer service in a gaming center environment. It features a gaming-themed dark mode UI inspired by Discord and Steam.
+This project is a local admin panel web application for managing Airavoto Gaming Center's Point-of-Sale (POS) system. It tracks gaming sessions across various device types (PC, PS5, VR, car simulators), handles walk-in and advance bookings, and provides comprehensive reporting, including an expense tracker. The application is a full-stack TypeScript project, running locally, designed to streamline operations, manage inventory, track expenses, and improve customer service in a gaming center environment. It features a gaming-themed dark mode UI inspired by Discord and Steam.
 
 ## User Preferences
 
