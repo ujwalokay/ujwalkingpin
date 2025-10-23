@@ -43,7 +43,7 @@ Preferred communication style: Simple, everyday language.
 - `Booking History`: Archives completed/expired bookings.
 - `Device Configs`: Stores dynamic device categories and seat configurations.
 - `Pricing Configs`: Defines pricing rules per category and duration, including person-based pricing for PS5.
-- `Food Items`: Stores available food and beverage options.
+- `Food Items`: Stores available food and beverage options with inventory tracking (currentStock, minStockLevel).
 - `Settings`: General admin configurations.
 - `Expenses`: Tracks operational costs.
 - `Happy Hours Configs`: Defines time slots and pricing for special happy hour rates.
@@ -59,7 +59,8 @@ Preferred communication style: Simple, everyday language.
 **Real-time Features:**
 - Client-side interval timers for session countdowns.
 - Polling for updates.
-- Audio/visual notifications for expired sessions.
+- Audio/visual notifications for expired sessions and all toast messages using Web Audio API.
+- Sound alerts for timer expiry, success, error, warning, and info notifications.
 
 **Styling Architecture:**
 - CSS custom properties for theme tokens.
@@ -85,6 +86,8 @@ Preferred communication style: Simple, everyday language.
 - Analytics Chart Export: Save as Image functionality for all analytics charts (Occupancy Trend, Category Distribution, Hourly Activity, Revenue & Bookings, Peak Hours) using html2canvas for high-quality PNG exports.
 - Ankylo AI System: Custom calculation-based predictive maintenance and traffic forecasting. Uses deterministic risk-score algorithms based on device usage hours, session counts, issue reports, and maintenance history. Traffic predictions use weighted historical patterns with trend detection. No external AI services required - 100% accurate predictions using mathematical formulas.
 - Tournament Management: Complete system for organizing gaming tournaments with participant tracking, registration management, status updates (upcoming/ongoing/completed), and winner declarations. Includes real-time participant lists and tournament statistics.
+- Food Inventory Management: Track stock levels of consumables (chips, drinks, etc.) with automatic deduction when items are ordered in bookings. Features current stock tracking, minimum stock level alerts, add/remove stock functionality, and low stock warnings with visual indicators. Includes smart delta-based stock adjustment that properly handles quantity changes in booking updates.
+- Sound Alert System: Comprehensive audio notification system using Web Audio API for all user feedback including timer expiry alerts, success confirmations, error warnings, and informational messages. Enhances user experience with audio cues for important events.
 
 ## External Dependencies
 
