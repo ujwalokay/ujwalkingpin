@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useMemo } from "react";
 import { useQuery, useMutation } from "@tanstack/react-query";
 import { DeviceConfigCard } from "@/components/DeviceConfigCard";
 import { PricingTable } from "@/components/PricingTable";
@@ -7,7 +7,7 @@ import { HappyHoursPricing } from "@/components/HappyHoursPricing";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Save, Plus, Trash2, Award } from "lucide-react";
+import { Save, Plus, Trash2, Award, AlertTriangle } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { apiRequest, queryClient } from "@/lib/queryClient";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -19,9 +19,20 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import type { Booking } from "@shared/schema";
 import { useAuth } from "@/contexts/AuthContext";
+import { useUnsavedChanges } from "@/hooks/useUnsavedChanges";
 
 interface DeviceConfig {
   id: string;
@@ -96,6 +107,7 @@ export default function Settings() {
   });
 
   const [categories, setCategories] = useState<CategoryState[]>([]);
+  const [originalCategories, setOriginalCategories] = useState<CategoryState[]>([]);
   const [showAddDialog, setShowAddDialog] = useState(false);
   const [newCategoryName, setNewCategoryName] = useState("");
 
@@ -144,7 +156,9 @@ export default function Settings() {
         }
       });
 
-      setCategories(Array.from(categoryMap.values()));
+      const categoriesArray = Array.from(categoryMap.values());
+      setCategories(categoriesArray);
+      setOriginalCategories(JSON.parse(JSON.stringify(categoriesArray)));
     }
   }, [deviceConfigs, pricingConfigs, happyHoursConfigs, happyHoursPricingConfigs]);
 
@@ -353,6 +367,8 @@ export default function Settings() {
       queryClient.invalidateQueries({ queryKey: ["/api/happy-hours-pricing"] });
       queryClient.invalidateQueries({ queryKey: ["/api/happy-hours-active"] });
 
+      setOriginalCategories(JSON.parse(JSON.stringify(categories)));
+
       toast({
         title: "Settings Saved",
         description: "Your configuration has been updated successfully.",
@@ -372,6 +388,15 @@ export default function Settings() {
     ).length;
     return totalCount - occupied;
   };
+
+  const hasUnsavedChanges = useMemo(() => {
+    return JSON.stringify(categories) !== JSON.stringify(originalCategories);
+  }, [categories, originalCategories]);
+
+  const { showConfirmDialog, confirmNavigation, cancelNavigation } = useUnsavedChanges({
+    hasUnsavedChanges,
+    message: "You have unsaved changes in Settings. Do you want to leave without saving?",
+  });
 
   if (deviceLoading || pricingLoading || happyHoursLoading || happyHoursPricingLoading) {
     return (
@@ -528,6 +553,41 @@ export default function Settings() {
           </DialogFooter>
         </DialogContent>
       </Dialog>
+
+      <AlertDialog open={showConfirmDialog} onOpenChange={cancelNavigation}>
+        <AlertDialogContent data-testid="dialog-unsaved-changes">
+          <AlertDialogHeader>
+            <AlertDialogTitle className="flex items-center gap-2">
+              <AlertTriangle className="h-5 w-5 text-yellow-500" />
+              Unsaved Changes
+            </AlertDialogTitle>
+            <AlertDialogDescription>
+              You have unsaved changes in your settings. If you leave now, your changes will be lost. Do you want to save before leaving?
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel onClick={cancelNavigation} data-testid="button-cancel-navigation">
+              Stay on Page
+            </AlertDialogCancel>
+            <Button 
+              variant="outline" 
+              onClick={confirmNavigation}
+              data-testid="button-leave-without-saving"
+            >
+              Leave Without Saving
+            </Button>
+            <AlertDialogAction 
+              onClick={async () => {
+                await handleSave();
+                confirmNavigation();
+              }}
+              data-testid="button-save-and-leave"
+            >
+              Save and Leave
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 }

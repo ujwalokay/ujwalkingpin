@@ -88,6 +88,7 @@ Preferred communication style: Simple, everyday language.
 - Tournament Management: Complete system for organizing gaming tournaments with participant tracking, registration management, status updates (upcoming/ongoing/completed), and winner declarations. Includes real-time participant lists and tournament statistics.
 - Food Inventory Management: Track stock levels of consumables (chips, drinks, etc.) with automatic deduction when items are ordered in bookings. Features current stock tracking, minimum stock level alerts, add/remove stock functionality, and low stock warnings with visual indicators. Includes smart delta-based stock adjustment that properly handles quantity changes in booking updates.
 - Sound Alert System: Comprehensive audio notification system using Web Audio API for all user feedback including timer expiry alerts, success confirmations, error warnings, and informational messages. Enhances user experience with audio cues for important events.
+- Unsaved Changes Protection: Settings page detects unsaved changes and shows confirmation dialog when navigating away, preventing accidental data loss. Uses browser beforeunload event for tab/window close and custom navigation blocking for internal links.
 
 ## External Dependencies
 
