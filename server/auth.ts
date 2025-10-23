@@ -2,7 +2,6 @@ import type { Express, Request, Response, NextFunction } from "express";
 import { storage } from "./storage";
 import { loginSchema } from "@shared/schema";
 import rateLimit from "express-rate-limit";
-import { isAuthenticated as replitAuthMiddleware } from "./replitAuth";
 
 export const loginLimiter = rateLimit({
   windowMs: 15 * 60 * 1000, // 15 minutes
@@ -154,18 +153,6 @@ export function registerAuthRoutes(app: Express) {
   app.post("/api/auth/login", loginLimiter, loginHandler);
   app.post("/api/auth/logout", logoutHandler);
   app.get("/api/auth/me", getCurrentUserHandler);
-  
-  // Replit Auth user endpoint (for Google login users)
-  app.get("/api/auth/user", replitAuthMiddleware, async (req: any, res: Response) => {
-    try {
-      const userId = req.user.claims.sub;
-      const user = await storage.getUser(userId);
-      res.json(user);
-    } catch (error) {
-      console.error("Error fetching user:", error);
-      res.status(500).json({ message: "Failed to fetch user" });
-    }
-  });
   
   app.post("/api/auth/complete-onboarding", requireAuth, async (req: Request, res: Response) => {
     try {
