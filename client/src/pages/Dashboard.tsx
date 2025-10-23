@@ -11,6 +11,7 @@ import { AddFoodToBookingDialog } from "@/components/AddFoodToBookingDialog";
 import { OnboardingTour } from "@/components/OnboardingTour";
 import { Plus, Monitor, Gamepad2, Glasses, Car, Cpu, Tv, Radio, Box, RefreshCw, Calculator, Wallet, Users, Calendar, Clock, List } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
+import { useSoundAlert } from "@/hooks/useSoundAlert";
 import { fetchBookings, createBooking, updateBooking, deleteBooking, fetchDeviceConfigs, getServerTime } from "@/lib/api";
 import type { Booking as DBBooking, DeviceConfig } from "@shared/schema";
 import { useServerTime } from "@/hooks/useServerTime";
@@ -69,6 +70,7 @@ const getColorForCategory = (index: number) => {
 
 export default function Dashboard() {
   const { toast } = useToast();
+  const { playSound } = useSoundAlert();
   const queryClient = useQueryClient();
   const { getTime } = useServerTime();
   const { canMakeChanges, deviceRestricted, user, onboardingCompleted } = useAuth();
@@ -199,6 +201,15 @@ export default function Dashboard() {
 
       for (let i = 0; i < bookings.length; i++) {
         if (bookings[i].status !== updatedBookings[i].status) {
+          // Play sound alert when timer expires
+          if (bookings[i].status === "running" && updatedBookings[i].status === "expired") {
+            playSound('timer');
+            toast({
+              title: "Timer Expired",
+              description: `${bookings[i].seatName} - ${bookings[i].customerName}'s session has ended`,
+              variant: "destructive",
+            });
+          }
           try {
             await updateBooking(bookings[i].id, { status: updatedBookings[i].status });
           } catch (error) {

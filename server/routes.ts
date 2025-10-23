@@ -136,6 +136,14 @@ export async function registerRoutes(app: Express): Promise<Server> {
       }
       
       const created = await storage.createBooking(booking);
+      
+      // Deduct stock for food orders
+      if (created.foodOrders && created.foodOrders.length > 0) {
+        for (const order of created.foodOrders) {
+          await storage.adjustStock(order.foodId, order.quantity, 'remove');
+        }
+      }
+      
       res.json(created);
     } catch (error: any) {
       res.status(400).json({ message: error.message });
@@ -145,10 +153,46 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.patch("/api/bookings/:id", requireAuth, async (req, res) => {
     try {
       const { id } = req.params;
+      const existingBooking = await storage.getBooking(id);
       const updated = await storage.updateBooking(id, req.body);
       if (!updated) {
         return res.status(404).json({ message: "Booking not found" });
       }
+      
+      // Adjust stock for food order changes
+      if (existingBooking) {
+        const oldOrders = existingBooking.foodOrders || [];
+        const newOrders = updated.foodOrders || [];
+        
+        // Create maps for easy lookup
+        const oldOrdersMap = new Map(oldOrders.map(o => [o.foodId, o.quantity]));
+        const newOrdersMap = new Map(newOrders.map(o => [o.foodId, o.quantity]));
+        
+        // Process new/increased orders (deduct stock)
+        for (const [foodId, newQty] of Array.from(newOrdersMap.entries())) {
+          const oldQty = oldOrdersMap.get(foodId) || 0;
+          const diff = newQty - oldQty;
+          if (diff > 0) {
+            // New order or quantity increased - deduct the difference
+            const result = await storage.adjustStock(foodId, diff, 'remove');
+            if (!result || result.currentStock === 0) {
+              console.warn(`Warning: Stock for food item ${foodId} may be insufficient`);
+            }
+          } else if (diff < 0) {
+            // Quantity decreased - add back the difference
+            await storage.adjustStock(foodId, Math.abs(diff), 'add');
+          }
+        }
+        
+        // Process removed orders (add stock back)
+        for (const [foodId, oldQty] of Array.from(oldOrdersMap.entries())) {
+          if (!newOrdersMap.has(foodId)) {
+            // Order was removed - add stock back
+            await storage.adjustStock(foodId, oldQty, 'add');
+          }
+        }
+      }
+      
       res.json(updated);
     } catch (error: any) {
       res.status(400).json({ message: error.message });
@@ -299,7 +343,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const timeRange = req.query.timeRange as string || "today";
       const allBookings = await storage.getAllBookings();
       // Filter for walk-in bookings only
-      const bookings = allBookings.filter(b => b.bookingType === "walk-in");
+      const bookings = allBookings.filter(b => b.bookingType.includes("walk-in"));
       const deviceConfigs = await storage.getAllDeviceConfigs();
       const now = new Date();
       
@@ -364,7 +408,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const todayHistoricalBookings = allHistoricalBookings.filter(b => {
         const start = new Date(b.startTime);
         const isAllowedStatus = allowedStatuses.includes(b.status);
-        return start >= todayStart && start <= todayEnd && b.bookingType === "walk-in" && isAllowedStatus;
+        return start >= todayStart && start <= todayEnd && b.bookingType.includes("walk-in") && isAllowedStatus;
       });
       
       // Combine both sources for complete hourly data
@@ -748,6 +792,44 @@ export async function registerRoutes(app: Express): Promise<Server> {
       res.json({ success: true });
     } catch (error: any) {
       res.status(400).json({ message: error.message });
+    }
+  });
+
+  app.post("/api/food-items/:id/adjust-stock", requireAuth, async (req, res) => {
+    try {
+      const { id } = req.params;
+      const { quantity, type } = schema.stockAdjustmentSchema.parse({ ...req.body, foodId: id });
+      
+      const updated = await storage.adjustStock(id, quantity, type);
+      if (!updated) {
+        return res.status(404).json({ message: "Food item not found" });
+      }
+      
+      // Log the activity
+      if (req.session.userId && req.session.username && req.session.role) {
+        await storage.createActivityLog({
+          userId: req.session.userId,
+          username: req.session.username,
+          userRole: req.session.role,
+          action: 'update',
+          entityType: 'food-inventory',
+          entityId: id,
+          details: `${type === 'add' ? 'Added' : 'Removed'} ${quantity} ${updated.name} from stock. New stock: ${updated.currentStock}`
+        });
+      }
+      
+      res.json(updated);
+    } catch (error: any) {
+      res.status(400).json({ message: error.message });
+    }
+  });
+
+  app.get("/api/food-items/low-stock", requireAuth, async (req, res) => {
+    try {
+      const items = await storage.getLowStockItems();
+      res.json(items);
+    } catch (error: any) {
+      res.status(500).json({ message: error.message });
     }
   });
 

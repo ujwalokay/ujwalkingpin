@@ -53,11 +53,19 @@ export const foodItems = pgTable("food_items", {
   id: varchar("id").primaryKey().$defaultFn(() => crypto.randomUUID()),
   name: varchar("name").notNull(),
   price: varchar("price").notNull(),
+  currentStock: integer("current_stock").notNull().default(0),
+  minStockLevel: integer("min_stock_level").notNull().default(10),
 });
 
 export const insertFoodItemSchema = createInsertSchema(foodItems).omit({ id: true });
 export type InsertFoodItem = z.infer<typeof insertFoodItemSchema>;
 export type FoodItem = typeof foodItems.$inferSelect;
+
+export const stockAdjustmentSchema = z.object({
+  foodId: z.string(),
+  quantity: z.number().int(),
+  type: z.enum(["add", "remove"]),
+});
 
 export const deviceConfigs = pgTable("device_configs", {
   id: varchar("id").primaryKey().$defaultFn(() => crypto.randomUUID()),

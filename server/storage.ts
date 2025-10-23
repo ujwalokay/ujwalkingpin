@@ -121,6 +121,8 @@ export interface IStorage {
   createFoodItem(item: InsertFoodItem): Promise<FoodItem>;
   updateFoodItem(id: string, item: InsertFoodItem): Promise<FoodItem | undefined>;
   deleteFoodItem(id: string): Promise<boolean>;
+  adjustStock(foodId: string, quantity: number, type: 'add' | 'remove'): Promise<FoodItem | undefined>;
+  getLowStockItems(): Promise<FoodItem[]>;
   
   getUserByUsername(username: string): Promise<User | undefined>;
   getUserById(id: string): Promise<User | undefined>;
@@ -698,6 +700,33 @@ export class DatabaseStorage implements IStorage {
   async deleteFoodItem(id: string): Promise<boolean> {
     const result = await db.delete(foodItems).where(eq(foodItems.id, id));
     return result.rowCount ? result.rowCount > 0 : false;
+  }
+
+  async adjustStock(foodId: string, quantity: number, type: 'add' | 'remove'): Promise<FoodItem | undefined> {
+    const item = await this.getFoodItem(foodId);
+    if (!item) {
+      return undefined;
+    }
+
+    const newStock = type === 'add' 
+      ? item.currentStock + quantity 
+      : Math.max(0, item.currentStock - quantity);
+
+    const [updated] = await db
+      .update(foodItems)
+      .set({ currentStock: newStock })
+      .where(eq(foodItems.id, foodId))
+      .returning();
+    
+    return updated || undefined;
+  }
+
+  async getLowStockItems(): Promise<FoodItem[]> {
+    const items = await db
+      .select()
+      .from(foodItems)
+      .where(lt(foodItems.currentStock, foodItems.minStockLevel));
+    return items;
   }
 
   async updatePaymentMethod(bookingIds: string[], paymentMethod: string): Promise<number> {
