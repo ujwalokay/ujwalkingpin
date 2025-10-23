@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useMemo } from "react";
 import {
   Table,
   TableBody,
@@ -11,7 +11,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { StatusBadge } from "./StatusBadge";
 import { SessionTimer } from "./SessionTimer";
-import { Clock, X, Check, UtensilsCrossed, Search, Plus, MoreVertical, StopCircle, Trash2, Play, Pause } from "lucide-react";
+import { Clock, X, Check, UtensilsCrossed, Search, Plus, MoreVertical, StopCircle, Trash2, Play, Pause, CheckSquare } from "lucide-react";
 import { Checkbox } from "@/components/ui/checkbox";
 import {
   DropdownMenu,
@@ -77,6 +77,37 @@ export function BookingTable({ bookings, onExtend, onEnd, onComplete, onAddFood,
     );
   });
 
+  const groupedByCustomer = useMemo(() => {
+    const groups = new Map<string, Booking[]>();
+    filteredBookings.forEach(booking => {
+      const customerName = booking.customerName;
+      if (!groups.has(customerName)) {
+        groups.set(customerName, []);
+      }
+      groups.get(customerName)!.push(booking);
+    });
+    return groups;
+  }, [filteredBookings]);
+
+  const handleSelectAllForCustomer = (customerName: string) => {
+    if (!onToggleSelection) return;
+    const customerBookings = groupedByCustomer.get(customerName) || [];
+    const customerBookingIds = customerBookings.map(b => b.id);
+    const allSelected = customerBookingIds.every(id => selectedBookings?.has(id));
+    
+    customerBookingIds.forEach(id => {
+      if (allSelected) {
+        if (selectedBookings?.has(id)) {
+          onToggleSelection(id);
+        }
+      } else {
+        if (!selectedBookings?.has(id)) {
+          onToggleSelection(id);
+        }
+      }
+    });
+  };
+
   return (
     <div className="space-y-4">
       <div className="flex items-center gap-2">
@@ -121,15 +152,62 @@ export function BookingTable({ bookings, onExtend, onEnd, onComplete, onAddFood,
                 </TableCell>
               </TableRow>
             ) : (
-              filteredBookings.map((booking) => {
+              Array.from(groupedByCustomer.entries()).map(([customerName, customerBookings], groupIndex) => {
+                const customerBookingIds = customerBookings.map(b => b.id);
+                const allSelected = customerBookingIds.every(id => selectedBookings?.has(id));
+                const someSelected = customerBookingIds.some(id => selectedBookings?.has(id));
+                const customerTotal = customerBookings.reduce((sum, booking) => {
+                  const foodTotal = booking.foodOrders 
+                    ? booking.foodOrders.reduce((fSum, order) => fSum + parseFloat(order.price) * order.quantity, 0)
+                    : 0;
+                  return sum + parseFloat(booking.price) + foodTotal;
+                }, 0);
+
+                return [
+                  <TableRow 
+                    key={`customer-header-${customerName}-${groupIndex}`}
+                    className="bg-muted/50 hover:bg-muted/50 border-t-2 border-primary/20"
+                  >
+                    <TableCell colSpan={13 + (showDateColumn ? 1 : 0) + (showTypeColumn ? 1 : 0)} className="py-3">
+                      <div className="flex items-center justify-between">
+                        <div className="flex items-center gap-3">
+                          <h3 className="text-base font-bold text-foreground" data-testid={`customer-group-${customerName}`}>
+                            {customerName}
+                          </h3>
+                          <span className="text-sm text-muted-foreground">
+                            ({customerBookings.length} PC{customerBookings.length > 1 ? 's' : ''})
+                          </span>
+                          <span className="text-sm font-semibold text-primary">
+                            Total: ₹{customerTotal.toFixed(0)}
+                          </span>
+                        </div>
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          onClick={() => handleSelectAllForCustomer(customerName)}
+                          data-testid={`button-select-all-${customerName}`}
+                          className="h-8"
+                        >
+                          <CheckSquare className="mr-2 h-4 w-4" />
+                          {allSelected ? 'Deselect All' : someSelected ? 'Select All' : 'Select All'}
+                        </Button>
+                      </div>
+                    </TableCell>
+                  </TableRow>,
+                  ...customerBookings.map((booking, bookingIndex) => {
                 const hasFoodOrders = booking.foodOrders && booking.foodOrders.length > 0;
                 const foodTotal = hasFoodOrders 
                   ? booking.foodOrders!.reduce((sum, order) => sum + parseFloat(order.price) * order.quantity, 0)
                   : 0;
                 const totalAmount = parseFloat(booking.price) + foodTotal;
+                const isSelected = selectedBookings?.has(booking.id);
                 
                 return (
-                  <TableRow key={booking.id} data-testid={`row-booking-${booking.id}`}>
+                  <TableRow 
+                    key={booking.id} 
+                    data-testid={`row-booking-${booking.id}`}
+                    className={isSelected ? "bg-blue-50 dark:bg-blue-950/30 hover:bg-blue-100 dark:hover:bg-blue-950/50" : ""}
+                  >
                     <TableCell>
                       <Checkbox
                         checked={selectedBookings?.has(booking.id) || false}
@@ -362,6 +440,8 @@ export function BookingTable({ bookings, onExtend, onEnd, onComplete, onAddFood,
                   </TableRow>
                 );
               })
+                ];
+              }).flat()
             )}
           </TableBody>
         </Table>
