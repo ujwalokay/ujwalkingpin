@@ -833,6 +833,67 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  app.get("/api/food-items/inventory", requireAuth, async (req, res) => {
+    try {
+      const items = await storage.getInventoryItems();
+      res.json(items);
+    } catch (error: any) {
+      res.status(500).json({ message: error.message });
+    }
+  });
+
+  app.post("/api/food-items/:id/add-to-inventory", requireAuth, async (req, res) => {
+    try {
+      const { id } = req.params;
+      const updated = await storage.addToInventory(id);
+      if (!updated) {
+        return res.status(404).json({ message: "Food item not found" });
+      }
+      
+      if (req.session.userId && req.session.username && req.session.role) {
+        await storage.createActivityLog({
+          userId: req.session.userId,
+          username: req.session.username,
+          userRole: req.session.role,
+          action: 'update',
+          entityType: 'food-inventory',
+          entityId: id,
+          details: `Added ${updated.name} to inventory`
+        });
+      }
+      
+      res.json(updated);
+    } catch (error: any) {
+      res.status(400).json({ message: error.message });
+    }
+  });
+
+  app.post("/api/food-items/:id/remove-from-inventory", requireAuth, async (req, res) => {
+    try {
+      const { id } = req.params;
+      const updated = await storage.removeFromInventory(id);
+      if (!updated) {
+        return res.status(404).json({ message: "Food item not found" });
+      }
+      
+      if (req.session.userId && req.session.username && req.session.role) {
+        await storage.createActivityLog({
+          userId: req.session.userId,
+          username: req.session.username,
+          userRole: req.session.role,
+          action: 'update',
+          entityType: 'food-inventory',
+          entityId: id,
+          details: `Removed ${updated.name} from inventory`
+        });
+      }
+      
+      res.json(updated);
+    } catch (error: any) {
+      res.status(400).json({ message: error.message });
+    }
+  });
+
   app.get("/api/expenses", requireAuth, async (req, res) => {
     try {
       const expenses = await storage.getAllExpenses();
