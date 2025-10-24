@@ -123,6 +123,9 @@ export interface IStorage {
   deleteFoodItem(id: string): Promise<boolean>;
   adjustStock(foodId: string, quantity: number, type: 'add' | 'remove'): Promise<FoodItem | undefined>;
   getLowStockItems(): Promise<FoodItem[]>;
+  getInventoryItems(): Promise<FoodItem[]>;
+  addToInventory(id: string): Promise<FoodItem | undefined>;
+  removeFromInventory(id: string): Promise<FoodItem | undefined>;
   
   getUserByUsername(username: string): Promise<User | undefined>;
   getUserById(id: string): Promise<User | undefined>;
@@ -727,6 +730,31 @@ export class DatabaseStorage implements IStorage {
       .from(foodItems)
       .where(lt(foodItems.currentStock, foodItems.minStockLevel));
     return items;
+  }
+
+  async getInventoryItems(): Promise<FoodItem[]> {
+    return await db
+      .select()
+      .from(foodItems)
+      .where(eq(foodItems.inInventory, 1));
+  }
+
+  async addToInventory(id: string): Promise<FoodItem | undefined> {
+    const [updated] = await db
+      .update(foodItems)
+      .set({ inInventory: 1 })
+      .where(eq(foodItems.id, id))
+      .returning();
+    return updated || undefined;
+  }
+
+  async removeFromInventory(id: string): Promise<FoodItem | undefined> {
+    const [updated] = await db
+      .update(foodItems)
+      .set({ inInventory: 0 })
+      .where(eq(foodItems.id, id))
+      .returning();
+    return updated || undefined;
   }
 
   async updatePaymentMethod(bookingIds: string[], paymentMethod: string): Promise<number> {
