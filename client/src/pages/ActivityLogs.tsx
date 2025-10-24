@@ -7,7 +7,7 @@ import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { format } from "date-fns";
-import { Search, Filter, X, Calendar } from "lucide-react";
+import { Search, Filter, X, Calendar, ChevronDown, ChevronUp } from "lucide-react";
 import type { ActivityLog } from "@shared/schema";
 import { ScrollArea } from "@/components/ui/scroll-area";
 
@@ -20,6 +20,19 @@ export default function ActivityLogs() {
   const [roleFilter, setRoleFilter] = useState<string>("all");
   const [actionFilter, setActionFilter] = useState<string>("all");
   const [entityFilter, setEntityFilter] = useState<string>("all");
+  const [expandedRows, setExpandedRows] = useState<Set<string>>(new Set());
+
+  const toggleRowExpansion = (logId: string) => {
+    setExpandedRows(prev => {
+      const newSet = new Set(prev);
+      if (newSet.has(logId)) {
+        newSet.delete(logId);
+      } else {
+        newSet.add(logId);
+      }
+      return newSet;
+    });
+  };
 
   const getActionBadge = (action: string, role: string) => {
     if (action === "login") {
@@ -194,7 +207,7 @@ export default function ActivityLogs() {
         <CardHeader className="pb-3">
           <CardTitle className="text-lg md:text-xl">Activity Logs</CardTitle>
           <CardDescription className="text-xs md:text-sm">
-            All activity sorted by most recent
+            All activity sorted by most recent. Click on details to expand.
           </CardDescription>
         </CardHeader>
         <CardContent className="p-0">
@@ -214,41 +227,74 @@ export default function ActivityLogs() {
                       <TableHead className="min-w-[120px]">User</TableHead>
                       <TableHead className="min-w-[100px]">Action</TableHead>
                       <TableHead className="min-w-[100px]">Entity</TableHead>
-                      <TableHead className="min-w-[200px]">Details</TableHead>
+                      <TableHead className="min-w-[250px]">Details</TableHead>
                     </TableRow>
                   </TableHeader>
                   <TableBody>
-                    {filteredLogs.map((log) => (
-                      <TableRow key={log.id} data-testid={`row-log-${log.id}`}>
-                        <TableCell className="font-medium text-xs md:text-sm whitespace-nowrap" data-testid={`text-time-${log.id}`}>
-                          <div className="flex items-center gap-2">
-                            <Calendar className="h-3 w-3 text-muted-foreground hidden md:inline" />
-                            {format(new Date(log.createdAt), "MMM dd, yyyy HH:mm")}
-                          </div>
-                        </TableCell>
-                        <TableCell className="text-xs md:text-sm">
-                          <div className="flex flex-col gap-1">
-                            <span data-testid={`text-username-${log.id}`} className="font-medium">
-                              {log.username}
-                            </span>
-                            <div>{getRoleBadge(log.userRole)}</div>
-                          </div>
-                        </TableCell>
-                        <TableCell data-testid={`badge-action-${log.id}`}>
-                          {getActionBadge(log.action, log.userRole)}
-                        </TableCell>
-                        <TableCell className="text-xs md:text-sm" data-testid={`text-entity-${log.id}`}>
-                          <Badge variant="outline" className="text-xs">
-                            {log.entityType || "-"}
-                          </Badge>
-                        </TableCell>
-                        <TableCell className="text-xs md:text-sm max-w-xs" data-testid={`text-details-${log.id}`}>
-                          <p className="line-clamp-2 break-words">
-                            {log.details || "-"}
-                          </p>
-                        </TableCell>
-                      </TableRow>
-                    ))}
+                    {filteredLogs.map((log) => {
+                      const isExpanded = expandedRows.has(log.id);
+                      const hasDetails = log.details && log.details.length > 0;
+                      const shouldTruncate = log.details && log.details.length > 80;
+                      
+                      return (
+                        <TableRow key={log.id} data-testid={`row-log-${log.id}`}>
+                          <TableCell className="font-medium text-xs md:text-sm whitespace-nowrap" data-testid={`text-time-${log.id}`}>
+                            <div className="flex items-center gap-2">
+                              <Calendar className="h-3 w-3 text-muted-foreground hidden md:inline" />
+                              {format(new Date(log.createdAt), "MMM dd, yyyy HH:mm")}
+                            </div>
+                          </TableCell>
+                          <TableCell className="text-xs md:text-sm">
+                            <div className="flex flex-col gap-1">
+                              <span data-testid={`text-username-${log.id}`} className="font-medium">
+                                {log.username}
+                              </span>
+                              <div>{getRoleBadge(log.userRole)}</div>
+                            </div>
+                          </TableCell>
+                          <TableCell data-testid={`badge-action-${log.id}`}>
+                            {getActionBadge(log.action, log.userRole)}
+                          </TableCell>
+                          <TableCell className="text-xs md:text-sm" data-testid={`text-entity-${log.id}`}>
+                            <Badge variant="outline" className="text-xs">
+                              {log.entityType || "-"}
+                            </Badge>
+                          </TableCell>
+                          <TableCell className="text-xs md:text-sm" data-testid={`text-details-${log.id}`}>
+                            {!hasDetails ? (
+                              <span className="text-muted-foreground">-</span>
+                            ) : (
+                              <div className="space-y-2">
+                                <p className={`break-words ${!isExpanded && shouldTruncate ? 'line-clamp-2' : ''}`}>
+                                  {log.details}
+                                </p>
+                                {shouldTruncate && (
+                                  <Button
+                                    variant="ghost"
+                                    size="sm"
+                                    onClick={() => toggleRowExpansion(log.id)}
+                                    className="h-6 px-2 text-xs"
+                                    data-testid={`button-toggle-details-${log.id}`}
+                                  >
+                                    {isExpanded ? (
+                                      <>
+                                        <ChevronUp className="h-3 w-3 mr-1" />
+                                        Show Less
+                                      </>
+                                    ) : (
+                                      <>
+                                        <ChevronDown className="h-3 w-3 mr-1" />
+                                        Show More
+                                      </>
+                                    )}
+                                  </Button>
+                                )}
+                              </div>
+                            )}
+                          </TableCell>
+                        </TableRow>
+                      );
+                    })}
                   </TableBody>
                 </Table>
               </div>
