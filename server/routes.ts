@@ -845,6 +845,15 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.post("/api/food-items/:id/add-to-inventory", requireAuth, async (req, res) => {
     try {
       const { id } = req.params;
+      const item = await storage.getFoodItem(id);
+      if (!item) {
+        return res.status(404).json({ message: "Food item not found" });
+      }
+      
+      if (item.inInventory === 1) {
+        return res.status(400).json({ message: "Item is already in inventory" });
+      }
+      
       const updated = await storage.addToInventory(id);
       if (!updated) {
         return res.status(404).json({ message: "Food item not found" });
