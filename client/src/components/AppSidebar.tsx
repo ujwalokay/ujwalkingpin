@@ -2,6 +2,7 @@ import { Settings, LayoutDashboard, FileText, UtensilsCrossed, CalendarClock, Hi
 import { Link, useLocation } from "wouter";
 import { useTheme } from "@/components/ThemeProvider";
 import { useToast } from "@/hooks/use-toast";
+import { useAuth } from "@/contexts/AuthContext";
 import {
   Sidebar,
   SidebarContent,
@@ -82,6 +83,7 @@ export function AppSidebar() {
   const [location] = useLocation();
   const { theme } = useTheme();
   const { toast } = useToast();
+  const { isStaff } = useAuth();
 
   const handleLogout = async () => {
     try {
@@ -117,31 +119,38 @@ export function AppSidebar() {
         <SidebarGroup>
           <SidebarGroupContent>
             <SidebarMenu>
-              {menuItems.map((item) => {
-                const isActive = location === item.url;
-                const hasAI = ['Analytics', 'AI Maintenance'].includes(item.title);
-                
-                return (
-                  <SidebarMenuItem key={item.title}>
-                    <SidebarMenuButton 
-                      asChild 
-                      isActive={isActive}
-                      className={isActive ? 'bg-purple-50 dark:bg-purple-950/30 text-purple-700 dark:text-purple-400 font-medium hover:bg-purple-100 dark:hover:bg-purple-950/50' : ''}
-                      data-testid={`link-${item.title.toLowerCase()}`}
-                    >
-                      <Link href={item.url}>
-                        <item.icon className={isActive ? 'text-purple-600 dark:text-purple-400' : ''} />
-                        <span className="flex items-center gap-1.5">
-                          {item.title}
-                          {hasAI && (
-                            <Sparkles className="h-3 w-3 text-purple-500 animate-pulse" />
-                          )}
-                        </span>
-                      </Link>
-                    </SidebarMenuButton>
-                  </SidebarMenuItem>
-                );
-              })}
+              {menuItems
+                .filter((item) => {
+                  if (isStaff && (item.title === 'Reports' || item.title === 'Terms & Conditions')) {
+                    return false;
+                  }
+                  return true;
+                })
+                .map((item) => {
+                  const isActive = location === item.url;
+                  const hasAI = ['Analytics', 'AI Maintenance'].includes(item.title);
+                  
+                  return (
+                    <SidebarMenuItem key={item.title}>
+                      <SidebarMenuButton 
+                        asChild 
+                        isActive={isActive}
+                        className={isActive ? 'bg-purple-50 dark:bg-purple-950/30 text-purple-700 dark:text-purple-400 font-medium hover:bg-purple-100 dark:hover:bg-purple-950/50' : ''}
+                        data-testid={`link-${item.title.toLowerCase()}`}
+                      >
+                        <Link href={item.url}>
+                          <item.icon className={isActive ? 'text-purple-600 dark:text-purple-400' : ''} />
+                          <span className="flex items-center gap-1.5">
+                            {item.title}
+                            {hasAI && (
+                              <Sparkles className="h-3 w-3 text-purple-500 animate-pulse" />
+                            )}
+                          </span>
+                        </Link>
+                      </SidebarMenuButton>
+                    </SidebarMenuItem>
+                  );
+                })}
             </SidebarMenu>
           </SidebarGroupContent>
         </SidebarGroup>

@@ -7,6 +7,7 @@ import { Button } from "@/components/ui/button";
 import { saveChartAsImage } from "@/lib/chartUtils";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { useAuth } from "@/contexts/AuthContext";
 
 interface UsageStats {
   currentOccupancy: number;
@@ -56,6 +57,7 @@ const COLORS = ['#8b5cf6', '#3b82f6', '#10b981', '#f59e0b', '#ef4444', '#ec4899'
 export default function Analytics() {
   const [timeRange, setTimeRange] = useState<string>("today");
   const [activeTab, setActiveTab] = useState<string>("overview");
+  const { isStaff } = useAuth();
 
   const { data: stats, isLoading, refetch, isFetching } = useQuery<UsageStats>({
     queryKey: [`/api/analytics/usage?timeRange=${timeRange}`],
@@ -282,7 +284,7 @@ export default function Analytics() {
       </div>
 
       {/* Additional Metrics Grid */}
-      <div className="grid gap-4 grid-cols-1 sm:grid-cols-2 lg:grid-cols-4">
+      <div className={`grid gap-4 grid-cols-1 sm:grid-cols-2 ${isStaff ? 'lg:grid-cols-3' : 'lg:grid-cols-4'}`}>
         <Card className="hover:shadow-lg transition-shadow shape-diagonal-rounded">
           <CardHeader className="flex flex-row items-center justify-between pb-2">
             <CardTitle className="text-sm font-medium">Avg Session</CardTitle>
@@ -313,20 +315,22 @@ export default function Analytics() {
           </CardContent>
         </Card>
 
-        <Card className="hover:shadow-lg transition-shadow shape-diagonal-rounded">
-          <CardHeader className="flex flex-row items-center justify-between pb-2">
-            <CardTitle className="text-sm font-medium">Food Revenue</CardTitle>
-            <DollarSign className="h-4 w-4 text-green-500" />
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold" data-testid="text-food-revenue">
-              ₹{transformedStats?.foodRevenue?.toFixed(2) || "0.00"}
-            </div>
-            <p className="text-xs text-muted-foreground mt-1">
-              From food sales
-            </p>
-          </CardContent>
-        </Card>
+        {!isStaff && (
+          <Card className="hover:shadow-lg transition-shadow shape-diagonal-rounded">
+            <CardHeader className="flex flex-row items-center justify-between pb-2">
+              <CardTitle className="text-sm font-medium">Food Revenue</CardTitle>
+              <DollarSign className="h-4 w-4 text-green-500" />
+            </CardHeader>
+            <CardContent>
+              <div className="text-2xl font-bold" data-testid="text-food-revenue">
+                ₹{transformedStats?.foodRevenue?.toFixed(2) || "0.00"}
+              </div>
+              <p className="text-xs text-muted-foreground mt-1">
+                From food sales
+              </p>
+            </CardContent>
+          </Card>
+        )}
 
         <Card className="hover:shadow-lg transition-shadow shape-diagonal-rounded">
           <CardHeader className="flex flex-row items-center justify-between pb-2">

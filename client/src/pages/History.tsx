@@ -9,10 +9,12 @@ import { useState } from "react";
 import { format, isValid, isSameDay, parseISO } from "date-fns";
 import type { BookingHistory } from "@shared/schema";
 import { getAdjustedTime } from "@/hooks/useServerTime";
+import { useAuth } from "@/contexts/AuthContext";
 
 export default function History() {
   const [searchQuery, setSearchQuery] = useState("");
   const [selectedDate, setSelectedDate] = useState<string>("");
+  const { isStaff } = useAuth();
 
   const { data: bookings = [], isLoading } = useQuery<BookingHistory[]>({
     queryKey: ["/api/booking-history"],
@@ -161,7 +163,7 @@ export default function History() {
                     <span className="font-medium">{booking.customerName}</span>
                   </div>
                   
-                  {booking.whatsappNumber && (
+                  {!isStaff && booking.whatsappNumber && (
                     <div className="flex items-center gap-2" data-testid={`text-phone-${booking.id}`}>
                       <Phone className="h-4 w-4 text-muted-foreground" />
                       <span className="text-muted-foreground">{booking.whatsappNumber}</span>

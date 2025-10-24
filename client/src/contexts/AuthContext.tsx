@@ -10,6 +10,7 @@ interface User {
 interface AuthContextType {
   user: User | null;
   isAdmin: boolean;
+  isStaff: boolean;
   canMakeChanges: boolean;
   deviceRestricted: boolean;
   onboardingCompleted: boolean;
@@ -19,6 +20,7 @@ const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
 export function AuthProvider({ children, user }: { children: ReactNode; user: User | null }) {
   const isAdmin = user?.role === "admin";
+  const isStaff = user?.role === "staff";
   
   const isStaffOrAdmin = user?.role === "admin" || user?.role === "staff";
   const canMakeChanges = isStaffOrAdmin ? true : true;
@@ -26,7 +28,7 @@ export function AuthProvider({ children, user }: { children: ReactNode; user: Us
   const onboardingCompleted = user?.onboardingCompleted ?? true;
 
   return (
-    <AuthContext.Provider value={{ user, isAdmin, canMakeChanges, deviceRestricted, onboardingCompleted }}>
+    <AuthContext.Provider value={{ user, isAdmin, isStaff, canMakeChanges, deviceRestricted, onboardingCompleted }}>
       {children}
     </AuthContext.Provider>
   );
