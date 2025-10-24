@@ -55,6 +55,7 @@ export const foodItems = pgTable("food_items", {
   price: varchar("price").notNull(),
   currentStock: integer("current_stock").notNull().default(0),
   minStockLevel: integer("min_stock_level").notNull().default(10),
+  inInventory: integer("in_inventory").notNull().default(0),
 });
 
 export const insertFoodItemSchema = createInsertSchema(foodItems).omit({ id: true });
