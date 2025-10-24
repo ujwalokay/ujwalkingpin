@@ -798,9 +798,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.post("/api/food-items/:id/adjust-stock", requireAuth, async (req, res) => {
     try {
       const { id } = req.params;
-      const { quantity, type } = schema.stockAdjustmentSchema.parse({ ...req.body, foodId: id });
+      const { quantity, type, costPrice, supplier, expiryDate, notes } = schema.stockAdjustmentSchema.parse({ ...req.body, foodId: id });
       
-      const updated = await storage.adjustStock(id, quantity, type);
+      const batchData = type === 'add' ? { costPrice, supplier, expiryDate, notes } : undefined;
+      const updated = await storage.adjustStock(id, quantity, type, batchData);
       if (!updated) {
         return res.status(404).json({ message: "Food item not found" });
       }
@@ -900,6 +901,44 @@ export async function registerRoutes(app: Express): Promise<Server> {
       res.json(updated);
     } catch (error: any) {
       res.status(400).json({ message: error.message });
+    }
+  });
+
+  app.get("/api/food-items/reorder-list", requireAuth, async (req, res) => {
+    try {
+      const items = await storage.getReorderList();
+      res.json(items);
+    } catch (error: any) {
+      res.status(500).json({ message: error.message });
+    }
+  });
+
+  app.get("/api/food-items/expiring", requireAuth, async (req, res) => {
+    try {
+      const daysAhead = parseInt(req.query.days as string) || 7;
+      const items = await storage.getExpiringItems(daysAhead);
+      res.json(items);
+    } catch (error: any) {
+      res.status(500).json({ message: error.message });
+    }
+  });
+
+  app.get("/api/stock-batches", requireAuth, async (req, res) => {
+    try {
+      const batches = await storage.getAllStockBatches();
+      res.json(batches);
+    } catch (error: any) {
+      res.status(500).json({ message: error.message });
+    }
+  });
+
+  app.get("/api/stock-batches/:foodItemId", requireAuth, async (req, res) => {
+    try {
+      const { foodItemId } = req.params;
+      const batches = await storage.getStockBatchesByFoodItem(foodItemId);
+      res.json(batches);
+    } catch (error: any) {
+      res.status(500).json({ message: error.message });
     }
   });
 

@@ -2,17 +2,38 @@ import { useState } from "react";
 import { useQuery, useMutation } from "@tanstack/react-query";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Plus, Pencil, Trash2, UtensilsCrossed } from "lucide-react";
+import { Plus, Pencil, Trash2, UtensilsCrossed, Package, CalendarClock } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Label } from "@/components/ui/label";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { queryClient } from "@/lib/queryClient";
 import type { FoodItem } from "@shared/schema";
 import { useAuth } from "@/contexts/AuthContext";
 
+interface FormData {
+  name: string;
+  price: string;
+  costPrice: string;
+  category: string;
+  supplier: string;
+  expiryDate: string;
+  minStockLevel: string;
+}
+
+const initialFormData: FormData = {
+  name: "",
+  price: "",
+  costPrice: "",
+  category: "trackable",
+  supplier: "",
+  expiryDate: "",
+  minStockLevel: "10",
+};
+
 export default function Food() {
   const { toast } = useToast();
-  const { isAdmin, canMakeChanges, deviceRestricted, user } = useAuth();
+  const { canMakeChanges } = useAuth();
   const [addDialog, setAddDialog] = useState(false);
   const [editDialog, setEditDialog] = useState<{ open: boolean; item: FoodItem | null }>({
     open: false,
@@ -23,17 +44,28 @@ export default function Food() {
     id: "",
     name: "",
   });
-  const [formData, setFormData] = useState({ name: "", price: "" });
+  const [formData, setFormData] = useState<FormData>(initialFormData);
 
   const { data: foodItems = [], isLoading } = useQuery<FoodItem[]>({
     queryKey: ["/api/food-items"],
   });
 
   const createMutation = useMutation({
-    mutationFn: async (data: { name: string; price: string }) => {
+    mutationFn: async (data: FormData) => {
+      const payload = {
+        name: data.name,
+        price: data.price,
+        costPrice: data.costPrice || undefined,
+        category: data.category,
+        supplier: data.supplier || undefined,
+        expiryDate: data.expiryDate || undefined,
+        minStockLevel: parseInt(data.minStockLevel) || 10,
+        currentStock: 0,
+        inInventory: 0,
+      };
       const response = await fetch("/api/food-items", {
         method: "POST",
-        body: JSON.stringify(data),
+        body: JSON.stringify(payload),
         headers: { "Content-Type": "application/json" },
       });
       if (!response.ok) throw new Error("Failed to create food item");
@@ -43,15 +75,24 @@ export default function Food() {
       queryClient.invalidateQueries({ queryKey: ["/api/food-items"] });
       toast({ title: "Food Item Added", description: "New item has been added to the menu" });
       setAddDialog(false);
-      setFormData({ name: "", price: "" });
+      setFormData(initialFormData);
     },
   });
 
   const updateMutation = useMutation({
-    mutationFn: async ({ id, data }: { id: string; data: { name: string; price: string } }) => {
+    mutationFn: async ({ id, data }: { id: string; data: FormData }) => {
+      const payload = {
+        name: data.name,
+        price: data.price,
+        costPrice: data.costPrice || undefined,
+        category: data.category,
+        supplier: data.supplier || undefined,
+        expiryDate: data.expiryDate || undefined,
+        minStockLevel: parseInt(data.minStockLevel) || 10,
+      };
       const response = await fetch(`/api/food-items/${id}`, {
         method: "PATCH",
-        body: JSON.stringify(data),
+        body: JSON.stringify(payload),
         headers: { "Content-Type": "application/json" },
       });
       if (!response.ok) throw new Error("Failed to update food item");
@@ -79,7 +120,7 @@ export default function Food() {
 
   const handleAdd = () => {
     if (!formData.name || !formData.price) {
-      toast({ title: "Error", description: "Please fill in all fields", variant: "destructive" });
+      toast({ title: "Error", description: "Please fill in name and price", variant: "destructive" });
       return;
     }
     createMutation.mutate(formData);
@@ -88,14 +129,22 @@ export default function Food() {
   const handleEdit = () => {
     if (!editDialog.item) return;
     if (!formData.name || !formData.price) {
-      toast({ title: "Error", description: "Please fill in all fields", variant: "destructive" });
+      toast({ title: "Error", description: "Please fill in name and price", variant: "destructive" });
       return;
     }
     updateMutation.mutate({ id: editDialog.item.id, data: formData });
   };
 
   const openEditDialog = (item: FoodItem) => {
-    setFormData({ name: item.name, price: item.price });
+    setFormData({
+      name: item.name,
+      price: item.price,
+      costPrice: item.costPrice || "",
+      category: item.category || "trackable",
+      supplier: item.supplier || "",
+      expiryDate: item.expiryDate ? new Date(item.expiryDate).toISOString().split('T')[0] : "",
+      minStockLevel: item.minStockLevel.toString(),
+    });
     setEditDialog({ open: true, item });
   };
 
@@ -119,7 +168,7 @@ export default function Food() {
           <h1 className="text-2xl sm:text-3xl font-bold text-foreground">Food Management</h1>
           <p className="text-sm sm:text-base text-muted-foreground">Manage food items available for customers</p>
         </div>
-        <Button onClick={() => setAddDialog(true)} data-testid="button-add-food" className="w-full sm:w-auto">
+        <Button onClick={() => { setAddDialog(true); setFormData(initialFormData); }} data-testid="button-add-food" className="w-full sm:w-auto">
           <Plus className="mr-2 h-4 w-4" />
           Add Food Item
         </Button>
@@ -144,6 +193,11 @@ export default function Food() {
                   <p className="text-lg font-bold text-primary" data-testid={`text-food-price-${item.id}`}>
                     ₹{item.price}
                   </p>
+                  {item.costPrice && (
+                    <p className="text-xs text-muted-foreground">
+                      Cost: ₹{item.costPrice} | Profit: ₹{(parseFloat(item.price) - parseFloat(item.costPrice)).toFixed(2)}
+                    </p>
+                  )}
                 </div>
               </div>
               <div className="flex gap-1">
@@ -151,6 +205,7 @@ export default function Food() {
                   variant="ghost"
                   size="icon"
                   onClick={() => openEditDialog(item)}
+                  disabled={!canMakeChanges}
                   data-testid={`button-edit-food-${item.id}`}
                 >
                   <Pencil className="h-4 w-4" />
@@ -159,42 +214,118 @@ export default function Food() {
                   variant="ghost"
                   size="icon"
                   onClick={() => openDeleteDialog(item.id, item.name)}
+                  disabled={!canMakeChanges}
                   data-testid={`button-delete-food-${item.id}`}
                 >
                   <Trash2 className="h-4 w-4 text-destructive" />
                 </Button>
               </div>
             </div>
+            <div className="flex items-center gap-2 text-xs">
+              <span className={`px-2 py-1 rounded ${item.category === 'trackable' ? 'bg-blue-500/20 text-blue-600 dark:text-blue-400' : 'bg-green-500/20 text-green-600 dark:text-green-400'}`}>
+                {item.category === 'trackable' ? (
+                  <><Package className="h-3 w-3 inline mr-1" />Trackable</>
+                ) : (
+                  'Made to Order'
+                )}
+              </span>
+              {item.expiryDate && (
+                <span className="text-muted-foreground flex items-center gap-1">
+                  <CalendarClock className="h-3 w-3" />
+                  {new Date(item.expiryDate).toLocaleDateString()}
+                </span>
+              )}
+            </div>
           </div>
         ))}
       </div>
 
       <Dialog open={addDialog} onOpenChange={setAddDialog}>
-        <DialogContent data-testid="dialog-add-food">
+        <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto" data-testid="dialog-add-food">
           <DialogHeader>
             <DialogTitle>Add Food Item</DialogTitle>
             <DialogDescription>Add a new item to the food menu</DialogDescription>
           </DialogHeader>
           <div className="space-y-4">
-            <div className="space-y-2">
-              <Label htmlFor="name">Food Name</Label>
-              <Input
-                id="name"
-                value={formData.name}
-                onChange={(e) => setFormData({ ...formData, name: e.target.value })}
-                placeholder="Enter food name"
-                data-testid="input-food-name"
-              />
+            <div className="grid grid-cols-2 gap-4">
+              <div className="space-y-2">
+                <Label htmlFor="name">Food Name *</Label>
+                <Input
+                  id="name"
+                  value={formData.name}
+                  onChange={(e) => setFormData({ ...formData, name: e.target.value })}
+                  placeholder="e.g., Cold Drink, Chips"
+                  data-testid="input-food-name"
+                />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="category">Category *</Label>
+                <Select value={formData.category} onValueChange={(value) => setFormData({ ...formData, category: value })}>
+                  <SelectTrigger data-testid="select-category">
+                    <SelectValue placeholder="Select category" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="trackable">Trackable (Chips, Drinks)</SelectItem>
+                    <SelectItem value="made-to-order">Made to Order (Burger, Pizza)</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+            </div>
+            <div className="grid grid-cols-2 gap-4">
+              <div className="space-y-2">
+                <Label htmlFor="price">Selling Price (₹) *</Label>
+                <Input
+                  id="price"
+                  type="number"
+                  value={formData.price}
+                  onChange={(e) => setFormData({ ...formData, price: e.target.value })}
+                  placeholder="Price customers pay"
+                  data-testid="input-food-price"
+                />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="costPrice">Cost Price (₹)</Label>
+                <Input
+                  id="costPrice"
+                  type="number"
+                  value={formData.costPrice}
+                  onChange={(e) => setFormData({ ...formData, costPrice: e.target.value })}
+                  placeholder="What you paid"
+                  data-testid="input-cost-price"
+                />
+              </div>
+            </div>
+            <div className="grid grid-cols-2 gap-4">
+              <div className="space-y-2">
+                <Label htmlFor="supplier">Supplier</Label>
+                <Input
+                  id="supplier"
+                  value={formData.supplier}
+                  onChange={(e) => setFormData({ ...formData, supplier: e.target.value })}
+                  placeholder="Supplier name"
+                  data-testid="input-supplier"
+                />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="minStockLevel">Min Stock Level *</Label>
+                <Input
+                  id="minStockLevel"
+                  type="number"
+                  value={formData.minStockLevel}
+                  onChange={(e) => setFormData({ ...formData, minStockLevel: e.target.value })}
+                  placeholder="Reorder threshold"
+                  data-testid="input-min-stock"
+                />
+              </div>
             </div>
             <div className="space-y-2">
-              <Label htmlFor="price">Price (₹)</Label>
+              <Label htmlFor="expiryDate">Expiry Date (Optional)</Label>
               <Input
-                id="price"
-                type="number"
-                value={formData.price}
-                onChange={(e) => setFormData({ ...formData, price: e.target.value })}
-                placeholder="Enter price"
-                data-testid="input-food-price"
+                id="expiryDate"
+                type="date"
+                value={formData.expiryDate}
+                onChange={(e) => setFormData({ ...formData, expiryDate: e.target.value })}
+                data-testid="input-expiry-date"
               />
             </div>
           </div>
@@ -210,31 +341,91 @@ export default function Food() {
       </Dialog>
 
       <Dialog open={editDialog.open} onOpenChange={(open) => setEditDialog({ ...editDialog, open })}>
-        <DialogContent data-testid="dialog-edit-food">
+        <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto" data-testid="dialog-edit-food">
           <DialogHeader>
             <DialogTitle>Edit Food Item</DialogTitle>
             <DialogDescription>Update the food item details</DialogDescription>
           </DialogHeader>
           <div className="space-y-4">
-            <div className="space-y-2">
-              <Label htmlFor="edit-name">Food Name</Label>
-              <Input
-                id="edit-name"
-                value={formData.name}
-                onChange={(e) => setFormData({ ...formData, name: e.target.value })}
-                placeholder="Enter food name"
-                data-testid="input-edit-food-name"
-              />
+            <div className="grid grid-cols-2 gap-4">
+              <div className="space-y-2">
+                <Label htmlFor="edit-name">Food Name *</Label>
+                <Input
+                  id="edit-name"
+                  value={formData.name}
+                  onChange={(e) => setFormData({ ...formData, name: e.target.value })}
+                  placeholder="e.g., Cold Drink, Chips"
+                  data-testid="input-edit-food-name"
+                />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="edit-category">Category *</Label>
+                <Select value={formData.category} onValueChange={(value) => setFormData({ ...formData, category: value })}>
+                  <SelectTrigger data-testid="select-edit-category">
+                    <SelectValue placeholder="Select category" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="trackable">Trackable (Chips, Drinks)</SelectItem>
+                    <SelectItem value="made-to-order">Made to Order (Burger, Pizza)</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+            </div>
+            <div className="grid grid-cols-2 gap-4">
+              <div className="space-y-2">
+                <Label htmlFor="edit-price">Selling Price (₹) *</Label>
+                <Input
+                  id="edit-price"
+                  type="number"
+                  value={formData.price}
+                  onChange={(e) => setFormData({ ...formData, price: e.target.value })}
+                  placeholder="Price customers pay"
+                  data-testid="input-edit-food-price"
+                />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="edit-costPrice">Cost Price (₹)</Label>
+                <Input
+                  id="edit-costPrice"
+                  type="number"
+                  value={formData.costPrice}
+                  onChange={(e) => setFormData({ ...formData, costPrice: e.target.value })}
+                  placeholder="What you paid"
+                  data-testid="input-edit-cost-price"
+                />
+              </div>
+            </div>
+            <div className="grid grid-cols-2 gap-4">
+              <div className="space-y-2">
+                <Label htmlFor="edit-supplier">Supplier</Label>
+                <Input
+                  id="edit-supplier"
+                  value={formData.supplier}
+                  onChange={(e) => setFormData({ ...formData, supplier: e.target.value })}
+                  placeholder="Supplier name"
+                  data-testid="input-edit-supplier"
+                />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="edit-minStockLevel">Min Stock Level *</Label>
+                <Input
+                  id="edit-minStockLevel"
+                  type="number"
+                  value={formData.minStockLevel}
+                  onChange={(e) => setFormData({ ...formData, minStockLevel: e.target.value })}
+                  placeholder="Reorder threshold"
+                  data-testid="input-edit-min-stock"
+                />
+              </div>
             </div>
             <div className="space-y-2">
-              <Label htmlFor="edit-price">Price (₹)</Label>
+              <Label htmlFor="edit-expiryDate">Expiry Date (Optional)</Label>
               <Input
-                id="edit-price"
-                type="number"
-                value={formData.price}
-                onChange={(e) => setFormData({ ...formData, price: e.target.value })}
-                placeholder="Enter price"
-                data-testid="input-edit-food-price"
+                id="edit-expiryDate"
+                type="date"
+                value={formData.expiryDate}
+                onChange={(e) => setFormData({ ...formData, expiryDate: e.target.value })}
+                data-testid="input-edit-expiry-date"
               />
             </div>
           </div>

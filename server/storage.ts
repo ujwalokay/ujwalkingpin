@@ -11,6 +11,8 @@ import {
   type InsertHappyHoursPricing,
   type FoodItem,
   type InsertFoodItem,
+  type StockBatch,
+  type InsertStockBatch,
   type BookingHistory,
   type InsertBookingHistory,
   type User,
@@ -42,6 +44,7 @@ import {
   happyHoursConfigs,
   happyHoursPricing,
   foodItems,
+  stockBatches,
   bookingHistory,
   users,
   expenses,
@@ -121,11 +124,17 @@ export interface IStorage {
   createFoodItem(item: InsertFoodItem): Promise<FoodItem>;
   updateFoodItem(id: string, item: InsertFoodItem): Promise<FoodItem | undefined>;
   deleteFoodItem(id: string): Promise<boolean>;
-  adjustStock(foodId: string, quantity: number, type: 'add' | 'remove'): Promise<FoodItem | undefined>;
+  adjustStock(foodId: string, quantity: number, type: 'add' | 'remove', batchData?: Partial<InsertStockBatch>): Promise<FoodItem | undefined>;
   getLowStockItems(): Promise<FoodItem[]>;
   getInventoryItems(): Promise<FoodItem[]>;
   addToInventory(id: string): Promise<FoodItem | undefined>;
   removeFromInventory(id: string): Promise<FoodItem | undefined>;
+  getExpiringItems(daysAhead: number): Promise<FoodItem[]>;
+  getReorderList(): Promise<FoodItem[]>;
+  
+  createStockBatch(batch: InsertStockBatch): Promise<StockBatch>;
+  getStockBatchesByFoodItem(foodItemId: string): Promise<StockBatch[]>;
+  getAllStockBatches(): Promise<StockBatch[]>;
   
   getUserByUsername(username: string): Promise<User | undefined>;
   getUserById(id: string): Promise<User | undefined>;
@@ -705,7 +714,7 @@ export class DatabaseStorage implements IStorage {
     return result.rowCount ? result.rowCount > 0 : false;
   }
 
-  async adjustStock(foodId: string, quantity: number, type: 'add' | 'remove'): Promise<FoodItem | undefined> {
+  async adjustStock(foodId: string, quantity: number, type: 'add' | 'remove', batchData?: Partial<InsertStockBatch>): Promise<FoodItem | undefined> {
     const item = await this.getFoodItem(foodId);
     if (!item) {
       return undefined;
@@ -720,6 +729,17 @@ export class DatabaseStorage implements IStorage {
       .set({ currentStock: newStock })
       .where(eq(foodItems.id, foodId))
       .returning();
+    
+    if (updated && type === 'add' && batchData) {
+      await this.createStockBatch({
+        foodItemId: foodId,
+        quantity,
+        costPrice: batchData.costPrice || item.costPrice || '0',
+        supplier: batchData.supplier || item.supplier,
+        expiryDate: batchData.expiryDate,
+        notes: batchData.notes,
+      });
+    }
     
     return updated || undefined;
   }
@@ -755,6 +775,57 @@ export class DatabaseStorage implements IStorage {
       .where(eq(foodItems.id, id))
       .returning();
     return updated || undefined;
+  }
+
+  async getExpiringItems(daysAhead: number): Promise<FoodItem[]> {
+    const futureDate = new Date();
+    futureDate.setDate(futureDate.getDate() + daysAhead);
+    
+    const items = await db
+      .select()
+      .from(foodItems)
+      .where(
+        and(
+          eq(foodItems.inInventory, 1),
+          isNotNull(foodItems.expiryDate),
+          lte(foodItems.expiryDate, futureDate)
+        )
+      );
+    return items;
+  }
+
+  async getReorderList(): Promise<FoodItem[]> {
+    const items = await db
+      .select()
+      .from(foodItems)
+      .where(
+        and(
+          eq(foodItems.inInventory, 1),
+          eq(foodItems.category, 'trackable'),
+          lt(foodItems.currentStock, foodItems.minStockLevel)
+        )
+      );
+    return items;
+  }
+
+  async createStockBatch(batch: InsertStockBatch): Promise<StockBatch> {
+    const [newBatch] = await db.insert(stockBatches).values(batch).returning();
+    return newBatch;
+  }
+
+  async getStockBatchesByFoodItem(foodItemId: string): Promise<StockBatch[]> {
+    return await db
+      .select()
+      .from(stockBatches)
+      .where(eq(stockBatches.foodItemId, foodItemId))
+      .orderBy(desc(stockBatches.purchaseDate));
+  }
+
+  async getAllStockBatches(): Promise<StockBatch[]> {
+    return await db
+      .select()
+      .from(stockBatches)
+      .orderBy(desc(stockBatches.purchaseDate));
   }
 
   async updatePaymentMethod(bookingIds: string[], paymentMethod: string): Promise<number> {
