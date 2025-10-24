@@ -1,338 +1,240 @@
 import { useState } from "react";
 import { useQuery, useMutation } from "@tanstack/react-query";
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { Plus, Minus, Package, AlertTriangle, TrendingUp, TrendingDown, Trash2, RefreshCw } from "lucide-react";
-import { useToastWithSound } from "@/hooks/useToastWithSound";
+import { Package, Plus, Trash2, UtensilsCrossed } from "lucide-react";
+import { useToast } from "@/hooks/use-toast";
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
-import { Label } from "@/components/ui/label";
 import { queryClient, apiRequest } from "@/lib/queryClient";
 import type { FoodItem } from "@shared/schema";
 import { useAuth } from "@/contexts/AuthContext";
-import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
-import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 
 export default function Inventory() {
-  const { toast } = useToastWithSound();
+  const { toast } = useToast();
   const { canMakeChanges } = useAuth();
-  const [adjustDialog, setAdjustDialog] = useState<{ open: boolean; item: FoodItem | null; type: 'add' | 'remove' }>({
-    open: false,
-    item: null,
-    type: 'add',
-  });
+  const [addDialog, setAddDialog] = useState(false);
   const [deleteDialog, setDeleteDialog] = useState<{ open: boolean; item: FoodItem | null }>({
     open: false,
     item: null,
   });
-  const [quantity, setQuantity] = useState("");
 
-  const { data: foodItems = [], isLoading } = useQuery<FoodItem[]>({
+  const { data: allFoodItems = [], isLoading: loadingAll } = useQuery<FoodItem[]>({
     queryKey: ["/api/food-items"],
   });
 
-  const { data: lowStockItems = [] } = useQuery<FoodItem[]>({
-    queryKey: ["/api/food-items/low-stock"],
+  const { data: inventoryItems = [], isLoading: loadingInventory } = useQuery<FoodItem[]>({
+    queryKey: ["/api/food-items/inventory"],
   });
 
-  const adjustStockMutation = useMutation({
-    mutationFn: async ({ id, quantity, type }: { id: string; quantity: number; type: 'add' | 'remove' }) => {
-      const response = await fetch(`/api/food-items/${id}/adjust-stock`, {
-        method: "POST",
-        body: JSON.stringify({ quantity, type }),
-        headers: { "Content-Type": "application/json" },
-      });
-      if (!response.ok) throw new Error("Failed to adjust stock");
-      return response.json();
-    },
-    onSuccess: (_, variables) => {
-      queryClient.invalidateQueries({ queryKey: ["/api/food-items"] });
-      queryClient.invalidateQueries({ queryKey: ["/api/food-items/low-stock"] });
-      toast({ 
-        title: "Stock Updated", 
-        description: `${variables.type === 'add' ? 'Added' : 'Removed'} ${variables.quantity} items from stock` 
-      });
-      setAdjustDialog({ open: false, item: null, type: 'add' });
-      setQuantity("");
-    },
-  });
+  const availableItems = allFoodItems.filter(item => item.inInventory === 0);
 
-  const deleteFoodItemMutation = useMutation({
+  const addToInventoryMutation = useMutation({
     mutationFn: async (id: string) => {
-      return await apiRequest("DELETE", `/api/food-items/${id}`);
+      return await apiRequest("POST", `/api/food-items/${id}/add-to-inventory`);
     },
-    onSuccess: (_, deletedId) => {
+    onSuccess: (data) => {
       queryClient.invalidateQueries({ queryKey: ["/api/food-items"] });
-      queryClient.invalidateQueries({ queryKey: ["/api/food-items/low-stock"] });
-      const deletedItem = foodItems.find(item => item.id === deletedId);
+      queryClient.invalidateQueries({ queryKey: ["/api/food-items/inventory"] });
       toast({ 
-        title: "Item Deleted", 
-        description: `${deletedItem?.name || 'Food item'} has been removed from inventory` 
+        title: "Added to Inventory", 
+        description: `${data.name} has been added to inventory` 
+      });
+    },
+    onError: () => {
+      toast({ 
+        title: "Error", 
+        description: "Failed to add item to inventory", 
+        variant: "destructive" 
+      });
+    },
+  });
+
+  const removeFromInventoryMutation = useMutation({
+    mutationFn: async (id: string) => {
+      return await apiRequest("POST", `/api/food-items/${id}/remove-from-inventory`);
+    },
+    onSuccess: (data) => {
+      queryClient.invalidateQueries({ queryKey: ["/api/food-items"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/food-items/inventory"] });
+      toast({ 
+        title: "Removed from Inventory", 
+        description: `${data.name} has been removed from inventory` 
       });
       setDeleteDialog({ open: false, item: null });
     },
     onError: () => {
       toast({ 
         title: "Error", 
-        description: "Failed to delete food item", 
+        description: "Failed to remove item from inventory", 
         variant: "destructive" 
       });
     },
   });
 
-  const handleAdjustStock = () => {
-    if (!adjustDialog.item) return;
-    const qty = parseInt(quantity);
-    if (isNaN(qty) || qty <= 0) {
-      toast({ title: "Error", description: "Please enter a valid quantity", variant: "destructive" });
-      return;
-    }
-    adjustStockMutation.mutate({ id: adjustDialog.item.id, quantity: qty, type: adjustDialog.type });
-  };
-
-  const handleDeleteItem = () => {
-    if (!deleteDialog.item) return;
-    deleteFoodItemMutation.mutate(deleteDialog.item.id);
-  };
-
-  const openAdjustDialog = (item: FoodItem, type: 'add' | 'remove') => {
-    setQuantity("");
-    setAdjustDialog({ open: true, item, type });
-  };
-
   const openDeleteDialog = (item: FoodItem) => {
     setDeleteDialog({ open: true, item });
   };
 
-  const getStockStatus = (item: FoodItem) => {
-    if (item.currentStock === 0) return { label: "Out of Stock", color: "bg-red-500", textColor: "text-red-500" };
-    if (item.currentStock < item.minStockLevel) return { label: "Low Stock", color: "bg-yellow-500", textColor: "text-yellow-500" };
-    return { label: "In Stock", color: "bg-green-500", textColor: "text-green-500" };
+  const handleRemoveFromInventory = () => {
+    if (!deleteDialog.item) return;
+    removeFromInventoryMutation.mutate(deleteDialog.item.id);
   };
 
-  const handleRefresh = () => {
-    queryClient.invalidateQueries({ queryKey: ["/api/food-items"] });
-    queryClient.invalidateQueries({ queryKey: ["/api/food-items/low-stock"] });
-    toast({ 
-      title: "Inventory Refreshed", 
-      description: "Food items data has been updated" 
-    });
-  };
-
-  if (isLoading) {
+  if (loadingAll || loadingInventory) {
     return (
       <div className="space-y-6">
-        <h1 className="text-3xl font-bold text-foreground">Inventory Management</h1>
+        <h1 className="text-3xl font-bold text-foreground">Inventory</h1>
         <p className="text-muted-foreground">Loading inventory...</p>
       </div>
     );
   }
 
-  const totalItems = foodItems.length;
-  const totalStock = foodItems.reduce((sum, item) => sum + item.currentStock, 0);
-  const lowStockCount = lowStockItems.length;
-
   return (
     <div className="space-y-4 md:space-y-6">
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
         <div>
-          <h1 className="text-2xl sm:text-3xl font-bold text-foreground">Inventory Management</h1>
-          <p className="text-sm sm:text-base text-muted-foreground">Track and manage stock levels for food items</p>
+          <h1 className="text-2xl sm:text-3xl font-bold text-foreground">Inventory</h1>
+          <p className="text-sm sm:text-base text-muted-foreground">Selected food items available in inventory</p>
         </div>
         <Button 
-          onClick={handleRefresh}
-          variant="outline"
-          data-testid="button-refresh-inventory"
+          onClick={() => setAddDialog(true)}
+          disabled={!canMakeChanges}
+          data-testid="button-add-from-food"
         >
-          <RefreshCw className="h-4 w-4 mr-2" />
-          Refresh
+          <Plus className="h-4 w-4 mr-2" />
+          Add from Food
         </Button>
       </div>
 
-      {/* Summary Cards */}
-      <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+      {inventoryItems.length === 0 ? (
         <Card>
-          <CardHeader className="pb-2">
-            <CardTitle className="text-sm font-medium text-muted-foreground">Total Items</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold">{totalItems}</div>
+          <CardContent className="flex flex-col items-center justify-center py-12">
+            <Package className="h-16 w-16 text-muted-foreground mb-4" />
+            <h3 className="text-xl font-semibold mb-2">No items in inventory</h3>
+            <p className="text-muted-foreground text-center mb-4">
+              Add items from the Food page to start building your inventory
+            </p>
+            <Button onClick={() => setAddDialog(true)} disabled={!canMakeChanges} data-testid="button-add-first-item">
+              <Plus className="mr-2 h-4 w-4" />
+              Add Items
+            </Button>
           </CardContent>
         </Card>
-        <Card>
-          <CardHeader className="pb-2">
-            <CardTitle className="text-sm font-medium text-muted-foreground">Total Stock</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold">{totalStock}</div>
-          </CardContent>
-        </Card>
-        <Card>
-          <CardHeader className="pb-2">
-            <CardTitle className="text-sm font-medium text-muted-foreground">Low Stock Items</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold text-yellow-500">{lowStockCount}</div>
-          </CardContent>
-        </Card>
-      </div>
-
-      {/* Low Stock Alert */}
-      {lowStockItems.length > 0 && (
-        <Alert variant="destructive" data-testid="alert-low-stock">
-          <AlertTriangle className="h-4 w-4" />
-          <AlertTitle>Low Stock Alert</AlertTitle>
-          <AlertDescription>
-            {lowStockCount} item{lowStockCount !== 1 ? 's' : ''} running low on stock: {lowStockItems.map(item => item.name).join(', ')}
-          </AlertDescription>
-        </Alert>
+      ) : (
+        <div className="grid gap-3 grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
+          {inventoryItems.map((item) => (
+            <div
+              key={item.id}
+              className="glass-card rounded-lg p-4 space-y-3"
+              data-testid={`card-inventory-${item.id}`}
+            >
+              <div className="flex items-start justify-between">
+                <div className="flex items-center gap-2">
+                  <div className="h-10 w-10 rounded-full bg-primary/10 flex items-center justify-center">
+                    <UtensilsCrossed className="h-5 w-5 text-primary" />
+                  </div>
+                  <div>
+                    <h3 className="font-semibold text-foreground" data-testid={`text-inventory-name-${item.id}`}>
+                      {item.name}
+                    </h3>
+                    <p className="text-lg font-bold text-primary" data-testid={`text-inventory-price-${item.id}`}>
+                      ₹{item.price}
+                    </p>
+                    <p className="text-sm text-muted-foreground" data-testid={`text-inventory-stock-${item.id}`}>
+                      Stock: {item.currentStock}
+                    </p>
+                  </div>
+                </div>
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  onClick={() => openDeleteDialog(item)}
+                  disabled={!canMakeChanges}
+                  data-testid={`button-remove-inventory-${item.id}`}
+                >
+                  <Trash2 className="h-4 w-4 text-destructive" />
+                </Button>
+              </div>
+            </div>
+          ))}
+        </div>
       )}
 
-      {/* Inventory Table */}
-      <Card>
-        <CardHeader>
-          <CardTitle>Inventory Items</CardTitle>
-          <CardDescription>Manage stock levels for all food items</CardDescription>
-        </CardHeader>
-        <CardContent>
-          <div className="overflow-x-auto">
-            <table className="w-full">
-              <thead>
-                <tr className="border-b">
-                  <th className="text-left p-3 font-medium text-muted-foreground">Item</th>
-                  <th className="text-left p-3 font-medium text-muted-foreground">Price</th>
-                  <th className="text-left p-3 font-medium text-muted-foreground">Current Stock</th>
-                  <th className="text-left p-3 font-medium text-muted-foreground">Min Level</th>
-                  <th className="text-left p-3 font-medium text-muted-foreground">Status</th>
-                  <th className="text-right p-3 font-medium text-muted-foreground">Actions</th>
-                </tr>
-              </thead>
-              <tbody>
-                {foodItems.map((item) => {
-                  const status = getStockStatus(item);
-                  return (
-                    <tr key={item.id} className="border-b hover:bg-muted/50" data-testid={`row-inventory-${item.id}`}>
-                      <td className="p-3 font-medium" data-testid={`text-item-name-${item.id}`}>{item.name}</td>
-                      <td className="p-3" data-testid={`text-item-price-${item.id}`}>₹{item.price}</td>
-                      <td className="p-3" data-testid={`text-item-stock-${item.id}`}>
-                        <span className={`font-bold ${status.textColor}`}>{item.currentStock}</span>
-                      </td>
-                      <td className="p-3" data-testid={`text-item-min-${item.id}`}>{item.minStockLevel}</td>
-                      <td className="p-3">
-                        <Badge variant={item.currentStock === 0 ? "destructive" : item.currentStock < item.minStockLevel ? "secondary" : "default"} data-testid={`badge-status-${item.id}`}>
-                          {status.label}
-                        </Badge>
-                      </td>
-                      <td className="p-3">
-                        <div className="flex justify-end gap-2">
-                          <Button
-                            size="sm"
-                            variant="outline"
-                            onClick={() => openAdjustDialog(item, 'add')}
-                            disabled={!canMakeChanges}
-                            data-testid={`button-add-stock-${item.id}`}
-                          >
-                            <TrendingUp className="h-4 w-4 mr-1" />
-                            Add
-                          </Button>
-                          <Button
-                            size="sm"
-                            variant="outline"
-                            onClick={() => openAdjustDialog(item, 'remove')}
-                            disabled={!canMakeChanges || item.currentStock === 0}
-                            data-testid={`button-remove-stock-${item.id}`}
-                          >
-                            <TrendingDown className="h-4 w-4 mr-1" />
-                            Remove
-                          </Button>
-                          <Button
-                            size="sm"
-                            variant="destructive"
-                            onClick={() => openDeleteDialog(item)}
-                            disabled={!canMakeChanges}
-                            data-testid={`button-delete-item-${item.id}`}
-                          >
-                            <Trash2 className="h-4 w-4" />
-                          </Button>
-                        </div>
-                      </td>
-                    </tr>
-                  );
-                })}
-              </tbody>
-            </table>
-          </div>
-        </CardContent>
-      </Card>
-
-      {/* Adjust Stock Dialog */}
-      <Dialog open={adjustDialog.open} onOpenChange={(open) => !open && setAdjustDialog({ open: false, item: null, type: 'add' })}>
-        <DialogContent data-testid="dialog-adjust-stock">
+      {/* Add from Food Dialog */}
+      <Dialog open={addDialog} onOpenChange={setAddDialog}>
+        <DialogContent className="max-w-2xl max-h-[80vh]" data-testid="dialog-add-from-food">
           <DialogHeader>
-            <DialogTitle>
-              {adjustDialog.type === 'add' ? 'Add Stock' : 'Remove Stock'} - {adjustDialog.item?.name}
-            </DialogTitle>
-            <DialogDescription>
-              Current stock: {adjustDialog.item?.currentStock} | Min level: {adjustDialog.item?.minStockLevel}
-            </DialogDescription>
+            <DialogTitle>Add Items to Inventory</DialogTitle>
+            <DialogDescription>Select items from the Food catalog to add to your inventory</DialogDescription>
           </DialogHeader>
-          <div className="space-y-4">
-            <div>
-              <Label htmlFor="quantity">Quantity</Label>
-              <Input
-                id="quantity"
-                type="number"
-                min="1"
-                placeholder="Enter quantity"
-                value={quantity}
-                onChange={(e) => setQuantity(e.target.value)}
-                data-testid="input-quantity"
-              />
-            </div>
+          <div className="overflow-y-auto max-h-[50vh]">
+            {availableItems.length === 0 ? (
+              <div className="text-center py-8 text-muted-foreground">
+                <p>All food items are already in inventory!</p>
+                <p className="text-sm mt-2">Create new items in the Food page first.</p>
+              </div>
+            ) : (
+              <div className="grid gap-3 grid-cols-1 sm:grid-cols-2">
+                {availableItems.map((item) => (
+                  <div
+                    key={item.id}
+                    className="border rounded-lg p-3 flex items-center justify-between hover:bg-muted/50"
+                    data-testid={`item-available-${item.id}`}
+                  >
+                    <div>
+                      <p className="font-medium" data-testid={`text-available-name-${item.id}`}>{item.name}</p>
+                      <p className="text-sm text-primary font-semibold" data-testid={`text-available-price-${item.id}`}>₹{item.price}</p>
+                    </div>
+                    <Button
+                      size="sm"
+                      onClick={() => addToInventoryMutation.mutate(item.id)}
+                      disabled={addToInventoryMutation.isPending}
+                      data-testid={`button-add-to-inventory-${item.id}`}
+                    >
+                      <Plus className="h-4 w-4 mr-1" />
+                      Add
+                    </Button>
+                  </div>
+                ))}
+              </div>
+            )}
           </div>
           <DialogFooter>
-            <Button
-              variant="outline"
-              onClick={() => setAdjustDialog({ open: false, item: null, type: 'add' })}
-              data-testid="button-cancel"
-            >
-              Cancel
-            </Button>
-            <Button
-              onClick={handleAdjustStock}
-              disabled={adjustStockMutation.isPending}
-              data-testid="button-confirm-adjust"
-            >
-              {adjustStockMutation.isPending ? "Updating..." : adjustDialog.type === 'add' ? 'Add Stock' : 'Remove Stock'}
+            <Button variant="outline" onClick={() => setAddDialog(false)} data-testid="button-close-add-dialog">
+              Close
             </Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>
 
-      {/* Delete Confirmation Dialog */}
+      {/* Remove from Inventory Confirmation Dialog */}
       <Dialog open={deleteDialog.open} onOpenChange={(open) => !open && setDeleteDialog({ open: false, item: null })}>
-        <DialogContent data-testid="dialog-delete-item">
+        <DialogContent data-testid="dialog-remove-from-inventory">
           <DialogHeader>
-            <DialogTitle>Delete Food Item</DialogTitle>
+            <DialogTitle>Remove from Inventory</DialogTitle>
             <DialogDescription>
-              Are you sure you want to delete "{deleteDialog.item?.name}"? This action cannot be undone.
+              Are you sure you want to remove "{deleteDialog.item?.name}" from inventory?
+              <br />
+              <span className="text-sm text-muted-foreground mt-2 block">
+                Note: This will not delete the item from the Food catalog. You can add it back anytime.
+              </span>
             </DialogDescription>
           </DialogHeader>
           <DialogFooter>
             <Button
               variant="outline"
               onClick={() => setDeleteDialog({ open: false, item: null })}
-              data-testid="button-cancel-delete"
+              data-testid="button-cancel-remove"
             >
               Cancel
             </Button>
             <Button
               variant="destructive"
-              onClick={handleDeleteItem}
-              disabled={deleteFoodItemMutation.isPending}
-              data-testid="button-confirm-delete"
+              onClick={handleRemoveFromInventory}
+              disabled={removeFromInventoryMutation.isPending}
+              data-testid="button-confirm-remove"
             >
-              {deleteFoodItemMutation.isPending ? "Deleting..." : "Delete Item"}
+              {removeFromInventoryMutation.isPending ? "Removing..." : "Remove"}
             </Button>
           </DialogFooter>
         </DialogContent>
