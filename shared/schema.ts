@@ -53,19 +53,57 @@ export const foodItems = pgTable("food_items", {
   id: varchar("id").primaryKey().$defaultFn(() => crypto.randomUUID()),
   name: varchar("name").notNull(),
   price: varchar("price").notNull(),
+  costPrice: varchar("cost_price"),
   currentStock: integer("current_stock").notNull().default(0),
   minStockLevel: integer("min_stock_level").notNull().default(10),
   inInventory: integer("in_inventory").notNull().default(0),
+  category: varchar("category").notNull().default("trackable"),
+  supplier: varchar("supplier"),
+  expiryDate: timestamp("expiry_date"),
 });
 
-export const insertFoodItemSchema = createInsertSchema(foodItems).omit({ id: true });
+export const insertFoodItemSchema = createInsertSchema(foodItems).omit({ id: true }).extend({
+  expiryDate: z.union([z.string(), z.date(), z.null(), z.undefined()]).transform(val => {
+    if (!val) return undefined;
+    return typeof val === 'string' ? new Date(val) : val;
+  }).optional(),
+});
 export type InsertFoodItem = z.infer<typeof insertFoodItemSchema>;
 export type FoodItem = typeof foodItems.$inferSelect;
+
+export const stockBatches = pgTable("stock_batches", {
+  id: varchar("id").primaryKey().$defaultFn(() => crypto.randomUUID()),
+  foodItemId: varchar("food_item_id").notNull(),
+  quantity: integer("quantity").notNull(),
+  costPrice: varchar("cost_price").notNull(),
+  supplier: varchar("supplier"),
+  purchaseDate: timestamp("purchase_date").notNull().defaultNow(),
+  expiryDate: timestamp("expiry_date"),
+  notes: text("notes"),
+  createdAt: timestamp("created_at").notNull().defaultNow(),
+});
+
+export const insertStockBatchSchema = createInsertSchema(stockBatches).omit({ id: true, createdAt: true }).extend({
+  purchaseDate: z.union([z.string(), z.date()]).transform(val => typeof val === 'string' ? new Date(val) : val).optional(),
+  expiryDate: z.union([z.string(), z.date(), z.null(), z.undefined()]).transform(val => {
+    if (!val) return undefined;
+    return typeof val === 'string' ? new Date(val) : val;
+  }).optional(),
+});
+export type InsertStockBatch = z.infer<typeof insertStockBatchSchema>;
+export type StockBatch = typeof stockBatches.$inferSelect;
 
 export const stockAdjustmentSchema = z.object({
   foodId: z.string(),
   quantity: z.number().int(),
   type: z.enum(["add", "remove"]),
+  costPrice: z.string().optional(),
+  supplier: z.string().optional(),
+  expiryDate: z.union([z.string(), z.date(), z.null(), z.undefined()]).transform(val => {
+    if (!val) return undefined;
+    return typeof val === 'string' ? new Date(val) : val;
+  }).optional(),
+  notes: z.string().optional(),
 });
 
 export const deviceConfigs = pgTable("device_configs", {
