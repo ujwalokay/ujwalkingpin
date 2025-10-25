@@ -9,6 +9,10 @@ import {
   type InsertHappyHoursConfig,
   type HappyHoursPricing,
   type InsertHappyHoursPricing,
+  type DiscountPromotion,
+  type InsertDiscountPromotion,
+  type BonusHoursPromotion,
+  type InsertBonusHoursPromotion,
   type FoodItem,
   type InsertFoodItem,
   type StockBatch,
@@ -43,6 +47,8 @@ import {
   pricingConfigs,
   happyHoursConfigs,
   happyHoursPricing,
+  discountPromotions,
+  bonusHoursPromotions,
   foodItems,
   stockBatches,
   bookingHistory,
@@ -118,6 +124,22 @@ export interface IStorage {
   getHappyHoursPricingByCategory(category: string): Promise<HappyHoursPricing[]>;
   upsertHappyHoursPricing(category: string, configs: InsertHappyHoursPricing[]): Promise<HappyHoursPricing[]>;
   deleteHappyHoursPricing(category: string): Promise<boolean>;
+  
+  getAllDiscountPromotions(): Promise<DiscountPromotion[]>;
+  getDiscountPromotion(id: string): Promise<DiscountPromotion | undefined>;
+  getActiveDiscountPromotion(category: string, duration: string, personCount: number): Promise<DiscountPromotion | undefined>;
+  createDiscountPromotion(promotion: InsertDiscountPromotion): Promise<DiscountPromotion>;
+  updateDiscountPromotion(id: string, data: Partial<InsertDiscountPromotion>): Promise<DiscountPromotion | undefined>;
+  deleteDiscountPromotion(id: string): Promise<boolean>;
+  incrementDiscountUsage(id: string, savingsAmount: string): Promise<void>;
+  
+  getAllBonusHoursPromotions(): Promise<BonusHoursPromotion[]>;
+  getBonusHoursPromotion(id: string): Promise<BonusHoursPromotion | undefined>;
+  getActiveBonusHoursPromotion(category: string, duration: string, personCount: number): Promise<BonusHoursPromotion | undefined>;
+  createBonusHoursPromotion(promotion: InsertBonusHoursPromotion): Promise<BonusHoursPromotion>;
+  updateBonusHoursPromotion(id: string, data: Partial<InsertBonusHoursPromotion>): Promise<BonusHoursPromotion | undefined>;
+  deleteBonusHoursPromotion(id: string): Promise<boolean>;
+  incrementBonusHoursUsage(id: string, hoursGiven: string): Promise<void>;
   
   getAllFoodItems(): Promise<FoodItem[]>;
   getFoodItem(id: string): Promise<FoodItem | undefined>;
@@ -684,6 +706,128 @@ export class DatabaseStorage implements IStorage {
   async deleteHappyHoursPricing(category: string): Promise<boolean> {
     const result = await db.delete(happyHoursPricing).where(eq(happyHoursPricing.category, category));
     return result.rowCount ? result.rowCount > 0 : false;
+  }
+
+  async getAllDiscountPromotions(): Promise<DiscountPromotion[]> {
+    return await db.select().from(discountPromotions);
+  }
+
+  async getDiscountPromotion(id: string): Promise<DiscountPromotion | undefined> {
+    const [promotion] = await db.select().from(discountPromotions).where(eq(discountPromotions.id, id));
+    return promotion || undefined;
+  }
+
+  async getActiveDiscountPromotion(category: string, duration: string, personCount: number): Promise<DiscountPromotion | undefined> {
+    const now = new Date();
+    const [promotion] = await db
+      .select()
+      .from(discountPromotions)
+      .where(
+        and(
+          eq(discountPromotions.category, category),
+          eq(discountPromotions.duration, duration),
+          eq(discountPromotions.personCount, personCount),
+          eq(discountPromotions.enabled, 1),
+          lte(discountPromotions.startDate, now),
+          gte(discountPromotions.endDate, now)
+        )
+      );
+    return promotion || undefined;
+  }
+
+  async createDiscountPromotion(promotion: InsertDiscountPromotion): Promise<DiscountPromotion> {
+    const [newPromotion] = await db.insert(discountPromotions).values(promotion).returning();
+    return newPromotion;
+  }
+
+  async updateDiscountPromotion(id: string, data: Partial<InsertDiscountPromotion>): Promise<DiscountPromotion | undefined> {
+    const [updated] = await db
+      .update(discountPromotions)
+      .set(data)
+      .where(eq(discountPromotions.id, id))
+      .returning();
+    return updated || undefined;
+  }
+
+  async deleteDiscountPromotion(id: string): Promise<boolean> {
+    const result = await db.delete(discountPromotions).where(eq(discountPromotions.id, id));
+    return result.rowCount ? result.rowCount > 0 : false;
+  }
+
+  async incrementDiscountUsage(id: string, savingsAmount: string): Promise<void> {
+    const promotion = await this.getDiscountPromotion(id);
+    if (promotion) {
+      const newUsageCount = promotion.usageCount + 1;
+      const newTotalSavings = (parseFloat(promotion.totalSavings) + parseFloat(savingsAmount)).toFixed(2);
+      await db
+        .update(discountPromotions)
+        .set({ 
+          usageCount: newUsageCount,
+          totalSavings: newTotalSavings
+        })
+        .where(eq(discountPromotions.id, id));
+    }
+  }
+
+  async getAllBonusHoursPromotions(): Promise<BonusHoursPromotion[]> {
+    return await db.select().from(bonusHoursPromotions);
+  }
+
+  async getBonusHoursPromotion(id: string): Promise<BonusHoursPromotion | undefined> {
+    const [promotion] = await db.select().from(bonusHoursPromotions).where(eq(bonusHoursPromotions.id, id));
+    return promotion || undefined;
+  }
+
+  async getActiveBonusHoursPromotion(category: string, duration: string, personCount: number): Promise<BonusHoursPromotion | undefined> {
+    const now = new Date();
+    const [promotion] = await db
+      .select()
+      .from(bonusHoursPromotions)
+      .where(
+        and(
+          eq(bonusHoursPromotions.category, category),
+          eq(bonusHoursPromotions.duration, duration),
+          eq(bonusHoursPromotions.personCount, personCount),
+          eq(bonusHoursPromotions.enabled, 1),
+          lte(bonusHoursPromotions.startDate, now),
+          gte(bonusHoursPromotions.endDate, now)
+        )
+      );
+    return promotion || undefined;
+  }
+
+  async createBonusHoursPromotion(promotion: InsertBonusHoursPromotion): Promise<BonusHoursPromotion> {
+    const [newPromotion] = await db.insert(bonusHoursPromotions).values(promotion).returning();
+    return newPromotion;
+  }
+
+  async updateBonusHoursPromotion(id: string, data: Partial<InsertBonusHoursPromotion>): Promise<BonusHoursPromotion | undefined> {
+    const [updated] = await db
+      .update(bonusHoursPromotions)
+      .set(data)
+      .where(eq(bonusHoursPromotions.id, id))
+      .returning();
+    return updated || undefined;
+  }
+
+  async deleteBonusHoursPromotion(id: string): Promise<boolean> {
+    const result = await db.delete(bonusHoursPromotions).where(eq(bonusHoursPromotions.id, id));
+    return result.rowCount ? result.rowCount > 0 : false;
+  }
+
+  async incrementBonusHoursUsage(id: string, hoursGiven: string): Promise<void> {
+    const promotion = await this.getBonusHoursPromotion(id);
+    if (promotion) {
+      const newUsageCount = promotion.usageCount + 1;
+      const newTotalHoursGiven = (parseFloat(promotion.totalHoursGiven) + parseFloat(hoursGiven)).toFixed(2);
+      await db
+        .update(bonusHoursPromotions)
+        .set({ 
+          usageCount: newUsageCount,
+          totalHoursGiven: newTotalHoursGiven
+        })
+        .where(eq(bonusHoursPromotions.id, id));
+    }
   }
 
   async getAllFoodItems(): Promise<FoodItem[]> {

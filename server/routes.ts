@@ -13,6 +13,8 @@ import {
   insertPricingConfigSchema, 
   insertHappyHoursConfigSchema,
   insertHappyHoursPricingSchema,
+  insertDiscountPromotionSchema,
+  insertBonusHoursPromotionSchema,
   insertFoodItemSchema, 
   insertExpenseSchema,
   insertGamingCenterInfoSchema,
@@ -699,6 +701,178 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const { category } = req.params;
       await storage.deleteHappyHoursPricing(category);
       res.json({ success: true, message: `Deleted happy hours pricing for ${category}` });
+    } catch (error: any) {
+      res.status(500).json({ message: error.message });
+    }
+  });
+
+  app.get("/api/discount-promotions", requireAuth, async (req, res) => {
+    try {
+      const promotions = await storage.getAllDiscountPromotions();
+      res.json(promotions);
+    } catch (error: any) {
+      res.status(500).json({ message: error.message });
+    }
+  });
+
+  app.post("/api/discount-promotions", requireAdmin, async (req, res) => {
+    try {
+      const promotion = insertDiscountPromotionSchema.parse(req.body);
+      const created = await storage.createDiscountPromotion(promotion);
+      
+      if (req.session.userId && req.session.username && req.session.role) {
+        await storage.createActivityLog({
+          userId: req.session.userId,
+          username: req.session.username,
+          userRole: req.session.role,
+          action: 'create',
+          entityType: 'discount-promotion',
+          entityId: created.id,
+          details: `Created ${promotion.discountPercentage}% discount for ${promotion.category} - ${promotion.duration}`
+        });
+      }
+      
+      res.json(created);
+    } catch (error: any) {
+      res.status(400).json({ message: error.message });
+    }
+  });
+
+  app.patch("/api/discount-promotions/:id", requireAdmin, async (req, res) => {
+    try {
+      const { id } = req.params;
+      const data = insertDiscountPromotionSchema.partial().parse(req.body);
+      const updated = await storage.updateDiscountPromotion(id, data);
+      if (!updated) {
+        return res.status(404).json({ message: "Discount promotion not found" });
+      }
+      
+      if (req.session.userId && req.session.username && req.session.role) {
+        await storage.createActivityLog({
+          userId: req.session.userId,
+          username: req.session.username,
+          userRole: req.session.role,
+          action: 'update',
+          entityType: 'discount-promotion',
+          entityId: id,
+          details: `Updated discount promotion: ${updated.category} - ${updated.duration}`
+        });
+      }
+      
+      res.json(updated);
+    } catch (error: any) {
+      res.status(400).json({ message: error.message });
+    }
+  });
+
+  app.delete("/api/discount-promotions/:id", requireAdmin, async (req, res) => {
+    try {
+      const { id } = req.params;
+      const promotion = await storage.getDiscountPromotion(id);
+      const success = await storage.deleteDiscountPromotion(id);
+      if (!success) {
+        return res.status(404).json({ message: "Discount promotion not found" });
+      }
+      
+      if (promotion && req.session.userId && req.session.username && req.session.role) {
+        await storage.createActivityLog({
+          userId: req.session.userId,
+          username: req.session.username,
+          userRole: req.session.role,
+          action: 'delete',
+          entityType: 'discount-promotion',
+          entityId: id,
+          details: `Deleted discount promotion: ${promotion.category} - ${promotion.duration}`
+        });
+      }
+      
+      res.json({ success: true });
+    } catch (error: any) {
+      res.status(500).json({ message: error.message });
+    }
+  });
+
+  app.get("/api/bonus-hours-promotions", requireAuth, async (req, res) => {
+    try {
+      const promotions = await storage.getAllBonusHoursPromotions();
+      res.json(promotions);
+    } catch (error: any) {
+      res.status(500).json({ message: error.message });
+    }
+  });
+
+  app.post("/api/bonus-hours-promotions", requireAdmin, async (req, res) => {
+    try {
+      const promotion = insertBonusHoursPromotionSchema.parse(req.body);
+      const created = await storage.createBonusHoursPromotion(promotion);
+      
+      if (req.session.userId && req.session.username && req.session.role) {
+        await storage.createActivityLog({
+          userId: req.session.userId,
+          username: req.session.username,
+          userRole: req.session.role,
+          action: 'create',
+          entityType: 'bonus-hours-promotion',
+          entityId: created.id,
+          details: `Created ${promotion.bonusHours} bonus hours for ${promotion.category} - ${promotion.duration}`
+        });
+      }
+      
+      res.json(created);
+    } catch (error: any) {
+      res.status(400).json({ message: error.message });
+    }
+  });
+
+  app.patch("/api/bonus-hours-promotions/:id", requireAdmin, async (req, res) => {
+    try {
+      const { id } = req.params;
+      const data = insertBonusHoursPromotionSchema.partial().parse(req.body);
+      const updated = await storage.updateBonusHoursPromotion(id, data);
+      if (!updated) {
+        return res.status(404).json({ message: "Bonus hours promotion not found" });
+      }
+      
+      if (req.session.userId && req.session.username && req.session.role) {
+        await storage.createActivityLog({
+          userId: req.session.userId,
+          username: req.session.username,
+          userRole: req.session.role,
+          action: 'update',
+          entityType: 'bonus-hours-promotion',
+          entityId: id,
+          details: `Updated bonus hours promotion: ${updated.category} - ${updated.duration}`
+        });
+      }
+      
+      res.json(updated);
+    } catch (error: any) {
+      res.status(400).json({ message: error.message });
+    }
+  });
+
+  app.delete("/api/bonus-hours-promotions/:id", requireAdmin, async (req, res) => {
+    try {
+      const { id } = req.params;
+      const promotion = await storage.getBonusHoursPromotion(id);
+      const success = await storage.deleteBonusHoursPromotion(id);
+      if (!success) {
+        return res.status(404).json({ message: "Bonus hours promotion not found" });
+      }
+      
+      if (promotion && req.session.userId && req.session.username && req.session.role) {
+        await storage.createActivityLog({
+          userId: req.session.userId,
+          username: req.session.username,
+          userRole: req.session.role,
+          action: 'delete',
+          entityType: 'bonus-hours-promotion',
+          entityId: id,
+          details: `Deleted bonus hours promotion: ${promotion.category} - ${promotion.duration}`
+        });
+      }
+      
+      res.json({ success: true });
     } catch (error: any) {
       res.status(500).json({ message: error.message });
     }

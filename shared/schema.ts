@@ -38,6 +38,14 @@ export const bookings = pgTable("bookings", {
     price: string;
     quantity: number;
   }>>().default([]),
+  originalPrice: varchar("original_price"),
+  discountApplied: varchar("discount_applied"),
+  bonusHoursApplied: varchar("bonus_hours_applied"),
+  promotionDetails: jsonb("promotion_details").$type<{
+    discountPercentage?: number;
+    discountAmount?: string;
+    bonusHours?: string;
+  }>(),
   createdAt: timestamp("created_at").notNull().defaultNow(),
 });
 
@@ -264,6 +272,14 @@ export const bookingHistory = pgTable("booking_history", {
     price: string;
     quantity: number;
   }>>().default([]),
+  originalPrice: varchar("original_price"),
+  discountApplied: varchar("discount_applied"),
+  bonusHoursApplied: varchar("bonus_hours_applied"),
+  promotionDetails: jsonb("promotion_details").$type<{
+    discountPercentage?: number;
+    discountAmount?: string;
+    bonusHours?: string;
+  }>(),
   createdAt: timestamp("created_at").notNull(),
   archivedAt: timestamp("archived_at").notNull().defaultNow(),
 });
