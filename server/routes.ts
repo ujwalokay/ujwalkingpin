@@ -137,7 +137,80 @@ export async function registerRoutes(app: Express): Promise<Server> {
         });
       }
       
-      const created = await storage.createBooking(booking);
+      // Check for active promotions and apply them
+      const activeDiscounts = await storage.getActiveDiscountPromotions();
+      const activeBonusHours = await storage.getActiveBonusHoursPromotions();
+      
+      // Calculate booking duration in hours
+      const durationMs = requestEnd.getTime() - requestStart.getTime();
+      const durationHours = durationMs / (1000 * 60 * 60);
+      
+      let bookingData = { ...booking };
+      let appliedPromotion: { type: 'discount' | 'bonus', id: string, name: string } | null = null;
+      
+      // Check for applicable discount promotion (only one active at a time, so pick the first)
+      if (activeDiscounts.length > 0) {
+        const discount = activeDiscounts[0];
+        const originalPrice = parseFloat(booking.price);
+        const discountAmount = originalPrice * (discount.percentage / 100);
+        const finalPrice = originalPrice - discountAmount;
+        
+        bookingData.originalPrice = booking.price;
+        bookingData.price = finalPrice.toFixed(2);
+        bookingData.discountApplied = discount.name;
+        bookingData.promotionDetails = {
+          discountPercentage: discount.percentage,
+          discountAmount: discountAmount.toFixed(2),
+        };
+        
+        appliedPromotion = { type: 'discount', id: discount.id, name: discount.name };
+      }
+      // Check for applicable bonus hours promotion (only one active at a time)
+      else if (activeBonusHours.length > 0) {
+        const bonus = activeBonusHours[0];
+        // Check if booking hours meet the minimum requirement
+        if (durationHours >= bonus.minHours) {
+          const bonusHours = bonus.bonusHours;
+          const newEndTime = new Date(requestEnd.getTime() + (bonusHours * 60 * 60 * 1000));
+          
+          bookingData.originalPrice = booking.price;
+          bookingData.endTime = newEndTime;
+          bookingData.bonusHoursApplied = bonus.name;
+          bookingData.promotionDetails = {
+            bonusHours: bonusHours.toString(),
+          };
+          
+          appliedPromotion = { type: 'bonus', id: bonus.id, name: bonus.name };
+        }
+      }
+      
+      const created = await storage.createBooking(bookingData);
+      
+      // Increment promotion usage counter if a promotion was applied
+      if (appliedPromotion) {
+        if (appliedPromotion.type === 'discount') {
+          await storage.incrementDiscountPromotionUsage(appliedPromotion.id);
+        } else {
+          await storage.incrementBonusHoursPromotionUsage(appliedPromotion.id);
+        }
+        
+        // Log the promotion usage activity
+        const userId = req.session.userId;
+        const username = req.session.username;
+        const userRole = req.session.role;
+        
+        if (userId && username && userRole) {
+          await storage.createActivityLog({
+            userId,
+            username,
+            userRole,
+            action: 'use',
+            entityType: appliedPromotion.type === 'discount' ? 'discount_promotion' : 'bonus_hours_promotion',
+            entityId: appliedPromotion.id,
+            details: `Applied "${appliedPromotion.name}" promotion to booking for ${created.customerName} at ${created.seatName}`
+          });
+        }
+      }
       
       // Deduct stock for food orders
       if (created.foodOrders && created.foodOrders.length > 0) {

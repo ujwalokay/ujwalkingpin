@@ -4,16 +4,24 @@ import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { ScrollArea } from "@/components/ui/scroll-area";
-import { Clock, User, Phone, DollarSign, Calendar, Search } from "lucide-react";
+import { Clock, User, Phone, DollarSign, Calendar, Search, Receipt } from "lucide-react";
 import { useState } from "react";
 import { format, isValid, isSameDay, parseISO } from "date-fns";
 import type { BookingHistory } from "@shared/schema";
 import { getAdjustedTime } from "@/hooks/useServerTime";
 import { useAuth } from "@/contexts/AuthContext";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
 
 export default function History() {
   const [searchQuery, setSearchQuery] = useState("");
   const [selectedDate, setSelectedDate] = useState<string>("");
+  const [selectedBill, setSelectedBill] = useState<BookingHistory | null>(null);
   const { isStaff } = useAuth();
 
   const { data: bookings = [], isLoading } = useQuery<BookingHistory[]>({
@@ -207,12 +215,150 @@ export default function History() {
                     </div>
                     <span className="font-bold text-lg">₹{calculateTotal(booking)}</span>
                   </div>
+                  
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    className="w-full mt-2"
+                    onClick={() => setSelectedBill(booking)}
+                    data-testid={`button-view-bill-${booking.id}`}
+                  >
+                    <Receipt className="h-4 w-4 mr-2" />
+                    View Bill
+                  </Button>
                 </CardContent>
               </Card>
             ))}
           </div>
         )}
       </ScrollArea>
+
+      {/* Bill Detail Dialog */}
+      <Dialog open={!!selectedBill} onOpenChange={() => setSelectedBill(null)}>
+        <DialogContent className="max-w-md" data-testid="dialog-bill-detail">
+          <DialogHeader>
+            <DialogTitle>Bill Details</DialogTitle>
+            <DialogDescription>
+              Complete billing information for this booking
+            </DialogDescription>
+          </DialogHeader>
+          
+          {selectedBill && (
+            <div className="space-y-4">
+              {/* Customer Info */}
+              <div className="space-y-2">
+                <h3 className="font-semibold text-sm">Customer Information</h3>
+                <div className="text-sm space-y-1">
+                  <div className="flex justify-between">
+                    <span className="text-muted-foreground">Name:</span>
+                    <span className="font-medium" data-testid="bill-customer-name">{selectedBill.customerName}</span>
+                  </div>
+                  <div className="flex justify-between">
+                    <span className="text-muted-foreground">Seat:</span>
+                    <span className="font-medium" data-testid="bill-seat-name">{selectedBill.seatName}</span>
+                  </div>
+                  <div className="flex justify-between">
+                    <span className="text-muted-foreground">Duration:</span>
+                    <span className="font-medium" data-testid="bill-duration">
+                      {calculateDuration(selectedBill.startTime, selectedBill.endTime)}
+                    </span>
+                  </div>
+                </div>
+              </div>
+
+              {/* Pricing Breakdown */}
+              <div className="space-y-2 border-t pt-3">
+                <h3 className="font-semibold text-sm">Pricing Breakdown</h3>
+                <div className="text-sm space-y-2">
+                  {selectedBill.originalPrice && (
+                    <div className="flex justify-between">
+                      <span className="text-muted-foreground">Original Price:</span>
+                      <span className="line-through text-muted-foreground" data-testid="bill-original-price">
+                        ₹{selectedBill.originalPrice}
+                      </span>
+                    </div>
+                  )}
+                  
+                  {selectedBill.discountApplied && selectedBill.promotionDetails?.discountPercentage && (
+                    <div className="flex justify-between text-green-600 dark:text-green-400">
+                      <span>Discount ({selectedBill.promotionDetails.discountPercentage}%):</span>
+                      <span data-testid="bill-discount-amount">
+                        -₹{selectedBill.promotionDetails.discountAmount}
+                      </span>
+                    </div>
+                  )}
+                  
+                  {selectedBill.discountApplied && (
+                    <div className="flex justify-between">
+                      <span className="text-muted-foreground">Promotion Applied:</span>
+                      <span className="text-xs font-medium text-primary" data-testid="bill-discount-name">
+                        {selectedBill.discountApplied}
+                      </span>
+                    </div>
+                  )}
+                  
+                  {selectedBill.bonusHoursApplied && selectedBill.promotionDetails?.bonusHours && (
+                    <>
+                      <div className="flex justify-between text-green-600 dark:text-green-400">
+                        <span>Bonus Hours:</span>
+                        <span data-testid="bill-bonus-hours">
+                          +{selectedBill.promotionDetails.bonusHours}h FREE
+                        </span>
+                      </div>
+                      <div className="flex justify-between">
+                        <span className="text-muted-foreground">Promotion Applied:</span>
+                        <span className="text-xs font-medium text-primary" data-testid="bill-bonus-name">
+                          {selectedBill.bonusHoursApplied}
+                        </span>
+                      </div>
+                    </>
+                  )}
+                  
+                  <div className="flex justify-between font-medium">
+                    <span>Gaming Price:</span>
+                    <span data-testid="bill-gaming-price">₹{selectedBill.price}</span>
+                  </div>
+                </div>
+              </div>
+
+              {/* Food Orders */}
+              {selectedBill.foodOrders && selectedBill.foodOrders.length > 0 && (
+                <div className="space-y-2 border-t pt-3">
+                  <h3 className="font-semibold text-sm">Food Orders</h3>
+                  <div className="text-sm space-y-1">
+                    {selectedBill.foodOrders.map((order, idx) => (
+                      <div key={idx} className="flex justify-between" data-testid={`bill-food-${idx}`}>
+                        <span className="text-muted-foreground">
+                          {order.foodName} x{order.quantity}
+                        </span>
+                        <span>₹{(parseFloat(order.price) * order.quantity).toFixed(2)}</span>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
+
+              {/* Total */}
+              <div className="flex items-center justify-between pt-3 border-t">
+                <span className="font-bold text-lg">Grand Total</span>
+                <span className="font-bold text-2xl text-primary" data-testid="bill-grand-total">
+                  ₹{calculateTotal(selectedBill)}
+                </span>
+              </div>
+
+              {/* Payment Method */}
+              {selectedBill.paymentMethod && (
+                <div className="flex justify-between text-sm border-t pt-3">
+                  <span className="text-muted-foreground">Payment Method:</span>
+                  <Badge variant="secondary" data-testid="bill-payment-method">
+                    {selectedBill.paymentMethod === 'cash' ? 'Cash' : 'UPI/Online'}
+                  </Badge>
+                </div>
+              )}
+            </div>
+          )}
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
