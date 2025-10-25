@@ -741,8 +741,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.patch("/api/discount-promotions/:id", requireAdmin, async (req, res) => {
     try {
       const { id } = req.params;
-      const data = insertDiscountPromotionSchema.partial().parse(req.body);
-      const updated = await storage.updateDiscountPromotion(id, data);
+      const updated = await storage.updateDiscountPromotion(id, req.body);
       if (!updated) {
         return res.status(404).json({ message: "Discount promotion not found" });
       }
@@ -827,8 +826,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.patch("/api/bonus-hours-promotions/:id", requireAdmin, async (req, res) => {
     try {
       const { id } = req.params;
-      const data = insertBonusHoursPromotionSchema.partial().parse(req.body);
-      const updated = await storage.updateBonusHoursPromotion(id, data);
+      const updated = await storage.updateBonusHoursPromotion(id, req.body);
       if (!updated) {
         return res.status(404).json({ message: "Bonus hours promotion not found" });
       }
