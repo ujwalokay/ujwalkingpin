@@ -109,7 +109,9 @@ export function AddBookingDialog({ open, onOpenChange, onConfirm, availableSeats
   const [selectedReward, setSelectedReward] = useState<{
     type: "free_hours" | "discount" | "cashback";
     value: string;
+    tierId: string;
   } | null>(null);
+  const [loyaltyDialogOpen, setLoyaltyDialogOpen] = useState<boolean>(false);
 
   const { data: pricingConfig = [] } = useQuery<PricingConfig[]>({
     queryKey: ["/api/pricing-config"],
@@ -206,6 +208,94 @@ export function AddBookingDialog({ open, onOpenChange, onConfirm, availableSeats
     return loyaltyTiers.find((tier: any) => tier.id === customerLoyalty.currentTierId);
   }, [customerLoyalty, loyaltyTiers]);
 
+  // Get all tiers customer is eligible for (based on total spending)
+  const eligibleTiers = useMemo(() => {
+    if (!customerLoyalty || !loyaltyTiers.length) return [];
+    const totalSpent = parseFloat(customerLoyalty.totalSpent || "0");
+    return loyaltyTiers.filter((tier: any) => {
+      const minSpend = parseFloat(tier.minSpend);
+      return totalSpent >= minSpend && tier.enabled === 1;
+    });
+  }, [customerLoyalty, loyaltyTiers]);
+
+  // Helper to get reward icon
+  const getRewardIcon = (type: string) => {
+    switch (type) {
+      case "free_hours":
+        return <Clock className="h-4 w-4" />;
+      case "discount":
+        return <Percent className="h-4 w-4" />;
+      case "cashback":
+        return <DollarSign className="h-4 w-4" />;
+      default:
+        return <Gift className="h-4 w-4" />;
+    }
+  };
+
+  // Helper to get reward label
+  const getRewardLabel = (type: string, value: string) => {
+    switch (type) {
+      case "free_hours":
+        return `${value} hour${parseFloat(value) !== 1 ? 's' : ''} free`;
+      case "discount":
+        return `${value}% discount`;
+      case "cashback":
+        return `₹${value} cashback`;
+      default:
+        return value;
+    }
+  };
+
+  // Calculate final price with reward applied
+  const calculateFinalPrice = () => {
+    const shouldUseHappyHoursPricing = bookingType === "happy-hours" || (bookingType === "upcoming" && useHappyHoursPricing);
+    const slot = shouldUseHappyHoursPricing ? selectedHappyHoursSlot : selectedSlot;
+    if (!slot) return null;
+
+    let basePrice = parseFloat(slot.price.toString());
+    
+    // Apply selected reward
+    if (selectedReward) {
+      if (selectedReward.type === "discount") {
+        const discountPercent = parseFloat(selectedReward.value);
+        basePrice = basePrice * (1 - discountPercent / 100);
+      } else if (selectedReward.type === "cashback") {
+        const cashback = parseFloat(selectedReward.value);
+        basePrice = Math.max(0, basePrice - cashback);
+      } else if (selectedReward.type === "free_hours") {
+        // For free hours, calculate proportional discount
+        const freeHours = parseFloat(selectedReward.value);
+        const durationHours = durationMinutes / 60;
+        
+        if (durationHours <= freeHours) {
+          // Entire booking is covered by free hours
+          basePrice = 0;
+        } else {
+          // Partial coverage: subtract the value of free hours from total
+          // Calculate hourly rate and subtract the free hours value
+          const hourlyRate = basePrice / durationHours;
+          const freeHoursValue = hourlyRate * freeHours;
+          basePrice = Math.max(0, basePrice - freeHoursValue);
+        }
+      }
+    }
+
+    return Math.round(basePrice).toString();
+  };
+
+  const handleUseReward = (tier: any) => {
+    setSelectedReward({
+      type: tier.rewardType,
+      value: tier.rewardValue,
+      tierId: tier.id
+    });
+    setLoyaltyDialogOpen(false);
+  };
+
+  const handleClearReward = () => {
+    setSelectedReward(null);
+  };
+
   const seatsToDisplay = bookingType === "upcoming" && bookingDate && timeSlot && durationMinutes > 0
     ? upcomingAvailableSeats
     : availableSeats;
@@ -280,22 +370,21 @@ export function AddBookingDialog({ open, onOpenChange, onConfirm, availableSeats
     const hasValidPrice = shouldUseHappyHoursPricing ? selectedHappyHoursSlot : selectedSlot;
     
     if (category && selectedSeats.length > 0 && customerName && duration && hasValidPrice && !isWhatsappRequired && !isDateRequired && !isTimeSlotRequired) {
-      let totalPrice: string;
       let finalPersonCount: number;
       
       if (shouldUseHappyHoursPricing) {
-        // Happy Hours pricing - use configured price directly
+        // Happy Hours pricing
         finalPersonCount = category === "PS5" ? personCount : 1;
-        totalPrice = selectedHappyHoursSlot!.price.toString();
       } else if (category === "PS5") {
-        // PS5 pricing - use configured price for duration + personCount
+        // PS5 pricing
         finalPersonCount = personCount;
-        totalPrice = selectedSlot!.price.toString();
       } else {
-        // Other categories - use configured price directly
+        // Other categories
         finalPersonCount = 1;
-        totalPrice = selectedSlot!.price.toString();
       }
+      
+      // Calculate final price with any rewards applied
+      const finalPrice = calculateFinalPrice() || hasValidPrice.price.toString();
       
       // Determine booking types array
       let bookingTypes: string[];
@@ -311,7 +400,7 @@ export function AddBookingDialog({ open, onOpenChange, onConfirm, availableSeats
         customerName,
         whatsappNumber: whatsappNumber.trim() || undefined,
         duration,
-        price: totalPrice,
+        price: finalPrice,
         personCount: finalPersonCount,
         bookingType: bookingTypes,
         bookingDate: bookingType === "upcoming" ? bookingDate : undefined,
@@ -327,6 +416,7 @@ export function AddBookingDialog({ open, onOpenChange, onConfirm, availableSeats
       setBookingDate(undefined);
       setTimeSlot("");
       setUseHappyHoursPricing(false);
+      setSelectedReward(null);
       onOpenChange(false);
     }
   };
@@ -749,6 +839,68 @@ export function AddBookingDialog({ open, onOpenChange, onConfirm, availableSeats
             )}
           </div>
 
+          {customerLoyalty && customerTier && (
+            <Card className="border-l-4" style={{ borderLeftColor: customerTier.tierColor }}>
+              <CardContent className="pt-4">
+                <div className="space-y-3">
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center gap-2">
+                      <Award className="h-5 w-5" style={{ color: customerTier.tierColor }} />
+                      <div>
+                        <div className="font-semibold">Loyalty Member</div>
+                        <div className="flex items-center gap-2">
+                          <Badge style={{ backgroundColor: customerTier.tierColor }} className="text-xs">
+                            {customerTier.tierName}
+                          </Badge>
+                          <span className="text-sm text-muted-foreground">
+                            {customerLoyalty.pointsEarned} points
+                          </span>
+                        </div>
+                      </div>
+                    </div>
+                    <Button
+                      type="button"
+                      variant="outline"
+                      size="sm"
+                      onClick={() => setLoyaltyDialogOpen(true)}
+                      data-testid="button-view-rewards"
+                    >
+                      <Gift className="mr-2 h-4 w-4" />
+                      View Rewards
+                    </Button>
+                  </div>
+                  
+                  {selectedReward && (
+                    <div className="bg-green-50 dark:bg-green-950 border border-green-200 dark:border-green-800 rounded-lg p-3">
+                      <div className="flex items-center justify-between">
+                        <div className="flex items-center gap-2">
+                          {getRewardIcon(selectedReward.type)}
+                          <div>
+                            <div className="text-sm font-medium text-green-900 dark:text-green-100">
+                              Reward Applied
+                            </div>
+                            <div className="text-xs text-green-700 dark:text-green-300">
+                              {getRewardLabel(selectedReward.type, selectedReward.value)}
+                            </div>
+                          </div>
+                        </div>
+                        <Button
+                          type="button"
+                          variant="ghost"
+                          size="sm"
+                          onClick={handleClearReward}
+                          data-testid="button-clear-reward"
+                        >
+                          Remove
+                        </Button>
+                      </div>
+                    </div>
+                  )}
+                </div>
+              </CardContent>
+            </Card>
+          )}
+
           {(bookingType === "walk-in" || bookingType === "happy-hours") && category && (
             <div className="space-y-2">
               <Label htmlFor="duration">Duration</Label>
@@ -811,7 +963,16 @@ export function AddBookingDialog({ open, onOpenChange, onConfirm, availableSeats
               </div>
               {bookingType === "walk-in" && selectedSlot && (
                 <div className="text-sm text-muted-foreground" data-testid="text-price">
-                  Price: ₹{selectedSlot.price}
+                  {selectedReward ? (
+                    <>
+                      <span className="line-through mr-2">₹{selectedSlot.price}</span>
+                      <span className="text-green-600 dark:text-green-400 font-semibold">
+                        ₹{calculateFinalPrice()}
+                      </span>
+                    </>
+                  ) : (
+                    `Price: ₹${selectedSlot.price}`
+                  )}
                 </div>
               )}
             </div>
@@ -819,11 +980,25 @@ export function AddBookingDialog({ open, onOpenChange, onConfirm, availableSeats
 
           {bookingType === "upcoming" && category && (useHappyHoursPricing ? selectedHappyHoursSlot : selectedSlot) && (
             <div className="text-sm text-muted-foreground" data-testid="text-price">
-              Price: ₹{useHappyHoursPricing && selectedHappyHoursSlot ? selectedHappyHoursSlot.price : selectedSlot?.price} for {duration}
-              {useHappyHoursPricing && selectedHappyHoursSlot && (
-                <span className="ml-2 text-green-600 dark:text-green-400 font-medium">
-                  (Happy Hours 🎉)
-                </span>
+              {selectedReward ? (
+                <>
+                  <span className="line-through mr-2">
+                    ₹{useHappyHoursPricing && selectedHappyHoursSlot ? selectedHappyHoursSlot.price : selectedSlot?.price}
+                  </span>
+                  <span className="text-green-600 dark:text-green-400 font-semibold">
+                    ₹{calculateFinalPrice()}
+                  </span>
+                  <span className="ml-2">for {duration}</span>
+                </>
+              ) : (
+                <>
+                  Price: ₹{useHappyHoursPricing && selectedHappyHoursSlot ? selectedHappyHoursSlot.price : selectedSlot?.price} for {duration}
+                  {useHappyHoursPricing && selectedHappyHoursSlot && (
+                    <span className="ml-2 text-green-600 dark:text-green-400 font-medium">
+                      (Happy Hours 🎉)
+                    </span>
+                  )}
+                </>
               )}
             </div>
           )}
@@ -875,6 +1050,160 @@ export function AddBookingDialog({ open, onOpenChange, onConfirm, availableSeats
           </Button>
         </DialogFooter>
       </DialogContent>
+
+      <Dialog open={loyaltyDialogOpen} onOpenChange={setLoyaltyDialogOpen}>
+        <DialogContent className="max-w-md" data-testid="dialog-loyalty-rewards">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <Award className="h-5 w-5 text-purple-600" />
+              Loyalty Rewards
+            </DialogTitle>
+            <DialogDescription>
+              Your loyalty status and available rewards
+            </DialogDescription>
+          </DialogHeader>
+          
+          {customerLoyalty && (
+            <div className="space-y-4">
+              <Card className="bg-gradient-to-br from-purple-50 to-blue-50 dark:from-purple-950 dark:to-blue-950">
+                <CardContent className="pt-4">
+                  <div className="space-y-2">
+                    <div className="flex items-center justify-between">
+                      <span className="text-sm text-muted-foreground">Total Points</span>
+                      <span className="text-2xl font-bold text-purple-600">
+                        {customerLoyalty.pointsEarned}
+                      </span>
+                    </div>
+                    <div className="flex items-center justify-between">
+                      <span className="text-sm text-muted-foreground">Total Spent</span>
+                      <span className="text-lg font-semibold">₹{customerLoyalty.totalSpent}</span>
+                    </div>
+                    <div className="flex items-center justify-between">
+                      <span className="text-sm text-muted-foreground">Current Tier</span>
+                      {customerTier && (
+                        <Badge style={{ backgroundColor: customerTier.tierColor }}>
+                          {customerTier.tierName}
+                        </Badge>
+                      )}
+                    </div>
+                  </div>
+                </CardContent>
+              </Card>
+
+              <div className="space-y-2">
+                <h3 className="font-semibold text-sm">Available Rewards</h3>
+                {eligibleTiers.length === 0 ? (
+                  <p className="text-sm text-muted-foreground py-4 text-center">
+                    No rewards available yet. Keep spending to unlock rewards!
+                  </p>
+                ) : (
+                  <div className="space-y-2">
+                    {eligibleTiers.map((tier: any) => {
+                      const isSelected = selectedReward?.tierId === tier.id;
+                      return (
+                        <Card 
+                          key={tier.id} 
+                          className={`border-l-4 ${isSelected ? 'bg-green-50 dark:bg-green-950 border-green-500' : ''}`}
+                          style={{ borderLeftColor: isSelected ? undefined : tier.tierColor }}
+                          data-testid={`reward-card-${tier.id}`}
+                        >
+                          <CardContent className="pt-4">
+                            <div className="space-y-3">
+                              <div className="flex items-start justify-between">
+                                <div className="flex-1">
+                                  <div className="flex items-center gap-2 mb-1">
+                                    <Badge variant="outline" style={{ borderColor: tier.tierColor, color: tier.tierColor }}>
+                                      {tier.tierName}
+                                    </Badge>
+                                  </div>
+                                  <div className="flex items-center gap-2">
+                                    {getRewardIcon(tier.rewardType)}
+                                    <span className="font-semibold text-purple-600 dark:text-purple-400">
+                                      {getRewardLabel(tier.rewardType, tier.rewardValue)}
+                                    </span>
+                                  </div>
+                                  {tier.description && (
+                                    <p className="text-xs text-muted-foreground mt-2">
+                                      {tier.description}
+                                    </p>
+                                  )}
+                                  <p className="text-xs text-muted-foreground mt-1">
+                                    Required: ₹{tier.minSpend} total spend
+                                  </p>
+                                </div>
+                              </div>
+                              <Button
+                                variant={isSelected ? "secondary" : "default"}
+                                size="sm"
+                                className="w-full"
+                                onClick={() => handleUseReward(tier)}
+                                disabled={isSelected}
+                                data-testid={`button-use-reward-${tier.id}`}
+                              >
+                                {isSelected ? (
+                                  <>
+                                    <Award className="mr-2 h-4 w-4" />
+                                    Applied
+                                  </>
+                                ) : (
+                                  <>
+                                    <Gift className="mr-2 h-4 w-4" />
+                                    Use It
+                                  </>
+                                )}
+                              </Button>
+                            </div>
+                          </CardContent>
+                        </Card>
+                      );
+                    })}
+                  </div>
+                )}
+              </div>
+
+              {loyaltyTiers.length > eligibleTiers.length && (
+                <div className="space-y-2">
+                  <h3 className="font-semibold text-sm text-muted-foreground">Locked Rewards</h3>
+                  <div className="space-y-2">
+                    {loyaltyTiers
+                      .filter((tier: any) => !eligibleTiers.find((et: any) => et.id === tier.id))
+                      .map((tier: any) => (
+                        <Card key={tier.id} className="opacity-60" data-testid={`locked-reward-${tier.id}`}>
+                          <CardContent className="pt-4">
+                            <div className="flex items-start justify-between">
+                              <div className="flex-1">
+                                <div className="flex items-center gap-2 mb-1">
+                                  <Badge variant="outline" style={{ borderColor: tier.tierColor }}>
+                                    {tier.tierName}
+                                  </Badge>
+                                </div>
+                                <div className="flex items-center gap-2">
+                                  {getRewardIcon(tier.rewardType)}
+                                  <span className="font-semibold">
+                                    {getRewardLabel(tier.rewardType, tier.rewardValue)}
+                                  </span>
+                                </div>
+                                <p className="text-xs text-muted-foreground mt-1">
+                                  Need ₹{(parseFloat(tier.minSpend) - parseFloat(customerLoyalty.totalSpent)).toFixed(2)} more to unlock
+                                </p>
+                              </div>
+                            </div>
+                          </CardContent>
+                        </Card>
+                      ))}
+                  </div>
+                </div>
+              )}
+            </div>
+          )}
+
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setLoyaltyDialogOpen(false)} data-testid="button-close-loyalty-dialog">
+              Close
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </Dialog>
   );
 }
