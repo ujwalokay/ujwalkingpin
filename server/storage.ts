@@ -42,6 +42,10 @@ import {
   type InsertRetentionConfig,
   type DeviceMaintenance,
   type InsertDeviceMaintenance,
+  type LoyaltyTier,
+  type InsertLoyaltyTier,
+  type CustomerLoyalty,
+  type InsertCustomerLoyalty,
   bookings,
   deviceConfigs,
   pricingConfigs,
@@ -62,7 +66,9 @@ import {
   loadMetrics,
   loadPredictions,
   retentionConfig,
-  deviceMaintenance
+  deviceMaintenance,
+  loyaltyTiers,
+  customerLoyalty
 } from "@shared/schema";
 import { db } from "./db";
 import { eq, and, gte, lte, lt, desc, inArray, isNotNull } from "drizzle-orm";
@@ -221,6 +227,20 @@ export interface IStorage {
   getDeviceMaintenance(category: string, seatName: string): Promise<DeviceMaintenance | undefined>;
   upsertDeviceMaintenance(data: InsertDeviceMaintenance): Promise<DeviceMaintenance>;
   updateDeviceMaintenanceStatus(category: string, seatName: string, status: string, notes?: string): Promise<DeviceMaintenance | undefined>;
+  
+  getAllLoyaltyTiers(): Promise<LoyaltyTier[]>;
+  getLoyaltyTier(id: string): Promise<LoyaltyTier | undefined>;
+  createLoyaltyTier(tier: InsertLoyaltyTier): Promise<LoyaltyTier>;
+  updateLoyaltyTier(id: string, data: Partial<InsertLoyaltyTier>): Promise<LoyaltyTier | undefined>;
+  deleteLoyaltyTier(id: string): Promise<boolean>;
+  getTierForSpending(totalSpent: number): Promise<LoyaltyTier | undefined>;
+  
+  getAllCustomerLoyalty(): Promise<CustomerLoyalty[]>;
+  getCustomerLoyalty(whatsappNumber: string): Promise<CustomerLoyalty | undefined>;
+  getCustomerLoyaltyById(id: string): Promise<CustomerLoyalty | undefined>;
+  upsertCustomerLoyalty(data: InsertCustomerLoyalty): Promise<CustomerLoyalty>;
+  updateCustomerSpending(whatsappNumber: string, amount: number): Promise<CustomerLoyalty | undefined>;
+  incrementRewardsRedeemed(whatsappNumber: string): Promise<void>;
   
   initializeDefaults(): Promise<void>;
 }
@@ -1484,6 +1504,121 @@ export class DatabaseStorage implements IStorage {
       
       const [created] = await db.insert(deviceMaintenance).values(newRecord).returning();
       return created;
+    }
+  }
+
+  async getAllLoyaltyTiers(): Promise<LoyaltyTier[]> {
+    return await db.select().from(loyaltyTiers).orderBy(loyaltyTiers.tierLevel);
+  }
+
+  async getLoyaltyTier(id: string): Promise<LoyaltyTier | undefined> {
+    const [tier] = await db.select().from(loyaltyTiers).where(eq(loyaltyTiers.id, id));
+    return tier || undefined;
+  }
+
+  async createLoyaltyTier(tier: InsertLoyaltyTier): Promise<LoyaltyTier> {
+    const [newTier] = await db.insert(loyaltyTiers).values(tier).returning();
+    return newTier;
+  }
+
+  async updateLoyaltyTier(id: string, data: Partial<InsertLoyaltyTier>): Promise<LoyaltyTier | undefined> {
+    const [updated] = await db
+      .update(loyaltyTiers)
+      .set({ ...data, updatedAt: new Date() })
+      .where(eq(loyaltyTiers.id, id))
+      .returning();
+    return updated || undefined;
+  }
+
+  async deleteLoyaltyTier(id: string): Promise<boolean> {
+    const result = await db.delete(loyaltyTiers).where(eq(loyaltyTiers.id, id));
+    return result.rowCount ? result.rowCount > 0 : false;
+  }
+
+  async getTierForSpending(totalSpent: number): Promise<LoyaltyTier | undefined> {
+    const tiers = await db
+      .select()
+      .from(loyaltyTiers)
+      .where(and(
+        eq(loyaltyTiers.enabled, 1),
+        lte(loyaltyTiers.minSpend, totalSpent.toString())
+      ))
+      .orderBy(desc(loyaltyTiers.tierLevel));
+    
+    return tiers[0] || undefined;
+  }
+
+  async getAllCustomerLoyalty(): Promise<CustomerLoyalty[]> {
+    return await db.select().from(customerLoyalty).orderBy(desc(customerLoyalty.totalSpent));
+  }
+
+  async getCustomerLoyalty(whatsappNumber: string): Promise<CustomerLoyalty | undefined> {
+    const [customer] = await db.select().from(customerLoyalty).where(eq(customerLoyalty.whatsappNumber, whatsappNumber));
+    return customer || undefined;
+  }
+
+  async getCustomerLoyaltyById(id: string): Promise<CustomerLoyalty | undefined> {
+    const [customer] = await db.select().from(customerLoyalty).where(eq(customerLoyalty.id, id));
+    return customer || undefined;
+  }
+
+  async upsertCustomerLoyalty(data: InsertCustomerLoyalty): Promise<CustomerLoyalty> {
+    const existing = await this.getCustomerLoyalty(data.whatsappNumber);
+    
+    if (existing) {
+      const [updated] = await db
+        .update(customerLoyalty)
+        .set({ ...data, updatedAt: new Date() })
+        .where(eq(customerLoyalty.whatsappNumber, data.whatsappNumber))
+        .returning();
+      return updated;
+    }
+    
+    const [created] = await db.insert(customerLoyalty).values(data).returning();
+    return created;
+  }
+
+  async updateCustomerSpending(whatsappNumber: string, amount: number): Promise<CustomerLoyalty | undefined> {
+    const existing = await this.getCustomerLoyalty(whatsappNumber);
+    
+    if (!existing) {
+      return undefined;
+    }
+    
+    const newTotalSpent = (parseFloat(existing.totalSpent) + amount).toFixed(2);
+    const tier = await this.getTierForSpending(parseFloat(newTotalSpent));
+    
+    const updateData: any = {
+      totalSpent: newTotalSpent,
+      lastPurchaseDate: new Date(),
+      updatedAt: new Date(),
+    };
+    
+    if (tier) {
+      updateData.currentTierId = tier.id;
+      updateData.currentTierName = tier.tierName;
+      updateData.pointsEarned = existing.pointsEarned + Math.floor(amount);
+    }
+    
+    const [updated] = await db
+      .update(customerLoyalty)
+      .set(updateData)
+      .where(eq(customerLoyalty.whatsappNumber, whatsappNumber))
+      .returning();
+    
+    return updated || undefined;
+  }
+
+  async incrementRewardsRedeemed(whatsappNumber: string): Promise<void> {
+    const existing = await this.getCustomerLoyalty(whatsappNumber);
+    if (existing) {
+      await db
+        .update(customerLoyalty)
+        .set({ 
+          rewardsRedeemed: existing.rewardsRedeemed + 1,
+          updatedAt: new Date()
+        })
+        .where(eq(customerLoyalty.whatsappNumber, whatsappNumber));
     }
   }
 

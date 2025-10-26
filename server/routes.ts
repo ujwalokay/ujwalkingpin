@@ -20,7 +20,9 @@ import {
   insertGamingCenterInfoSchema,
   insertGalleryImageSchema,
   insertFacilitySchema,
-  insertGameSchema
+  insertGameSchema,
+  insertLoyaltyTierSchema,
+  insertCustomerLoyaltySchema
 } from "@shared/schema";
 import { z } from "zod";
 
@@ -976,6 +978,123 @@ export async function registerRoutes(app: Express): Promise<Server> {
       res.json({ success: true });
     } catch (error: any) {
       res.status(500).json({ message: error.message });
+    }
+  });
+
+  app.get("/api/loyalty-tiers", requireAuth, async (req, res) => {
+    try {
+      const tiers = await storage.getAllLoyaltyTiers();
+      res.json(tiers);
+    } catch (error: any) {
+      res.status(500).json({ message: error.message });
+    }
+  });
+
+  app.post("/api/loyalty-tiers", requireAdmin, async (req, res) => {
+    try {
+      const tier = insertLoyaltyTierSchema.parse(req.body);
+      const created = await storage.createLoyaltyTier(tier);
+      
+      if (req.session.userId && req.session.username && req.session.role) {
+        await storage.createActivityLog({
+          userId: req.session.userId,
+          username: req.session.username,
+          userRole: req.session.role,
+          action: 'create',
+          entityType: 'loyalty-tier',
+          entityId: created.id,
+          details: `Created loyalty tier: ${tier.tierName} (Min Spend: ₹${tier.minSpend})`
+        });
+      }
+      
+      res.json(created);
+    } catch (error: any) {
+      res.status(400).json({ message: error.message });
+    }
+  });
+
+  app.patch("/api/loyalty-tiers/:id", requireAdmin, async (req, res) => {
+    try {
+      const { id } = req.params;
+      const updated = await storage.updateLoyaltyTier(id, req.body);
+      if (!updated) {
+        return res.status(404).json({ message: "Loyalty tier not found" });
+      }
+      
+      if (req.session.userId && req.session.username && req.session.role) {
+        await storage.createActivityLog({
+          userId: req.session.userId,
+          username: req.session.username,
+          userRole: req.session.role,
+          action: 'update',
+          entityType: 'loyalty-tier',
+          entityId: id,
+          details: `Updated loyalty tier: ${updated.tierName}`
+        });
+      }
+      
+      res.json(updated);
+    } catch (error: any) {
+      res.status(400).json({ message: error.message });
+    }
+  });
+
+  app.delete("/api/loyalty-tiers/:id", requireAdmin, async (req, res) => {
+    try {
+      const { id } = req.params;
+      const tier = await storage.getLoyaltyTier(id);
+      const success = await storage.deleteLoyaltyTier(id);
+      if (!success) {
+        return res.status(404).json({ message: "Loyalty tier not found" });
+      }
+      
+      if (tier && req.session.userId && req.session.username && req.session.role) {
+        await storage.createActivityLog({
+          userId: req.session.userId,
+          username: req.session.username,
+          userRole: req.session.role,
+          action: 'delete',
+          entityType: 'loyalty-tier',
+          entityId: id,
+          details: `Deleted loyalty tier: ${tier.tierName}`
+        });
+      }
+      
+      res.json({ success: true });
+    } catch (error: any) {
+      res.status(500).json({ message: error.message });
+    }
+  });
+
+  app.get("/api/customer-loyalty", requireAuth, async (req, res) => {
+    try {
+      const customers = await storage.getAllCustomerLoyalty();
+      res.json(customers);
+    } catch (error: any) {
+      res.status(500).json({ message: error.message });
+    }
+  });
+
+  app.get("/api/customer-loyalty/:whatsappNumber", requireAuth, async (req, res) => {
+    try {
+      const { whatsappNumber } = req.params;
+      const customer = await storage.getCustomerLoyalty(whatsappNumber);
+      if (!customer) {
+        return res.status(404).json({ message: "Customer loyalty record not found" });
+      }
+      res.json(customer);
+    } catch (error: any) {
+      res.status(500).json({ message: error.message });
+    }
+  });
+
+  app.post("/api/customer-loyalty", requireAdmin, async (req, res) => {
+    try {
+      const data = insertCustomerLoyaltySchema.parse(req.body);
+      const created = await storage.upsertCustomerLoyalty(data);
+      res.json(created);
+    } catch (error: any) {
+      res.status(400).json({ message: error.message });
     }
   });
 
