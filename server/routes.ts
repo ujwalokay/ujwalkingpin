@@ -7,6 +7,7 @@ import { cleanupScheduler } from "./scheduler";
 import { db } from "./db";
 import { eq } from "drizzle-orm";
 import * as schema from "@shared/schema";
+import { notifyBookingCreated, notifyActivityLog, notifyLowInventory, notifyExpenseAdded, notifyPaymentReceived } from "./notifications";
 import { 
   insertBookingSchema, 
   insertDeviceConfigSchema, 
@@ -218,6 +219,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
       }
       
       const created = await storage.createBooking(bookingData);
+      
+      // Send notification for new booking
+      await notifyBookingCreated(created.id, created.seatName, created.customerName);
       
       // Increment promotion usage counter if a promotion was applied
       if (appliedPromotion) {
@@ -1266,6 +1270,11 @@ export async function registerRoutes(app: Express): Promise<Server> {
         });
       }
       
+      // Send notification if stock is low
+      if (updated.category === 'trackable' && updated.currentStock <= updated.minStockLevel) {
+        await notifyLowInventory(updated.id, updated.name, updated.currentStock, updated.minStockLevel);
+      }
+      
       res.json(updated);
     } catch (error: any) {
       res.status(400).json({ message: error.message });
@@ -1402,6 +1411,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
     try {
       const expense = insertExpenseSchema.parse(req.body);
       const created = await storage.createExpense(expense);
+      
+      // Send notification for new expense
+      await notifyExpenseAdded(created.id, created.category, created.amount);
+      
       res.json(created);
     } catch (error: any) {
       res.status(400).json({ message: error.message });
