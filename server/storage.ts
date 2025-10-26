@@ -1594,10 +1594,20 @@ export class DatabaseStorage implements IStorage {
       updatedAt: new Date(),
     };
     
-    if (tier) {
+    // Minimum spending threshold for earning loyalty points is ₹499
+    const MINIMUM_SPENDING_THRESHOLD = 499;
+    
+    if (tier && parseFloat(newTotalSpent) >= MINIMUM_SPENDING_THRESHOLD) {
+      // Customer has reached the minimum spending threshold, earn points
       updateData.currentTierId = tier.id;
       updateData.currentTierName = tier.tierName;
       updateData.pointsEarned = existing.pointsEarned + Math.floor(amount);
+    } else if (tier) {
+      // Update tier info but don't add points if below threshold
+      updateData.currentTierId = tier.id;
+      updateData.currentTierName = tier.tierName;
+      // Keep existing points, don't add new ones
+      updateData.pointsEarned = existing.pointsEarned;
     }
     
     const [updated] = await db
