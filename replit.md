@@ -50,6 +50,7 @@ Preferred communication style: Simple, everyday language.
 - `Retention Config`: Stores data retention policy settings with database persistence.
 - `Tournaments`: Stores tournament information (name, game, date, max participants, prize pool, status).
 - `Tournament Participants`: Tracks participant registration with status and placement tracking.
+- `Notifications`: Stores system notifications with type, title, message, entity linkage, read status, and creation timestamp.
 
 ### Key Architectural Decisions
 
@@ -89,6 +90,15 @@ Preferred communication style: Simple, everyday language.
 - Food & Inventory Management: Dual-page system with Food page (master catalog of all available items) and Inventory page (selected items currently in stock). Food page allows creating, editing, and deleting items from the master catalog. Inventory page shows only selected items with the ability to add items from the Food catalog or remove them from inventory (without deleting from master catalog). Features stock level tracking, minimum stock level alerts, and automatic stock deduction when items are ordered in bookings. Includes smart delta-based stock adjustment that properly handles quantity changes in booking updates.
 - Sound Alert System: Comprehensive audio notification system using Web Audio API for all user feedback including timer expiry alerts, success confirmations, error warnings, and informational messages. Enhances user experience with audio cues for important events.
 - Unsaved Changes Protection: Settings page detects unsaved changes and shows confirmation dialog when navigating away, preventing accidental data loss. Uses browser beforeunload event for tab/window close and custom navigation blocking for internal links.
+- **Notification System**: Comprehensive notification center with real-time notifications for key events (new bookings, expenses, low inventory alerts, activity logs). Features include:
+  - Bell icon in header with unread count badge
+  - Notification panel with All/Unread tabs
+  - Grouped notifications by time (Today/Yesterday/Older)
+  - Mark as read/delete actions for individual notifications
+  - Mark all as read functionality
+  - Automatic notification triggers via dedicated notification service module
+  - Emoji icons for different notification types (📅 bookings, 💰 payments, 📦 inventory, 📝 activity, 💳 expenses, ⚠️ alerts)
+- **Categorized Sidebar**: Reorganized navigation sidebar with four categories (Main Menu, Operations, Management, Tools) and count badges showing pending items (e.g., low stock count).
 
 ## External Dependencies
 
