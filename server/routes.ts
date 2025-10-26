@@ -1098,6 +1098,36 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  app.get("/api/customer-loyalty/by-phone/:whatsappNumber", requireAuth, async (req, res) => {
+    try {
+      const { whatsappNumber } = req.params;
+      const customer = await storage.getCustomerLoyalty(whatsappNumber);
+      res.json(customer || null);
+    } catch (error: any) {
+      res.status(500).json({ message: error.message });
+    }
+  });
+
+  app.get("/api/promotions/customer/:whatsappNumber/summary", requireAuth, async (req, res) => {
+    try {
+      const { whatsappNumber } = req.params;
+      const summary = await storage.getCustomerPromotionSummary(whatsappNumber);
+      res.json(summary);
+    } catch (error: any) {
+      res.status(500).json({ message: error.message });
+    }
+  });
+
+  app.get("/api/promotions/customer/:whatsappNumber/history", requireAuth, async (req, res) => {
+    try {
+      const { whatsappNumber } = req.params;
+      const history = await storage.getPromotionHistoryByCustomer(whatsappNumber);
+      res.json(history);
+    } catch (error: any) {
+      res.status(500).json({ message: error.message });
+    }
+  });
+
   app.get("/api/food-items", requireAuth, async (req, res) => {
     try {
       const items = await storage.getAllFoodItems();

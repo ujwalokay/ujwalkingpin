@@ -96,6 +96,25 @@ export interface BookingHistoryItem {
   paymentMethod: string | null;
 }
 
+export interface CustomerPromotionSummary {
+  discountCount: number;
+  bonusCount: number;
+  totalSavings: number;
+  totalBonusHours: number;
+}
+
+export interface PromotionHistoryItem {
+  bookingId: string;
+  seatName: string;
+  date: string;
+  promotionType: 'discount' | 'bonus';
+  discountPercentage?: number;
+  discountAmount?: string;
+  bonusHours?: string;
+  originalPrice?: string;
+  finalPrice: string;
+}
+
 export interface IStorage {
   getAllBookings(): Promise<Booking[]>;
   getBooking(id: string): Promise<Booking | undefined>;
@@ -106,6 +125,8 @@ export interface IStorage {
   
   getBookingStats(startDate: Date, endDate: Date): Promise<BookingStats>;
   getBookingHistory(startDate: Date, endDate: Date): Promise<BookingHistoryItem[]>;
+  getCustomerPromotionSummary(whatsappNumber: string): Promise<CustomerPromotionSummary>;
+  getPromotionHistoryByCustomer(whatsappNumber: string): Promise<PromotionHistoryItem[]>;
   
   moveBookingsToHistory(): Promise<number>;
   getAllBookingHistory(): Promise<BookingHistory[]>;
@@ -1630,6 +1651,99 @@ export class DatabaseStorage implements IStorage {
         })
         .where(eq(customerLoyalty.whatsappNumber, whatsappNumber));
     }
+  }
+
+  async getCustomerPromotionSummary(whatsappNumber: string): Promise<CustomerPromotionSummary> {
+    const activeBookings = await db
+      .select()
+      .from(bookings)
+      .where(eq(bookings.whatsappNumber, whatsappNumber));
+    
+    const historyBookings = await db
+      .select()
+      .from(bookingHistory)
+      .where(eq(bookingHistory.whatsappNumber, whatsappNumber));
+    
+    const allBookings = [...activeBookings, ...historyBookings];
+    
+    let discountCount = 0;
+    let bonusCount = 0;
+    let totalSavings = 0;
+    let totalBonusHours = 0;
+    
+    allBookings.forEach(booking => {
+      if (booking.discountApplied && booking.promotionDetails?.discountAmount) {
+        discountCount++;
+        totalSavings += parseFloat(booking.promotionDetails.discountAmount);
+      }
+      if (booking.bonusHoursApplied && booking.promotionDetails?.bonusHours) {
+        bonusCount++;
+        totalBonusHours += parseFloat(booking.promotionDetails.bonusHours);
+      }
+    });
+    
+    return {
+      discountCount,
+      bonusCount,
+      totalSavings,
+      totalBonusHours
+    };
+  }
+
+  async getPromotionHistoryByCustomer(whatsappNumber: string): Promise<PromotionHistoryItem[]> {
+    const activeBookings = await db
+      .select()
+      .from(bookings)
+      .where(eq(bookings.whatsappNumber, whatsappNumber));
+    
+    const historyBookings = await db
+      .select()
+      .from(bookingHistory)
+      .where(eq(bookingHistory.whatsappNumber, whatsappNumber));
+    
+    const allBookings = [...activeBookings, ...historyBookings];
+    
+    const promotionHistory: PromotionHistoryItem[] = [];
+    
+    allBookings.forEach(booking => {
+      if (booking.discountApplied && booking.promotionDetails?.discountAmount) {
+        promotionHistory.push({
+          bookingId: booking.id,
+          seatName: booking.seatName,
+          date: new Date(booking.startTime).toLocaleDateString('en-US', { 
+            month: 'short', 
+            day: 'numeric', 
+            year: 'numeric',
+            hour: '2-digit',
+            minute: '2-digit'
+          }),
+          promotionType: 'discount',
+          discountPercentage: booking.promotionDetails.discountPercentage,
+          discountAmount: booking.promotionDetails.discountAmount,
+          originalPrice: booking.originalPrice || booking.price,
+          finalPrice: booking.price
+        });
+      }
+      
+      if (booking.bonusHoursApplied && booking.promotionDetails?.bonusHours) {
+        promotionHistory.push({
+          bookingId: booking.id,
+          seatName: booking.seatName,
+          date: new Date(booking.startTime).toLocaleDateString('en-US', { 
+            month: 'short', 
+            day: 'numeric', 
+            year: 'numeric',
+            hour: '2-digit',
+            minute: '2-digit'
+          }),
+          promotionType: 'bonus',
+          bonusHours: booking.promotionDetails.bonusHours,
+          finalPrice: booking.price
+        });
+      }
+    });
+    
+    return promotionHistory.sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
   }
 
 }
