@@ -4,7 +4,7 @@ import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { ScrollArea } from "@/components/ui/scroll-area";
-import { Clock, User, Phone, DollarSign, Calendar, Search, Receipt } from "lucide-react";
+import { Clock, User, Phone, DollarSign, Calendar, Search, Receipt, Percent, Gift } from "lucide-react";
 import { useState } from "react";
 import { format, isValid, isSameDay, parseISO } from "date-fns";
 import type { BookingHistory } from "@shared/schema";
@@ -280,38 +280,47 @@ export default function History() {
                   )}
                   
                   {selectedBill.discountApplied && selectedBill.promotionDetails?.discountPercentage && (
-                    <div className="flex justify-between text-green-600 dark:text-green-400">
-                      <span>Discount ({selectedBill.promotionDetails.discountPercentage}%):</span>
-                      <span data-testid="bill-discount-amount">
-                        -₹{selectedBill.promotionDetails.discountAmount}
-                      </span>
-                    </div>
-                  )}
-                  
-                  {selectedBill.discountApplied && (
-                    <div className="flex justify-between">
-                      <span className="text-muted-foreground">Promotion Applied:</span>
-                      <span className="text-xs font-medium text-primary" data-testid="bill-discount-name">
-                        {selectedBill.discountApplied}
-                      </span>
+                    <div className="bg-emerald-50 dark:bg-emerald-950/30 p-3 rounded-lg space-y-1.5 border border-emerald-200 dark:border-emerald-800">
+                      <div className="flex items-center gap-2">
+                        <Badge variant="outline" className="bg-emerald-100 dark:bg-emerald-900/50 text-emerald-700 dark:text-emerald-400 border-emerald-300 dark:border-emerald-700">
+                          <Percent className="h-3 w-3 mr-1" />
+                          Discount Applied
+                        </Badge>
+                      </div>
+                      <div className="flex justify-between">
+                        <span className="text-sm font-medium text-emerald-900 dark:text-emerald-100">
+                          {selectedBill.discountApplied}
+                        </span>
+                        <span className="text-sm font-semibold text-emerald-700 dark:text-emerald-400" data-testid="bill-discount-amount">
+                          {selectedBill.promotionDetails.discountPercentage}% off
+                        </span>
+                      </div>
+                      <div className="flex justify-between">
+                        <span className="text-sm text-emerald-700 dark:text-emerald-400">Savings:</span>
+                        <span className="text-sm font-bold text-emerald-700 dark:text-emerald-400">
+                          -₹{selectedBill.promotionDetails.discountAmount}
+                        </span>
+                      </div>
                     </div>
                   )}
                   
                   {selectedBill.bonusHoursApplied && selectedBill.promotionDetails?.bonusHours && (
-                    <>
-                      <div className="flex justify-between text-green-600 dark:text-green-400">
-                        <span>Bonus Hours:</span>
-                        <span data-testid="bill-bonus-hours">
+                    <div className="bg-violet-50 dark:bg-violet-950/30 p-3 rounded-lg space-y-1.5 border border-violet-200 dark:border-violet-800">
+                      <div className="flex items-center gap-2">
+                        <Badge variant="outline" className="bg-violet-100 dark:bg-violet-900/50 text-violet-700 dark:text-violet-400 border-violet-300 dark:border-violet-700">
+                          <Gift className="h-3 w-3 mr-1" />
+                          Bonus Hours
+                        </Badge>
+                      </div>
+                      <div className="flex justify-between">
+                        <span className="text-sm font-medium text-violet-900 dark:text-violet-100">
+                          {selectedBill.bonusHoursApplied}
+                        </span>
+                        <span className="text-sm font-bold text-violet-700 dark:text-violet-400" data-testid="bill-bonus-hours">
                           +{selectedBill.promotionDetails.bonusHours}h FREE
                         </span>
                       </div>
-                      <div className="flex justify-between">
-                        <span className="text-muted-foreground">Promotion Applied:</span>
-                        <span className="text-xs font-medium text-primary" data-testid="bill-bonus-name">
-                          {selectedBill.bonusHoursApplied}
-                        </span>
-                      </div>
-                    </>
+                    </div>
                   )}
                   
                   <div className="flex justify-between font-medium">
