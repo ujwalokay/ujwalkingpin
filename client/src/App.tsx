@@ -38,6 +38,7 @@ import { ConsumerNav } from "@/components/ConsumerNav";
 import { CursorTrail } from "@/components/CursorTrail";
 import { SplashScreen } from "@/components/SplashScreen";
 import { NetworkAlert } from "@/components/NetworkAlert";
+import { NotificationCenter } from "@/components/NotificationCenter";
 import { useState, useEffect } from "react";
 import { useToast } from "@/hooks/use-toast";
 import { useNetworkMonitor } from "@/hooks/useNetworkMonitor";
@@ -323,6 +324,7 @@ function App() {
                             day: 'numeric' 
                           })}
                         </div>
+                        <NotificationCenter />
                         <ThemeToggle />
                         <Button
                           variant="ghost"
