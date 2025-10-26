@@ -7,7 +7,7 @@ import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { format } from "date-fns";
-import { Search, Filter, X, Calendar, ChevronDown, ChevronUp } from "lucide-react";
+import { Search, Filter, X, Calendar, ChevronDown, ChevronUp, Percent, Gift } from "lucide-react";
 import type { ActivityLog } from "@shared/schema";
 import { ScrollArea } from "@/components/ui/scroll-area";
 
@@ -48,6 +48,21 @@ export default function ActivityLogs() {
       return <Badge variant="outline" className="bg-red-100 dark:bg-red-900 text-red-800 dark:text-red-200">Deleted</Badge>;
     }
     return <Badge variant="outline">{action}</Badge>;
+  };
+
+  const parsePromotionDetails = (details: string | null) => {
+    if (!details) return null;
+    
+    const discountMatch = details.match(/Discount:\s*(\d+)%.*?(-₹[\d.]+)/);
+    const bonusMatch = details.match(/Bonus Hours:\s*\+?([\d.]+)h/);
+    
+    return {
+      hasDiscount: !!discountMatch,
+      hasBonus: !!bonusMatch,
+      discountPercentage: discountMatch ? discountMatch[1] : null,
+      discountAmount: discountMatch ? discountMatch[2] : null,
+      bonusHours: bonusMatch ? bonusMatch[1] : null,
+    };
   };
 
   const getRoleBadge = (role: string) => {
@@ -263,34 +278,62 @@ export default function ActivityLogs() {
                           <TableCell className="text-xs md:text-sm" data-testid={`text-details-${log.id}`}>
                             {!hasDetails ? (
                               <span className="text-muted-foreground">-</span>
-                            ) : (
-                              <div className="space-y-2">
-                                <p className={`break-words ${!isExpanded && shouldTruncate ? 'line-clamp-2' : ''}`}>
-                                  {log.details}
-                                </p>
-                                {shouldTruncate && (
-                                  <Button
-                                    variant="ghost"
-                                    size="sm"
-                                    onClick={() => toggleRowExpansion(log.id)}
-                                    className="h-6 px-2 text-xs"
-                                    data-testid={`button-toggle-details-${log.id}`}
-                                  >
-                                    {isExpanded ? (
-                                      <>
-                                        <ChevronUp className="h-3 w-3 mr-1" />
-                                        Show Less
-                                      </>
-                                    ) : (
-                                      <>
-                                        <ChevronDown className="h-3 w-3 mr-1" />
-                                        Show More
-                                      </>
-                                    )}
-                                  </Button>
-                                )}
-                              </div>
-                            )}
+                            ) : (() => {
+                              const promotionInfo = parsePromotionDetails(log.details || "");
+                              
+                              return (
+                                <div className="space-y-2">
+                                  <p className={`break-words ${!isExpanded && shouldTruncate ? 'line-clamp-2' : ''}`}>
+                                    {log.details}
+                                  </p>
+                                  
+                                  {promotionInfo && (promotionInfo.hasDiscount || promotionInfo.hasBonus) && (
+                                    <div className="flex flex-wrap gap-1.5 mt-2">
+                                      {promotionInfo.hasDiscount && (
+                                        <Badge 
+                                          variant="outline" 
+                                          className="bg-emerald-50 dark:bg-emerald-950/30 text-emerald-700 dark:text-emerald-400 border-emerald-200 dark:border-emerald-800"
+                                        >
+                                          <Percent className="h-3 w-3 mr-1" />
+                                          {promotionInfo.discountPercentage}% off
+                                        </Badge>
+                                      )}
+                                      {promotionInfo.hasBonus && (
+                                        <Badge 
+                                          variant="outline" 
+                                          className="bg-violet-50 dark:bg-violet-950/30 text-violet-700 dark:text-violet-400 border-violet-200 dark:border-violet-800"
+                                        >
+                                          <Gift className="h-3 w-3 mr-1" />
+                                          +{promotionInfo.bonusHours}h
+                                        </Badge>
+                                      )}
+                                    </div>
+                                  )}
+                                  
+                                  {shouldTruncate && (
+                                    <Button
+                                      variant="ghost"
+                                      size="sm"
+                                      onClick={() => toggleRowExpansion(log.id)}
+                                      className="h-6 px-2 text-xs"
+                                      data-testid={`button-toggle-details-${log.id}`}
+                                    >
+                                      {isExpanded ? (
+                                        <>
+                                          <ChevronUp className="h-3 w-3 mr-1" />
+                                          Show Less
+                                        </>
+                                      ) : (
+                                        <>
+                                          <ChevronDown className="h-3 w-3 mr-1" />
+                                          Show More
+                                        </>
+                                      )}
+                                    </Button>
+                                  )}
+                                </div>
+                              );
+                            })()}
                           </TableCell>
                         </TableRow>
                       );
