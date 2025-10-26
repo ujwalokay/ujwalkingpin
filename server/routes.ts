@@ -137,61 +137,91 @@ export async function registerRoutes(app: Express): Promise<Server> {
         });
       }
       
-      // Check for active promotions and apply them
-      const activeDiscounts = await storage.getActiveDiscountPromotions();
-      const activeBonusHours = await storage.getActiveBonusHoursPromotions();
-      
-      // Calculate booking duration in hours
+      // Calculate duration from booking times
       const durationMs = requestEnd.getTime() - requestStart.getTime();
-      const durationHours = durationMs / (1000 * 60 * 60);
+      const durationMinutes = durationMs / (1000 * 60);
+      
+      // Determine duration string for promotion matching
+      let durationStr = "";
+      if (durationMinutes < 60) {
+        durationStr = `${durationMinutes} mins`;
+      } else {
+        const hours = durationMinutes / 60;
+        if (hours === 1) {
+          durationStr = "1 hour";
+        } else {
+          durationStr = `${hours} hours`;
+        }
+      }
+      
+      // Check for active promotions and apply them
+      const activeDiscount = await storage.getActiveDiscountPromotion(
+        booking.category,
+        durationStr,
+        booking.personCount || 1
+      );
+      const activeBonus = await storage.getActiveBonusHoursPromotion(
+        booking.category,
+        durationStr,
+        booking.personCount || 1
+      );
       
       let bookingData = { ...booking };
-      let appliedPromotion: { type: 'discount' | 'bonus', id: string, name: string } | null = null;
+      let appliedPromotion: { type: 'discount' | 'bonus', id: string, description: string, savingsAmount?: string, hoursGiven?: string } | null = null;
       
-      // Check for applicable discount promotion (only one active at a time, so pick the first)
-      if (activeDiscounts.length > 0) {
-        const discount = activeDiscounts[0];
+      // Check for applicable discount promotion
+      if (activeDiscount) {
         const originalPrice = parseFloat(booking.price);
-        const discountAmount = originalPrice * (discount.percentage / 100);
+        const discountAmount = originalPrice * (activeDiscount.discountPercentage / 100);
         const finalPrice = originalPrice - discountAmount;
+        
+        const promotionDesc = `${activeDiscount.discountPercentage}% off ${activeDiscount.category} - ${activeDiscount.duration}`;
         
         bookingData.originalPrice = booking.price;
         bookingData.price = finalPrice.toFixed(2);
-        bookingData.discountApplied = discount.name;
+        bookingData.discountApplied = promotionDesc;
         bookingData.promotionDetails = {
-          discountPercentage: discount.percentage,
+          discountPercentage: activeDiscount.discountPercentage,
           discountAmount: discountAmount.toFixed(2),
         };
         
-        appliedPromotion = { type: 'discount', id: discount.id, name: discount.name };
+        appliedPromotion = { 
+          type: 'discount', 
+          id: activeDiscount.id, 
+          description: promotionDesc,
+          savingsAmount: discountAmount.toFixed(2)
+        };
       }
-      // Check for applicable bonus hours promotion (only one active at a time)
-      else if (activeBonusHours.length > 0) {
-        const bonus = activeBonusHours[0];
-        // Check if booking hours meet the minimum requirement
-        if (durationHours >= bonus.minHours) {
-          const bonusHours = bonus.bonusHours;
-          const newEndTime = new Date(requestEnd.getTime() + (bonusHours * 60 * 60 * 1000));
-          
-          bookingData.originalPrice = booking.price;
-          bookingData.endTime = newEndTime;
-          bookingData.bonusHoursApplied = bonus.name;
-          bookingData.promotionDetails = {
-            bonusHours: bonusHours.toString(),
-          };
-          
-          appliedPromotion = { type: 'bonus', id: bonus.id, name: bonus.name };
-        }
+      // Check for applicable bonus hours promotion (only if no discount applied)
+      else if (activeBonus) {
+        const bonusHoursValue = parseFloat(activeBonus.bonusHours);
+        const newEndTime = new Date(requestEnd.getTime() + (bonusHoursValue * 60 * 60 * 1000));
+        
+        const promotionDesc = `+${activeBonus.bonusHours} hours free on ${activeBonus.category} - ${activeBonus.duration}`;
+        
+        bookingData.originalPrice = booking.price;
+        bookingData.endTime = newEndTime;
+        bookingData.bonusHoursApplied = promotionDesc;
+        bookingData.promotionDetails = {
+          bonusHours: activeBonus.bonusHours,
+        };
+        
+        appliedPromotion = { 
+          type: 'bonus', 
+          id: activeBonus.id, 
+          description: promotionDesc,
+          hoursGiven: activeBonus.bonusHours
+        };
       }
       
       const created = await storage.createBooking(bookingData);
       
       // Increment promotion usage counter if a promotion was applied
       if (appliedPromotion) {
-        if (appliedPromotion.type === 'discount') {
-          await storage.incrementDiscountPromotionUsage(appliedPromotion.id);
-        } else {
-          await storage.incrementBonusHoursPromotionUsage(appliedPromotion.id);
+        if (appliedPromotion.type === 'discount' && appliedPromotion.savingsAmount) {
+          await storage.incrementDiscountUsage(appliedPromotion.id, appliedPromotion.savingsAmount);
+        } else if (appliedPromotion.type === 'bonus' && appliedPromotion.hoursGiven) {
+          await storage.incrementBonusHoursUsage(appliedPromotion.id, appliedPromotion.hoursGiven);
         }
         
         // Log the promotion usage activity
@@ -207,7 +237,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
             action: 'use',
             entityType: appliedPromotion.type === 'discount' ? 'discount_promotion' : 'bonus_hours_promotion',
             entityId: appliedPromotion.id,
-            details: `Applied "${appliedPromotion.name}" promotion to booking for ${created.customerName} at ${created.seatName}`
+            details: `Applied "${appliedPromotion.description}" promotion to booking for ${created.customerName} at ${created.seatName}`
           });
         }
       }

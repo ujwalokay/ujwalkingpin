@@ -185,7 +185,7 @@ export function PromotionsManager() {
     }
   };
 
-  const handleUndoPromotion = (id: string, type: 'discount' | 'bonus') => {
+  const handleDisablePromotion = (id: string, type: 'discount' | 'bonus') => {
     if (type === 'discount') {
       updateDiscountMutation.mutate({ id, data: { enabled: 0 } });
     } else {
@@ -205,18 +205,19 @@ export function PromotionsManager() {
     label: string;
     variant: "default" | "secondary" | "destructive" | "outline";
     isExpired: boolean;
+    isDisabled: boolean;
   } => {
     const now = new Date();
     if (enabled === 0) {
-      return { label: "Disabled", variant: "secondary", isExpired: false };
+      return { label: "Disabled", variant: "secondary", isExpired: false, isDisabled: true };
     }
     if (isAfter(now, endDate)) {
-      return { label: "Expired", variant: "destructive", isExpired: true };
+      return { label: "Expired", variant: "destructive", isExpired: true, isDisabled: false };
     }
     if (isBefore(now, startDate)) {
-      return { label: "Scheduled", variant: "outline", isExpired: false };
+      return { label: "Scheduled", variant: "outline", isExpired: false, isDisabled: false };
     }
-    return { label: "Active", variant: "default", isExpired: false };
+    return { label: "Active", variant: "default", isExpired: false, isDisabled: false };
   };
 
   const groupedPricings = pricingConfigs.reduce((acc, config) => {
@@ -264,7 +265,7 @@ export function PromotionsManager() {
                               <TrendingDown className="h-5 w-5 text-orange-600" />
                               <span className="font-semibold">{existingDiscount.discountPercentage}% Discount</span>
                             </div>
-                            <Badge {...getPromotionStatus(new Date(existingDiscount.startDate), new Date(existingDiscount.endDate), existingDiscount.enabled)}>
+                            <Badge variant={getPromotionStatus(new Date(existingDiscount.startDate), new Date(existingDiscount.endDate), existingDiscount.enabled).variant}>
                               {getPromotionStatus(new Date(existingDiscount.startDate), new Date(existingDiscount.endDate), existingDiscount.enabled).label}
                             </Badge>
                           </div>
@@ -290,28 +291,41 @@ export function PromotionsManager() {
                           </div>
 
                           <div className="flex gap-2">
-                            {getPromotionStatus(new Date(existingDiscount.startDate), new Date(existingDiscount.endDate), existingDiscount.enabled).isExpired ? (
+                            {getPromotionStatus(new Date(existingDiscount.startDate), new Date(existingDiscount.endDate), existingDiscount.enabled).isExpired || 
+                             getPromotionStatus(new Date(existingDiscount.startDate), new Date(existingDiscount.endDate), existingDiscount.enabled).isDisabled ? (
                               <Button
-                                variant="outline"
+                                variant="destructive"
                                 size="sm"
                                 className="flex-1"
                                 onClick={() => handleDeletePromotion(existingDiscount.id, 'discount')}
                                 data-testid="button-delete-discount"
                               >
                                 <Trash2 className="mr-2 h-4 w-4" />
-                                Delete Entry
+                                Delete
                               </Button>
                             ) : (
-                              <Button
-                                variant="outline"
-                                size="sm"
-                                className="flex-1"
-                                onClick={() => handleUndoPromotion(existingDiscount.id, 'discount')}
-                                data-testid="button-undo-discount"
-                              >
-                                <X className="mr-2 h-4 w-4" />
-                                Undo Discount
-                              </Button>
+                              <>
+                                <Button
+                                  variant="outline"
+                                  size="sm"
+                                  className="flex-1"
+                                  onClick={() => handleDisablePromotion(existingDiscount.id, 'discount')}
+                                  data-testid="button-disable-discount"
+                                >
+                                  <X className="mr-2 h-4 w-4" />
+                                  Disable
+                                </Button>
+                                <Button
+                                  variant="destructive"
+                                  size="sm"
+                                  className="flex-1"
+                                  onClick={() => handleDeletePromotion(existingDiscount.id, 'discount')}
+                                  data-testid="button-delete-discount"
+                                >
+                                  <Trash2 className="mr-2 h-4 w-4" />
+                                  Delete
+                                </Button>
+                              </>
                             )}
                           </div>
                         </CardContent>
@@ -337,7 +351,7 @@ export function PromotionsManager() {
                               <Gift className="h-5 w-5 text-green-600" />
                               <span className="font-semibold">+{existingBonus.bonusHours} Hours FREE</span>
                             </div>
-                            <Badge {...getPromotionStatus(new Date(existingBonus.startDate), new Date(existingBonus.endDate), existingBonus.enabled)}>
+                            <Badge variant={getPromotionStatus(new Date(existingBonus.startDate), new Date(existingBonus.endDate), existingBonus.enabled).variant}>
                               {getPromotionStatus(new Date(existingBonus.startDate), new Date(existingBonus.endDate), existingBonus.enabled).label}
                             </Badge>
                           </div>
@@ -363,28 +377,41 @@ export function PromotionsManager() {
                           </div>
 
                           <div className="flex gap-2">
-                            {getPromotionStatus(new Date(existingBonus.startDate), new Date(existingBonus.endDate), existingBonus.enabled).isExpired ? (
+                            {getPromotionStatus(new Date(existingBonus.startDate), new Date(existingBonus.endDate), existingBonus.enabled).isExpired || 
+                             getPromotionStatus(new Date(existingBonus.startDate), new Date(existingBonus.endDate), existingBonus.enabled).isDisabled ? (
                               <Button
-                                variant="outline"
+                                variant="destructive"
                                 size="sm"
                                 className="flex-1"
                                 onClick={() => handleDeletePromotion(existingBonus.id, 'bonus')}
                                 data-testid="button-delete-bonus"
                               >
                                 <Trash2 className="mr-2 h-4 w-4" />
-                                Delete Entry
+                                Delete
                               </Button>
                             ) : (
-                              <Button
-                                variant="outline"
-                                size="sm"
-                                className="flex-1"
-                                onClick={() => handleUndoPromotion(existingBonus.id, 'bonus')}
-                                data-testid="button-undo-bonus"
-                              >
-                                <X className="mr-2 h-4 w-4" />
-                                Undo Bonus
-                              </Button>
+                              <>
+                                <Button
+                                  variant="outline"
+                                  size="sm"
+                                  className="flex-1"
+                                  onClick={() => handleDisablePromotion(existingBonus.id, 'bonus')}
+                                  data-testid="button-disable-bonus"
+                                >
+                                  <X className="mr-2 h-4 w-4" />
+                                  Disable
+                                </Button>
+                                <Button
+                                  variant="destructive"
+                                  size="sm"
+                                  className="flex-1"
+                                  onClick={() => handleDeletePromotion(existingBonus.id, 'bonus')}
+                                  data-testid="button-delete-bonus"
+                                >
+                                  <Trash2 className="mr-2 h-4 w-4" />
+                                  Delete
+                                </Button>
+                              </>
                             )}
                           </div>
                         </CardContent>
