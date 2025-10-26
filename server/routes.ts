@@ -386,25 +386,36 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.get("/api/reports/stats", requireAuth, async (req, res) => {
     try {
       const period = req.query.period as string || "daily";
-      const now = new Date();
+      const customStartDate = req.query.startDate as string;
+      const customEndDate = req.query.endDate as string;
+      
       let startDate: Date;
-      let endDate = new Date(now.getFullYear(), now.getMonth(), now.getDate(), 23, 59, 59);
+      let endDate: Date;
+      const now = new Date();
 
-      switch (period) {
-        case "daily":
-          startDate = new Date(now.getFullYear(), now.getMonth(), now.getDate(), 0, 0, 0);
-          break;
-        case "weekly":
-          const dayOfWeek = now.getDay();
-          startDate = new Date(now);
-          startDate.setDate(now.getDate() - dayOfWeek);
-          startDate.setHours(0, 0, 0, 0);
-          break;
-        case "monthly":
-          startDate = new Date(now.getFullYear(), now.getMonth(), 1, 0, 0, 0);
-          break;
-        default:
-          startDate = new Date(now.getFullYear(), now.getMonth(), now.getDate(), 0, 0, 0);
+      if (customStartDate && customEndDate) {
+        startDate = new Date(customStartDate);
+        endDate = new Date(customEndDate);
+        endDate.setHours(23, 59, 59, 999);
+      } else {
+        endDate = new Date(now.getFullYear(), now.getMonth(), now.getDate(), 23, 59, 59);
+
+        switch (period) {
+          case "daily":
+            startDate = new Date(now.getFullYear(), now.getMonth(), now.getDate(), 0, 0, 0);
+            break;
+          case "weekly":
+            const dayOfWeek = now.getDay();
+            startDate = new Date(now);
+            startDate.setDate(now.getDate() - dayOfWeek);
+            startDate.setHours(0, 0, 0, 0);
+            break;
+          case "monthly":
+            startDate = new Date(now.getFullYear(), now.getMonth(), 1, 0, 0, 0);
+            break;
+          default:
+            startDate = new Date(now.getFullYear(), now.getMonth(), now.getDate(), 0, 0, 0);
+        }
       }
 
       const stats = await storage.getBookingStats(startDate, endDate);
@@ -417,25 +428,36 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.get("/api/reports/history", requireAuth, async (req, res) => {
     try {
       const period = req.query.period as string || "daily";
-      const now = new Date();
+      const customStartDate = req.query.startDate as string;
+      const customEndDate = req.query.endDate as string;
+      
       let startDate: Date;
-      let endDate = new Date(now.getFullYear(), now.getMonth(), now.getDate(), 23, 59, 59);
+      let endDate: Date;
+      const now = new Date();
 
-      switch (period) {
-        case "daily":
-          startDate = new Date(now.getFullYear(), now.getMonth(), now.getDate(), 0, 0, 0);
-          break;
-        case "weekly":
-          const dayOfWeek = now.getDay();
-          startDate = new Date(now);
-          startDate.setDate(now.getDate() - dayOfWeek);
-          startDate.setHours(0, 0, 0, 0);
-          break;
-        case "monthly":
-          startDate = new Date(now.getFullYear(), now.getMonth(), 1, 0, 0, 0);
-          break;
-        default:
-          startDate = new Date(now.getFullYear(), now.getMonth(), now.getDate(), 0, 0, 0);
+      if (customStartDate && customEndDate) {
+        startDate = new Date(customStartDate);
+        endDate = new Date(customEndDate);
+        endDate.setHours(23, 59, 59, 999);
+      } else {
+        endDate = new Date(now.getFullYear(), now.getMonth(), now.getDate(), 23, 59, 59);
+
+        switch (period) {
+          case "daily":
+            startDate = new Date(now.getFullYear(), now.getMonth(), now.getDate(), 0, 0, 0);
+            break;
+          case "weekly":
+            const dayOfWeek = now.getDay();
+            startDate = new Date(now);
+            startDate.setDate(now.getDate() - dayOfWeek);
+            startDate.setHours(0, 0, 0, 0);
+            break;
+          case "monthly":
+            startDate = new Date(now.getFullYear(), now.getMonth(), 1, 0, 0, 0);
+            break;
+          default:
+            startDate = new Date(now.getFullYear(), now.getMonth(), now.getDate(), 0, 0, 0);
+        }
       }
 
       const history = await storage.getBookingHistory(startDate, endDate);

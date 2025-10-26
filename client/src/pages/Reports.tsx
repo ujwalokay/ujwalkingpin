@@ -6,6 +6,8 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Calendar, Download, IndianRupee, Users, Clock } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { getAdjustedTime } from "@/hooks/useServerTime";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
 import {
   Table,
   TableBody,
@@ -39,21 +41,42 @@ interface BookingHistoryItem {
 
 export default function Reports() {
   const [selectedPeriod, setSelectedPeriod] = useState<string>("daily");
+  const [startDate, setStartDate] = useState<string>("");
+  const [endDate, setEndDate] = useState<string>("");
+  const [selectedMonth, setSelectedMonth] = useState<string>("");
   const { toast } = useToast();
 
+  const buildQueryParams = () => {
+    const params = new URLSearchParams();
+    params.append("period", selectedPeriod);
+    
+    if (selectedPeriod === "weekly" && startDate && endDate) {
+      params.append("startDate", startDate);
+      params.append("endDate", endDate);
+    } else if (selectedPeriod === "monthly" && selectedMonth) {
+      const date = new Date(selectedMonth);
+      const firstDay = new Date(date.getFullYear(), date.getMonth(), 1);
+      const lastDay = new Date(date.getFullYear(), date.getMonth() + 1, 0);
+      params.append("startDate", firstDay.toISOString().split('T')[0]);
+      params.append("endDate", lastDay.toISOString().split('T')[0]);
+    }
+    
+    return params.toString();
+  };
+
   const { data: stats, isLoading: statsLoading } = useQuery<BookingStats>({
-    queryKey: ["/api/reports/stats", selectedPeriod],
+    queryKey: ["/api/reports/stats", selectedPeriod, startDate, endDate, selectedMonth],
     queryFn: async () => {
-      const response = await fetch(`/api/reports/stats?period=${selectedPeriod}`);
+      const response = await fetch(`/api/reports/stats?${buildQueryParams()}`);
       if (!response.ok) throw new Error("Failed to fetch stats");
       return response.json();
     },
   });
 
   const { data: history, isLoading: historyLoading } = useQuery<BookingHistoryItem[]>({
-    queryKey: ["/api/reports/history", selectedPeriod],
+    queryKey: ["/api/reports/history", selectedPeriod, startDate, endDate, selectedMonth],
     queryFn: async () => {
-      const response = await fetch(`/api/reports/history?period=${selectedPeriod}`);
+      const response = await fetch(`/api/reports/history?${buildQueryParams()}`);
       if (!response.ok) throw new Error("Failed to fetch history");
       return response.json();
     },
@@ -254,12 +277,87 @@ export default function Reports() {
         </div>
       </div>
 
-      <Tabs defaultValue="daily" value={selectedPeriod} onValueChange={setSelectedPeriod}>
+      <Tabs defaultValue="daily" value={selectedPeriod} onValueChange={(value) => {
+        setSelectedPeriod(value);
+        setStartDate("");
+        setEndDate("");
+        setSelectedMonth("");
+      }}>
         <TabsList data-testid="tabs-period" className="w-full sm:w-auto grid grid-cols-3 sm:inline-flex">
           <TabsTrigger value="daily" data-testid="tab-daily">Daily</TabsTrigger>
           <TabsTrigger value="weekly" data-testid="tab-weekly">Weekly</TabsTrigger>
           <TabsTrigger value="monthly" data-testid="tab-monthly">Monthly</TabsTrigger>
         </TabsList>
+
+        {selectedPeriod === "weekly" && (
+          <div className="glass-card p-4 rounded-lg mt-4">
+            <Label className="text-sm font-semibold mb-3 block">Select Date Range</Label>
+            <div className="flex flex-col sm:flex-row gap-3">
+              <div className="flex-1">
+                <Label htmlFor="start-date" className="text-xs text-muted-foreground">Start Date</Label>
+                <Input
+                  id="start-date"
+                  type="date"
+                  value={startDate}
+                  onChange={(e) => setStartDate(e.target.value)}
+                  className="mt-1"
+                  data-testid="input-start-date"
+                />
+              </div>
+              <div className="flex-1">
+                <Label htmlFor="end-date" className="text-xs text-muted-foreground">End Date</Label>
+                <Input
+                  id="end-date"
+                  type="date"
+                  value={endDate}
+                  onChange={(e) => setEndDate(e.target.value)}
+                  className="mt-1"
+                  data-testid="input-end-date"
+                />
+              </div>
+              {startDate && endDate && (
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => {
+                    setStartDate("");
+                    setEndDate("");
+                  }}
+                  className="self-end"
+                  data-testid="button-clear-date-range"
+                >
+                  Clear
+                </Button>
+              )}
+            </div>
+          </div>
+        )}
+
+        {selectedPeriod === "monthly" && (
+          <div className="glass-card p-4 rounded-lg mt-4">
+            <Label htmlFor="month-select" className="text-sm font-semibold mb-2 block">Select Month</Label>
+            <div className="flex gap-3">
+              <Input
+                id="month-select"
+                type="month"
+                value={selectedMonth}
+                onChange={(e) => setSelectedMonth(e.target.value)}
+                className="max-w-xs"
+                data-testid="input-select-month"
+              />
+              {selectedMonth && (
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => setSelectedMonth("")}
+                  data-testid="button-clear-month"
+                >
+                  Clear
+                </Button>
+              )}
+            </div>
+          </div>
+        )}
 
         <TabsContent value={selectedPeriod} className="space-y-4">
           <div className="grid gap-3 grid-cols-1 sm:grid-cols-2 lg:grid-cols-4">
