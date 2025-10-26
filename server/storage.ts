@@ -26,6 +26,8 @@ import {
   type InsertExpense,
   type ActivityLog,
   type InsertActivityLog,
+  type Notification,
+  type InsertNotification,
   type GamingCenterInfo,
   type InsertGamingCenterInfo,
   type GalleryImage,
@@ -59,6 +61,7 @@ import {
   users,
   expenses,
   activityLogs,
+  notifications,
   gamingCenterInfo,
   galleryImages,
   facilities,
@@ -262,6 +265,15 @@ export interface IStorage {
   upsertCustomerLoyalty(data: InsertCustomerLoyalty): Promise<CustomerLoyalty>;
   updateCustomerSpending(whatsappNumber: string, amount: number): Promise<CustomerLoyalty | undefined>;
   incrementRewardsRedeemed(whatsappNumber: string): Promise<void>;
+  
+  getAllNotifications(): Promise<Notification[]>;
+  getUnreadNotifications(): Promise<Notification[]>;
+  getNotificationById(id: string): Promise<Notification | undefined>;
+  createNotification(notification: InsertNotification): Promise<Notification>;
+  markNotificationAsRead(id: string): Promise<Notification | undefined>;
+  markAllNotificationsAsRead(): Promise<void>;
+  deleteNotification(id: string): Promise<boolean>;
+  getUnreadCount(): Promise<number>;
   
   initializeDefaults(): Promise<void>;
 }
@@ -1651,6 +1663,56 @@ export class DatabaseStorage implements IStorage {
         })
         .where(eq(customerLoyalty.whatsappNumber, whatsappNumber));
     }
+  }
+
+  async getAllNotifications(): Promise<Notification[]> {
+    const result = await db.select().from(notifications).orderBy(desc(notifications.createdAt));
+    return result;
+  }
+
+  async getUnreadNotifications(): Promise<Notification[]> {
+    const result = await db
+      .select()
+      .from(notifications)
+      .where(eq(notifications.isRead, 0))
+      .orderBy(desc(notifications.createdAt));
+    return result;
+  }
+
+  async getNotificationById(id: string): Promise<Notification | undefined> {
+    const result = await db.select().from(notifications).where(eq(notifications.id, id));
+    return result[0];
+  }
+
+  async createNotification(notification: InsertNotification): Promise<Notification> {
+    const result = await db.insert(notifications).values(notification).returning();
+    return result[0];
+  }
+
+  async markNotificationAsRead(id: string): Promise<Notification | undefined> {
+    const result = await db
+      .update(notifications)
+      .set({ isRead: 1 })
+      .where(eq(notifications.id, id))
+      .returning();
+    return result[0];
+  }
+
+  async markAllNotificationsAsRead(): Promise<void> {
+    await db.update(notifications).set({ isRead: 1 });
+  }
+
+  async deleteNotification(id: string): Promise<boolean> {
+    const result = await db.delete(notifications).where(eq(notifications.id, id)).returning();
+    return result.length > 0;
+  }
+
+  async getUnreadCount(): Promise<number> {
+    const result = await db
+      .select()
+      .from(notifications)
+      .where(eq(notifications.isRead, 0));
+    return result.length;
   }
 
   async getCustomerPromotionSummary(whatsappNumber: string): Promise<CustomerPromotionSummary> {
