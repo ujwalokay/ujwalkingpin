@@ -12,6 +12,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { StatusBadge } from "./StatusBadge";
 import { SessionTimer } from "./SessionTimer";
+import { PromotionUsageDialog } from "./PromotionUsageDialog";
 import { Clock, X, Check, UtensilsCrossed, Search, Plus, MoreVertical, StopCircle, Trash2, Play, Pause, CheckSquare, Award, Gift, Percent, DollarSign } from "lucide-react";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Badge } from "@/components/ui/badge";
@@ -59,6 +60,14 @@ interface Booking {
   bookingType?: string[];
   foodOrders?: FoodOrder[];
   pausedRemainingTime?: number | null;
+  originalPrice?: string;
+  discountApplied?: string;
+  bonusHoursApplied?: string;
+  promotionDetails?: {
+    discountPercentage?: number;
+    discountAmount?: string;
+    bonusHours?: string;
+  };
 }
 
 interface BookingTableProps {
@@ -79,6 +88,7 @@ export function BookingTable({ bookings, onExtend, onEnd, onComplete, onAddFood,
   const [searchTerm, setSearchTerm] = useState("");
   const { isAdmin, canMakeChanges } = useAuth();
   const [loyaltyDialog, setLoyaltyDialog] = useState<{open: boolean, whatsappNumber: string, customerName: string}>({open: false, whatsappNumber: "", customerName: ""});
+  const [promotionDialog, setPromotionDialog] = useState<{open: boolean, whatsappNumber: string, customerName: string}>({open: false, whatsappNumber: "", customerName: ""});
 
   // Fetch loyalty tiers
   const { data: loyaltyTiers = [] } = useQuery<any[]>({
@@ -239,7 +249,7 @@ export function BookingTable({ bookings, onExtend, onEnd, onComplete, onAddFood,
                   >
                     <TableCell colSpan={13 + (showDateColumn ? 1 : 0) + (showTypeColumn ? 1 : 0)} className="py-3">
                       <div className="flex items-center justify-between">
-                        <div className="flex items-center gap-3">
+                        <div className="flex items-center gap-3 flex-wrap">
                           <h3 className="text-base font-bold text-foreground" data-testid={`customer-group-${customerName}`}>
                             {customerName}
                           </h3>
@@ -249,6 +259,48 @@ export function BookingTable({ bookings, onExtend, onEnd, onComplete, onAddFood,
                           <span className="text-sm font-semibold text-primary">
                             Total: ₹{customerTotal.toFixed(0)}
                           </span>
+                          {(() => {
+                            const hasDiscount = customerBookings.some(b => b.discountApplied);
+                            const hasBonus = customerBookings.some(b => b.bonusHoursApplied);
+                            const whatsappNumber = customerBookings[0]?.whatsappNumber;
+                            
+                            if (!whatsappNumber || (!hasDiscount && !hasBonus)) return null;
+                            
+                            return (
+                              <div className="flex items-center gap-1.5">
+                                {hasDiscount && (
+                                  <Badge 
+                                    variant="outline" 
+                                    className="cursor-pointer bg-emerald-50 dark:bg-emerald-950/30 text-emerald-700 dark:text-emerald-400 border-emerald-200 dark:border-emerald-800 hover:bg-emerald-100 dark:hover:bg-emerald-950/50"
+                                    onClick={() => setPromotionDialog({
+                                      open: true,
+                                      whatsappNumber: whatsappNumber,
+                                      customerName: customerName
+                                    })}
+                                    data-testid={`badge-discount-${customerName}`}
+                                  >
+                                    <Percent className="h-3 w-3 mr-1" />
+                                    Discount
+                                  </Badge>
+                                )}
+                                {hasBonus && (
+                                  <Badge 
+                                    variant="outline" 
+                                    className="cursor-pointer bg-violet-50 dark:bg-violet-950/30 text-violet-700 dark:text-violet-400 border-violet-200 dark:border-violet-800 hover:bg-violet-100 dark:hover:bg-violet-950/50"
+                                    onClick={() => setPromotionDialog({
+                                      open: true,
+                                      whatsappNumber: whatsappNumber,
+                                      customerName: customerName
+                                    })}
+                                    data-testid={`badge-bonus-${customerName}`}
+                                  >
+                                    <Gift className="h-3 w-3 mr-1" />
+                                    Bonus
+                                  </Badge>
+                                )}
+                              </div>
+                            );
+                          })()}
                         </div>
                         <div className="flex items-center gap-2">
                           <Button
@@ -677,6 +729,13 @@ export function BookingTable({ bookings, onExtend, onEnd, onComplete, onAddFood,
           </DialogFooter>
         </DialogContent>
       </Dialog>
+
+      <PromotionUsageDialog
+        open={promotionDialog.open}
+        onOpenChange={(open) => setPromotionDialog({...promotionDialog, open})}
+        whatsappNumber={promotionDialog.whatsappNumber}
+        customerName={promotionDialog.customerName}
+      />
     </div>
   );
 }
