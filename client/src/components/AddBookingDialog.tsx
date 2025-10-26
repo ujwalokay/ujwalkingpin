@@ -1,4 +1,4 @@
-import { useState, useMemo } from "react";
+import { useState, useMemo, useEffect } from "react";
 import { useQuery } from "@tanstack/react-query";
 import {
   Dialog,
@@ -20,7 +20,9 @@ import {
 } from "@/components/ui/select";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { Checkbox } from "@/components/ui/checkbox";
-import { Plus, Minus, CalendarIcon } from "lucide-react";
+import { Plus, Minus, CalendarIcon, Award, Gift, Percent, Clock, DollarSign } from "lucide-react";
+import { Badge } from "@/components/ui/badge";
+import { Card, CardContent } from "@/components/ui/card";
 import { Calendar } from "@/components/ui/calendar";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { format, isSameDay } from "date-fns";
@@ -103,6 +105,11 @@ export function AddBookingDialog({ open, onOpenChange, onConfirm, availableSeats
   const [timeSlot, setTimeSlot] = useState<string>("");
   const [timePeriodFilter, setTimePeriodFilter] = useState<"all" | "am" | "pm">("all");
   const [useHappyHoursPricing, setUseHappyHoursPricing] = useState<boolean>(false);
+  const [loyaltyCustomerId, setLoyaltyCustomerId] = useState<string | null>(null);
+  const [selectedReward, setSelectedReward] = useState<{
+    type: "free_hours" | "discount" | "cashback";
+    value: string;
+  } | null>(null);
 
   const { data: pricingConfig = [] } = useQuery<PricingConfig[]>({
     queryKey: ["/api/pricing-config"],
@@ -175,6 +182,29 @@ export function AddBookingDialog({ open, onOpenChange, onConfirm, availableSeats
     },
     enabled: bookingType === "upcoming" && !!bookingDate && !!timeSlot && durationMinutes > 0,
   });
+
+  // Fetch loyalty tiers
+  const { data: loyaltyTiers = [] } = useQuery<any[]>({
+    queryKey: ["/api/loyalty-tiers"],
+  });
+
+  // Fetch customer loyalty data when WhatsApp number is entered
+  const { data: customerLoyalty } = useQuery<any>({
+    queryKey: ["/api/customer-loyalty/by-phone", whatsappNumber],
+    queryFn: async () => {
+      if (!whatsappNumber || whatsappNumber.length < 10) return null;
+      const response = await fetch(`/api/customer-loyalty/by-phone/${whatsappNumber}`);
+      if (!response.ok) return null;
+      return response.json();
+    },
+    enabled: whatsappNumber.length >= 10,
+  });
+
+  // Get customer's current tier
+  const customerTier = useMemo(() => {
+    if (!customerLoyalty) return null;
+    return loyaltyTiers.find((tier: any) => tier.id === customerLoyalty.currentTierId);
+  }, [customerLoyalty, loyaltyTiers]);
 
   const seatsToDisplay = bookingType === "upcoming" && bookingDate && timeSlot && durationMinutes > 0
     ? upcomingAvailableSeats
