@@ -18,6 +18,7 @@ import Dashboard from "@/pages/Dashboard";
 import Settings from "@/pages/Settings";
 import Reports from "@/pages/Reports";
 import Analytics from "@/pages/Analytics";
+import LoyaltyRewards from "@/pages/LoyaltyRewards";
 import AIMaintenance from "@/pages/AIMaintenance";
 import Food from "@/pages/Food";
 import Inventory from "@/pages/Inventory";
@@ -53,6 +54,7 @@ function Router() {
       <Route path="/food" component={Food} />
       <Route path="/inventory" component={Inventory} />
       <Route path="/expenses" component={Expenses} />
+      <Route path="/loyalty" component={LoyaltyRewards} />
       <Route path="/settings" component={Settings} />
       <Route path="/reports" component={Reports} />
       <Route path="/terms" component={TermsAndConditions} />

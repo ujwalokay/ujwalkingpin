@@ -63,6 +63,11 @@ const menuItems = [
     icon: Wallet,
   },
   {
+    title: "Loyalty & Rewards",
+    url: "/loyalty",
+    icon: Award,
+  },
+  {
     title: "Settings",
     url: "/settings",
     icon: Settings,
