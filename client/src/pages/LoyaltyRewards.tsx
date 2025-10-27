@@ -205,9 +205,9 @@ export default function LoyaltyRewards() {
 
   const stats = {
     totalCustomers: customers.length,
-    totalPointsEarned: customers.reduce((sum, c) => sum + (c.pointsEarned || 0), 0),
+    availablePoints: customers.reduce((sum, c) => sum + (c.pointsAvailable || 0), 0),
     activeRewards: rewards.filter(r => r.enabled).length,
-    totalRedemptions: customers.reduce((sum, c) => sum + (c.pointsEarned - c.pointsAvailable || 0), 0),
+    totalRewards: rewards.length,
   };
 
   return (
@@ -235,12 +235,12 @@ export default function LoyaltyRewards() {
               </CardTitle>
             </CardHeader>
           </Card>
-          <Card className="glass-card" data-testid="card-total-points">
+          <Card className="glass-card" data-testid="card-available-points">
             <CardHeader className="pb-2">
-              <CardDescription className="text-xs">Total Points Earned</CardDescription>
+              <CardDescription className="text-xs">Available Points</CardDescription>
               <CardTitle className="text-2xl sm:text-3xl flex items-center gap-2">
                 <Star className="h-6 w-6 text-yellow-600" />
-                {stats.totalPointsEarned}
+                {stats.availablePoints}
               </CardTitle>
             </CardHeader>
           </Card>
@@ -253,12 +253,12 @@ export default function LoyaltyRewards() {
               </CardTitle>
             </CardHeader>
           </Card>
-          <Card className="glass-card" data-testid="card-total-redemptions">
+          <Card className="glass-card" data-testid="card-total-rewards">
             <CardHeader className="pb-2">
-              <CardDescription className="text-xs">Points Redeemed</CardDescription>
+              <CardDescription className="text-xs">Total Rewards</CardDescription>
               <CardTitle className="text-2xl sm:text-3xl flex items-center gap-2">
-                <ShoppingCart className="h-6 w-6 text-green-600" />
-                {stats.totalRedemptions}
+                <Award className="h-6 w-6 text-green-600" />
+                {stats.totalRewards}
               </CardTitle>
             </CardHeader>
           </Card>
