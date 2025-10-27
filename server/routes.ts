@@ -309,6 +309,41 @@ export async function registerRoutes(app: Express): Promise<Server> {
             await storage.adjustStock(foodId, oldQty, 'add');
           }
         }
+        
+        // Update customer loyalty when booking is completed or expired
+        const statusChanged = existingBooking.status !== updated.status;
+        const isNowComplete = updated.status === "completed" || updated.status === "expired";
+        const wasNotComplete = existingBooking.status !== "completed" && existingBooking.status !== "expired";
+        
+        if (statusChanged && isNowComplete && wasNotComplete && updated.whatsappNumber) {
+          try {
+            // Create customer loyalty record if it doesn't exist
+            const existingCustomer = await storage.getCustomerLoyalty(updated.whatsappNumber);
+            if (!existingCustomer) {
+              await storage.upsertCustomerLoyalty({
+                customerName: updated.customerName,
+                whatsappNumber: updated.whatsappNumber,
+                totalSpent: "0",
+                pointsEarned: 0,
+                rewardsRedeemed: 0,
+              });
+            }
+            
+            // Calculate total amount spent (booking price + food orders)
+            const bookingPrice = parseFloat(updated.price || "0");
+            const foodTotal = (updated.foodOrders || []).reduce((sum, order) => {
+              return sum + (parseFloat(order.price) * order.quantity);
+            }, 0);
+            const totalAmount = bookingPrice + foodTotal;
+            
+            // Update customer spending and loyalty points
+            if (totalAmount > 0) {
+              await storage.updateCustomerSpending(updated.whatsappNumber, totalAmount);
+            }
+          } catch (error) {
+            console.error("Failed to update customer loyalty:", error);
+          }
+        }
       }
       
       res.json(updated);

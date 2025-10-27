@@ -283,6 +283,7 @@ export class DatabaseStorage implements IStorage {
     // Check if defaults already exist
     const existingDevices = await db.select().from(deviceConfigs);
     const existingUsers = await db.select().from(users);
+    const existingTiers = await db.select().from(loyaltyTiers);
     
     // Initialize default device configs if not exist
     if (existingDevices.length === 0) {
@@ -321,6 +322,56 @@ export class DatabaseStorage implements IStorage {
         { name: "Coffee", price: "3" },
         { name: "Energy Drink", price: "4" },
         { name: "Nachos", price: "5" },
+      ]);
+    }
+
+    // Initialize default loyalty tiers independently
+    if (existingTiers.length === 0) {
+      await db.insert(loyaltyTiers).values([
+        {
+          tierName: "Bronze",
+          tierLevel: 1,
+          minSpend: "499",
+          maxSpend: "1999",
+          tierColor: "#cd7f32",
+          rewardType: "discount",
+          rewardValue: "5",
+          description: "5% discount on bookings",
+          enabled: 1,
+        },
+        {
+          tierName: "Silver",
+          tierLevel: 2,
+          minSpend: "2000",
+          maxSpend: "4999",
+          tierColor: "#c0c0c0",
+          rewardType: "discount",
+          rewardValue: "10",
+          description: "10% discount on bookings",
+          enabled: 1,
+        },
+        {
+          tierName: "Gold",
+          tierLevel: 3,
+          minSpend: "5000",
+          maxSpend: "9999",
+          tierColor: "#ffd700",
+          rewardType: "discount",
+          rewardValue: "15",
+          description: "15% discount on bookings",
+          enabled: 1,
+        },
+        {
+          tierName: "Platinum",
+          tierLevel: 4,
+          minSpend: "10000",
+          maxSpend: null,
+          tierColor: "#e5e4e2",
+          rewardType: "discount",
+          rewardValue: "20",
+          description: "20% discount on bookings + VIP perks",
+          enabled: 1,
+        },
       ]);
     }
 
