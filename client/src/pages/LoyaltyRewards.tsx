@@ -25,9 +25,6 @@ export default function LoyaltyRewards() {
     cardType: "bronze",
     rewardType: "discount",
     value: "",
-    minSpent: "0",
-    maxSpent: "" as string,
-    pointsPerValue: 1,
     cardPointsRequired: 0,
     enabled: 1,
   });
@@ -149,9 +146,6 @@ export default function LoyaltyRewards() {
       cardType: "bronze",
       rewardType: "discount",
       value: "",
-      minSpent: "0",
-      maxSpent: "",
-      pointsPerValue: 1,
       cardPointsRequired: 0,
       enabled: 1,
     });
@@ -172,9 +166,6 @@ export default function LoyaltyRewards() {
       cardType: reward.cardType || "bronze",
       rewardType: reward.rewardType || "discount",
       value: reward.value,
-      minSpent: reward.minSpent || "0",
-      maxSpent: reward.maxSpent || "",
-      pointsPerValue: reward.pointsPerValue || 1,
       cardPointsRequired: reward.cardPointsRequired || 0,
       enabled: reward.enabled,
     });
@@ -369,14 +360,6 @@ export default function LoyaltyRewards() {
                             <div className="flex items-center justify-between text-sm">
                               <span className="text-gray-600 dark:text-gray-400">Point Cost:</span>
                               <span className="font-bold text-purple-600">{reward.pointCost} pts</span>
-                            </div>
-                            <div className="flex items-center justify-between text-sm">
-                              <span className="text-gray-600 dark:text-gray-400">Spend Range:</span>
-                              <span className="text-xs font-medium">₹{reward.minSpent || '0'} - {reward.maxSpent || '∞'}</span>
-                            </div>
-                            <div className="flex items-center justify-between text-sm">
-                              <span className="text-gray-600 dark:text-gray-400">Points/Value:</span>
-                              <span className="text-xs font-medium">{reward.pointsPerValue || 1} pts</span>
                             </div>
                             <div className="flex items-center justify-between text-sm">
                               <span className="text-gray-600 dark:text-gray-400">Tier Points:</span>
@@ -641,43 +624,6 @@ export default function LoyaltyRewards() {
                 {rewardForm.rewardType === "cashback" && "Enter cashback amount in rupees"}
                 {rewardForm.rewardType === "free_hour" && "Enter free gaming time in hours and minutes"}
               </p>
-            </div>
-
-            <div className="grid grid-cols-2 gap-4">
-              <div className="space-y-2">
-                <Label htmlFor="minSpent">Min Spent (₹)</Label>
-                <Input
-                  id="minSpent"
-                  value={rewardForm.minSpent}
-                  onChange={(e) => setRewardForm({ ...rewardForm, minSpent: e.target.value })}
-                  placeholder="e.g., 0"
-                  data-testid="input-min-spent"
-                />
-              </div>
-              <div className="space-y-2">
-                <Label htmlFor="maxSpent">Max Spent (₹)</Label>
-                <Input
-                  id="maxSpent"
-                  value={rewardForm.maxSpent}
-                  onChange={(e) => setRewardForm({ ...rewardForm, maxSpent: e.target.value })}
-                  placeholder="e.g., 499 (optional)"
-                  data-testid="input-max-spent"
-                />
-              </div>
-            </div>
-
-            <div className="space-y-2">
-              <Label htmlFor="pointsPerValue">Points Per Value</Label>
-              <Input
-                id="pointsPerValue"
-                type="number"
-                min="1"
-                value={rewardForm.pointsPerValue}
-                onChange={(e) => setRewardForm({ ...rewardForm, pointsPerValue: parseInt(e.target.value) || 1 })}
-                placeholder="e.g., 2 (earn 2 points per ₹100 spent)"
-                data-testid="input-points-per-value"
-              />
-              <p className="text-xs text-gray-500">How many points earned per spending range</p>
             </div>
 
             <div className="space-y-2">
