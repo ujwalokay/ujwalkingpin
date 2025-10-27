@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useQuery, useMutation } from "@tanstack/react-query";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -9,7 +9,7 @@ import { Badge } from "@/components/ui/badge";
 import { useToast } from "@/hooks/use-toast";
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Award, Gift, Trash2, Edit, Plus, Users, Star, ShoppingCart } from "lucide-react";
+import { Award, Gift, Trash2, Edit, Plus, Users, Star, Settings as SettingsIcon } from "lucide-react";
 import { queryClient, apiRequest } from "@/lib/queryClient";
 import type { CustomerLoyalty, LoyaltyReward } from "@shared/schema";
 import { Textarea } from "@/components/ui/textarea";
@@ -32,6 +32,17 @@ export default function LoyaltyRewards() {
   const [redemptionDialogOpen, setRedemptionDialogOpen] = useState(false);
   const [selectedCustomer, setSelectedCustomer] = useState<CustomerLoyalty | null>(null);
   const [selectedRewardForRedemption, setSelectedRewardForRedemption] = useState<string>("");
+  
+  const [settingsDialogOpen, setSettingsDialogOpen] = useState(false);
+  const [settingsForm, setSettingsForm] = useState({
+    pointsPerVisit: 10,
+    spendingRanges: [
+      { minSpent: 0, maxSpent: 100, points: 5 },
+      { minSpent: 101, maxSpent: 300, points: 15 },
+      { minSpent: 301, maxSpent: 500, points: 30 },
+      { minSpent: 501, maxSpent: null, points: 50 }
+    ]
+  });
 
   const { data: customers = [] } = useQuery<CustomerLoyalty[]>({
     queryKey: ["/api/customer-loyalty"],
@@ -40,6 +51,19 @@ export default function LoyaltyRewards() {
   const { data: rewards = [] } = useQuery<LoyaltyReward[]>({
     queryKey: ["/api/loyalty-rewards"],
   });
+  
+  const { data: loyaltySettings } = useQuery({
+    queryKey: ["/api/loyalty-settings"],
+  });
+  
+  useEffect(() => {
+    if (loyaltySettings) {
+      setSettingsForm({
+        pointsPerVisit: (loyaltySettings as any).pointsPerVisit,
+        spendingRanges: JSON.parse((loyaltySettings as any).spendingRanges)
+      });
+    }
+  }, [loyaltySettings]);
 
   const createRewardMutation = useMutation({
     mutationFn: async (data: typeof rewardForm) => {
@@ -134,6 +158,30 @@ export default function LoyaltyRewards() {
       toast({
         title: "Redemption Failed",
         description: error.message || "Failed to redeem reward",
+        variant: "destructive",
+      });
+    },
+  });
+
+  const updateSettingsMutation = useMutation({
+    mutationFn: async (data: typeof settingsForm) => {
+      return await apiRequest("PATCH", "/api/loyalty-settings", {
+        pointsPerVisit: data.pointsPerVisit,
+        spendingRanges: JSON.stringify(data.spendingRanges)
+      });
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/loyalty-settings"] });
+      toast({
+        title: "Settings Updated",
+        description: "Loyalty point earning rules have been updated successfully.",
+      });
+      setSettingsDialogOpen(false);
+    },
+    onError: (error: any) => {
+      toast({
+        title: "Error",
+        description: error.message || "Failed to update settings",
         variant: "destructive",
       });
     },
@@ -256,6 +304,10 @@ export default function LoyaltyRewards() {
               Tiered card system with Bronze, Silver, Gold, Diamond & Platinum levels. Points and rewards vary by tier.
             </p>
           </div>
+          <Button onClick={() => setSettingsDialogOpen(true)} variant="outline" data-testid="button-loyalty-settings">
+            <SettingsIcon className="mr-2 h-4 w-4" />
+            Point Earning Rules
+          </Button>
         </div>
 
         <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
@@ -714,6 +766,134 @@ export default function LoyaltyRewards() {
             </Button>
             <Button onClick={handleConfirmRedemption} data-testid="button-confirm-redemption">
               Redeem Reward
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      <Dialog open={settingsDialogOpen} onOpenChange={setSettingsDialogOpen}>
+        <DialogContent className="sm:max-w-[600px] max-h-[80vh] overflow-y-auto" data-testid="dialog-loyalty-settings">
+          <DialogHeader>
+            <DialogTitle>Loyalty Point Earning Rules</DialogTitle>
+            <DialogDescription>
+              Configure how customers earn points with the hybrid system (visits + spending)
+            </DialogDescription>
+          </DialogHeader>
+          <div className="space-y-6 py-4">
+            <div className="space-y-2">
+              <Label htmlFor="pointsPerVisit">Points Per Visit</Label>
+              <Input
+                id="pointsPerVisit"
+                type="number"
+                min="0"
+                value={settingsForm.pointsPerVisit}
+                onChange={(e) => setSettingsForm({ ...settingsForm, pointsPerVisit: parseInt(e.target.value) || 0 })}
+                placeholder="e.g., 10"
+                data-testid="input-points-per-visit"
+              />
+              <p className="text-xs text-gray-500">Base points awarded for each visit/booking</p>
+            </div>
+
+            <div className="space-y-3">
+              <div className="flex items-center justify-between">
+                <Label>Spending Ranges & Bonus Points</Label>
+                <Button
+                  size="sm"
+                  variant="outline"
+                  onClick={() => {
+                    setSettingsForm({
+                      ...settingsForm,
+                      spendingRanges: [
+                        ...settingsForm.spendingRanges,
+                        { minSpent: 0, maxSpent: 100, points: 0 }
+                      ]
+                    });
+                  }}
+                  data-testid="button-add-spending-range"
+                >
+                  <Plus className="h-4 w-4 mr-1" />
+                  Add Range
+                </Button>
+              </div>
+              <p className="text-xs text-gray-500">Points earned based on how much customers spend (in addition to visit points)</p>
+              
+              <div className="space-y-2 border rounded-lg p-3 bg-gray-50 dark:bg-gray-900">
+                {settingsForm.spendingRanges.map((range, index) => (
+                  <div key={index} className="flex gap-2 items-center" data-testid={`spending-range-${index}`}>
+                    <div className="flex-1 grid grid-cols-3 gap-2">
+                      <Input
+                        type="number"
+                        min="0"
+                        value={range.minSpent}
+                        onChange={(e) => {
+                          const newRanges = [...settingsForm.spendingRanges];
+                          newRanges[index].minSpent = parseInt(e.target.value) || 0;
+                          setSettingsForm({ ...settingsForm, spendingRanges: newRanges });
+                        }}
+                        placeholder="Min ₹"
+                        data-testid={`input-min-spent-${index}`}
+                      />
+                      <Input
+                        type="number"
+                        min="0"
+                        value={range.maxSpent || ""}
+                        onChange={(e) => {
+                          const newRanges = [...settingsForm.spendingRanges];
+                          newRanges[index].maxSpent = e.target.value ? parseInt(e.target.value) : null;
+                          setSettingsForm({ ...settingsForm, spendingRanges: newRanges });
+                        }}
+                        placeholder="Max ₹ (∞)"
+                        data-testid={`input-max-spent-${index}`}
+                      />
+                      <Input
+                        type="number"
+                        min="0"
+                        value={range.points}
+                        onChange={(e) => {
+                          const newRanges = [...settingsForm.spendingRanges];
+                          newRanges[index].points = parseInt(e.target.value) || 0;
+                          setSettingsForm({ ...settingsForm, spendingRanges: newRanges });
+                        }}
+                        placeholder="Points"
+                        data-testid={`input-points-${index}`}
+                      />
+                    </div>
+                    <Button
+                      size="sm"
+                      variant="ghost"
+                      onClick={() => {
+                        const newRanges = settingsForm.spendingRanges.filter((_, i) => i !== index);
+                        setSettingsForm({ ...settingsForm, spendingRanges: newRanges });
+                      }}
+                      data-testid={`button-remove-range-${index}`}
+                    >
+                      <Trash2 className="h-4 w-4 text-red-600" />
+                    </Button>
+                  </div>
+                ))}
+              </div>
+            </div>
+
+            <div className="p-4 bg-blue-50 dark:bg-blue-950 rounded-lg space-y-2">
+              <div className="font-semibold text-blue-900 dark:text-blue-100">How It Works (Hybrid System)</div>
+              <div className="text-sm text-blue-800 dark:text-blue-200 space-y-1">
+                <p>✓ Customer gets <strong>{settingsForm.pointsPerVisit} points</strong> just for visiting</p>
+                <p>✓ PLUS bonus points based on what they spend:</p>
+                {settingsForm.spendingRanges.map((range, idx) => (
+                  <p key={idx} className="ml-4">
+                    • ₹{range.minSpent} - ₹{range.maxSpent || '∞'}: <strong>{range.points} bonus points</strong>
+                  </p>
+                ))}
+                <p className="mt-2 font-medium">Example: If a customer spends ₹250, they get {settingsForm.pointsPerVisit} (visit) + {settingsForm.spendingRanges.find(r => 250 >= r.minSpent && (r.maxSpent === null || 250 <= r.maxSpent))?.points || 0} (spending) = {settingsForm.pointsPerVisit + (settingsForm.spendingRanges.find(r => 250 >= r.minSpent && (r.maxSpent === null || 250 <= r.maxSpent))?.points || 0)} total points!</p>
+              </div>
+            </div>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setSettingsDialogOpen(false)} data-testid="button-cancel-settings">
+              Cancel
+            </Button>
+            <Button onClick={() => updateSettingsMutation.mutate(settingsForm)} data-testid="button-save-settings">
+              Save Settings
             </Button>
           </DialogFooter>
         </DialogContent>
