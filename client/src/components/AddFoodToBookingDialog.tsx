@@ -4,7 +4,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Label } from "@/components/ui/label";
-import { Search, Plus, Minus } from "lucide-react";
+import { Search, Plus, Minus, AlertCircle } from "lucide-react";
 import type { FoodItem } from "@shared/schema";
 
 interface FoodOrder {
@@ -43,6 +43,8 @@ export function AddFoodToBookingDialog({
   );
 
   const updateQuantity = (item: FoodItem, delta: number) => {
+    const availableStock = item.currentStock;
+    
     setSelectedItems((prev) => {
       const newMap = new Map(prev);
       const existing = newMap.get(item.id);
@@ -51,10 +53,10 @@ export function AddFoodToBookingDialog({
         const newQuantity = existing.quantity + delta;
         if (newQuantity <= 0) {
           newMap.delete(item.id);
-        } else {
+        } else if (newQuantity <= availableStock) {
           newMap.set(item.id, { ...existing, quantity: newQuantity });
         }
-      } else if (delta > 0) {
+      } else if (delta > 0 && availableStock > 0) {
         newMap.set(item.id, {
           foodId: item.id,
           foodName: item.name,
@@ -121,15 +123,40 @@ export function AddFoodToBookingDialog({
             <div className="grid gap-1.5 sm:gap-2 p-2 sm:p-3">
               {filteredFoodItems.map((item) => {
                 const quantity = getQuantity(item.id);
+                const isOutOfStock = item.currentStock === 0;
+                const availableStock = item.currentStock;
+                const totalStock = item.currentStock + item.inInventory;
+                const isLowStock = item.currentStock > 0 && item.currentStock <= item.minStockLevel;
+                
                 return (
                   <div
                     key={item.id}
-                    className="flex items-center gap-2 sm:gap-4 p-2 sm:p-3 border rounded-lg hover:bg-accent/50 transition-colors"
+                    className={`flex items-center gap-2 sm:gap-4 p-2 sm:p-3 border rounded-lg transition-colors ${
+                      isOutOfStock ? 'bg-red-50 dark:bg-red-950/20 border-red-200 dark:border-red-900' : 'hover:bg-accent/50'
+                    }`}
                     data-testid={`food-item-${item.id}`}
                   >
                     <div className="flex-1 min-w-0">
-                      <p className="font-medium text-xs sm:text-base truncate">{item.name}</p>
-                      <p className="text-[10px] sm:text-sm text-muted-foreground">₹{item.price}</p>
+                      <div className="flex items-center gap-2">
+                        <p className={`font-medium text-xs sm:text-base truncate ${isOutOfStock ? 'text-gray-400 dark:text-gray-600' : ''}`}>
+                          {item.name}
+                        </p>
+                        {isOutOfStock && (
+                          <AlertCircle className="h-3 w-3 sm:h-4 sm:w-4 text-red-600 flex-shrink-0" />
+                        )}
+                      </div>
+                      <div className="flex items-center gap-2 flex-wrap">
+                        <p className="text-[10px] sm:text-sm text-muted-foreground">₹{item.price}</p>
+                        {isOutOfStock ? (
+                          <p className="text-[10px] sm:text-xs font-semibold text-red-600 dark:text-red-500" data-testid={`stock-status-${item.id}`}>
+                            Unavailable - Out of Stock
+                          </p>
+                        ) : (
+                          <p className={`text-[10px] sm:text-xs font-medium ${isLowStock ? 'text-orange-600 dark:text-orange-500' : 'text-green-600 dark:text-green-500'}`} data-testid={`stock-status-${item.id}`}>
+                            {availableStock}/{totalStock} {isLowStock ? 'Low Stock' : 'Available'}
+                          </p>
+                        )}
+                      </div>
                     </div>
                     <div className="flex items-center gap-1.5 sm:gap-2">
                       <Button
@@ -137,7 +164,7 @@ export function AddFoodToBookingDialog({
                         size="icon"
                         className="h-7 w-7 sm:h-9 sm:w-9"
                         onClick={() => updateQuantity(item, -1)}
-                        disabled={quantity === 0}
+                        disabled={quantity === 0 || isOutOfStock}
                         data-testid={`button-decrease-${item.id}`}
                       >
                         <Minus className="h-3 w-3 sm:h-4 sm:w-4" />
@@ -150,6 +177,7 @@ export function AddFoodToBookingDialog({
                         size="icon"
                         className="h-7 w-7 sm:h-9 sm:w-9"
                         onClick={() => updateQuantity(item, 1)}
+                        disabled={isOutOfStock || quantity >= availableStock}
                         data-testid={`button-increase-${item.id}`}
                       >
                         <Plus className="h-3 w-3 sm:h-4 sm:w-4" />
