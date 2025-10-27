@@ -190,6 +190,11 @@ export function AddBookingDialog({ open, onOpenChange, onConfirm, availableSeats
     queryKey: ["/api/loyalty-tiers"],
   });
 
+  // Fetch loyalty rewards from catalog
+  const { data: loyaltyRewards = [] } = useQuery<any[]>({
+    queryKey: ["/api/loyalty-rewards"],
+  });
+
   // Fetch customer loyalty data when WhatsApp number is entered
   const { data: customerLoyalty } = useQuery<any>({
     queryKey: ["/api/customer-loyalty/by-phone", whatsappNumber],
@@ -208,15 +213,15 @@ export function AddBookingDialog({ open, onOpenChange, onConfirm, availableSeats
     return loyaltyTiers.find((tier: any) => tier.id === customerLoyalty.currentTierId);
   }, [customerLoyalty, loyaltyTiers]);
 
-  // Get all tiers customer is eligible for (based on total spending)
-  const eligibleTiers = useMemo(() => {
-    if (!customerLoyalty || !loyaltyTiers.length) return [];
-    const totalSpent = parseFloat(customerLoyalty.totalSpent || "0");
-    return loyaltyTiers.filter((tier: any) => {
-      const minSpend = parseFloat(tier.minSpend);
-      return totalSpent >= minSpend && tier.enabled === 1;
+  // Get all rewards customer is eligible for (based on available points)
+  const eligibleRewards = useMemo(() => {
+    if (!customerLoyalty || !loyaltyRewards.length) return [];
+    const pointsAvailable = parseInt(customerLoyalty.pointsAvailable || "0");
+    return loyaltyRewards.filter((reward: any) => {
+      const cardPointsRequired = parseInt(reward.cardPointsRequired || "0");
+      return reward.enabled === 1 && pointsAvailable >= cardPointsRequired;
     });
-  }, [customerLoyalty, loyaltyTiers]);
+  }, [customerLoyalty, loyaltyRewards]);
 
   // Helper to get reward icon
   const getRewardIcon = (type: string) => {
@@ -283,11 +288,11 @@ export function AddBookingDialog({ open, onOpenChange, onConfirm, availableSeats
     return Math.round(basePrice).toString();
   };
 
-  const handleUseReward = (tier: any) => {
+  const handleUseReward = (reward: any) => {
     setSelectedReward({
-      type: tier.rewardType,
-      value: tier.rewardValue,
-      tierId: tier.id
+      type: reward.rewardType,
+      value: reward.value,
+      tierId: reward.id
     });
     setLoyaltyDialogOpen(false);
   };
@@ -1092,43 +1097,39 @@ export function AddBookingDialog({ open, onOpenChange, onConfirm, availableSeats
 
               <div className="space-y-2">
                 <h3 className="font-semibold text-sm">Available Rewards</h3>
-                {eligibleTiers.length === 0 ? (
+                {eligibleRewards.length === 0 ? (
                   <p className="text-sm text-muted-foreground py-4 text-center">
                     No rewards available yet. Keep spending to unlock rewards!
                   </p>
                 ) : (
                   <div className="space-y-2">
-                    {eligibleTiers.map((tier: any) => {
-                      const isSelected = selectedReward?.tierId === tier.id;
+                    {eligibleRewards.map((reward: any) => {
+                      const isSelected = selectedReward?.tierId === reward.id;
                       return (
                         <Card 
-                          key={tier.id} 
-                          className={`border-l-4 ${isSelected ? 'bg-green-50 dark:bg-green-950 border-green-500' : ''}`}
-                          style={{ borderLeftColor: isSelected ? undefined : tier.tierColor }}
-                          data-testid={`reward-card-${tier.id}`}
+                          key={reward.id} 
+                          className={`border-l-4 ${isSelected ? 'bg-green-50 dark:bg-green-950 border-green-500' : 'border-l-purple-500'}`}
+                          data-testid={`reward-card-${reward.id}`}
                         >
                           <CardContent className="pt-4">
                             <div className="space-y-3">
                               <div className="flex items-start justify-between">
                                 <div className="flex-1">
                                   <div className="flex items-center gap-2 mb-1">
-                                    <Badge variant="outline" style={{ borderColor: tier.tierColor, color: tier.tierColor }}>
-                                      {tier.tierName}
-                                    </Badge>
+                                    <span className="font-semibold text-gray-900 dark:text-white">{reward.name}</span>
+                                    <Badge className="capitalize" variant="outline">{reward.cardType || 'bronze'}</Badge>
                                   </div>
-                                  <div className="flex items-center gap-2">
-                                    {getRewardIcon(tier.rewardType)}
+                                  <p className="text-xs text-muted-foreground mt-2">
+                                    {reward.description}
+                                  </p>
+                                  <div className="flex items-center gap-2 mt-2">
+                                    {getRewardIcon(reward.rewardType || 'discount')}
                                     <span className="font-semibold text-purple-600 dark:text-purple-400">
-                                      {getRewardLabel(tier.rewardType, tier.rewardValue)}
+                                      {reward.rewardType === 'free_hour' ? `${reward.value} hrs` : reward.rewardType === 'free_hours' ? `${reward.value} hour${parseFloat(reward.value) !== 1 ? 's' : ''} free` : reward.rewardType === 'discount' ? `${reward.value}% discount` : `₹${reward.value}`}
                                     </span>
                                   </div>
-                                  {tier.description && (
-                                    <p className="text-xs text-muted-foreground mt-2">
-                                      {tier.description}
-                                    </p>
-                                  )}
                                   <p className="text-xs text-muted-foreground mt-1">
-                                    Required: ₹{tier.minSpend} total spend
+                                    Requires {reward.cardPointsRequired || 0} points
                                   </p>
                                 </div>
                               </div>
@@ -1136,9 +1137,9 @@ export function AddBookingDialog({ open, onOpenChange, onConfirm, availableSeats
                                 variant={isSelected ? "secondary" : "default"}
                                 size="sm"
                                 className="w-full"
-                                onClick={() => handleUseReward(tier)}
+                                onClick={() => handleUseReward(reward)}
                                 disabled={isSelected}
-                                data-testid={`button-use-reward-${tier.id}`}
+                                data-testid={`button-use-reward-${reward.id}`}
                               >
                                 {isSelected ? (
                                   <>
@@ -1160,40 +1161,6 @@ export function AddBookingDialog({ open, onOpenChange, onConfirm, availableSeats
                   </div>
                 )}
               </div>
-
-              {loyaltyTiers.length > eligibleTiers.length && (
-                <div className="space-y-2">
-                  <h3 className="font-semibold text-sm text-muted-foreground">Locked Rewards</h3>
-                  <div className="space-y-2">
-                    {loyaltyTiers
-                      .filter((tier: any) => !eligibleTiers.find((et: any) => et.id === tier.id))
-                      .map((tier: any) => (
-                        <Card key={tier.id} className="opacity-60" data-testid={`locked-reward-${tier.id}`}>
-                          <CardContent className="pt-4">
-                            <div className="flex items-start justify-between">
-                              <div className="flex-1">
-                                <div className="flex items-center gap-2 mb-1">
-                                  <Badge variant="outline" style={{ borderColor: tier.tierColor }}>
-                                    {tier.tierName}
-                                  </Badge>
-                                </div>
-                                <div className="flex items-center gap-2">
-                                  {getRewardIcon(tier.rewardType)}
-                                  <span className="font-semibold">
-                                    {getRewardLabel(tier.rewardType, tier.rewardValue)}
-                                  </span>
-                                </div>
-                                <p className="text-xs text-muted-foreground mt-1">
-                                  Need ₹{(parseFloat(tier.minSpend) - parseFloat(customerLoyalty.totalSpent)).toFixed(2)} more to unlock
-                                </p>
-                              </div>
-                            </div>
-                          </CardContent>
-                        </Card>
-                      ))}
-                  </div>
-                </div>
-              )}
             </div>
           )}
 

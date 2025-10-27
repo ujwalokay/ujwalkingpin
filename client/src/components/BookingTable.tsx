@@ -95,6 +95,11 @@ export function BookingTable({ bookings, onExtend, onEnd, onComplete, onAddFood,
     queryKey: ["/api/loyalty-tiers"],
   });
 
+  // Fetch loyalty rewards from catalog
+  const { data: loyaltyRewards = [] } = useQuery<any[]>({
+    queryKey: ["/api/loyalty-rewards"],
+  });
+
   // Fetch customer loyalty data when dialog is open
   const { data: customerLoyalty } = useQuery<any>({
     queryKey: ["/api/customer-loyalty/by-phone", loyaltyDialog.whatsappNumber],
@@ -112,14 +117,14 @@ export function BookingTable({ bookings, onExtend, onEnd, onComplete, onAddFood,
     return loyaltyTiers.find((tier: any) => tier.id === customerLoyalty.currentTierId);
   }, [customerLoyalty, loyaltyTiers]);
 
-  const eligibleTiers = useMemo(() => {
-    if (!customerLoyalty || !loyaltyTiers.length) return [];
-    const totalSpent = parseFloat(customerLoyalty.totalSpent || "0");
-    return loyaltyTiers.filter((tier: any) => {
-      const minSpend = parseFloat(tier.minSpend);
-      return totalSpent >= minSpend && tier.enabled === 1;
+  const eligibleRewards = useMemo(() => {
+    if (!customerLoyalty || !loyaltyRewards.length) return [];
+    const pointsAvailable = parseInt(customerLoyalty.pointsAvailable || "0");
+    return loyaltyRewards.filter((reward: any) => {
+      const cardPointsRequired = parseInt(reward.cardPointsRequired || "0");
+      return reward.enabled === 1 && pointsAvailable >= cardPointsRequired;
     });
-  }, [customerLoyalty, loyaltyTiers]);
+  }, [customerLoyalty, loyaltyRewards]);
 
   const getRewardIcon = (type: string) => {
     switch (type) {
@@ -631,7 +636,7 @@ export function BookingTable({ bookings, onExtend, onEnd, onComplete, onAddFood,
 
               <div className="space-y-2">
                 <h3 className="font-semibold text-sm">Available Rewards</h3>
-                {eligibleTiers.length === 0 ? (
+                {eligibleRewards.length === 0 ? (
                   <Card className="border-dashed">
                     <CardContent className="pt-4">
                       <p className="text-sm text-muted-foreground text-center py-2">
@@ -641,31 +646,30 @@ export function BookingTable({ bookings, onExtend, onEnd, onComplete, onAddFood,
                   </Card>
                 ) : (
                   <div className="space-y-2">
-                    {eligibleTiers.map((tier: any) => (
+                    {eligibleRewards.map((reward: any) => (
                       <Card 
-                        key={tier.id} 
-                        className="border-l-4"
-                        style={{ borderLeftColor: tier.tierColor }}
-                        data-testid={`available-reward-${tier.id}`}
+                        key={reward.id} 
+                        className="border-l-4 border-l-purple-500"
+                        data-testid={`available-reward-${reward.id}`}
                       >
                         <CardContent className="pt-4">
                           <div className="space-y-2">
                             <div className="flex items-center justify-between">
-                              <Badge variant="outline" style={{ borderColor: tier.tierColor, color: tier.tierColor }}>
-                                {tier.tierName}
-                              </Badge>
+                              <span className="font-semibold text-gray-900 dark:text-white">{reward.name}</span>
+                              <Badge className="capitalize" variant="outline">{reward.cardType || 'bronze'}</Badge>
                             </div>
+                            <p className="text-xs text-muted-foreground">
+                              {reward.description}
+                            </p>
                             <div className="flex items-center gap-2">
-                              {getRewardIcon(tier.rewardType)}
+                              {getRewardIcon(reward.rewardType || 'discount')}
                               <span className="font-semibold text-yellow-600 dark:text-yellow-400">
-                                {getRewardLabel(tier.rewardType, tier.rewardValue)}
+                                {reward.rewardType === 'free_hour' ? `${reward.value} hrs` : `₹${reward.value}`}
                               </span>
                             </div>
-                            {tier.description && (
-                              <p className="text-xs text-muted-foreground">
-                                {tier.description}
-                              </p>
-                            )}
+                            <div className="text-xs text-muted-foreground">
+                              Requires {reward.cardPointsRequired || 0} points
+                            </div>
                           </div>
                         </CardContent>
                       </Card>
@@ -673,40 +677,6 @@ export function BookingTable({ bookings, onExtend, onEnd, onComplete, onAddFood,
                   </div>
                 )}
               </div>
-
-              {loyaltyTiers.length > eligibleTiers.length && (
-                <div className="space-y-2">
-                  <h3 className="font-semibold text-sm text-muted-foreground">Locked Rewards</h3>
-                  <div className="space-y-2">
-                    {loyaltyTiers
-                      .filter((tier: any) => !eligibleTiers.find((et: any) => et.id === tier.id))
-                      .map((tier: any) => (
-                        <Card key={tier.id} className="opacity-60 border-dashed" data-testid={`locked-reward-${tier.id}`}>
-                          <CardContent className="pt-4">
-                            <div className="flex items-start justify-between">
-                              <div className="flex-1">
-                                <div className="flex items-center gap-2 mb-1">
-                                  <Badge variant="outline" style={{ borderColor: tier.tierColor }}>
-                                    {tier.tierName}
-                                  </Badge>
-                                </div>
-                                <div className="flex items-center gap-2">
-                                  {getRewardIcon(tier.rewardType)}
-                                  <span className="font-semibold text-sm">
-                                    {getRewardLabel(tier.rewardType, tier.rewardValue)}
-                                  </span>
-                                </div>
-                                <p className="text-xs text-muted-foreground mt-1">
-                                  Need ₹{(parseFloat(tier.minSpend) - parseFloat(customerLoyalty.totalSpent)).toFixed(0)} more to unlock
-                                </p>
-                              </div>
-                            </div>
-                          </CardContent>
-                        </Card>
-                      ))}
-                  </div>
-                </div>
-              )}
             </div>
           ) : (
             <Card>
