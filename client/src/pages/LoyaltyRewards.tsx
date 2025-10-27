@@ -46,7 +46,13 @@ export default function LoyaltyRewards() {
 
   const createRewardMutation = useMutation({
     mutationFn: async (data: typeof rewardForm) => {
-      return await apiRequest("POST", "/api/loyalty-rewards", data);
+      const payload = {
+        ...data,
+        pointCost: 0,
+        category: "general",
+        stock: null,
+      };
+      return await apiRequest("POST", "/api/loyalty-rewards", payload);
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["/api/loyalty-rewards"] });
@@ -67,7 +73,12 @@ export default function LoyaltyRewards() {
 
   const updateRewardMutation = useMutation({
     mutationFn: async ({ id, data }: { id: string; data: Partial<typeof rewardForm> }) => {
-      return await apiRequest("PATCH", `/api/loyalty-rewards/${id}`, data);
+      const payload = {
+        ...data,
+        pointCost: 0,
+        category: "general",
+      };
+      return await apiRequest("PATCH", `/api/loyalty-rewards/${id}`, payload);
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["/api/loyalty-rewards"] });
