@@ -494,12 +494,26 @@ export const insertDeviceMaintenanceSchema = createInsertSchema(deviceMaintenanc
 export type InsertDeviceMaintenance = z.infer<typeof insertDeviceMaintenanceSchema>;
 export type DeviceMaintenance = typeof deviceMaintenance.$inferSelect;
 
+export const pointEarningRules = pgTable("point_earning_rules", {
+  id: varchar("id").primaryKey().$defaultFn(() => crypto.randomUUID()),
+  minSpend: varchar("min_spend").notNull(),
+  maxSpend: varchar("max_spend"),
+  pointsPerRupee: real("points_per_rupee").notNull(),
+  description: text("description"),
+  enabled: integer("enabled").notNull().default(1),
+  createdAt: timestamp("created_at").notNull().defaultNow(),
+  updatedAt: timestamp("updated_at").notNull().defaultNow(),
+});
+
+export const insertPointEarningRuleSchema = createInsertSchema(pointEarningRules).omit({ id: true, createdAt: true, updatedAt: true });
+export type InsertPointEarningRule = z.infer<typeof insertPointEarningRuleSchema>;
+export type PointEarningRule = typeof pointEarningRules.$inferSelect;
+
 export const loyaltyTiers = pgTable("loyalty_tiers", {
   id: varchar("id").primaryKey().$defaultFn(() => crypto.randomUUID()),
   tierName: varchar("tier_name").notNull(),
   tierLevel: integer("tier_level").notNull(),
-  minSpend: varchar("min_spend").notNull(),
-  maxSpend: varchar("max_spend"),
+  pointCost: integer("point_cost").notNull(),
   tierColor: varchar("tier_color").notNull().default("#94a3b8"),
   rewardType: varchar("reward_type").notNull(),
   rewardValue: varchar("reward_value").notNull(),
@@ -511,9 +525,7 @@ export const loyaltyTiers = pgTable("loyalty_tiers", {
 
 export const insertLoyaltyTierSchema = createInsertSchema(loyaltyTiers).omit({ id: true, createdAt: true, updatedAt: true }).extend({
   rewardType: z.enum(["free_hours", "discount", "cashback"]),
-  minSpend: z.string().or(z.number().transform(val => val.toString())),
-  maxSpend: z.string().or(z.number().transform(val => val.toString())).optional().nullable(),
-  rewardValue: z.string().or(z.number().transform(val => val.toString())),
+  pointCost: z.number().min(1, "Point cost must be at least 1"),
 });
 export type InsertLoyaltyTier = z.infer<typeof insertLoyaltyTierSchema>;
 export type LoyaltyTier = typeof loyaltyTiers.$inferSelect;
@@ -523,11 +535,9 @@ export const customerLoyalty = pgTable("customer_loyalty", {
   customerName: varchar("customer_name").notNull(),
   whatsappNumber: varchar("whatsapp_number").notNull().unique(),
   totalSpent: varchar("total_spent").notNull().default("0"),
-  currentTierId: varchar("current_tier_id"),
-  currentTierName: varchar("current_tier_name"),
   pointsEarned: integer("points_earned").notNull().default(0),
   pointsAvailable: integer("points_available").notNull().default(0),
-  rewardsRedeemed: integer("rewards_redeemed").notNull().default(0),
+  tierCardsClaimed: integer("tier_cards_claimed").notNull().default(0),
   lastPurchaseDate: timestamp("last_purchase_date"),
   createdAt: timestamp("created_at").notNull().defaultNow(),
   updatedAt: timestamp("updated_at").notNull().defaultNow(),
@@ -536,6 +546,22 @@ export const customerLoyalty = pgTable("customer_loyalty", {
 export const insertCustomerLoyaltySchema = createInsertSchema(customerLoyalty).omit({ id: true, createdAt: true, updatedAt: true });
 export type InsertCustomerLoyalty = z.infer<typeof insertCustomerLoyaltySchema>;
 export type CustomerLoyalty = typeof customerLoyalty.$inferSelect;
+
+export const tierCardClaims = pgTable("tier_card_claims", {
+  id: varchar("id").primaryKey().$defaultFn(() => crypto.randomUUID()),
+  customerId: varchar("customer_id").notNull(),
+  customerName: varchar("customer_name").notNull(),
+  whatsappNumber: varchar("whatsapp_number").notNull(),
+  tierId: varchar("tier_id").notNull(),
+  tierName: varchar("tier_name").notNull(),
+  pointsUsed: integer("points_used").notNull(),
+  status: varchar("status").notNull().default("active"),
+  claimedAt: timestamp("claimed_at").notNull().defaultNow(),
+});
+
+export const insertTierCardClaimSchema = createInsertSchema(tierCardClaims).omit({ id: true, claimedAt: true });
+export type InsertTierCardClaim = z.infer<typeof insertTierCardClaimSchema>;
+export type TierCardClaim = typeof tierCardClaims.$inferSelect;
 
 export const loyaltyRewards = pgTable("loyalty_rewards", {
   id: varchar("id").primaryKey().$defaultFn(() => crypto.randomUUID()),
