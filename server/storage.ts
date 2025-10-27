@@ -284,6 +284,7 @@ export interface IStorage {
   upsertCustomerLoyalty(data: InsertCustomerLoyalty): Promise<CustomerLoyalty>;
   updateCustomerSpending(whatsappNumber: string, amount: number, earnedPoints: number): Promise<CustomerLoyalty | undefined>;
   awardLoyaltyPoints(whatsappNumber: string, points: number): Promise<CustomerLoyalty | undefined>;
+  redeemPoints(whatsappNumber: string, points: number): Promise<CustomerLoyalty | undefined>;
   
   getAllTierCardClaims(): Promise<TierCardClaim[]>;
   getTierCardClaimsByCustomer(whatsappNumber: string): Promise<TierCardClaim[]>;
@@ -1796,6 +1797,24 @@ export class DatabaseStorage implements IStorage {
       .where(eq(customerLoyalty.whatsappNumber, data.whatsappNumber));
     
     return claim;
+  }
+
+  async redeemPoints(whatsappNumber: string, points: number): Promise<CustomerLoyalty | undefined> {
+    const existing = await this.getCustomerLoyalty(whatsappNumber);
+    if (!existing || existing.pointsAvailable < points) {
+      return undefined;
+    }
+    
+    const [updated] = await db
+      .update(customerLoyalty)
+      .set({ 
+        pointsAvailable: existing.pointsAvailable - points,
+        updatedAt: new Date()
+      })
+      .where(eq(customerLoyalty.whatsappNumber, whatsappNumber))
+      .returning();
+    
+    return updated || undefined;
   }
 
   async getAllLoyaltyRewards(): Promise<LoyaltyReward[]> {
