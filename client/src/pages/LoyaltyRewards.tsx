@@ -24,15 +24,12 @@ export default function LoyaltyRewards() {
     description: "",
     cardType: "bronze",
     rewardType: "discount",
-    pointCost: 100,
-    category: "gaming",
     value: "",
     minSpent: "0",
     maxSpent: "" as string,
     pointsPerValue: 1,
     cardPointsRequired: 0,
     enabled: 1,
-    stock: null as number | null,
   });
 
   const [redemptionDialogOpen, setRedemptionDialogOpen] = useState(false);
@@ -125,15 +122,12 @@ export default function LoyaltyRewards() {
       description: "",
       cardType: "bronze",
       rewardType: "discount",
-      pointCost: 100,
-      category: "gaming",
       value: "",
       minSpent: "0",
       maxSpent: "",
       pointsPerValue: 1,
       cardPointsRequired: 0,
       enabled: 1,
-      stock: null,
     });
     setEditingReward(null);
     setRewardDialogOpen(false);
@@ -151,15 +145,12 @@ export default function LoyaltyRewards() {
       description: reward.description,
       cardType: reward.cardType || "bronze",
       rewardType: reward.rewardType || "discount",
-      pointCost: reward.pointCost,
-      category: reward.category,
       value: reward.value,
       minSpent: reward.minSpent || "0",
       maxSpent: reward.maxSpent || "",
       pointsPerValue: reward.pointsPerValue || 1,
       cardPointsRequired: reward.cardPointsRequired || 0,
       enabled: reward.enabled,
-      stock: reward.stock,
     });
     setRewardDialogOpen(true);
   };
@@ -579,42 +570,6 @@ export default function LoyaltyRewards() {
               <p className="text-xs text-gray-500">Points needed to redeem this card tier reward</p>
             </div>
 
-            <div className="grid grid-cols-2 gap-4">
-              <div className="space-y-2">
-                <Label htmlFor="rewardPointCost">Point Cost to Redeem</Label>
-                <Input
-                  id="rewardPointCost"
-                  type="number"
-                  min="0"
-                  value={rewardForm.pointCost}
-                  onChange={(e) => setRewardForm({ ...rewardForm, pointCost: parseInt(e.target.value) || 0 })}
-                  data-testid="input-reward-point-cost"
-                />
-              </div>
-              <div className="space-y-2">
-                <Label htmlFor="rewardStock">Stock (Optional)</Label>
-                <Input
-                  id="rewardStock"
-                  type="number"
-                  min="0"
-                  value={rewardForm.stock || ""}
-                  onChange={(e) => setRewardForm({ ...rewardForm, stock: e.target.value ? parseInt(e.target.value) : null })}
-                  placeholder="Leave empty for unlimited"
-                  data-testid="input-reward-stock"
-                />
-              </div>
-            </div>
-
-            <div className="space-y-2">
-              <Label htmlFor="rewardCategory">Category</Label>
-              <Input
-                id="rewardCategory"
-                value={rewardForm.category}
-                onChange={(e) => setRewardForm({ ...rewardForm, category: e.target.value })}
-                placeholder="e.g., gaming, food, merchandise"
-                data-testid="input-reward-category"
-              />
-            </div>
 
             <div className="space-y-2">
               <Label htmlFor="rewardEnabled">Status</Label>
