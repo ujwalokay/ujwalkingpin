@@ -31,6 +31,8 @@ export function NotificationCenter() {
   });
 
   const unreadCount = unreadCountData?.count || 0;
+  
+  const visibleNotifications = notifications.filter(n => n.type !== "booking" && n.type !== "payment");
 
   const markAsReadMutation = useMutation({
     mutationFn: async (id: string) =>
@@ -59,9 +61,9 @@ export function NotificationCenter() {
     },
   });
 
-  const filteredNotifications = activeTab === "unread" 
-    ? notifications.filter(n => n.isRead === 0)
-    : notifications;
+  const filteredNotifications = notifications
+    .filter(n => n.type !== "booking" && n.type !== "payment")
+    .filter(n => activeTab === "unread" ? n.isRead === 0 : true);
 
   const groupedNotifications = filteredNotifications.reduce((groups, notification) => {
     const notificationDate = new Date(notification.createdAt);
@@ -147,9 +149,9 @@ export function NotificationCenter() {
             <TabsList className="grid w-full grid-cols-2">
               <TabsTrigger value="all" data-testid="tab-all-notifications">
                 All notifications
-                {notifications.length > 0 && (
+                {visibleNotifications.length > 0 && (
                   <Badge variant="secondary" className="ml-2">
-                    {notifications.length}
+                    {visibleNotifications.length}
                   </Badge>
                 )}
               </TabsTrigger>

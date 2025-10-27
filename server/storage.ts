@@ -1731,7 +1731,7 @@ export class DatabaseStorage implements IStorage {
 
   async getAllNotifications(): Promise<Notification[]> {
     const result = await db.select().from(notifications).orderBy(desc(notifications.createdAt));
-    return result;
+    return result.filter(n => n.type !== "booking" && n.type !== "payment");
   }
 
   async getUnreadNotifications(): Promise<Notification[]> {
@@ -1740,7 +1740,7 @@ export class DatabaseStorage implements IStorage {
       .from(notifications)
       .where(eq(notifications.isRead, 0))
       .orderBy(desc(notifications.createdAt));
-    return result;
+    return result.filter(n => n.type !== "booking" && n.type !== "payment");
   }
 
   async getNotificationById(id: string): Promise<Notification | undefined> {
@@ -1776,7 +1776,7 @@ export class DatabaseStorage implements IStorage {
       .select()
       .from(notifications)
       .where(eq(notifications.isRead, 0));
-    return result.length;
+    return result.filter(n => n.type !== "booking" && n.type !== "payment").length;
   }
 
   async getCustomerPromotionSummary(whatsappNumber: string): Promise<CustomerPromotionSummary> {
