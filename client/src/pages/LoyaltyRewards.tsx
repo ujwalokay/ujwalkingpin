@@ -407,11 +407,9 @@ export default function LoyaltyRewards() {
                             </div>
                             <div className="flex items-center justify-between text-sm">
                               <span className="text-gray-600 dark:text-gray-400">Value:</span>
-                              <span className="font-semibold text-gray-900 dark:text-white">₹{reward.value}</span>
-                            </div>
-                            <div className="flex items-center justify-between text-sm">
-                              <span className="text-gray-600 dark:text-gray-400">Point Cost:</span>
-                              <span className="font-bold text-purple-600">{reward.pointCost} pts</span>
+                              <span className="font-semibold text-gray-900 dark:text-white">
+                                {reward.rewardType === 'free_hour' ? `${reward.value} hrs` : `₹${reward.value}`}
+                              </span>
                             </div>
                             <div className="flex items-center justify-between text-sm">
                               <span className="text-gray-600 dark:text-gray-400">Tier Points:</span>
@@ -506,16 +504,6 @@ export default function LoyaltyRewards() {
                                   <p className="text-lg font-bold text-purple-600">{customer.pointsAvailable}</p>
                                 </div>
                               </div>
-                            </div>
-                            <div className="ml-4">
-                              <Button 
-                                onClick={() => handleRedeemRewards(customer)}
-                                disabled={customer.pointsAvailable === 0 || activeRewardsForRedemption.length === 0}
-                                data-testid={`button-redeem-${customer.whatsappNumber}`}
-                              >
-                                <Gift className="mr-2 h-4 w-4" />
-                                Redeem
-                              </Button>
                             </div>
                           </div>
                         </CardContent>
