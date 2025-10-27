@@ -1,5 +1,7 @@
 import { useState, useMemo } from "react";
-import { useQuery } from "@tanstack/react-query";
+import { useQuery, useMutation } from "@tanstack/react-query";
+import { queryClient, apiRequest } from "@/lib/queryClient";
+import { useToast } from "@/hooks/use-toast";
 import {
   Table,
   TableBody,
@@ -87,8 +89,10 @@ interface BookingTableProps {
 export function BookingTable({ bookings, onExtend, onEnd, onComplete, onAddFood, onStopTimer, onDeleteFood, showDateColumn = false, showTypeColumn = false, selectedBookings, onToggleSelection }: BookingTableProps) {
   const [searchTerm, setSearchTerm] = useState("");
   const { isAdmin, canMakeChanges } = useAuth();
+  const { toast } = useToast();
   const [loyaltyDialog, setLoyaltyDialog] = useState<{open: boolean, whatsappNumber: string, customerName: string}>({open: false, whatsappNumber: "", customerName: ""});
   const [promotionDialog, setPromotionDialog] = useState<{open: boolean, whatsappNumber: string, customerName: string}>({open: false, whatsappNumber: "", customerName: ""});
+  const [selectedRewardId, setSelectedRewardId] = useState<string | null>(null);
 
   // Fetch loyalty tiers
   const { data: loyaltyTiers = [] } = useQuery<any[]>({
@@ -125,6 +129,46 @@ export function BookingTable({ bookings, onExtend, onEnd, onComplete, onAddFood,
       return reward.enabled === 1 && pointsAvailable >= cardPointsRequired;
     });
   }, [customerLoyalty, loyaltyRewards]);
+
+  const redeemRewardMutation = useMutation({
+    mutationFn: async (data: { whatsappNumber: string; rewardId: string }) => {
+      return await apiRequest("POST", "/api/rewards/redeem", data);
+    },
+    onSuccess: (data: any) => {
+      queryClient.invalidateQueries({ queryKey: ["/api/customer-loyalty"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/customer-loyalty/by-phone", loyaltyDialog.whatsappNumber] });
+      queryClient.invalidateQueries({ queryKey: ["/api/loyalty-rewards"] });
+      toast({
+        title: "Reward Redeemed!",
+        description: `Successfully redeemed reward. Remaining points: ${data.remainingPoints}`,
+      });
+      setSelectedRewardId(null);
+      setLoyaltyDialog({open: false, whatsappNumber: "", customerName: ""});
+    },
+    onError: (error: any) => {
+      toast({
+        title: "Redemption Failed",
+        description: error.message || "Failed to redeem reward",
+        variant: "destructive",
+      });
+    },
+  });
+
+  const handleRedeemReward = () => {
+    if (!selectedRewardId || !loyaltyDialog.whatsappNumber) {
+      toast({
+        title: "Error",
+        description: "Please select a reward to redeem",
+        variant: "destructive",
+      });
+      return;
+    }
+    
+    redeemRewardMutation.mutate({
+      whatsappNumber: loyaltyDialog.whatsappNumber,
+      rewardId: selectedRewardId,
+    });
+  };
 
   const getRewardIcon = (type: string) => {
     switch (type) {
@@ -646,34 +690,41 @@ export function BookingTable({ bookings, onExtend, onEnd, onComplete, onAddFood,
                   </Card>
                 ) : (
                   <div className="space-y-2">
-                    {eligibleRewards.map((reward: any) => (
-                      <Card 
-                        key={reward.id} 
-                        className="border-l-4 border-l-purple-500"
-                        data-testid={`available-reward-${reward.id}`}
-                      >
-                        <CardContent className="pt-4">
-                          <div className="space-y-2">
-                            <div className="flex items-center justify-between">
-                              <span className="font-semibold text-gray-900 dark:text-white">{reward.name}</span>
-                              <Badge className="capitalize" variant="outline">{reward.cardType || 'bronze'}</Badge>
+                    {eligibleRewards.map((reward: any) => {
+                      const isSelected = selectedRewardId === reward.id;
+                      return (
+                        <Card 
+                          key={reward.id} 
+                          className={`border-l-4 cursor-pointer transition-all ${isSelected ? 'border-l-green-500 bg-green-50 dark:bg-green-950' : 'border-l-purple-500 hover:bg-gray-50 dark:hover:bg-gray-800'}`}
+                          data-testid={`available-reward-${reward.id}`}
+                          onClick={() => setSelectedRewardId(isSelected ? null : reward.id)}
+                        >
+                          <CardContent className="pt-4">
+                            <div className="space-y-2">
+                              <div className="flex items-center justify-between">
+                                <span className="font-semibold text-gray-900 dark:text-white">{reward.name}</span>
+                                <div className="flex items-center gap-2">
+                                  <Badge className="capitalize" variant="outline">{reward.cardType || 'bronze'}</Badge>
+                                  {isSelected && <CheckSquare className="h-5 w-5 text-green-600" />}
+                                </div>
+                              </div>
+                              <p className="text-xs text-muted-foreground">
+                                {reward.description}
+                              </p>
+                              <div className="flex items-center gap-2">
+                                {getRewardIcon(reward.rewardType || 'discount')}
+                                <span className="font-semibold text-yellow-600 dark:text-yellow-400">
+                                  {reward.rewardType === 'free_hour' ? `${reward.value} hrs` : `₹${reward.value}`}
+                                </span>
+                              </div>
+                              <div className="text-xs text-muted-foreground">
+                                Requires {reward.cardPointsRequired || 0} points
+                              </div>
                             </div>
-                            <p className="text-xs text-muted-foreground">
-                              {reward.description}
-                            </p>
-                            <div className="flex items-center gap-2">
-                              {getRewardIcon(reward.rewardType || 'discount')}
-                              <span className="font-semibold text-yellow-600 dark:text-yellow-400">
-                                {reward.rewardType === 'free_hour' ? `${reward.value} hrs` : `₹${reward.value}`}
-                              </span>
-                            </div>
-                            <div className="text-xs text-muted-foreground">
-                              Requires {reward.cardPointsRequired || 0} points
-                            </div>
-                          </div>
-                        </CardContent>
-                      </Card>
-                    ))}
+                          </CardContent>
+                        </Card>
+                      );
+                    })}
                   </div>
                 )}
               </div>
@@ -691,11 +742,24 @@ export function BookingTable({ bookings, onExtend, onEnd, onComplete, onAddFood,
           <DialogFooter>
             <Button 
               variant="outline" 
-              onClick={() => setLoyaltyDialog({open: false, whatsappNumber: "", customerName: ""})}
+              onClick={() => {
+                setLoyaltyDialog({open: false, whatsappNumber: "", customerName: ""});
+                setSelectedRewardId(null);
+              }}
               data-testid="button-close-loyalty"
             >
               Close
             </Button>
+            {selectedRewardId && (
+              <Button 
+                onClick={handleRedeemReward}
+                disabled={redeemRewardMutation.isPending}
+                data-testid="button-use-selected-reward"
+              >
+                <Gift className="mr-2 h-4 w-4" />
+                {redeemRewardMutation.isPending ? "Redeeming..." : "Use It"}
+              </Button>
+            )}
           </DialogFooter>
         </DialogContent>
       </Dialog>
