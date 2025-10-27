@@ -237,6 +237,12 @@ export async function registerRoutes(app: Express): Promise<Server> {
         const userRole = req.session.role;
         
         if (userId && username && userRole) {
+          const startTime = new Date(created.startTime).toLocaleString('en-IN', { dateStyle: 'medium', timeStyle: 'short' });
+          const endTime = new Date(created.endTime).toLocaleString('en-IN', { dateStyle: 'medium', timeStyle: 'short' });
+          const promoDetails = appliedPromotion.type === 'discount' 
+            ? `saved ₹${appliedPromotion.savingsAmount}, final price ₹${created.price}` 
+            : `added ${appliedPromotion.hoursGiven}h free gaming time`;
+          
           await storage.createActivityLog({
             userId,
             username,
@@ -244,7 +250,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
             action: 'use',
             entityType: appliedPromotion.type === 'discount' ? 'discount_promotion' : 'bonus_hours_promotion',
             entityId: appliedPromotion.id,
-            details: `Applied "${appliedPromotion.description}" promotion to booking for ${created.customerName} at ${created.seatName}`
+            details: `Applied "${appliedPromotion.description}" promotion to booking for ${created.customerName} at ${created.seatName}. Customer ${promoDetails}. Booking: ${startTime} to ${endTime}`
           });
         }
       }
@@ -334,6 +340,12 @@ export async function registerRoutes(app: Express): Promise<Server> {
       
       // Log the deletion activity
       if (userId && username && userRole) {
+        const duration = Math.round((new Date(booking.endTime).getTime() - new Date(booking.startTime).getTime()) / 60000);
+        const durationStr = duration >= 60 ? `${Math.floor(duration/60)}h ${duration%60}m` : `${duration}m`;
+        const foodOrders = booking.foodOrders && booking.foodOrders.length > 0 
+          ? `, ${booking.foodOrders.length} food items ordered`
+          : '';
+        
         await storage.createActivityLog({
           userId,
           username,
@@ -341,7 +353,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
           action: 'delete',
           entityType: 'booking',
           entityId: id,
-          details: `Deleted ${booking.status} booking for ${booking.customerName} at ${booking.seatName}`
+          details: `Deleted ${booking.status} booking: ${booking.customerName} at ${booking.seatName} (${booking.category}). Duration: ${durationStr}, Price: ₹${booking.price}${foodOrders}. Booking was scheduled from ${new Date(booking.startTime).toLocaleString('en-IN', { dateStyle: 'short', timeStyle: 'short' })} to ${new Date(booking.endTime).toLocaleString('en-IN', { dateStyle: 'short', timeStyle: 'short' })}`
         });
       }
       
@@ -641,6 +653,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
       
       // Log the admin activity
       if (req.session.userId && req.session.username && req.session.role) {
+        const seatList = config.seats && config.seats.length > 0 
+          ? `Seats: ${config.seats.join(', ')}` 
+          : `${config.count} seats (auto-numbered)`;
+        
         await storage.createActivityLog({
           userId: req.session.userId,
           username: req.session.username,
@@ -648,7 +664,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
           action: 'update',
           entityType: 'device-config',
           entityId: saved.id,
-          details: `Updated device config for ${config.category} - ${config.count} seats`
+          details: `Updated device configuration for ${config.category}. Total capacity: ${config.count} seats. ${seatList}. Configuration updated at ${new Date().toLocaleString('en-IN', { dateStyle: 'medium', timeStyle: 'short' })}`
         });
       }
       
@@ -679,6 +695,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
       
       // Log the admin activity
       if (req.session.userId && req.session.username && req.session.role) {
+        const priceDetails = configs.map(c => `${c.duration}: ₹${c.price}${c.personCount > 1 ? ` (${c.personCount} persons)` : ''}`).join(', ');
+        
         await storage.createActivityLog({
           userId: req.session.userId,
           username: req.session.username,
@@ -686,7 +704,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
           action: 'update',
           entityType: 'pricing-config',
           entityId: category,
-          details: `Updated pricing config for ${category} - ${configs.length} price tiers`
+          details: `Updated pricing configuration for ${category}. ${configs.length} price tier(s) configured: ${priceDetails}. Last updated: ${new Date().toLocaleString('en-IN', { dateStyle: 'medium', timeStyle: 'short' })}`
         });
       }
       
@@ -737,6 +755,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
       
       // Log the admin activity
       if (req.session.userId && req.session.username && req.session.role) {
+        const timeSlots = configs.map(c => `${c.startTime}-${c.endTime} (${c.enabled ? 'enabled' : 'disabled'})`).join(', ');
+        const activeCount = configs.filter(c => c.enabled).length;
+        
         await storage.createActivityLog({
           userId: req.session.userId,
           username: req.session.username,
@@ -744,7 +765,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
           action: 'update',
           entityType: 'happy-hours-config',
           entityId: category,
-          details: `Updated happy hours config for ${category} - ${configs.length} time slots`
+          details: `Updated happy hours configuration for ${category}. ${configs.length} time slot(s) configured (${activeCount} active): ${timeSlots}. Updated at ${new Date().toLocaleString('en-IN', { dateStyle: 'medium', timeStyle: 'short' })}`
         });
       }
       
@@ -811,6 +832,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
       
       // Log the admin activity
       if (req.session.userId && req.session.username && req.session.role) {
+        const priceDetails = configs.map(c => `${c.duration}: ₹${c.price}${c.personCount > 1 ? ` (${c.personCount}p)` : ''}`).join(', ');
+        
         await storage.createActivityLog({
           userId: req.session.userId,
           username: req.session.username,
@@ -818,7 +841,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
           action: 'update',
           entityType: 'happy-hours-pricing',
           entityId: category,
-          details: `Updated happy hours pricing for ${category} - ${configs.length} price tiers`
+          details: `Updated happy hours pricing for ${category}. ${configs.length} price tier(s): ${priceDetails}. Special pricing configured at ${new Date().toLocaleString('en-IN', { dateStyle: 'medium', timeStyle: 'short' })}`
         });
       }
       
@@ -853,6 +876,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const created = await storage.createDiscountPromotion(promotion);
       
       if (req.session.userId && req.session.username && req.session.role) {
+        const startDate = new Date(promotion.startDate).toLocaleDateString('en-IN', { dateStyle: 'medium' });
+        const endDate = new Date(promotion.endDate).toLocaleDateString('en-IN', { dateStyle: 'medium' });
+        const personInfo = (promotion.personCount && promotion.personCount > 1) ? ` for ${promotion.personCount} persons` : '';
+        
         await storage.createActivityLog({
           userId: req.session.userId,
           username: req.session.username,
@@ -860,7 +887,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
           action: 'create',
           entityType: 'discount-promotion',
           entityId: created.id,
-          details: `Created ${promotion.discountPercentage}% discount for ${promotion.category} - ${promotion.duration}`
+          details: `Created discount promotion: ${promotion.discountPercentage}% off ${promotion.category} - ${promotion.duration}${personInfo}. Valid from ${startDate} to ${endDate}. Status: ${promotion.enabled ? 'Enabled' : 'Disabled'}`
         });
       }
       
@@ -879,6 +906,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
       }
       
       if (req.session.userId && req.session.username && req.session.role) {
+        const startDate = new Date(updated.startDate).toLocaleDateString('en-IN', { dateStyle: 'medium' });
+        const endDate = new Date(updated.endDate).toLocaleDateString('en-IN', { dateStyle: 'medium' });
+        
         await storage.createActivityLog({
           userId: req.session.userId,
           username: req.session.username,
@@ -886,7 +916,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
           action: 'update',
           entityType: 'discount-promotion',
           entityId: id,
-          details: `Updated discount promotion: ${updated.category} - ${updated.duration}`
+          details: `Updated discount promotion: ${updated.discountPercentage}% off ${updated.category} - ${updated.duration}. Valid ${startDate} to ${endDate}. Status: ${updated.enabled ? 'Enabled' : 'Disabled'}. Used ${updated.usageCount} times, total savings: ₹${updated.totalSavings}`
         });
       }
       
@@ -913,7 +943,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
           action: 'delete',
           entityType: 'discount-promotion',
           entityId: id,
-          details: `Deleted discount promotion: ${promotion.category} - ${promotion.duration}`
+          details: `Deleted discount promotion: ${promotion.discountPercentage}% off ${promotion.category} - ${promotion.duration}. This promotion was used ${promotion.usageCount} times and saved customers a total of ₹${promotion.totalSavings}. Deleted at ${new Date().toLocaleString('en-IN', { dateStyle: 'medium', timeStyle: 'short' })}`
         });
       }
       
@@ -938,6 +968,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const created = await storage.createBonusHoursPromotion(promotion);
       
       if (req.session.userId && req.session.username && req.session.role) {
+        const startDate = new Date(promotion.startDate).toLocaleDateString('en-IN', { dateStyle: 'medium' });
+        const endDate = new Date(promotion.endDate).toLocaleDateString('en-IN', { dateStyle: 'medium' });
+        const personInfo = (promotion.personCount && promotion.personCount > 1) ? ` for ${promotion.personCount} persons` : '';
+        
         await storage.createActivityLog({
           userId: req.session.userId,
           username: req.session.username,
@@ -945,7 +979,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
           action: 'create',
           entityType: 'bonus-hours-promotion',
           entityId: created.id,
-          details: `Created ${promotion.bonusHours} bonus hours for ${promotion.category} - ${promotion.duration}`
+          details: `Created bonus hours promotion: +${promotion.bonusHours}h free for ${promotion.category} - ${promotion.duration}${personInfo}. Valid from ${startDate} to ${endDate}. Status: ${promotion.enabled ? 'Enabled' : 'Disabled'}`
         });
       }
       
@@ -964,6 +998,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
       }
       
       if (req.session.userId && req.session.username && req.session.role) {
+        const startDate = new Date(updated.startDate).toLocaleDateString('en-IN', { dateStyle: 'medium' });
+        const endDate = new Date(updated.endDate).toLocaleDateString('en-IN', { dateStyle: 'medium' });
+        
         await storage.createActivityLog({
           userId: req.session.userId,
           username: req.session.username,
@@ -971,7 +1008,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
           action: 'update',
           entityType: 'bonus-hours-promotion',
           entityId: id,
-          details: `Updated bonus hours promotion: ${updated.category} - ${updated.duration}`
+          details: `Updated bonus hours promotion: +${updated.bonusHours}h free for ${updated.category} - ${updated.duration}. Valid ${startDate} to ${endDate}. Status: ${updated.enabled ? 'Enabled' : 'Disabled'}. Used ${updated.usageCount} times, total ${updated.totalHoursGiven}h given`
         });
       }
       
@@ -998,7 +1035,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
           action: 'delete',
           entityType: 'bonus-hours-promotion',
           entityId: id,
-          details: `Deleted bonus hours promotion: ${promotion.category} - ${promotion.duration}`
+          details: `Deleted bonus hours promotion: +${promotion.bonusHours}h free for ${promotion.category} - ${promotion.duration}. This promotion was used ${promotion.usageCount} times and gave ${promotion.totalHoursGiven}h of free gaming. Deleted at ${new Date().toLocaleString('en-IN', { dateStyle: 'medium', timeStyle: 'short' })}`
         });
       }
       
@@ -1171,6 +1208,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
       
       // Log the admin activity
       if (req.session.userId && req.session.username && req.session.role) {
+        const categoryInfo = item.category === 'trackable' ? 'trackable inventory' : 'non-trackable';
+        const stockInfo = item.category === 'trackable' ? `, initial stock: ${item.currentStock || 0}, min level: ${item.minStockLevel || 10}` : '';
+        const supplierInfo = item.supplier ? `, supplier: ${item.supplier}` : '';
+        
         await storage.createActivityLog({
           userId: req.session.userId,
           username: req.session.username,
@@ -1178,7 +1219,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
           action: 'create',
           entityType: 'food-item',
           entityId: created.id,
-          details: `Created food item: ${item.name} - ₹${item.price}`
+          details: `Created new food item: ${item.name} (${categoryInfo}) - Sell price: ₹${item.price}${item.costPrice ? `, cost: ₹${item.costPrice}` : ''}${stockInfo}${supplierInfo}. Added at ${new Date().toLocaleString('en-IN', { dateStyle: 'medium', timeStyle: 'short' })}`
         });
       }
       
@@ -1199,6 +1240,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
       
       // Log the admin activity
       if (req.session.userId && req.session.username && req.session.role) {
+        const stockInfo = item.category === 'trackable' ? `, stock: ${item.currentStock || 0}/${item.minStockLevel || 10} (current/min)` : '';
+        
         await storage.createActivityLog({
           userId: req.session.userId,
           username: req.session.username,
@@ -1206,7 +1249,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
           action: 'update',
           entityType: 'food-item',
           entityId: id,
-          details: `Updated food item: ${item.name} - ₹${item.price}`
+          details: `Updated food item: ${item.name} - Price: ₹${item.price}${item.costPrice ? `, cost: ₹${item.costPrice}` : ''}${stockInfo}. Category: ${item.category}. Updated at ${new Date().toLocaleString('en-IN', { dateStyle: 'medium', timeStyle: 'short' })}`
         });
       }
       
@@ -1229,6 +1272,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
       
       // Log the admin activity
       if (req.session.userId && req.session.username && req.session.role && foodItem) {
+        const stockInfo = foodItem.category === 'trackable' ? `, had ${foodItem.currentStock} units in stock` : '';
+        
         await storage.createActivityLog({
           userId: req.session.userId,
           username: req.session.username,
@@ -1236,7 +1281,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
           action: 'delete',
           entityType: 'food-item',
           entityId: id,
-          details: `Deleted food item: ${foodItem.name}`
+          details: `Deleted food item: ${foodItem.name} (₹${foodItem.price})${stockInfo}. Item was in ${foodItem.inInventory ? 'active inventory' : 'catalog only'}. Deleted at ${new Date().toLocaleString('en-IN', { dateStyle: 'medium', timeStyle: 'short' })}`
         });
       }
       
@@ -1259,6 +1304,12 @@ export async function registerRoutes(app: Express): Promise<Server> {
       
       // Log the activity
       if (req.session.userId && req.session.username && req.session.role) {
+        const oldStock = type === 'add' ? updated.currentStock - quantity : updated.currentStock + quantity;
+        const stockStatus = updated.currentStock <= updated.minStockLevel ? ' (⚠️ LOW STOCK)' : '';
+        const supplierInfo = supplier ? `, supplier: ${supplier}` : '';
+        const expiryInfo = expiryDate ? `, expires: ${new Date(expiryDate).toLocaleDateString('en-IN')}` : '';
+        const notesInfo = notes ? `, notes: ${notes}` : '';
+        
         await storage.createActivityLog({
           userId: req.session.userId,
           username: req.session.username,
@@ -1266,7 +1317,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
           action: 'update',
           entityType: 'food-inventory',
           entityId: id,
-          details: `${type === 'add' ? 'Added' : 'Removed'} ${quantity} ${updated.name} from stock. New stock: ${updated.currentStock}`
+          details: `${type === 'add' ? 'Added' : 'Removed'} ${quantity} units of ${updated.name}. Stock: ${oldStock} → ${updated.currentStock} (min: ${updated.minStockLevel})${stockStatus}${supplierInfo}${expiryInfo}${notesInfo}. Updated at ${new Date().toLocaleString('en-IN', { dateStyle: 'medium', timeStyle: 'short' })}`
         });
       }
       
@@ -1324,7 +1375,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
           action: 'update',
           entityType: 'food-inventory',
           entityId: id,
-          details: `Added ${updated.name} to inventory`
+          details: `Added ${updated.name} to active inventory. Price: ₹${updated.price}, current stock: ${updated.currentStock} units (min level: ${updated.minStockLevel}). Now available for ordering at ${new Date().toLocaleString('en-IN', { dateStyle: 'medium', timeStyle: 'short' })}`
         });
       }
       
@@ -1350,7 +1401,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
           action: 'update',
           entityType: 'food-inventory',
           entityId: id,
-          details: `Removed ${updated.name} from inventory`
+          details: `Removed ${updated.name} from active inventory. Item moved back to catalog (${updated.currentStock} units remaining in stock). No longer available for ordering. Removed at ${new Date().toLocaleString('en-IN', { dateStyle: 'medium', timeStyle: 'short' })}`
         });
       }
       
