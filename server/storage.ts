@@ -44,18 +44,12 @@ import {
   type InsertRetentionConfig,
   type DeviceMaintenance,
   type InsertDeviceMaintenance,
-  type LoyaltyTier,
-  type InsertLoyaltyTier,
   type CustomerLoyalty,
   type InsertCustomerLoyalty,
   type LoyaltyReward,
   type InsertLoyaltyReward,
   type RewardRedemption,
   type InsertRewardRedemption,
-  type PointEarningRule,
-  type InsertPointEarningRule,
-  type TierCardClaim,
-  type InsertTierCardClaim,
   bookings,
   deviceConfigs,
   pricingConfigs,
@@ -78,12 +72,9 @@ import {
   loadPredictions,
   retentionConfig,
   deviceMaintenance,
-  loyaltyTiers,
   customerLoyalty,
   loyaltyRewards,
-  rewardRedemptions,
-  pointEarningRules,
-  tierCardClaims
+  rewardRedemptions
 } from "@shared/schema";
 import { db } from "./db";
 import { eq, and, gte, lte, lt, desc, inArray, isNotNull } from "drizzle-orm";
@@ -264,20 +255,6 @@ export interface IStorage {
   upsertDeviceMaintenance(data: InsertDeviceMaintenance): Promise<DeviceMaintenance>;
   updateDeviceMaintenanceStatus(category: string, seatName: string, status: string, notes?: string): Promise<DeviceMaintenance | undefined>;
   
-  getAllPointEarningRules(): Promise<PointEarningRule[]>;
-  getPointEarningRule(id: string): Promise<PointEarningRule | undefined>;
-  createPointEarningRule(rule: InsertPointEarningRule): Promise<PointEarningRule>;
-  updatePointEarningRule(id: string, data: Partial<InsertPointEarningRule>): Promise<PointEarningRule | undefined>;
-  deletePointEarningRule(id: string): Promise<boolean>;
-  calculatePointsForSpending(amount: number): Promise<number>;
-  
-  getAllLoyaltyTiers(): Promise<LoyaltyTier[]>;
-  getLoyaltyTier(id: string): Promise<LoyaltyTier | undefined>;
-  getActiveLoyaltyTiers(): Promise<LoyaltyTier[]>;
-  createLoyaltyTier(tier: InsertLoyaltyTier): Promise<LoyaltyTier>;
-  updateLoyaltyTier(id: string, data: Partial<InsertLoyaltyTier>): Promise<LoyaltyTier | undefined>;
-  deleteLoyaltyTier(id: string): Promise<boolean>;
-  
   getAllCustomerLoyalty(): Promise<CustomerLoyalty[]>;
   getCustomerLoyalty(whatsappNumber: string): Promise<CustomerLoyalty | undefined>;
   getCustomerLoyaltyById(id: string): Promise<CustomerLoyalty | undefined>;
@@ -285,10 +262,6 @@ export interface IStorage {
   updateCustomerSpending(whatsappNumber: string, amount: number, earnedPoints: number): Promise<CustomerLoyalty | undefined>;
   awardLoyaltyPoints(whatsappNumber: string, points: number): Promise<CustomerLoyalty | undefined>;
   redeemPoints(whatsappNumber: string, points: number): Promise<CustomerLoyalty | undefined>;
-  
-  getAllTierCardClaims(): Promise<TierCardClaim[]>;
-  getTierCardClaimsByCustomer(whatsappNumber: string): Promise<TierCardClaim[]>;
-  claimTierCard(data: InsertTierCardClaim): Promise<TierCardClaim>;
   
   getAllLoyaltyRewards(): Promise<LoyaltyReward[]>;
   getLoyaltyReward(id: string): Promise<LoyaltyReward | undefined>;
@@ -321,7 +294,6 @@ export class DatabaseStorage implements IStorage {
     // Check if defaults already exist
     const existingDevices = await db.select().from(deviceConfigs);
     const existingUsers = await db.select().from(users);
-    const existingTiers = await db.select().from(loyaltyTiers);
     
     // Initialize default device configs if not exist
     if (existingDevices.length === 0) {
@@ -360,34 +332,6 @@ export class DatabaseStorage implements IStorage {
         { name: "Coffee", price: "3" },
         { name: "Energy Drink", price: "4" },
         { name: "Nachos", price: "5" },
-      ]);
-    }
-
-    // Initialize default point earning rules
-    const existingRules = await db.select().from(pointEarningRules);
-    if (existingRules.length === 0) {
-      await db.insert(pointEarningRules).values([
-        {
-          minSpend: "0",
-          maxSpend: "499",
-          pointsPerRupee: 0.002,
-          description: "Spend ₹0-499: Earn 2 points per ₹1000 spent",
-          enabled: 1,
-        },
-        {
-          minSpend: "500",
-          maxSpend: "999",
-          pointsPerRupee: 0.003,
-          description: "Spend ₹500-999: Earn 3 points per ₹1000 spent",
-          enabled: 1,
-        },
-        {
-          minSpend: "1000",
-          maxSpend: null,
-          pointsPerRupee: 0.005,
-          description: "Spend ₹1000+: Earn 5 points per ₹1000 spent",
-          enabled: 1,
-        },
       ]);
     }
 
@@ -1607,89 +1551,6 @@ export class DatabaseStorage implements IStorage {
     }
   }
 
-  async getAllPointEarningRules(): Promise<PointEarningRule[]> {
-    return await db.select().from(pointEarningRules).orderBy(pointEarningRules.minSpend);
-  }
-
-  async getPointEarningRule(id: string): Promise<PointEarningRule | undefined> {
-    const [rule] = await db.select().from(pointEarningRules).where(eq(pointEarningRules.id, id));
-    return rule || undefined;
-  }
-
-  async createPointEarningRule(rule: InsertPointEarningRule): Promise<PointEarningRule> {
-    const [newRule] = await db.insert(pointEarningRules).values(rule).returning();
-    return newRule;
-  }
-
-  async updatePointEarningRule(id: string, data: Partial<InsertPointEarningRule>): Promise<PointEarningRule | undefined> {
-    const [updated] = await db
-      .update(pointEarningRules)
-      .set({ ...data, updatedAt: new Date() })
-      .where(eq(pointEarningRules.id, id))
-      .returning();
-    return updated || undefined;
-  }
-
-  async deletePointEarningRule(id: string): Promise<boolean> {
-    const result = await db.delete(pointEarningRules).where(eq(pointEarningRules.id, id));
-    return result.rowCount ? result.rowCount > 0 : false;
-  }
-
-  async calculatePointsForSpending(amount: number): Promise<number> {
-    const rules = await db
-      .select()
-      .from(pointEarningRules)
-      .where(eq(pointEarningRules.enabled, 1))
-      .orderBy(pointEarningRules.minSpend);
-    
-    for (const rule of rules) {
-      const minSpend = parseFloat(rule.minSpend);
-      const maxSpend = rule.maxSpend ? parseFloat(rule.maxSpend) : Infinity;
-      
-      if (amount >= minSpend && amount <= maxSpend) {
-        return Math.floor(amount * rule.pointsPerRupee);
-      }
-    }
-    
-    return 0;
-  }
-
-  async getAllLoyaltyTiers(): Promise<LoyaltyTier[]> {
-    return await db.select().from(loyaltyTiers).orderBy(loyaltyTiers.tierLevel);
-  }
-
-  async getActiveLoyaltyTiers(): Promise<LoyaltyTier[]> {
-    return await db
-      .select()
-      .from(loyaltyTiers)
-      .where(eq(loyaltyTiers.enabled, 1))
-      .orderBy(loyaltyTiers.tierLevel);
-  }
-
-  async getLoyaltyTier(id: string): Promise<LoyaltyTier | undefined> {
-    const [tier] = await db.select().from(loyaltyTiers).where(eq(loyaltyTiers.id, id));
-    return tier || undefined;
-  }
-
-  async createLoyaltyTier(tier: InsertLoyaltyTier): Promise<LoyaltyTier> {
-    const [newTier] = await db.insert(loyaltyTiers).values(tier).returning();
-    return newTier;
-  }
-
-  async updateLoyaltyTier(id: string, data: Partial<InsertLoyaltyTier>): Promise<LoyaltyTier | undefined> {
-    const [updated] = await db
-      .update(loyaltyTiers)
-      .set({ ...data, updatedAt: new Date() })
-      .where(eq(loyaltyTiers.id, id))
-      .returning();
-    return updated || undefined;
-  }
-
-  async deleteLoyaltyTier(id: string): Promise<boolean> {
-    const result = await db.delete(loyaltyTiers).where(eq(loyaltyTiers.id, id));
-    return result.rowCount ? result.rowCount > 0 : false;
-  }
-
   async getAllCustomerLoyalty(): Promise<CustomerLoyalty[]> {
     return await db.select().from(customerLoyalty).orderBy(desc(customerLoyalty.totalSpent));
   }
@@ -1764,39 +1625,6 @@ export class DatabaseStorage implements IStorage {
       .returning();
     
     return updated || undefined;
-  }
-
-  async getAllTierCardClaims(): Promise<TierCardClaim[]> {
-    return await db.select().from(tierCardClaims).orderBy(desc(tierCardClaims.claimedAt));
-  }
-
-  async getTierCardClaimsByCustomer(whatsappNumber: string): Promise<TierCardClaim[]> {
-    return await db
-      .select()
-      .from(tierCardClaims)
-      .where(eq(tierCardClaims.whatsappNumber, whatsappNumber))
-      .orderBy(desc(tierCardClaims.claimedAt));
-  }
-
-  async claimTierCard(data: InsertTierCardClaim): Promise<TierCardClaim> {
-    const customer = await this.getCustomerLoyalty(data.whatsappNumber);
-    
-    if (!customer || customer.pointsAvailable < data.pointsUsed) {
-      throw new Error("Insufficient points");
-    }
-    
-    const [claim] = await db.insert(tierCardClaims).values(data).returning();
-    
-    await db
-      .update(customerLoyalty)
-      .set({ 
-        pointsAvailable: customer.pointsAvailable - data.pointsUsed,
-        tierCardsClaimed: customer.tierCardsClaimed + 1,
-        updatedAt: new Date()
-      })
-      .where(eq(customerLoyalty.whatsappNumber, data.whatsappNumber));
-    
-    return claim;
   }
 
   async redeemPoints(whatsappNumber: string, points: number): Promise<CustomerLoyalty | undefined> {

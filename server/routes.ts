@@ -23,10 +23,7 @@ import {
   insertGalleryImageSchema,
   insertFacilitySchema,
   insertGameSchema,
-  insertLoyaltyTierSchema,
-  insertCustomerLoyaltySchema,
-  insertPointEarningRuleSchema,
-  insertTierCardClaimSchema
+  insertCustomerLoyaltySchema
 } from "@shared/schema";
 import { z } from "zod";
 
@@ -328,7 +325,6 @@ export async function registerRoutes(app: Express): Promise<Server> {
                 totalSpent: "0",
                 pointsEarned: 0,
                 pointsAvailable: 0,
-                tierCardsClaimed: 0,
               });
             }
             
@@ -339,9 +335,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
             }, 0);
             const totalAmount = bookingPrice + foodTotal;
             
-            // Update customer spending and loyalty points
+            // Update customer spending and loyalty points (1 point per ₹1 spent)
             if (totalAmount > 0) {
-              const earnedPoints = await storage.calculatePointsForSpending(totalAmount);
+              const earnedPoints = Math.floor(totalAmount);
               await storage.updateCustomerSpending(updated.whatsappNumber, totalAmount, earnedPoints);
             }
           } catch (error) {
@@ -1084,91 +1080,6 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  app.get("/api/loyalty-tiers", requireAuth, async (req, res) => {
-    try {
-      const tiers = await storage.getAllLoyaltyTiers();
-      res.json(tiers);
-    } catch (error: any) {
-      res.status(500).json({ message: error.message });
-    }
-  });
-
-  app.post("/api/loyalty-tiers", requireAdmin, async (req, res) => {
-    try {
-      const tier = insertLoyaltyTierSchema.parse(req.body);
-      const created = await storage.createLoyaltyTier(tier);
-      
-      if (req.session.userId && req.session.username && req.session.role) {
-        await storage.createActivityLog({
-          userId: req.session.userId,
-          username: req.session.username,
-          userRole: req.session.role,
-          action: 'create',
-          entityType: 'loyalty-tier',
-          entityId: created.id,
-          details: `Created loyalty tier: ${tier.tierName} (Point Cost: ${tier.pointCost})`
-        });
-      }
-      
-      res.json(created);
-    } catch (error: any) {
-      res.status(400).json({ message: error.message });
-    }
-  });
-
-  app.patch("/api/loyalty-tiers/:id", requireAdmin, async (req, res) => {
-    try {
-      const { id } = req.params;
-      const updated = await storage.updateLoyaltyTier(id, req.body);
-      if (!updated) {
-        return res.status(404).json({ message: "Loyalty tier not found" });
-      }
-      
-      if (req.session.userId && req.session.username && req.session.role) {
-        await storage.createActivityLog({
-          userId: req.session.userId,
-          username: req.session.username,
-          userRole: req.session.role,
-          action: 'update',
-          entityType: 'loyalty-tier',
-          entityId: id,
-          details: `Updated loyalty tier: ${updated.tierName}`
-        });
-      }
-      
-      res.json(updated);
-    } catch (error: any) {
-      res.status(400).json({ message: error.message });
-    }
-  });
-
-  app.delete("/api/loyalty-tiers/:id", requireAdmin, async (req, res) => {
-    try {
-      const { id } = req.params;
-      const tier = await storage.getLoyaltyTier(id);
-      const success = await storage.deleteLoyaltyTier(id);
-      if (!success) {
-        return res.status(404).json({ message: "Loyalty tier not found" });
-      }
-      
-      if (tier && req.session.userId && req.session.username && req.session.role) {
-        await storage.createActivityLog({
-          userId: req.session.userId,
-          username: req.session.username,
-          userRole: req.session.role,
-          action: 'delete',
-          entityType: 'loyalty-tier',
-          entityId: id,
-          details: `Deleted loyalty tier: ${tier.tierName}`
-        });
-      }
-      
-      res.json({ success: true });
-    } catch (error: any) {
-      res.status(500).json({ message: error.message });
-    }
-  });
-
   app.get("/api/customer-loyalty", requireAuth, async (req, res) => {
     try {
       const customers = await storage.getAllCustomerLoyalty();
@@ -1208,132 +1119,6 @@ export async function registerRoutes(app: Express): Promise<Server> {
       res.json(customer || null);
     } catch (error: any) {
       res.status(500).json({ message: error.message });
-    }
-  });
-
-  app.get("/api/point-earning-rules", requireAuth, async (req, res) => {
-    try {
-      const rules = await storage.getAllPointEarningRules();
-      res.json(rules);
-    } catch (error: any) {
-      res.status(500).json({ message: error.message });
-    }
-  });
-
-  app.post("/api/point-earning-rules", requireAdmin, async (req, res) => {
-    try {
-      const rule = insertPointEarningRuleSchema.parse(req.body);
-      const created = await storage.createPointEarningRule(rule);
-      
-      if (req.session.userId && req.session.username && req.session.role) {
-        await storage.createActivityLog({
-          userId: req.session.userId,
-          username: req.session.username,
-          userRole: req.session.role,
-          action: 'create',
-          entityType: 'point-earning-rule',
-          entityId: created.id,
-          details: `Created point earning rule: ₹${rule.minSpend}-${rule.maxSpend || '∞'} = ${rule.pointsPerRupee} points per rupee`
-        });
-      }
-      
-      res.json(created);
-    } catch (error: any) {
-      res.status(400).json({ message: error.message });
-    }
-  });
-
-  app.patch("/api/point-earning-rules/:id", requireAdmin, async (req, res) => {
-    try {
-      const { id } = req.params;
-      const updated = await storage.updatePointEarningRule(id, req.body);
-      if (!updated) {
-        return res.status(404).json({ message: "Point earning rule not found" });
-      }
-      
-      if (req.session.userId && req.session.username && req.session.role) {
-        await storage.createActivityLog({
-          userId: req.session.userId,
-          username: req.session.username,
-          userRole: req.session.role,
-          action: 'update',
-          entityType: 'point-earning-rule',
-          entityId: id,
-          details: `Updated point earning rule`
-        });
-      }
-      
-      res.json(updated);
-    } catch (error: any) {
-      res.status(400).json({ message: error.message });
-    }
-  });
-
-  app.delete("/api/point-earning-rules/:id", requireAdmin, async (req, res) => {
-    try {
-      const { id } = req.params;
-      const success = await storage.deletePointEarningRule(id);
-      if (!success) {
-        return res.status(404).json({ message: "Point earning rule not found" });
-      }
-      
-      if (req.session.userId && req.session.username && req.session.role) {
-        await storage.createActivityLog({
-          userId: req.session.userId,
-          username: req.session.username,
-          userRole: req.session.role,
-          action: 'delete',
-          entityType: 'point-earning-rule',
-          entityId: id,
-          details: `Deleted point earning rule`
-        });
-      }
-      
-      res.json({ success: true });
-    } catch (error: any) {
-      res.status(500).json({ message: error.message });
-    }
-  });
-
-  app.get("/api/tier-card-claims", requireAuth, async (req, res) => {
-    try {
-      const claims = await storage.getAllTierCardClaims();
-      res.json(claims);
-    } catch (error: any) {
-      res.status(500).json({ message: error.message });
-    }
-  });
-
-  app.get("/api/tier-card-claims/:whatsappNumber", requireAuth, async (req, res) => {
-    try {
-      const { whatsappNumber } = req.params;
-      const claims = await storage.getTierCardClaimsByCustomer(whatsappNumber);
-      res.json(claims);
-    } catch (error: any) {
-      res.status(500).json({ message: error.message });
-    }
-  });
-
-  app.post("/api/tier-card-claims", requireAuth, async (req, res) => {
-    try {
-      const data = insertTierCardClaimSchema.parse(req.body);
-      const claim = await storage.claimTierCard(data);
-      
-      if (req.session.userId && req.session.username && req.session.role) {
-        await storage.createActivityLog({
-          userId: req.session.userId,
-          username: req.session.username,
-          userRole: req.session.role,
-          action: 'create',
-          entityType: 'tier-card-claim',
-          entityId: claim.id,
-          details: `${data.customerName} claimed ${data.tierName} tier card (${data.pointsUsed} points)`
-        });
-      }
-      
-      res.json(claim);
-    } catch (error: any) {
-      res.status(400).json({ message: error.message });
     }
   });
 
