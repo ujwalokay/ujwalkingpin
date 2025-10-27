@@ -2160,6 +2160,58 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  app.get("/api/loyalty-settings", requireAuth, async (req, res) => {
+    try {
+      const settings = await storage.getLoyaltySettings();
+      
+      if (!settings) {
+        const defaultSettings = {
+          pointsPerVisit: 10,
+          spendingRanges: JSON.stringify([
+            { minSpent: 0, maxSpent: 100, points: 5 },
+            { minSpent: 101, maxSpent: 300, points: 15 },
+            { minSpent: 301, maxSpent: 500, points: 30 },
+            { minSpent: 501, maxSpent: null, points: 50 }
+          ])
+        };
+        const created = await storage.updateLoyaltySettings(defaultSettings);
+        return res.json(created);
+      }
+      
+      res.json(settings);
+    } catch (error: any) {
+      res.status(500).json({ message: error.message });
+    }
+  });
+
+  app.patch("/api/loyalty-settings", requireAdmin, async (req, res) => {
+    try {
+      const settingsSchema = z.object({
+        pointsPerVisit: z.number().min(0).optional(),
+        spendingRanges: z.string().optional(),
+      });
+
+      const data = settingsSchema.parse(req.body);
+      const updated = await storage.updateLoyaltySettings(data);
+
+      if (req.session.userId && req.session.username && req.session.role) {
+        await storage.createActivityLog({
+          userId: req.session.userId,
+          username: req.session.username,
+          userRole: req.session.role,
+          action: 'update',
+          entityType: 'loyalty-settings',
+          entityId: updated.id,
+          details: `Updated loyalty settings: ${data.pointsPerVisit || 'N/A'} points per visit`
+        });
+      }
+
+      res.json(updated);
+    } catch (error: any) {
+      res.status(400).json({ message: error.message });
+    }
+  });
+
   const httpServer = createServer(app);
 
   return httpServer;
