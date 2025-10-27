@@ -99,6 +99,14 @@ Preferred communication style: Simple, everyday language.
   - Automatic notification triggers via dedicated notification service module
   - Emoji icons for different notification types (📅 bookings, 💰 payments, 📦 inventory, 📝 activity, 💳 expenses, ⚠️ alerts)
 - **Categorized Sidebar**: Reorganized navigation sidebar with four categories (Main Menu, Operations, Management, Tools) and count badges showing pending items (e.g., low stock count).
+- **Enhanced Activity Logs**: Comprehensive, detailed activity logging across all operations with rich contextual information:
+  - Booking logs: Include price, duration (hours/minutes), time ranges, food orders count, and payment method
+  - Device config logs: Show total capacity, seat lists (auto-numbered or custom), and configuration timestamps
+  - Pricing config logs: Display all price tiers with durations and person counts, formatted for easy reading
+  - Happy hours logs: Include time slots with enabled/disabled status and active slot counts
+  - Promotion logs: Show percentages/hours, validity date ranges, person counts, usage statistics (times used, total savings/hours given), and enabled status
+  - Food inventory logs: Display before/after stock levels, supplier info, expiry dates, low stock warnings, and batch tracking notes
+  - All logs formatted with Indian locale timestamps (en-IN) and currency (₹) for consistency
 
 ## External Dependencies
 
