@@ -1618,8 +1618,10 @@ export class DatabaseStorage implements IStorage {
       return undefined;
     }
     
-    const newTotalSpent = (parseFloat(existing.totalSpent) + amount).toFixed(2);
-    const tier = await this.getTierForSpending(parseFloat(newTotalSpent));
+    const previousTotal = parseFloat(existing.totalSpent);
+    const newTotalSpent = (previousTotal + amount).toFixed(2);
+    const newTotal = parseFloat(newTotalSpent);
+    const tier = await this.getTierForSpending(newTotal);
     
     const updateData: any = {
       totalSpent: newTotalSpent,
@@ -1630,16 +1632,26 @@ export class DatabaseStorage implements IStorage {
     // Minimum spending threshold for earning loyalty points is ₹499
     const MINIMUM_SPENDING_THRESHOLD = 499;
     
-    if (tier && parseFloat(newTotalSpent) >= MINIMUM_SPENDING_THRESHOLD) {
-      // Customer has reached the minimum spending threshold, earn points
-      updateData.currentTierId = tier.id;
-      updateData.currentTierName = tier.tierName;
-      updateData.pointsEarned = existing.pointsEarned + Math.floor(amount);
-    } else if (tier) {
-      // Update tier info but don't add points if below threshold
-      updateData.currentTierId = tier.id;
-      updateData.currentTierName = tier.tierName;
-      // Keep existing points, don't add new ones
+    if (newTotal >= MINIMUM_SPENDING_THRESHOLD) {
+      // Customer has reached or exceeded the threshold
+      if (tier) {
+        updateData.currentTierId = tier.id;
+        updateData.currentTierName = tier.tierName;
+      }
+      
+      // If customer just crossed the threshold, give points on ALL lifetime spending
+      if (previousTotal < MINIMUM_SPENDING_THRESHOLD) {
+        updateData.pointsEarned = Math.floor(newTotal);
+      } else {
+        // Already qualified, just add points for current transaction
+        updateData.pointsEarned = existing.pointsEarned + Math.floor(amount);
+      }
+    } else {
+      // Below threshold - update tier if exists but no points
+      if (tier) {
+        updateData.currentTierId = tier.id;
+        updateData.currentTierName = tier.tierName;
+      }
       updateData.pointsEarned = existing.pointsEarned;
     }
     
