@@ -41,6 +41,7 @@ export const bookings = pgTable("bookings", {
   originalPrice: varchar("original_price"),
   discountApplied: varchar("discount_applied"),
   bonusHoursApplied: varchar("bonus_hours_applied"),
+  loyaltyPointsUsed: integer("loyalty_points_used"),
   promotionDetails: jsonb("promotion_details").$type<{
     discountPercentage?: number;
     discountAmount?: string;
@@ -275,6 +276,7 @@ export const bookingHistory = pgTable("booking_history", {
   originalPrice: varchar("original_price"),
   discountApplied: varchar("discount_applied"),
   bonusHoursApplied: varchar("bonus_hours_applied"),
+  loyaltyPointsUsed: integer("loyalty_points_used"),
   promotionDetails: jsonb("promotion_details").$type<{
     discountPercentage?: number;
     discountAmount?: string;
@@ -497,6 +499,7 @@ export const loyaltyTiers = pgTable("loyalty_tiers", {
   tierName: varchar("tier_name").notNull(),
   tierLevel: integer("tier_level").notNull(),
   minSpend: varchar("min_spend").notNull(),
+  maxSpend: varchar("max_spend"),
   tierColor: varchar("tier_color").notNull().default("#94a3b8"),
   rewardType: varchar("reward_type").notNull(),
   rewardValue: varchar("reward_value").notNull(),
@@ -509,6 +512,7 @@ export const loyaltyTiers = pgTable("loyalty_tiers", {
 export const insertLoyaltyTierSchema = createInsertSchema(loyaltyTiers).omit({ id: true, createdAt: true, updatedAt: true }).extend({
   rewardType: z.enum(["free_hours", "discount", "cashback"]),
   minSpend: z.string().or(z.number().transform(val => val.toString())),
+  maxSpend: z.string().or(z.number().transform(val => val.toString())).optional().nullable(),
   rewardValue: z.string().or(z.number().transform(val => val.toString())),
 });
 export type InsertLoyaltyTier = z.infer<typeof insertLoyaltyTierSchema>;
