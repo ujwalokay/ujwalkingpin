@@ -335,9 +335,30 @@ export async function registerRoutes(app: Express): Promise<Server> {
             }, 0);
             const totalAmount = bookingPrice + foodTotal;
             
-            // Update customer spending and loyalty points (1 point per ₹1 spent)
+            // Update customer spending and loyalty points using hybrid system
             if (totalAmount > 0) {
-              const earnedPoints = Math.floor(totalAmount);
+              // Get loyalty settings for point calculation
+              const settings = await storage.getLoyaltySettings();
+              
+              let earnedPoints = 0;
+              
+              if (settings) {
+                // Award base points for visit
+                earnedPoints = settings.pointsPerVisit;
+                
+                // Award bonus points based on spending range
+                const spendingRanges = JSON.parse(settings.spendingRanges);
+                for (const range of spendingRanges) {
+                  if (totalAmount >= range.minSpent && (range.maxSpent === null || totalAmount <= range.maxSpent)) {
+                    earnedPoints += range.points;
+                    break;
+                  }
+                }
+              } else {
+                // Fallback if no settings exist (backward compatibility)
+                earnedPoints = Math.floor(totalAmount);
+              }
+              
               await storage.updateCustomerSpending(updated.whatsappNumber, totalAmount, earnedPoints);
             }
           } catch (error) {
