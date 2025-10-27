@@ -22,9 +22,15 @@ export default function LoyaltyRewards() {
   const [rewardForm, setRewardForm] = useState({
     name: "",
     description: "",
+    cardType: "bronze",
+    rewardType: "discount",
     pointCost: 100,
     category: "gaming",
     value: "",
+    minSpent: "0",
+    maxSpent: "" as string,
+    pointsPerValue: 1,
+    cardPointsRequired: 0,
     enabled: 1,
     stock: null as number | null,
   });
@@ -117,9 +123,15 @@ export default function LoyaltyRewards() {
     setRewardForm({
       name: "",
       description: "",
+      cardType: "bronze",
+      rewardType: "discount",
       pointCost: 100,
       category: "gaming",
       value: "",
+      minSpent: "0",
+      maxSpent: "",
+      pointsPerValue: 1,
+      cardPointsRequired: 0,
       enabled: 1,
       stock: null,
     });
@@ -137,9 +149,15 @@ export default function LoyaltyRewards() {
     setRewardForm({
       name: reward.name,
       description: reward.description,
+      cardType: reward.cardType || "bronze",
+      rewardType: reward.rewardType || "discount",
       pointCost: reward.pointCost,
       category: reward.category,
       value: reward.value,
+      minSpent: reward.minSpent || "0",
+      maxSpent: reward.maxSpent || "",
+      pointsPerValue: reward.pointsPerValue || 1,
+      cardPointsRequired: reward.cardPointsRequired || 0,
       enabled: reward.enabled,
       stock: reward.stock,
     });
@@ -200,7 +218,7 @@ export default function LoyaltyRewards() {
               Loyalty & Rewards
             </h1>
             <p className="text-gray-600 dark:text-gray-400 mt-1">
-              Customers earn 1 point per ₹1 spent. Manage rewards and redeem for customers.
+              Tiered card system with Bronze, Silver, Gold, Diamond & Platinum levels. Points and rewards vary by tier.
             </p>
           </div>
         </div>
@@ -293,16 +311,32 @@ export default function LoyaltyRewards() {
                         <CardContent className="space-y-3">
                           <div className="space-y-2">
                             <div className="flex items-center justify-between text-sm">
-                              <span className="text-gray-600 dark:text-gray-400">Point Cost:</span>
-                              <span className="font-bold text-purple-600">{reward.pointCost} pts</span>
+                              <span className="text-gray-600 dark:text-gray-400">Card Tier:</span>
+                              <Badge className="capitalize" variant="outline">{reward.cardType || 'bronze'}</Badge>
+                            </div>
+                            <div className="flex items-center justify-between text-sm">
+                              <span className="text-gray-600 dark:text-gray-400">Reward Type:</span>
+                              <Badge variant="secondary" className="capitalize">{(reward.rewardType || 'discount').replace('_', ' ')}</Badge>
                             </div>
                             <div className="flex items-center justify-between text-sm">
                               <span className="text-gray-600 dark:text-gray-400">Value:</span>
                               <span className="font-semibold text-gray-900 dark:text-white">₹{reward.value}</span>
                             </div>
                             <div className="flex items-center justify-between text-sm">
-                              <span className="text-gray-600 dark:text-gray-400">Category:</span>
-                              <Badge variant="outline">{reward.category}</Badge>
+                              <span className="text-gray-600 dark:text-gray-400">Point Cost:</span>
+                              <span className="font-bold text-purple-600">{reward.pointCost} pts</span>
+                            </div>
+                            <div className="flex items-center justify-between text-sm">
+                              <span className="text-gray-600 dark:text-gray-400">Spend Range:</span>
+                              <span className="text-xs font-medium">₹{reward.minSpent || '0'} - {reward.maxSpent || '∞'}</span>
+                            </div>
+                            <div className="flex items-center justify-between text-sm">
+                              <span className="text-gray-600 dark:text-gray-400">Points/Value:</span>
+                              <span className="text-xs font-medium">{reward.pointsPerValue || 1} pts</span>
+                            </div>
+                            <div className="flex items-center justify-between text-sm">
+                              <span className="text-gray-600 dark:text-gray-400">Tier Points:</span>
+                              <span className="text-xs font-medium">{reward.cardPointsRequired || 0} pts</span>
                             </div>
                             {reward.stock !== null && (
                               <div className="flex items-center justify-between text-sm">
@@ -424,7 +458,7 @@ export default function LoyaltyRewards() {
               Configure reward details and point cost
             </DialogDescription>
           </DialogHeader>
-          <div className="space-y-4 py-4">
+          <div className="space-y-4 py-4 max-h-[60vh] overflow-y-auto">
             <div className="space-y-2">
               <Label htmlFor="rewardName">Reward Name</Label>
               <Input
@@ -435,6 +469,7 @@ export default function LoyaltyRewards() {
                 data-testid="input-reward-name"
               />
             </div>
+            
             <div className="space-y-2">
               <Label htmlFor="rewardDescription">Description</Label>
               <Textarea
@@ -445,9 +480,108 @@ export default function LoyaltyRewards() {
                 data-testid="input-reward-description"
               />
             </div>
+
+            <div className="space-y-2">
+              <Label htmlFor="cardType">Card Type</Label>
+              <Select
+                value={rewardForm.cardType}
+                onValueChange={(value) => setRewardForm({ ...rewardForm, cardType: value })}
+              >
+                <SelectTrigger data-testid="select-card-type">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="bronze">Bronze Card</SelectItem>
+                  <SelectItem value="silver">Silver Card</SelectItem>
+                  <SelectItem value="gold">Gold Card</SelectItem>
+                  <SelectItem value="diamond">Diamond Card</SelectItem>
+                  <SelectItem value="platinum">Platinum Card</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+
+            <div className="space-y-2">
+              <Label htmlFor="rewardType">Reward Type</Label>
+              <Select
+                value={rewardForm.rewardType}
+                onValueChange={(value) => setRewardForm({ ...rewardForm, rewardType: value })}
+              >
+                <SelectTrigger data-testid="select-reward-type">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="discount">Discount</SelectItem>
+                  <SelectItem value="cashback">Cashback</SelectItem>
+                  <SelectItem value="free_hour">Free Hour</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+
+            <div className="space-y-2">
+              <Label htmlFor="rewardValue">Reward Value (₹ or %)</Label>
+              <Input
+                id="rewardValue"
+                value={rewardForm.value}
+                onChange={(e) => setRewardForm({ ...rewardForm, value: e.target.value })}
+                placeholder="e.g., 50 for ₹50 discount or 10 for 10% off"
+                data-testid="input-reward-monetary-value"
+              />
+            </div>
+
             <div className="grid grid-cols-2 gap-4">
               <div className="space-y-2">
-                <Label htmlFor="rewardPointCost">Point Cost</Label>
+                <Label htmlFor="minSpent">Min Spent (₹)</Label>
+                <Input
+                  id="minSpent"
+                  value={rewardForm.minSpent}
+                  onChange={(e) => setRewardForm({ ...rewardForm, minSpent: e.target.value })}
+                  placeholder="e.g., 0"
+                  data-testid="input-min-spent"
+                />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="maxSpent">Max Spent (₹)</Label>
+                <Input
+                  id="maxSpent"
+                  value={rewardForm.maxSpent}
+                  onChange={(e) => setRewardForm({ ...rewardForm, maxSpent: e.target.value })}
+                  placeholder="e.g., 499 (optional)"
+                  data-testid="input-max-spent"
+                />
+              </div>
+            </div>
+
+            <div className="space-y-2">
+              <Label htmlFor="pointsPerValue">Points Per Value</Label>
+              <Input
+                id="pointsPerValue"
+                type="number"
+                min="1"
+                value={rewardForm.pointsPerValue}
+                onChange={(e) => setRewardForm({ ...rewardForm, pointsPerValue: parseInt(e.target.value) || 1 })}
+                placeholder="e.g., 2 (earn 2 points per ₹100 spent)"
+                data-testid="input-points-per-value"
+              />
+              <p className="text-xs text-gray-500">How many points earned per spending range</p>
+            </div>
+
+            <div className="space-y-2">
+              <Label htmlFor="cardPointsRequired">Card Points Required</Label>
+              <Input
+                id="cardPointsRequired"
+                type="number"
+                min="0"
+                value={rewardForm.cardPointsRequired}
+                onChange={(e) => setRewardForm({ ...rewardForm, cardPointsRequired: parseInt(e.target.value) || 0 })}
+                placeholder="e.g., 50"
+                data-testid="input-card-points-required"
+              />
+              <p className="text-xs text-gray-500">Points needed to redeem this card tier reward</p>
+            </div>
+
+            <div className="grid grid-cols-2 gap-4">
+              <div className="space-y-2">
+                <Label htmlFor="rewardPointCost">Point Cost to Redeem</Label>
                 <Input
                   id="rewardPointCost"
                   type="number"
@@ -458,16 +592,19 @@ export default function LoyaltyRewards() {
                 />
               </div>
               <div className="space-y-2">
-                <Label htmlFor="rewardValue">Value (₹)</Label>
+                <Label htmlFor="rewardStock">Stock (Optional)</Label>
                 <Input
-                  id="rewardValue"
-                  value={rewardForm.value}
-                  onChange={(e) => setRewardForm({ ...rewardForm, value: e.target.value })}
-                  placeholder="e.g., 50"
-                  data-testid="input-reward-monetary-value"
+                  id="rewardStock"
+                  type="number"
+                  min="0"
+                  value={rewardForm.stock || ""}
+                  onChange={(e) => setRewardForm({ ...rewardForm, stock: e.target.value ? parseInt(e.target.value) : null })}
+                  placeholder="Leave empty for unlimited"
+                  data-testid="input-reward-stock"
                 />
               </div>
             </div>
+
             <div className="space-y-2">
               <Label htmlFor="rewardCategory">Category</Label>
               <Input
@@ -478,18 +615,7 @@ export default function LoyaltyRewards() {
                 data-testid="input-reward-category"
               />
             </div>
-            <div className="space-y-2">
-              <Label htmlFor="rewardStock">Stock (Optional)</Label>
-              <Input
-                id="rewardStock"
-                type="number"
-                min="0"
-                value={rewardForm.stock || ""}
-                onChange={(e) => setRewardForm({ ...rewardForm, stock: e.target.value ? parseInt(e.target.value) : null })}
-                placeholder="Leave empty for unlimited"
-                data-testid="input-reward-stock"
-              />
-            </div>
+
             <div className="space-y-2">
               <Label htmlFor="rewardEnabled">Status</Label>
               <Select
