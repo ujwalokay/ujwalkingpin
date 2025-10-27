@@ -549,3 +549,14 @@ export const insertRewardRedemptionSchema = createInsertSchema(rewardRedemptions
 export type InsertRewardRedemption = z.infer<typeof insertRewardRedemptionSchema>;
 export type RewardRedemption = typeof rewardRedemptions.$inferSelect;
 
+export const loyaltySettings = pgTable("loyalty_settings", {
+  id: varchar("id").primaryKey().$defaultFn(() => crypto.randomUUID()),
+  pointsPerVisit: integer("points_per_visit").notNull().default(10),
+  spendingRanges: text("spending_ranges").notNull().default('[]'),
+  updatedAt: timestamp("updated_at").notNull().defaultNow(),
+});
+
+export const insertLoyaltySettingsSchema = createInsertSchema(loyaltySettings).omit({ id: true, updatedAt: true });
+export type InsertLoyaltySettings = z.infer<typeof insertLoyaltySettingsSchema>;
+export type LoyaltySettings = typeof loyaltySettings.$inferSelect;
+

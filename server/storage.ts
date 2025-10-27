@@ -50,6 +50,8 @@ import {
   type InsertLoyaltyReward,
   type RewardRedemption,
   type InsertRewardRedemption,
+  type LoyaltySettings,
+  type InsertLoyaltySettings,
   bookings,
   deviceConfigs,
   pricingConfigs,
@@ -74,7 +76,8 @@ import {
   deviceMaintenance,
   customerLoyalty,
   loyaltyRewards,
-  rewardRedemptions
+  rewardRedemptions,
+  loyaltySettings
 } from "@shared/schema";
 import { db } from "./db";
 import { eq, and, gte, lte, lt, desc, inArray, isNotNull } from "drizzle-orm";
@@ -276,6 +279,9 @@ export interface IStorage {
   getRewardRedemption(id: string): Promise<RewardRedemption | undefined>;
   getRewardRedemptionsByCustomer(whatsappNumber: string): Promise<RewardRedemption[]>;
   createRewardRedemption(redemption: InsertRewardRedemption): Promise<RewardRedemption>;
+  
+  getLoyaltySettings(): Promise<LoyaltySettings | undefined>;
+  updateLoyaltySettings(settings: Partial<InsertLoyaltySettings>): Promise<LoyaltySettings>;
   
   getAllNotifications(): Promise<Notification[]>;
   getUnreadNotifications(): Promise<Notification[]>;
@@ -1727,6 +1733,33 @@ export class DatabaseStorage implements IStorage {
   async createRewardRedemption(redemption: InsertRewardRedemption): Promise<RewardRedemption> {
     const [created] = await db.insert(rewardRedemptions).values(redemption).returning();
     return created;
+  }
+
+  async getLoyaltySettings(): Promise<LoyaltySettings | undefined> {
+    const result = await db.select().from(loyaltySettings).limit(1);
+    return result[0];
+  }
+
+  async updateLoyaltySettings(settings: Partial<InsertLoyaltySettings>): Promise<LoyaltySettings> {
+    const existing = await this.getLoyaltySettings();
+    
+    if (existing) {
+      const [updated] = await db
+        .update(loyaltySettings)
+        .set({ ...settings, updatedAt: new Date() })
+        .where(eq(loyaltySettings.id, existing.id))
+        .returning();
+      return updated;
+    } else {
+      const [created] = await db
+        .insert(loyaltySettings)
+        .values({
+          pointsPerVisit: settings.pointsPerVisit || 10,
+          spendingRanges: settings.spendingRanges || '[]',
+        })
+        .returning();
+      return created;
+    }
   }
 
   async getAllNotifications(): Promise<Notification[]> {
