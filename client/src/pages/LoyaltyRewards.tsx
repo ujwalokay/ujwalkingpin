@@ -63,9 +63,24 @@ export default function LoyaltyRewards() {
       resetRewardForm();
     },
     onError: (error: any) => {
+      let errorMessage = "Failed to create reward";
+      
+      if (error.message) {
+        try {
+          const parsed = JSON.parse(error.message);
+          if (Array.isArray(parsed)) {
+            errorMessage = parsed.map((e: any) => e.message).join(", ");
+          } else {
+            errorMessage = error.message;
+          }
+        } catch {
+          errorMessage = error.message;
+        }
+      }
+      
       toast({
         title: "Error",
-        description: error.message || "Failed to create reward",
+        description: errorMessage,
         variant: "destructive",
       });
     },
@@ -167,6 +182,33 @@ export default function LoyaltyRewards() {
   };
 
   const handleSaveReward = () => {
+    if (!rewardForm.name.trim()) {
+      toast({
+        title: "Validation Error",
+        description: "Please enter a reward name",
+        variant: "destructive",
+      });
+      return;
+    }
+    
+    if (!rewardForm.description.trim()) {
+      toast({
+        title: "Validation Error",
+        description: "Please enter a reward description",
+        variant: "destructive",
+      });
+      return;
+    }
+    
+    if (!rewardForm.value.trim()) {
+      toast({
+        title: "Validation Error",
+        description: "Please enter a reward value",
+        variant: "destructive",
+      });
+      return;
+    }
+    
     if (editingReward) {
       updateRewardMutation.mutate({ id: editingReward.id, data: rewardForm });
     } else {
