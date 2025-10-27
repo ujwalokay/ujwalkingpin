@@ -1978,9 +1978,15 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const rewardSchema = z.object({
         name: z.string().min(1),
         description: z.string().min(1),
-        pointCost: z.number().min(1),
-        category: z.string().min(1),
+        cardType: z.string().optional(),
+        rewardType: z.string().optional(),
+        pointCost: z.number().min(0).optional(),
+        category: z.string().optional(),
         value: z.string().min(1),
+        minSpent: z.string().optional(),
+        maxSpent: z.string().optional(),
+        pointsPerValue: z.number().optional(),
+        cardPointsRequired: z.number().optional(),
         enabled: z.number().min(0).max(1).optional(),
         stock: z.number().nullable().optional(),
       });
