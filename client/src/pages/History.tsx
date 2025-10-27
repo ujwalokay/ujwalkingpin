@@ -4,7 +4,7 @@ import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { ScrollArea } from "@/components/ui/scroll-area";
-import { Clock, User, Phone, DollarSign, Calendar, Search, Receipt, Percent, Gift } from "lucide-react";
+import { Clock, User, Phone, DollarSign, Calendar, Search, Receipt, Percent, Gift, Award } from "lucide-react";
 import { useState } from "react";
 import { format, isValid, isSameDay, parseISO } from "date-fns";
 import type { BookingHistory } from "@shared/schema";
@@ -194,6 +194,15 @@ export default function History() {
                     </span>
                   </div>
 
+                  {booking.loyaltyPointsUsed && booking.loyaltyPointsUsed > 0 && (
+                    <div className="pt-2">
+                      <Badge variant="outline" className="bg-amber-50 dark:bg-amber-950 text-amber-700 dark:text-amber-300 border-amber-300 dark:border-amber-700">
+                        <Award className="h-3 w-3 mr-1" />
+                        {booking.loyaltyPointsUsed} Loyalty Points Used
+                      </Badge>
+                    </div>
+                  )}
+
                   {booking.foodOrders && booking.foodOrders.length > 0 && (
                     <div className="pt-2 border-t">
                       <p className="text-xs font-medium mb-2">Food Orders:</p>
@@ -318,6 +327,25 @@ export default function History() {
                         </span>
                         <span className="text-sm font-bold text-violet-700 dark:text-violet-400" data-testid="bill-bonus-hours">
                           +{selectedBill.promotionDetails.bonusHours}h FREE
+                        </span>
+                      </div>
+                    </div>
+                  )}
+
+                  {selectedBill.loyaltyPointsUsed && selectedBill.loyaltyPointsUsed > 0 && (
+                    <div className="bg-amber-50 dark:bg-amber-950/30 p-3 rounded-lg space-y-1.5 border border-amber-200 dark:border-amber-800">
+                      <div className="flex items-center gap-2">
+                        <Badge variant="outline" className="bg-amber-100 dark:bg-amber-900/50 text-amber-700 dark:text-amber-400 border-amber-300 dark:border-amber-700">
+                          <Award className="h-3 w-3 mr-1" />
+                          Loyalty Points Redeemed
+                        </Badge>
+                      </div>
+                      <div className="flex justify-between">
+                        <span className="text-sm font-medium text-amber-900 dark:text-amber-100">
+                          Points Used
+                        </span>
+                        <span className="text-sm font-bold text-amber-700 dark:text-amber-400" data-testid="bill-loyalty-points">
+                          {selectedBill.loyaltyPointsUsed} pts
                         </span>
                       </div>
                     </div>

@@ -9,7 +9,7 @@ import { Badge } from "@/components/ui/badge";
 import { useToast } from "@/hooks/use-toast";
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Award, Gift, TrendingDown, Trash2, Edit, Plus, DollarSign, Clock, Percent } from "lucide-react";
+import { Award, Gift, TrendingDown, Trash2, Edit, Plus, DollarSign, Clock, Percent, Users, Trophy, Star } from "lucide-react";
 import { queryClient, apiRequest } from "@/lib/queryClient";
 import type { LoyaltyTier, CustomerLoyalty } from "@shared/schema";
 import { Textarea } from "@/components/ui/textarea";
@@ -22,6 +22,7 @@ export default function LoyaltyRewards() {
     tierName: "",
     tierLevel: 1,
     minSpend: "",
+    maxSpend: "",
     tierColor: "#94a3b8",
     rewardType: "discount" as "free_hours" | "discount" | "cashback",
     rewardValue: "",
@@ -90,6 +91,7 @@ export default function LoyaltyRewards() {
       tierName: "",
       tierLevel: 1,
       minSpend: "",
+      maxSpend: "",
       tierColor: "#94a3b8",
       rewardType: "discount",
       rewardValue: "",
@@ -111,6 +113,7 @@ export default function LoyaltyRewards() {
       tierName: tier.tierName,
       tierLevel: tier.tierLevel,
       minSpend: tier.minSpend,
+      maxSpend: tier.maxSpend || "",
       tierColor: tier.tierColor,
       rewardType: tier.rewardType as any,
       rewardValue: tier.rewardValue,
@@ -160,6 +163,13 @@ export default function LoyaltyRewards() {
     }
   };
 
+  const stats = {
+    totalCustomers: customers.length,
+    activeTiers: tiers.filter(t => t.enabled).length,
+    totalRewardsRedeemed: customers.reduce((sum, c) => sum + (c.rewardsRedeemed || 0), 0),
+    totalPointsEarned: customers.reduce((sum, c) => sum + (c.pointsEarned || 0), 0),
+  };
+
   return (
     <div className="min-h-screen bg-gradient-to-br from-purple-100 via-blue-100 to-pink-100 dark:from-gray-900 dark:via-purple-950 dark:to-gray-900 p-4 sm:p-6">
       <div className="max-w-7xl mx-auto space-y-6">
@@ -173,6 +183,45 @@ export default function LoyaltyRewards() {
               Manage customer loyalty tiers and track rewards
             </p>
           </div>
+        </div>
+
+        <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+          <Card className="glass-card" data-testid="card-total-customers">
+            <CardHeader className="pb-2">
+              <CardDescription className="text-xs">Total Customers</CardDescription>
+              <CardTitle className="text-2xl sm:text-3xl flex items-center gap-2">
+                <Users className="h-6 w-6 text-blue-600" />
+                {stats.totalCustomers}
+              </CardTitle>
+            </CardHeader>
+          </Card>
+          <Card className="glass-card" data-testid="card-active-tiers">
+            <CardHeader className="pb-2">
+              <CardDescription className="text-xs">Active Tiers</CardDescription>
+              <CardTitle className="text-2xl sm:text-3xl flex items-center gap-2">
+                <Trophy className="h-6 w-6 text-purple-600" />
+                {stats.activeTiers}
+              </CardTitle>
+            </CardHeader>
+          </Card>
+          <Card className="glass-card" data-testid="card-total-points">
+            <CardHeader className="pb-2">
+              <CardDescription className="text-xs">Total Points Earned</CardDescription>
+              <CardTitle className="text-2xl sm:text-3xl flex items-center gap-2">
+                <Star className="h-6 w-6 text-yellow-600" />
+                {stats.totalPointsEarned}
+              </CardTitle>
+            </CardHeader>
+          </Card>
+          <Card className="glass-card" data-testid="card-rewards-redeemed">
+            <CardHeader className="pb-2">
+              <CardDescription className="text-xs">Rewards Redeemed</CardDescription>
+              <CardTitle className="text-2xl sm:text-3xl flex items-center gap-2">
+                <Gift className="h-6 w-6 text-green-600" />
+                {stats.totalRewardsRedeemed}
+              </CardTitle>
+            </CardHeader>
+          </Card>
         </div>
 
         <Tabs defaultValue="tiers" className="space-y-6">
@@ -226,7 +275,9 @@ export default function LoyaltyRewards() {
                             <div className="flex items-center gap-2 text-sm">
                               <DollarSign className="h-4 w-4 text-gray-500" />
                               <span className="text-gray-600 dark:text-gray-400">
-                                Min Spend: <span className="font-semibold text-gray-900 dark:text-white">₹{tier.minSpend}</span>
+                                Spend Range: <span className="font-semibold text-gray-900 dark:text-white">
+                                  ₹{tier.minSpend}{tier.maxSpend ? ` - ₹${tier.maxSpend}` : '+'}
+                                </span>
                               </span>
                             </div>
                             <div className="flex items-center gap-2 text-sm">
@@ -357,18 +408,18 @@ export default function LoyaltyRewards() {
                 data-testid="input-tier-name"
               />
             </div>
+            <div className="space-y-2">
+              <Label htmlFor="tierLevel">Tier Level</Label>
+              <Input
+                id="tierLevel"
+                type="number"
+                min="1"
+                value={tierForm.tierLevel}
+                onChange={(e) => setTierForm({ ...tierForm, tierLevel: parseInt(e.target.value) || 1 })}
+                data-testid="input-tier-level"
+              />
+            </div>
             <div className="grid grid-cols-2 gap-4">
-              <div className="space-y-2">
-                <Label htmlFor="tierLevel">Tier Level</Label>
-                <Input
-                  id="tierLevel"
-                  type="number"
-                  min="1"
-                  value={tierForm.tierLevel}
-                  onChange={(e) => setTierForm({ ...tierForm, tierLevel: parseInt(e.target.value) || 1 })}
-                  data-testid="input-tier-level"
-                />
-              </div>
               <div className="space-y-2">
                 <Label htmlFor="minSpend">Min Spend (₹)</Label>
                 <Input
@@ -379,6 +430,18 @@ export default function LoyaltyRewards() {
                   onChange={(e) => setTierForm({ ...tierForm, minSpend: e.target.value })}
                   placeholder="1000"
                   data-testid="input-min-spend"
+                />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="maxSpend">Max Spend (₹)</Label>
+                <Input
+                  id="maxSpend"
+                  type="number"
+                  min="0"
+                  value={tierForm.maxSpend}
+                  onChange={(e) => setTierForm({ ...tierForm, maxSpend: e.target.value })}
+                  placeholder="5000 (optional)"
+                  data-testid="input-max-spend"
                 />
               </div>
             </div>
