@@ -48,6 +48,10 @@ import {
   type InsertLoyaltyTier,
   type CustomerLoyalty,
   type InsertCustomerLoyalty,
+  type LoyaltyReward,
+  type InsertLoyaltyReward,
+  type RewardRedemption,
+  type InsertRewardRedemption,
   bookings,
   deviceConfigs,
   pricingConfigs,
@@ -71,7 +75,9 @@ import {
   retentionConfig,
   deviceMaintenance,
   loyaltyTiers,
-  customerLoyalty
+  customerLoyalty,
+  loyaltyRewards,
+  rewardRedemptions
 } from "@shared/schema";
 import { db } from "./db";
 import { eq, and, gte, lte, lt, desc, inArray, isNotNull } from "drizzle-orm";
@@ -265,6 +271,22 @@ export interface IStorage {
   upsertCustomerLoyalty(data: InsertCustomerLoyalty): Promise<CustomerLoyalty>;
   updateCustomerSpending(whatsappNumber: string, amount: number): Promise<CustomerLoyalty | undefined>;
   incrementRewardsRedeemed(whatsappNumber: string): Promise<void>;
+  awardLoyaltyPoints(whatsappNumber: string, points: number): Promise<CustomerLoyalty | undefined>;
+  redeemPoints(whatsappNumber: string, points: number): Promise<CustomerLoyalty | undefined>;
+  
+  getAllLoyaltyRewards(): Promise<LoyaltyReward[]>;
+  getLoyaltyReward(id: string): Promise<LoyaltyReward | undefined>;
+  getActiveLoyaltyRewards(): Promise<LoyaltyReward[]>;
+  createLoyaltyReward(reward: InsertLoyaltyReward): Promise<LoyaltyReward>;
+  updateLoyaltyReward(id: string, data: Partial<InsertLoyaltyReward>): Promise<LoyaltyReward | undefined>;
+  deleteLoyaltyReward(id: string): Promise<boolean>;
+  incrementRewardRedeemed(id: string): Promise<void>;
+  decrementRewardStock(id: string): Promise<void>;
+  
+  getAllRewardRedemptions(): Promise<RewardRedemption[]>;
+  getRewardRedemption(id: string): Promise<RewardRedemption | undefined>;
+  getRewardRedemptionsByCustomer(whatsappNumber: string): Promise<RewardRedemption[]>;
+  createRewardRedemption(redemption: InsertRewardRedemption): Promise<RewardRedemption>;
   
   getAllNotifications(): Promise<Notification[]>;
   getUnreadNotifications(): Promise<Notification[]>;
@@ -1680,31 +1702,25 @@ export class DatabaseStorage implements IStorage {
       updatedAt: new Date(),
     };
     
-    // Minimum spending threshold for earning loyalty points is ₹499
-    const MINIMUM_SPENDING_THRESHOLD = 499;
-    
-    if (newTotal >= MINIMUM_SPENDING_THRESHOLD) {
-      // Customer has reached or exceeded the threshold
-      if (tier) {
-        updateData.currentTierId = tier.id;
-        updateData.currentTierName = tier.tierName;
-      }
-      
-      // If customer just crossed the threshold, give points on ALL lifetime spending
-      if (previousTotal < MINIMUM_SPENDING_THRESHOLD) {
-        updateData.pointsEarned = Math.floor(newTotal);
-      } else {
-        // Already qualified, just add points for current transaction
-        updateData.pointsEarned = existing.pointsEarned + Math.floor(amount);
-      }
-    } else {
-      // Below threshold - update tier if exists but no points
-      if (tier) {
-        updateData.currentTierId = tier.id;
-        updateData.currentTierName = tier.tierName;
-      }
-      updateData.pointsEarned = existing.pointsEarned;
+    // Update tier information
+    if (tier) {
+      updateData.currentTierId = tier.id;
+      updateData.currentTierName = tier.tierName;
     }
+    
+    // Award points per transaction based on total lifetime spending tier
+    let pointsToAward = 0;
+    if (newTotal >= 0 && newTotal < 500) {
+      pointsToAward = 5;
+    } else if (newTotal >= 500 && newTotal < 1000) {
+      pointsToAward = 10;
+    } else if (newTotal >= 1000) {
+      pointsToAward = 15;
+    }
+    
+    // Award points for this transaction
+    updateData.pointsEarned = existing.pointsEarned + pointsToAward;
+    updateData.pointsAvailable = existing.pointsAvailable + pointsToAward;
     
     const [updated] = await db
       .update(customerLoyalty)
@@ -1726,6 +1742,128 @@ export class DatabaseStorage implements IStorage {
         })
         .where(eq(customerLoyalty.whatsappNumber, whatsappNumber));
     }
+  }
+
+  async awardLoyaltyPoints(whatsappNumber: string, points: number): Promise<CustomerLoyalty | undefined> {
+    const existing = await this.getCustomerLoyalty(whatsappNumber);
+    if (!existing) {
+      return undefined;
+    }
+    
+    const [updated] = await db
+      .update(customerLoyalty)
+      .set({ 
+        pointsEarned: existing.pointsEarned + points,
+        pointsAvailable: existing.pointsAvailable + points,
+        updatedAt: new Date()
+      })
+      .where(eq(customerLoyalty.whatsappNumber, whatsappNumber))
+      .returning();
+    
+    return updated || undefined;
+  }
+
+  async redeemPoints(whatsappNumber: string, points: number): Promise<CustomerLoyalty | undefined> {
+    const existing = await this.getCustomerLoyalty(whatsappNumber);
+    if (!existing || existing.pointsAvailable < points) {
+      return undefined;
+    }
+    
+    const [updated] = await db
+      .update(customerLoyalty)
+      .set({ 
+        pointsAvailable: existing.pointsAvailable - points,
+        rewardsRedeemed: existing.rewardsRedeemed + 1,
+        updatedAt: new Date()
+      })
+      .where(eq(customerLoyalty.whatsappNumber, whatsappNumber))
+      .returning();
+    
+    return updated || undefined;
+  }
+
+  async getAllLoyaltyRewards(): Promise<LoyaltyReward[]> {
+    return await db.select().from(loyaltyRewards).orderBy(loyaltyRewards.pointCost);
+  }
+
+  async getLoyaltyReward(id: string): Promise<LoyaltyReward | undefined> {
+    const [reward] = await db.select().from(loyaltyRewards).where(eq(loyaltyRewards.id, id));
+    return reward || undefined;
+  }
+
+  async getActiveLoyaltyRewards(): Promise<LoyaltyReward[]> {
+    return await db
+      .select()
+      .from(loyaltyRewards)
+      .where(eq(loyaltyRewards.enabled, 1))
+      .orderBy(loyaltyRewards.pointCost);
+  }
+
+  async createLoyaltyReward(reward: InsertLoyaltyReward): Promise<LoyaltyReward> {
+    const [created] = await db.insert(loyaltyRewards).values(reward).returning();
+    return created;
+  }
+
+  async updateLoyaltyReward(id: string, data: Partial<InsertLoyaltyReward>): Promise<LoyaltyReward | undefined> {
+    const [updated] = await db
+      .update(loyaltyRewards)
+      .set({ ...data, updatedAt: new Date() })
+      .where(eq(loyaltyRewards.id, id))
+      .returning();
+    return updated || undefined;
+  }
+
+  async deleteLoyaltyReward(id: string): Promise<boolean> {
+    const result = await db.delete(loyaltyRewards).where(eq(loyaltyRewards.id, id));
+    return result.rowCount ? result.rowCount > 0 : false;
+  }
+
+  async incrementRewardRedeemed(id: string): Promise<void> {
+    const existing = await this.getLoyaltyReward(id);
+    if (existing) {
+      await db
+        .update(loyaltyRewards)
+        .set({ 
+          totalRedeemed: existing.totalRedeemed + 1,
+          updatedAt: new Date()
+        })
+        .where(eq(loyaltyRewards.id, id));
+    }
+  }
+
+  async decrementRewardStock(id: string): Promise<void> {
+    const existing = await this.getLoyaltyReward(id);
+    if (existing && existing.stock !== null && existing.stock > 0) {
+      await db
+        .update(loyaltyRewards)
+        .set({ 
+          stock: existing.stock - 1,
+          updatedAt: new Date()
+        })
+        .where(eq(loyaltyRewards.id, id));
+    }
+  }
+
+  async getAllRewardRedemptions(): Promise<RewardRedemption[]> {
+    return await db.select().from(rewardRedemptions).orderBy(desc(rewardRedemptions.redeemedAt));
+  }
+
+  async getRewardRedemption(id: string): Promise<RewardRedemption | undefined> {
+    const [redemption] = await db.select().from(rewardRedemptions).where(eq(rewardRedemptions.id, id));
+    return redemption || undefined;
+  }
+
+  async getRewardRedemptionsByCustomer(whatsappNumber: string): Promise<RewardRedemption[]> {
+    return await db
+      .select()
+      .from(rewardRedemptions)
+      .where(eq(rewardRedemptions.whatsappNumber, whatsappNumber))
+      .orderBy(desc(rewardRedemptions.redeemedAt));
+  }
+
+  async createRewardRedemption(redemption: InsertRewardRedemption): Promise<RewardRedemption> {
+    const [created] = await db.insert(rewardRedemptions).values(redemption).returning();
+    return created;
   }
 
   async getAllNotifications(): Promise<Notification[]> {

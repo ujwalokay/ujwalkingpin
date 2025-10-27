@@ -526,6 +526,7 @@ export const customerLoyalty = pgTable("customer_loyalty", {
   currentTierId: varchar("current_tier_id"),
   currentTierName: varchar("current_tier_name"),
   pointsEarned: integer("points_earned").notNull().default(0),
+  pointsAvailable: integer("points_available").notNull().default(0),
   rewardsRedeemed: integer("rewards_redeemed").notNull().default(0),
   lastPurchaseDate: timestamp("last_purchase_date"),
   createdAt: timestamp("created_at").notNull().defaultNow(),
@@ -535,4 +536,37 @@ export const customerLoyalty = pgTable("customer_loyalty", {
 export const insertCustomerLoyaltySchema = createInsertSchema(customerLoyalty).omit({ id: true, createdAt: true, updatedAt: true });
 export type InsertCustomerLoyalty = z.infer<typeof insertCustomerLoyaltySchema>;
 export type CustomerLoyalty = typeof customerLoyalty.$inferSelect;
+
+export const loyaltyRewards = pgTable("loyalty_rewards", {
+  id: varchar("id").primaryKey().$defaultFn(() => crypto.randomUUID()),
+  name: varchar("name").notNull(),
+  description: text("description").notNull(),
+  pointCost: integer("point_cost").notNull(),
+  category: varchar("category").notNull(),
+  value: varchar("value").notNull(),
+  enabled: integer("enabled").notNull().default(1),
+  stock: integer("stock"),
+  totalRedeemed: integer("total_redeemed").notNull().default(0),
+  createdAt: timestamp("created_at").notNull().defaultNow(),
+  updatedAt: timestamp("updated_at").notNull().defaultNow(),
+});
+
+export const insertLoyaltyRewardSchema = createInsertSchema(loyaltyRewards).omit({ id: true, createdAt: true, updatedAt: true, totalRedeemed: true });
+export type InsertLoyaltyReward = z.infer<typeof insertLoyaltyRewardSchema>;
+export type LoyaltyReward = typeof loyaltyRewards.$inferSelect;
+
+export const rewardRedemptions = pgTable("reward_redemptions", {
+  id: varchar("id").primaryKey().$defaultFn(() => crypto.randomUUID()),
+  customerId: varchar("customer_id").notNull(),
+  customerName: varchar("customer_name").notNull(),
+  whatsappNumber: varchar("whatsapp_number").notNull(),
+  rewardId: varchar("reward_id").notNull(),
+  rewardName: varchar("reward_name").notNull(),
+  pointsUsed: integer("points_used").notNull(),
+  redeemedAt: timestamp("redeemed_at").notNull().defaultNow(),
+});
+
+export const insertRewardRedemptionSchema = createInsertSchema(rewardRedemptions).omit({ id: true, redeemedAt: true });
+export type InsertRewardRedemption = z.infer<typeof insertRewardRedemptionSchema>;
+export type RewardRedemption = typeof rewardRedemptions.$inferSelect;
 

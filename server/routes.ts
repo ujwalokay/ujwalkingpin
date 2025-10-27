@@ -2027,6 +2027,218 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  app.get("/api/loyalty-rewards", async (req, res) => {
+    try {
+      const rewards = await storage.getAllLoyaltyRewards();
+      res.json(rewards);
+    } catch (error: any) {
+      res.status(500).json({ message: error.message });
+    }
+  });
+
+  app.get("/api/loyalty-rewards/active", async (req, res) => {
+    try {
+      const rewards = await storage.getActiveLoyaltyRewards();
+      res.json(rewards);
+    } catch (error: any) {
+      res.status(500).json({ message: error.message });
+    }
+  });
+
+  app.get("/api/loyalty-rewards/:id", async (req, res) => {
+    try {
+      const { id } = req.params;
+      const reward = await storage.getLoyaltyReward(id);
+      if (!reward) {
+        return res.status(404).json({ message: "Reward not found" });
+      }
+      res.json(reward);
+    } catch (error: any) {
+      res.status(500).json({ message: error.message });
+    }
+  });
+
+  app.post("/api/loyalty-rewards", requireAdmin, async (req, res) => {
+    try {
+      const rewardSchema = z.object({
+        name: z.string().min(1),
+        description: z.string().min(1),
+        pointCost: z.number().min(1),
+        category: z.string().min(1),
+        value: z.string().min(1),
+        enabled: z.number().min(0).max(1).optional(),
+        stock: z.number().nullable().optional(),
+      });
+
+      const reward = rewardSchema.parse(req.body);
+      const created = await storage.createLoyaltyReward(reward);
+
+      if (req.session.userId && req.session.username && req.session.role) {
+        const stockInfo = created.stock !== null ? `, stock: ${created.stock}` : ', unlimited stock';
+        
+        await storage.createActivityLog({
+          userId: req.session.userId,
+          username: req.session.username,
+          userRole: req.session.role,
+          action: 'create',
+          entityType: 'loyalty-reward',
+          entityId: created.id,
+          details: `Created loyalty reward: ${created.name} (${created.category}) - Cost: ${created.pointCost} points, Value: ₹${created.value}${stockInfo}. Status: ${created.enabled ? 'Active' : 'Inactive'}`
+        });
+      }
+
+      res.json(created);
+    } catch (error: any) {
+      res.status(400).json({ message: error.message });
+    }
+  });
+
+  app.patch("/api/loyalty-rewards/:id", requireAdmin, async (req, res) => {
+    try {
+      const { id } = req.params;
+      const updated = await storage.updateLoyaltyReward(id, req.body);
+      if (!updated) {
+        return res.status(404).json({ message: "Reward not found" });
+      }
+
+      if (req.session.userId && req.session.username && req.session.role) {
+        await storage.createActivityLog({
+          userId: req.session.userId,
+          username: req.session.username,
+          userRole: req.session.role,
+          action: 'update',
+          entityType: 'loyalty-reward',
+          entityId: id,
+          details: `Updated loyalty reward: ${updated.name}`
+        });
+      }
+
+      res.json(updated);
+    } catch (error: any) {
+      res.status(400).json({ message: error.message });
+    }
+  });
+
+  app.delete("/api/loyalty-rewards/:id", requireAdmin, async (req, res) => {
+    try {
+      const { id } = req.params;
+      const reward = await storage.getLoyaltyReward(id);
+      const deleted = await storage.deleteLoyaltyReward(id);
+      if (!deleted) {
+        return res.status(404).json({ message: "Reward not found" });
+      }
+
+      if (reward && req.session.userId && req.session.username && req.session.role) {
+        await storage.createActivityLog({
+          userId: req.session.userId,
+          username: req.session.username,
+          userRole: req.session.role,
+          action: 'delete',
+          entityType: 'loyalty-reward',
+          entityId: id,
+          details: `Deleted loyalty reward: ${reward.name}`
+        });
+      }
+
+      res.json({ success: true });
+    } catch (error: any) {
+      res.status(500).json({ message: error.message });
+    }
+  });
+
+  app.post("/api/rewards/redeem", requireAuth, async (req, res) => {
+    try {
+      const redemptionSchema = z.object({
+        whatsappNumber: z.string().min(1),
+        rewardId: z.string().min(1),
+      });
+
+      const { whatsappNumber, rewardId } = redemptionSchema.parse(req.body);
+
+      const customer = await storage.getCustomerLoyalty(whatsappNumber);
+      if (!customer) {
+        return res.status(404).json({ message: "Customer not found" });
+      }
+
+      const reward = await storage.getLoyaltyReward(rewardId);
+      if (!reward) {
+        return res.status(404).json({ message: "Reward not found" });
+      }
+
+      if (!reward.enabled) {
+        return res.status(400).json({ message: "This reward is currently unavailable" });
+      }
+
+      if (reward.stock !== null && reward.stock <= 0) {
+        return res.status(400).json({ message: "This reward is out of stock" });
+      }
+
+      if (customer.pointsAvailable < reward.pointCost) {
+        return res.status(400).json({ message: `Insufficient points. You have ${customer.pointsAvailable} points but need ${reward.pointCost} points.` });
+      }
+
+      if (customer.pointsAvailable < 100) {
+        return res.status(400).json({ message: "You need at least 100 points to redeem rewards" });
+      }
+
+      const updatedCustomer = await storage.redeemPoints(whatsappNumber, reward.pointCost);
+      if (!updatedCustomer) {
+        return res.status(500).json({ message: "Failed to redeem reward" });
+      }
+
+      const redemption = await storage.createRewardRedemption({
+        customerId: customer.id,
+        customerName: customer.customerName,
+        whatsappNumber: customer.whatsappNumber,
+        rewardId: reward.id,
+        rewardName: reward.name,
+        pointsUsed: reward.pointCost,
+      });
+
+      await storage.incrementRewardRedeemed(rewardId);
+      await storage.decrementRewardStock(rewardId);
+
+      if (req.session.userId && req.session.username && req.session.role) {
+        await storage.createActivityLog({
+          userId: req.session.userId,
+          username: req.session.username,
+          userRole: req.session.role,
+          action: 'create',
+          entityType: 'reward-redemption',
+          entityId: redemption.id,
+          details: `Customer ${customer.customerName} redeemed ${reward.name} for ${reward.pointCost} points. Remaining points: ${updatedCustomer.pointsAvailable}`
+        });
+      }
+
+      res.json({ 
+        success: true, 
+        redemption,
+        remainingPoints: updatedCustomer.pointsAvailable
+      });
+    } catch (error: any) {
+      res.status(400).json({ message: error.message });
+    }
+  });
+
+  app.get("/api/rewards/redemptions", requireAuth, async (req, res) => {
+    try {
+      const redemptions = await storage.getAllRewardRedemptions();
+      res.json(redemptions);
+    } catch (error: any) {
+      res.status(500).json({ message: error.message });
+    }
+  });
+
+  app.get("/api/rewards/redemptions/customer/:whatsappNumber", async (req, res) => {
+    try {
+      const { whatsappNumber } = req.params;
+      const redemptions = await storage.getRewardRedemptionsByCustomer(decodeURIComponent(whatsappNumber));
+      res.json(redemptions);
+    } catch (error: any) {
+      res.status(500).json({ message: error.message });
+    }
+  });
+
   const httpServer = createServer(app);
 
   return httpServer;
