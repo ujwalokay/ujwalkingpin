@@ -51,6 +51,9 @@ Preferred communication style: Simple, everyday language.
 - `Tournaments`: Stores tournament information (name, game, date, max participants, prize pool, status).
 - `Tournament Participants`: Tracks participant registration with status and placement tracking.
 - `Notifications`: Stores system notifications with type, title, message, entity linkage, read status, and creation timestamp.
+- `Customer Loyalty`: Tracks customer spending and points (simplified system).
+- `Loyalty Rewards`: Catalog of redeemable rewards.
+- `Reward Redemptions`: History of customer reward redemptions.
 
 ### Key Architectural Decisions
 
@@ -107,6 +110,13 @@ Preferred communication style: Simple, everyday language.
   - Promotion logs: Show percentages/hours, validity date ranges, person counts, usage statistics (times used, total savings/hours given), and enabled status
   - Food inventory logs: Display before/after stock levels, supplier info, expiry dates, low stock warnings, and batch tracking notes
   - All logs formatted with Indian locale timestamps (en-IN) and currency (₹) for consistency
+- **Simplified Loyalty & Rewards System**: Easy-to-use customer loyalty program with automatic point earning and reward redemption:
+  - Customers automatically earn 1 point per ₹1 spent (no complex configuration needed)
+  - Points are awarded when bookings are completed/expired
+  - Two main features: Rewards Catalog (define redeemable rewards) and Customer Management (track customer spending and points)
+  - Simplified from complex 4-tab system (Point Rules, Tier Cards, Rewards, Customers) to just 2 tabs (Rewards, Customers)
+  - Removed: Point Earning Rules configuration, Loyalty Tiers/Levels, Tier Card Claims
+  - Focus on simplicity and ease of use for staff members
 
 ## External Dependencies
 
