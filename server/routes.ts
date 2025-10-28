@@ -2200,6 +2200,27 @@ export async function registerRoutes(app: Express): Promise<Server> {
       await storage.incrementRewardRedeemed(rewardId);
       await storage.decrementRewardStock(rewardId);
 
+      if (reward.rewardType === 'free_hour') {
+        const allBookings = await storage.getAllBookings();
+        const activeBooking = allBookings.find(booking => 
+          booking.whatsappNumber === whatsappNumber && 
+          (booking.status === 'running' || booking.status === 'paused')
+        );
+
+        if (activeBooking) {
+          const freeHoursValue = parseFloat(reward.value);
+          const freeHoursMs = freeHoursValue * 60 * 60 * 1000;
+          
+          const currentEndTime = new Date(activeBooking.endTime);
+          const newEndTime = new Date(currentEndTime.getTime() + freeHoursMs);
+          
+          await storage.updateBooking(activeBooking.id, {
+            endTime: newEndTime,
+            bonusHoursApplied: reward.value,
+          });
+        }
+      }
+
       if (req.session.userId && req.session.username && req.session.role) {
         await storage.createActivityLog({
           userId: req.session.userId,
