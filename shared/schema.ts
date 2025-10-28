@@ -541,7 +541,11 @@ export const rewardRedemptions = pgTable("reward_redemptions", {
   whatsappNumber: varchar("whatsapp_number").notNull(),
   rewardId: varchar("reward_id").notNull(),
   rewardName: varchar("reward_name").notNull(),
+  rewardType: varchar("reward_type"),
+  rewardValue: varchar("reward_value"),
   pointsUsed: integer("points_used").notNull(),
+  bookingId: varchar("booking_id"),
+  status: varchar("status").default("applied"),
   redeemedAt: timestamp("redeemed_at").notNull().defaultNow(),
 });
 
