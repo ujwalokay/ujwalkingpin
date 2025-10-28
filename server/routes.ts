@@ -2189,18 +2189,6 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(500).json({ message: "Failed to redeem reward" });
       }
 
-      const redemption = await storage.createRewardRedemption({
-        customerId: customer.id,
-        customerName: customer.customerName,
-        whatsappNumber: customer.whatsappNumber,
-        rewardId: reward.id,
-        rewardName: reward.name,
-        pointsUsed: reward.pointCost,
-      });
-
-      await storage.incrementRewardRedeemed(rewardId);
-      await storage.decrementRewardStock(rewardId);
-
       const allBookings = await storage.getAllBookings();
       let activeBooking;
       
@@ -2219,6 +2207,22 @@ export async function registerRoutes(app: Express): Promise<Server> {
           (booking.status === 'running' || booking.status === 'paused')
         );
       }
+
+      const redemption = await storage.createRewardRedemption({
+        customerId: customer.id,
+        customerName: customer.customerName,
+        whatsappNumber: customer.whatsappNumber,
+        rewardId: reward.id,
+        rewardName: reward.name,
+        rewardType: reward.rewardType,
+        rewardValue: reward.value,
+        pointsUsed: reward.pointCost,
+        bookingId: activeBooking?.id,
+        status: activeBooking ? 'applied' : 'pending',
+      });
+
+      await storage.incrementRewardRedeemed(rewardId);
+      await storage.decrementRewardStock(rewardId);
 
       if (reward.rewardType === 'free_hour') {
         if (activeBooking) {
@@ -2312,6 +2316,20 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const { whatsappNumber } = req.params;
       const redemptions = await storage.getRewardRedemptionsByCustomer(decodeURIComponent(whatsappNumber));
       res.json(redemptions);
+    } catch (error: any) {
+      res.status(500).json({ message: error.message });
+    }
+  });
+
+  app.get("/api/customer/:whatsappNumber/active-bookings", requireAuth, async (req, res) => {
+    try {
+      const { whatsappNumber } = req.params;
+      const allBookings = await storage.getAllBookings();
+      const activeBookings = allBookings.filter(booking => 
+        booking.whatsappNumber === decodeURIComponent(whatsappNumber) && 
+        (booking.status === 'running' || booking.status === 'paused')
+      );
+      res.json(activeBookings);
     } catch (error: any) {
       res.status(500).json({ message: error.message });
     }
