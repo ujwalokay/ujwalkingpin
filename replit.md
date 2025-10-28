@@ -117,6 +117,13 @@ Preferred communication style: Simple, everyday language.
   - Simplified from complex 4-tab system (Point Rules, Tier Cards, Rewards, Customers) to just 2 tabs (Rewards, Customers)
   - Removed: Point Earning Rules configuration, Loyalty Tiers/Levels, Tier Card Claims
   - Focus on simplicity and ease of use for staff members
+- **Seat Change Feature**: Quick seat reassignment for active bookings without affecting session data:
+  - Available for running and paused bookings via action dropdown menu
+  - Shows only available seats in the same device category
+  - Preserves all booking data (remaining time, food orders, prices, customer information)
+  - Backend validation prevents double-booking conflicts
+  - Automatic activity logging for all seat changes
+  - Useful when customers want to switch seats during their gaming session
 
 ## External Dependencies
 
