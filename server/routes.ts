@@ -373,6 +373,57 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  app.patch("/api/bookings/:id/change-seat", requireAuth, async (req, res) => {
+    try {
+      const { id } = req.params;
+      const { newSeatName } = req.body;
+
+      if (!newSeatName) {
+        return res.status(400).json({ message: "New seat name is required" });
+      }
+
+      const booking = await storage.getBooking(id);
+      if (!booking) {
+        return res.status(404).json({ message: "Booking not found" });
+      }
+
+      const oldSeatName = booking.seatName;
+      const oldCategory = oldSeatName.split('-')[0];
+      const newCategory = newSeatName.split('-')[0];
+
+      if (oldCategory !== newCategory) {
+        return res.status(400).json({ message: "Cannot change to a different category" });
+      }
+
+      const newSeatNumber = parseInt(newSeatName.split('-')[1]);
+      
+      const updated = await storage.updateBooking(id, {
+        seatName: newSeatName,
+        seatNumber: newSeatNumber,
+      });
+
+      if (!updated) {
+        return res.status(404).json({ message: "Failed to update booking" });
+      }
+
+      if (req.session.userId && req.session.username && req.session.role) {
+        await storage.createActivityLog({
+          userId: req.session.userId,
+          username: req.session.username,
+          userRole: req.session.role,
+          action: 'update',
+          entityType: 'booking',
+          entityId: id,
+          details: `Changed seat from ${oldSeatName} to ${newSeatName} for ${booking.customerName}`,
+        });
+      }
+
+      res.json(updated);
+    } catch (error: any) {
+      res.status(400).json({ message: error.message });
+    }
+  });
+
   app.delete("/api/bookings/:id", requireAuth, async (req, res) => {
     try {
       const { id } = req.params;
