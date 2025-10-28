@@ -1125,7 +1125,7 @@ export function AddBookingDialog({ open, onOpenChange, onConfirm, availableSeats
                                   <div className="flex items-center gap-2 mt-2">
                                     {getRewardIcon(reward.rewardType || 'discount')}
                                     <span className="font-semibold text-purple-600 dark:text-purple-400">
-                                      {reward.rewardType === 'free_hour' ? `${reward.value} hrs` : reward.rewardType === 'free_hours' ? `${reward.value} hour${parseFloat(reward.value) !== 1 ? 's' : ''} free` : reward.rewardType === 'discount' ? `${reward.value}% discount` : `₹${reward.value}`}
+                                      {reward.rewardType === 'free_hour' ? `${reward.value} hrs` : reward.rewardType === 'free_hours' ? `${reward.value} hour${parseFloat(reward.value) !== 1 ? 's' : ''} free` : reward.rewardType === 'discount' ? `${reward.value}% discount` : reward.rewardType === 'free_food' ? `₹${reward.value} food voucher` : `₹${reward.value}`}
                                     </span>
                                   </div>
                                   <p className="text-xs text-muted-foreground mt-1">

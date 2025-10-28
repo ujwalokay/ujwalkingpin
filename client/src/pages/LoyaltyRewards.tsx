@@ -408,7 +408,7 @@ export default function LoyaltyRewards() {
                             <div className="flex items-center justify-between text-sm">
                               <span className="text-gray-600 dark:text-gray-400">Value:</span>
                               <span className="font-semibold text-gray-900 dark:text-white">
-                                {reward.rewardType === 'free_hour' ? `${reward.value} hrs` : `₹${reward.value}`}
+                                {reward.rewardType === 'free_hour' ? `${reward.value} hrs` : reward.rewardType === 'free_food' ? `₹${reward.value} food` : `₹${reward.value}`}
                               </span>
                             </div>
                             <div className="flex items-center justify-between text-sm">
@@ -580,6 +580,7 @@ export default function LoyaltyRewards() {
                   <SelectItem value="discount">Discount</SelectItem>
                   <SelectItem value="cashback">Cashback</SelectItem>
                   <SelectItem value="free_hour">Free Hour</SelectItem>
+                  <SelectItem value="free_food">Free Food</SelectItem>
                 </SelectContent>
               </Select>
             </div>
@@ -589,6 +590,7 @@ export default function LoyaltyRewards() {
                 {rewardForm.rewardType === "discount" && "Discount Value (%)"}
                 {rewardForm.rewardType === "cashback" && "Cashback Amount (₹)"}
                 {rewardForm.rewardType === "free_hour" && "Free Time"}
+                {rewardForm.rewardType === "free_food" && "Food Item ID or Value (₹)"}
               </Label>
               {rewardForm.rewardType === "discount" && (
                 <div className="relative">
@@ -659,10 +661,26 @@ export default function LoyaltyRewards() {
                   </div>
                 </div>
               )}
+              {rewardForm.rewardType === "free_food" && (
+                <div className="relative">
+                  <span className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground">₹</span>
+                  <Input
+                    id="rewardValue"
+                    type="number"
+                    min="1"
+                    value={rewardForm.value}
+                    onChange={(e) => setRewardForm({ ...rewardForm, value: e.target.value })}
+                    placeholder="e.g., 100 for ₹100 food voucher"
+                    data-testid="input-reward-monetary-value"
+                    className="pl-8"
+                  />
+                </div>
+              )}
               <p className="text-xs text-gray-500">
                 {rewardForm.rewardType === "discount" && "Enter percentage discount (1-100)"}
                 {rewardForm.rewardType === "cashback" && "Enter cashback amount in rupees"}
                 {rewardForm.rewardType === "free_hour" && "Enter free gaming time in hours and minutes"}
+                {rewardForm.rewardType === "free_food" && "Enter food voucher value in rupees"}
               </p>
             </div>
 

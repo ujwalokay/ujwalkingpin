@@ -2244,6 +2244,22 @@ export async function registerRoutes(app: Express): Promise<Server> {
             updatedAt: new Date()
           })
           .where(eq(schema.customerLoyalty.whatsappNumber, whatsappNumber));
+      } else if (reward.rewardType === 'free_food') {
+        if (activeBooking) {
+          const foodVoucherValue = parseFloat(reward.value);
+          const existingFoodOrders = activeBooking.foodOrders || [];
+          
+          const freeFood = {
+            foodId: 'voucher-' + Date.now(),
+            foodName: `Free Food Voucher (₹${foodVoucherValue})`,
+            price: '0',
+            quantity: 1
+          };
+          
+          await storage.updateBooking(activeBooking.id, {
+            foodOrders: [...existingFoodOrders, freeFood],
+          });
+        }
       }
 
       if (req.session.userId && req.session.username && req.session.role) {

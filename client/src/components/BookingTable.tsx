@@ -175,26 +175,48 @@ export function BookingTable({ bookings, onExtend, onEnd, onComplete, onAddFood,
     }));
   }, [deviceConfigs, occupiedSeats]);
 
-  // Seat change mutation
+  // Seat change mutation with optimistic updates for instant UI response
   const changeSeatMutation = useMutation({
     mutationFn: async (data: { bookingId: string; newSeatName: string }) => {
       return await apiRequest("PATCH", `/api/bookings/${data.bookingId}/change-seat`, { newSeatName: data.newSeatName });
     },
+    onMutate: async (variables) => {
+      await queryClient.cancelQueries({ queryKey: ["/api/bookings"] });
+      
+      const previousBookings = queryClient.getQueryData(["/api/bookings"]);
+      
+      queryClient.setQueryData(["/api/bookings"], (old: any) => {
+        if (!old) return old;
+        return old.map((booking: any) => 
+          booking.id === variables.bookingId 
+            ? { ...booking, seatName: variables.newSeatName }
+            : booking
+        );
+      });
+      
+      setSeatChangeDialog({open: false, bookingId: "", currentSeat: "", category: ""});
+      
+      return { previousBookings };
+    },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["/api/bookings"] });
-      queryClient.invalidateQueries({ queryKey: ["/api/device-config"] });
       toast({
         title: "Seat Changed!",
-        description: "The booking has been moved to the new seat successfully.",
+        description: "The booking has been moved successfully.",
       });
-      setSeatChangeDialog({open: false, bookingId: "", currentSeat: "", category: ""});
     },
-    onError: (error: any) => {
+    onError: (error: any, variables, context: any) => {
+      if (context?.previousBookings) {
+        queryClient.setQueryData(["/api/bookings"], context.previousBookings);
+      }
       toast({
         title: "Seat Change Failed",
-        description: error.message || "Failed to change seat",
+        description: error.message || "Failed to change seat. Changes reverted.",
         variant: "destructive",
       });
+    },
+    onSettled: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/bookings"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/device-config"] });
     },
   });
 
@@ -775,7 +797,7 @@ export function BookingTable({ bookings, onExtend, onEnd, onComplete, onAddFood,
                               <div className="flex items-center gap-2">
                                 {getRewardIcon(reward.rewardType || 'discount')}
                                 <span className="font-semibold text-yellow-600 dark:text-yellow-400">
-                                  {reward.rewardType === 'free_hour' ? `${reward.value} hrs` : `₹${reward.value}`}
+                                  {reward.rewardType === 'free_hour' ? `${reward.value} hrs` : reward.rewardType === 'free_food' ? `₹${reward.value} food` : `₹${reward.value}`}
                                 </span>
                               </div>
                               <div className="text-xs text-muted-foreground">
