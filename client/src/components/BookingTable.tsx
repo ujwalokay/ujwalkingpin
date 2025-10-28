@@ -15,7 +15,7 @@ import { Input } from "@/components/ui/input";
 import { StatusBadge } from "./StatusBadge";
 import { SessionTimer } from "./SessionTimer";
 import { PromotionUsageDialog } from "./PromotionUsageDialog";
-import { Clock, X, Check, UtensilsCrossed, Search, Plus, MoreVertical, StopCircle, Trash2, Play, Pause, CheckSquare, Award, Gift, Percent, DollarSign } from "lucide-react";
+import { Clock, X, Check, UtensilsCrossed, Search, Plus, MoreVertical, StopCircle, Trash2, Play, Pause, CheckSquare, Award, Gift, Percent, DollarSign, ArrowRightLeft } from "lucide-react";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent } from "@/components/ui/card";
@@ -93,6 +93,7 @@ export function BookingTable({ bookings, onExtend, onEnd, onComplete, onAddFood,
   const [loyaltyDialog, setLoyaltyDialog] = useState<{open: boolean, whatsappNumber: string, customerName: string}>({open: false, whatsappNumber: "", customerName: ""});
   const [promotionDialog, setPromotionDialog] = useState<{open: boolean, whatsappNumber: string, customerName: string}>({open: false, whatsappNumber: "", customerName: ""});
   const [selectedRewardId, setSelectedRewardId] = useState<string | null>(null);
+  const [seatChangeDialog, setSeatChangeDialog] = useState<{open: boolean, bookingId: string, currentSeat: string, category: string}>({open: false, bookingId: "", currentSeat: "", category: ""});
 
   // Fetch loyalty tiers
   const { data: loyaltyTiers = [] } = useQuery<any[]>({
@@ -149,6 +150,34 @@ export function BookingTable({ bookings, onExtend, onEnd, onComplete, onAddFood,
       toast({
         title: "Redemption Failed",
         description: error.message || "Failed to redeem reward",
+        variant: "destructive",
+      });
+    },
+  });
+
+  // Fetch available seats for seat change
+  const { data: availableSeats = [] } = useQuery<any[]>({
+    queryKey: ["/api/available-seats"],
+  });
+
+  // Seat change mutation
+  const changeSeatMutation = useMutation({
+    mutationFn: async (data: { bookingId: string; newSeatName: string }) => {
+      return await apiRequest("PATCH", `/api/bookings/${data.bookingId}/change-seat`, { newSeatName: data.newSeatName });
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/bookings"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/available-seats"] });
+      toast({
+        title: "Seat Changed!",
+        description: "The booking has been moved to the new seat successfully.",
+      });
+      setSeatChangeDialog({open: false, bookingId: "", currentSeat: "", category: ""});
+    },
+    onError: (error: any) => {
+      toast({
+        title: "Seat Change Failed",
+        description: error.message || "Failed to change seat",
         variant: "destructive",
       });
     },
@@ -621,6 +650,23 @@ export function BookingTable({ bookings, onExtend, onEnd, onComplete, onAddFood,
                               Add Food
                             </DropdownMenuItem>
                           )}
+                          {(booking.status === "running" || booking.status === "paused") && canMakeChanges && (
+                            <DropdownMenuItem
+                              onClick={() => {
+                                const category = booking.seatName.split('-')[0];
+                                setSeatChangeDialog({
+                                  open: true,
+                                  bookingId: booking.id,
+                                  currentSeat: booking.seatName,
+                                  category: category
+                                });
+                              }}
+                              data-testid={`action-change-seat-${booking.id}`}
+                            >
+                              <ArrowRightLeft className="mr-2 h-4 w-4" />
+                              Change Seat
+                            </DropdownMenuItem>
+                          )}
                         </DropdownMenuContent>
                       </DropdownMenu>
                     </TableCell>
@@ -770,6 +816,72 @@ export function BookingTable({ bookings, onExtend, onEnd, onComplete, onAddFood,
         whatsappNumber={promotionDialog.whatsappNumber}
         customerName={promotionDialog.customerName}
       />
+
+      <Dialog open={seatChangeDialog.open} onOpenChange={(open) => setSeatChangeDialog({...seatChangeDialog, open})}>
+        <DialogContent className="max-w-md" data-testid="dialog-seat-change">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <ArrowRightLeft className="h-5 w-5 text-blue-500" />
+              Change Seat
+            </DialogTitle>
+            <DialogDescription>
+              Select a new available seat to move this booking
+            </DialogDescription>
+          </DialogHeader>
+          
+          <div className="space-y-4">
+            <div className="p-3 bg-muted rounded-lg">
+              <p className="text-sm text-muted-foreground">Current Seat:</p>
+              <p className="text-lg font-semibold">{seatChangeDialog.currentSeat}</p>
+            </div>
+
+            <div className="space-y-2">
+              <p className="text-sm font-medium">Select New Seat:</p>
+              <div className="grid grid-cols-3 gap-2 max-h-64 overflow-y-auto">
+                {availableSeats
+                  .filter((seat: any) => seat.category === seatChangeDialog.category)
+                  .flatMap((seat: any) => seat.availableSeats)
+                  .filter((seatName: string) => seatName !== seatChangeDialog.currentSeat)
+                  .map((seatName: string) => (
+                    <Button
+                      key={seatName}
+                      variant="outline"
+                      className="h-12"
+                      onClick={() => {
+                        changeSeatMutation.mutate({
+                          bookingId: seatChangeDialog.bookingId,
+                          newSeatName: seatName
+                        });
+                      }}
+                      disabled={changeSeatMutation.isPending}
+                      data-testid={`button-select-seat-${seatName}`}
+                    >
+                      {seatName}
+                    </Button>
+                  ))}
+              </div>
+              {availableSeats
+                .filter((seat: any) => seat.category === seatChangeDialog.category)
+                .flatMap((seat: any) => seat.availableSeats)
+                .filter((seatName: string) => seatName !== seatChangeDialog.currentSeat).length === 0 && (
+                <p className="text-sm text-muted-foreground text-center py-4">
+                  No available seats in this category
+                </p>
+              )}
+            </div>
+          </div>
+
+          <DialogFooter>
+            <Button 
+              variant="outline" 
+              onClick={() => setSeatChangeDialog({open: false, bookingId: "", currentSeat: "", category: ""})}
+              data-testid="button-cancel-seat-change"
+            >
+              Cancel
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
