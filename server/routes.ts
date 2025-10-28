@@ -395,6 +395,19 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(400).json({ message: "Cannot change to a different category" });
       }
 
+      const allBookings = await storage.getAllBookings();
+      const conflictingBooking = allBookings.find(b => 
+        b.id !== id &&
+        b.seatName === newSeatName &&
+        (b.status === 'running' || b.status === 'paused' || b.status === 'upcoming')
+      );
+
+      if (conflictingBooking) {
+        return res.status(400).json({ 
+          message: `Seat ${newSeatName} is already occupied. Please select another seat.` 
+        });
+      }
+
       const newSeatNumber = parseInt(newSeatName.split('-')[1]);
       
       const updated = await storage.updateBooking(id, {

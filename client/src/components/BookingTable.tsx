@@ -155,10 +155,25 @@ export function BookingTable({ bookings, onExtend, onEnd, onComplete, onAddFood,
     },
   });
 
-  // Fetch available seats for seat change
-  const { data: availableSeats = [] } = useQuery<any[]>({
-    queryKey: ["/api/available-seats"],
+  // Fetch device configs and bookings for seat change
+  const { data: deviceConfigs = [] } = useQuery<any[]>({
+    queryKey: ["/api/device-config"],
   });
+
+  const occupiedSeats = useMemo(() => {
+    return new Set(
+      bookings
+        .filter(b => b.status === 'running' || b.status === 'paused')
+        .map(b => b.seatName)
+    );
+  }, [bookings]);
+
+  const availableSeatsForChange = useMemo(() => {
+    return deviceConfigs.map(config => ({
+      category: config.category,
+      availableSeats: (config.seats || []).filter((seat: string) => !occupiedSeats.has(seat))
+    }));
+  }, [deviceConfigs, occupiedSeats]);
 
   // Seat change mutation
   const changeSeatMutation = useMutation({
@@ -167,7 +182,7 @@ export function BookingTable({ bookings, onExtend, onEnd, onComplete, onAddFood,
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["/api/bookings"] });
-      queryClient.invalidateQueries({ queryKey: ["/api/available-seats"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/device-config"] });
       toast({
         title: "Seat Changed!",
         description: "The booking has been moved to the new seat successfully.",
@@ -838,7 +853,7 @@ export function BookingTable({ bookings, onExtend, onEnd, onComplete, onAddFood,
             <div className="space-y-2">
               <p className="text-sm font-medium">Select New Seat:</p>
               <div className="grid grid-cols-3 gap-2 max-h-64 overflow-y-auto">
-                {availableSeats
+                {availableSeatsForChange
                   .filter((seat: any) => seat.category === seatChangeDialog.category)
                   .flatMap((seat: any) => seat.availableSeats)
                   .filter((seatName: string) => seatName !== seatChangeDialog.currentSeat)
@@ -860,7 +875,7 @@ export function BookingTable({ bookings, onExtend, onEnd, onComplete, onAddFood,
                     </Button>
                   ))}
               </div>
-              {availableSeats
+              {availableSeatsForChange
                 .filter((seat: any) => seat.category === seatChangeDialog.category)
                 .flatMap((seat: any) => seat.availableSeats)
                 .filter((seatName: string) => seatName !== seatChangeDialog.currentSeat).length === 0 && (
