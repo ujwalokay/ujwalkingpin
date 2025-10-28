@@ -2119,10 +2119,6 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(400).json({ message: `Insufficient points. You have ${customer.pointsAvailable} points but need ${reward.pointCost} points.` });
       }
 
-      if (customer.pointsAvailable < 100) {
-        return res.status(400).json({ message: "You need at least 100 points to redeem rewards" });
-      }
-
       const updatedCustomer = await storage.redeemPoints(whatsappNumber, reward.pointCost);
       if (!updatedCustomer) {
         return res.status(500).json({ message: "Failed to redeem reward" });
