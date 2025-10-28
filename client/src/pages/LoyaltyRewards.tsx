@@ -32,6 +32,8 @@ export default function LoyaltyRewards() {
   const [redemptionDialogOpen, setRedemptionDialogOpen] = useState(false);
   const [selectedCustomer, setSelectedCustomer] = useState<CustomerLoyalty | null>(null);
   const [selectedRewardForRedemption, setSelectedRewardForRedemption] = useState<string>("");
+  const [selectedBookingId, setSelectedBookingId] = useState<string>("");
+  const [activeBookings, setActiveBookings] = useState<any[]>([]);
   
   const [settingsDialogOpen, setSettingsDialogOpen] = useState(false);
   const [settingsForm, setSettingsForm] = useState({
@@ -140,12 +142,13 @@ export default function LoyaltyRewards() {
   });
 
   const redeemRewardMutation = useMutation({
-    mutationFn: async (data: { whatsappNumber: string; rewardId: string }) => {
+    mutationFn: async (data: { whatsappNumber: string; rewardId: string; bookingId?: string }) => {
       return await apiRequest("POST", "/api/rewards/redeem", data);
     },
     onSuccess: (data: any) => {
       queryClient.invalidateQueries({ queryKey: ["/api/customer-loyalty"] });
       queryClient.invalidateQueries({ queryKey: ["/api/loyalty-rewards"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/bookings"] });
       toast({
         title: "Reward Redeemed!",
         description: `Successfully redeemed reward. Remaining points: ${data.remainingPoints}`,
@@ -153,6 +156,8 @@ export default function LoyaltyRewards() {
       setRedemptionDialogOpen(false);
       setSelectedCustomer(null);
       setSelectedRewardForRedemption("");
+      setSelectedBookingId("");
+      setActiveBookings([]);
     },
     onError: (error: any) => {
       toast({
@@ -261,9 +266,17 @@ export default function LoyaltyRewards() {
     }
   };
 
-  const handleRedeemRewards = (customer: CustomerLoyalty) => {
+  const handleRedeemRewards = async (customer: CustomerLoyalty) => {
     setSelectedCustomer(customer);
     setRedemptionDialogOpen(true);
+    
+    try {
+      const bookings = await apiRequest("GET", `/api/customer/${encodeURIComponent(customer.whatsappNumber)}/active-bookings`);
+      setActiveBookings(bookings as any[]);
+    } catch (error) {
+      console.error("Failed to fetch active bookings:", error);
+      setActiveBookings([]);
+    }
   };
 
   const handleConfirmRedemption = () => {
@@ -276,10 +289,28 @@ export default function LoyaltyRewards() {
       return;
     }
     
-    redeemRewardMutation.mutate({
+    const selectedReward = rewards.find(r => r.id === selectedRewardForRedemption);
+    const requiresBooking = selectedReward && (selectedReward.rewardType === 'free_hour' || selectedReward.rewardType === 'free_food');
+    
+    if (requiresBooking && activeBookings.length > 1 && !selectedBookingId) {
+      toast({
+        title: "Selection Required",
+        description: "Please select which PC to apply this reward to",
+        variant: "destructive",
+      });
+      return;
+    }
+    
+    const payload: { whatsappNumber: string; rewardId: string; bookingId?: string } = {
       whatsappNumber: selectedCustomer.whatsappNumber,
       rewardId: selectedRewardForRedemption,
-    });
+    };
+    
+    if (selectedBookingId) {
+      payload.bookingId = selectedBookingId;
+    }
+    
+    redeemRewardMutation.mutate(payload);
   };
 
   const activeRewardsForRedemption = rewards.filter(r => r.enabled && (r.stock === null || r.stock > 0));
@@ -761,12 +792,59 @@ export default function LoyaltyRewards() {
                 </SelectContent>
               </Select>
             </div>
+            
+            {selectedRewardForRedemption && (() => {
+              const selectedReward = rewards.find(r => r.id === selectedRewardForRedemption);
+              const requiresBooking = selectedReward && (selectedReward.rewardType === 'free_hour' || selectedReward.rewardType === 'free_food');
+              
+              if (requiresBooking && activeBookings.length > 0) {
+                return (
+                  <div className="space-y-2">
+                    <Label htmlFor="bookingSelect">Select PC Session to Apply Reward</Label>
+                    <Select
+                      value={selectedBookingId}
+                      onValueChange={setSelectedBookingId}
+                    >
+                      <SelectTrigger data-testid="select-booking-for-reward">
+                        <SelectValue placeholder="Choose which PC..." />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {activeBookings.map((booking) => (
+                          <SelectItem key={booking.id} value={booking.id}>
+                            {booking.category} - {booking.seatName} ({booking.status})
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                    <p className="text-xs text-gray-500">
+                      {activeBookings.length === 1 
+                        ? "You have 1 active PC session" 
+                        : `You have ${activeBookings.length} active PC sessions. Select which one to apply this reward to.`}
+                    </p>
+                  </div>
+                );
+              }
+              
+              if (requiresBooking && activeBookings.length === 0) {
+                return (
+                  <div className="p-3 bg-yellow-50 dark:bg-yellow-950/20 border border-yellow-200 dark:border-yellow-800 rounded-lg">
+                    <p className="text-sm text-yellow-800 dark:text-yellow-300">
+                      ⚠️ No active PC sessions found. This reward requires an active session to be applied.
+                    </p>
+                  </div>
+                );
+              }
+              
+              return null;
+            })()}
           </div>
           <DialogFooter>
             <Button variant="outline" onClick={() => {
               setRedemptionDialogOpen(false);
               setSelectedCustomer(null);
               setSelectedRewardForRedemption("");
+              setSelectedBookingId("");
+              setActiveBookings([]);
             }} data-testid="button-cancel-redemption">
               Cancel
             </Button>
