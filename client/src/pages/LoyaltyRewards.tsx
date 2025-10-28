@@ -536,6 +536,17 @@ export default function LoyaltyRewards() {
                                 </div>
                               </div>
                             </div>
+                            <div className="mt-4">
+                              <Button
+                                className="w-full"
+                                onClick={() => handleRedeemRewards(customer)}
+                                disabled={customer.pointsAvailable === 0}
+                                data-testid={`button-redeem-${customer.whatsappNumber}`}
+                              >
+                                <Gift className="mr-2 h-4 w-4" />
+                                {customer.pointsAvailable === 0 ? "No Points Available" : "Redeem Reward"}
+                              </Button>
+                            </div>
                           </div>
                         </CardContent>
                       </Card>
