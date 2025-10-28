@@ -2157,9 +2157,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const redemptionSchema = z.object({
         whatsappNumber: z.string().min(1),
         rewardId: z.string().min(1),
+        bookingId: z.string().optional(),
       });
 
-      const { whatsappNumber, rewardId } = redemptionSchema.parse(req.body);
+      const { whatsappNumber, rewardId, bookingId } = redemptionSchema.parse(req.body);
 
       const customer = await storage.getCustomerLoyalty(whatsappNumber);
       if (!customer) {
@@ -2201,10 +2202,23 @@ export async function registerRoutes(app: Express): Promise<Server> {
       await storage.decrementRewardStock(rewardId);
 
       const allBookings = await storage.getAllBookings();
-      const activeBooking = allBookings.find(booking => 
-        booking.whatsappNumber === whatsappNumber && 
-        (booking.status === 'running' || booking.status === 'paused')
-      );
+      let activeBooking;
+      
+      if (bookingId) {
+        activeBooking = allBookings.find(booking => 
+          booking.id === bookingId && 
+          booking.whatsappNumber === whatsappNumber && 
+          (booking.status === 'running' || booking.status === 'paused')
+        );
+        if (!activeBooking) {
+          return res.status(404).json({ message: "Selected booking not found or not active" });
+        }
+      } else {
+        activeBooking = allBookings.find(booking => 
+          booking.whatsappNumber === whatsappNumber && 
+          (booking.status === 'running' || booking.status === 'paused')
+        );
+      }
 
       if (reward.rewardType === 'free_hour') {
         if (activeBooking) {
