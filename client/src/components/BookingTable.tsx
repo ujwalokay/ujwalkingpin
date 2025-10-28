@@ -126,8 +126,8 @@ export function BookingTable({ bookings, onExtend, onEnd, onComplete, onAddFood,
     if (!customerLoyalty || !loyaltyRewards.length) return [];
     const pointsAvailable = parseInt(customerLoyalty.pointsAvailable || "0");
     return loyaltyRewards.filter((reward: any) => {
-      const cardPointsRequired = parseInt(reward.cardPointsRequired || "0");
-      return reward.enabled === 1 && pointsAvailable >= cardPointsRequired;
+      const pointCost = parseInt(reward.pointCost || "0");
+      return reward.enabled === 1 && pointsAvailable >= pointCost;
     });
   }, [customerLoyalty, loyaltyRewards]);
 
@@ -801,7 +801,7 @@ export function BookingTable({ bookings, onExtend, onEnd, onComplete, onAddFood,
                                 </span>
                               </div>
                               <div className="text-xs text-muted-foreground">
-                                Requires {reward.cardPointsRequired || 0} points
+                                Requires {reward.pointCost || 0} points
                               </div>
                             </div>
                           </CardContent>

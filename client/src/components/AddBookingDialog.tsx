@@ -218,8 +218,8 @@ export function AddBookingDialog({ open, onOpenChange, onConfirm, availableSeats
     if (!customerLoyalty || !loyaltyRewards.length) return [];
     const pointsAvailable = parseInt(customerLoyalty.pointsAvailable || "0");
     return loyaltyRewards.filter((reward: any) => {
-      const cardPointsRequired = parseInt(reward.cardPointsRequired || "0");
-      return reward.enabled === 1 && pointsAvailable >= cardPointsRequired;
+      const pointCost = parseInt(reward.pointCost || "0");
+      return reward.enabled === 1 && pointsAvailable >= pointCost;
     });
   }, [customerLoyalty, loyaltyRewards]);
 
@@ -1129,7 +1129,7 @@ export function AddBookingDialog({ open, onOpenChange, onConfirm, availableSeats
                                     </span>
                                   </div>
                                   <p className="text-xs text-muted-foreground mt-1">
-                                    Requires {reward.cardPointsRequired || 0} points
+                                    Requires {reward.pointCost || 0} points
                                   </p>
                                 </div>
                               </div>

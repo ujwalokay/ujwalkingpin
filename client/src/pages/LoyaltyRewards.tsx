@@ -69,7 +69,7 @@ export default function LoyaltyRewards() {
     mutationFn: async (data: typeof rewardForm) => {
       const payload = {
         ...data,
-        pointCost: 0,
+        pointCost: data.cardPointsRequired,
         category: "general",
         stock: null,
       };
@@ -111,7 +111,7 @@ export default function LoyaltyRewards() {
     mutationFn: async ({ id, data }: { id: string; data: Partial<typeof rewardForm> }) => {
       const payload = {
         ...data,
-        pointCost: 0,
+        pointCost: data.cardPointsRequired || 0,
         category: "general",
       };
       return await apiRequest("PATCH", `/api/loyalty-rewards/${id}`, payload);
@@ -412,8 +412,8 @@ export default function LoyaltyRewards() {
                               </span>
                             </div>
                             <div className="flex items-center justify-between text-sm">
-                              <span className="text-gray-600 dark:text-gray-400">Tier Points:</span>
-                              <span className="text-xs font-medium">{reward.cardPointsRequired || 0} pts</span>
+                              <span className="text-gray-600 dark:text-gray-400">Points Cost:</span>
+                              <span className="text-xs font-medium">{reward.pointCost || 0} pts</span>
                             </div>
                             {reward.stock !== null && (
                               <div className="flex items-center justify-between text-sm">
