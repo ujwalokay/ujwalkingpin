@@ -2200,13 +2200,13 @@ export async function registerRoutes(app: Express): Promise<Server> {
       await storage.incrementRewardRedeemed(rewardId);
       await storage.decrementRewardStock(rewardId);
 
-      if (reward.rewardType === 'free_hour') {
-        const allBookings = await storage.getAllBookings();
-        const activeBooking = allBookings.find(booking => 
-          booking.whatsappNumber === whatsappNumber && 
-          (booking.status === 'running' || booking.status === 'paused')
-        );
+      const allBookings = await storage.getAllBookings();
+      const activeBooking = allBookings.find(booking => 
+        booking.whatsappNumber === whatsappNumber && 
+        (booking.status === 'running' || booking.status === 'paused')
+      );
 
+      if (reward.rewardType === 'free_hour') {
         if (activeBooking) {
           const freeHoursValue = parseFloat(reward.value);
           const freeHoursMs = freeHoursValue * 60 * 60 * 1000;
@@ -2219,6 +2219,31 @@ export async function registerRoutes(app: Express): Promise<Server> {
             bonusHoursApplied: reward.value,
           });
         }
+      } else if (reward.rewardType === 'discount') {
+        if (activeBooking) {
+          const currentPrice = parseFloat(activeBooking.price);
+          const discountPercent = parseFloat(reward.value);
+          const discountAmount = (currentPrice * discountPercent) / 100;
+          const newPrice = (currentPrice - discountAmount).toFixed(2);
+          
+          await storage.updateBooking(activeBooking.id, {
+            price: newPrice,
+            originalPrice: activeBooking.originalPrice || activeBooking.price,
+            discountApplied: `${discountPercent}%`,
+          });
+        }
+      } else if (reward.rewardType === 'cashback') {
+        const cashbackAmount = parseFloat(reward.value);
+        const pointsToAdd = Math.floor(cashbackAmount);
+        
+        await db
+          .update(schema.customerLoyalty)
+          .set({ 
+            pointsAvailable: updatedCustomer.pointsAvailable + pointsToAdd,
+            pointsEarned: customer.pointsEarned + pointsToAdd,
+            updatedAt: new Date()
+          })
+          .where(eq(schema.customerLoyalty.whatsappNumber, whatsappNumber));
       }
 
       if (req.session.userId && req.session.username && req.session.role) {
