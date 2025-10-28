@@ -10,7 +10,7 @@ import { EndSessionDialog } from "@/components/EndSessionDialog";
 import { AddFoodToBookingDialog } from "@/components/AddFoodToBookingDialog";
 import { OnboardingTour } from "@/components/OnboardingTour";
 import { InstallPrompt } from "@/components/InstallPrompt";
-import { Plus, Monitor, Gamepad2, Glasses, Car, Cpu, Tv, Radio, Box, RefreshCw, Calculator, Wallet, Users, Calendar, Clock, List } from "lucide-react";
+import { Plus, Monitor, Gamepad2, Glasses, Car, Cpu, Tv, Radio, Box, RefreshCw, Calculator, Wallet, Users, Calendar, Clock, List, Award } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { useSoundAlert } from "@/hooks/useSoundAlert";
 import { fetchBookings, createBooking, updateBooking, deleteBooking, fetchDeviceConfigs, getServerTime } from "@/lib/api";
@@ -83,6 +83,7 @@ export default function Dashboard() {
   const [selectedBookings, setSelectedBookings] = useState<Set<string>>(new Set());
   const [showTour, setShowTour] = useState(false);
   const [showPaymentDialog, setShowPaymentDialog] = useState(false);
+  const [showLoyaltyDialog, setShowLoyaltyDialog] = useState(false);
 
   // Dashboard keyboard shortcuts
   const dashboardShortcuts = useMemo(() => [
@@ -760,6 +761,27 @@ export default function Dashboard() {
             >
               <Calculator className="mr-1 sm:mr-2 h-4 w-4" />
               <span className="hidden sm:inline">Calculate</span> ({selectedBookings.size})
+            </Button>
+            <Button 
+              variant="outline" 
+              size="sm" 
+              onClick={() => {
+                if (selectedBookings.size === 0) {
+                  toast({
+                    title: "No PCs Selected",
+                    description: "Please select PCs from the list to apply loyalty benefits",
+                    variant: "destructive",
+                  });
+                } else {
+                  setShowLoyaltyDialog(true);
+                }
+              }}
+              data-testid="button-loyalty"
+              className="flex-1 sm:flex-none"
+            >
+              <Award className="mr-1 sm:mr-2 h-4 w-4" />
+              <span className="hidden sm:inline">Loyalty</span>
+              <span className="sm:hidden">Loyalty</span>
             </Button>
             <Button 
               variant="outline" 

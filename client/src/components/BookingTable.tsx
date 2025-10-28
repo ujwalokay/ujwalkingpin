@@ -15,7 +15,7 @@ import { Input } from "@/components/ui/input";
 import { StatusBadge } from "./StatusBadge";
 import { SessionTimer } from "./SessionTimer";
 import { PromotionUsageDialog } from "./PromotionUsageDialog";
-import { Clock, X, Check, UtensilsCrossed, Search, Plus, MoreVertical, StopCircle, Trash2, Play, Pause, CheckSquare, Award, Gift, Percent, DollarSign, ArrowRightLeft } from "lucide-react";
+import { Clock, X, Check, UtensilsCrossed, Search, Plus, MoreVertical, StopCircle, Trash2, Play, Pause, Award, Gift, Percent, DollarSign, ArrowRightLeft } from "lucide-react";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent } from "@/components/ui/card";
@@ -92,7 +92,6 @@ export function BookingTable({ bookings, onExtend, onEnd, onComplete, onAddFood,
   const { toast } = useToast();
   const [loyaltyDialog, setLoyaltyDialog] = useState<{open: boolean, whatsappNumber: string, customerName: string}>({open: false, whatsappNumber: "", customerName: ""});
   const [promotionDialog, setPromotionDialog] = useState<{open: boolean, whatsappNumber: string, customerName: string}>({open: false, whatsappNumber: "", customerName: ""});
-  const [selectedRewardId, setSelectedRewardId] = useState<string | null>(null);
   const [seatChangeDialog, setSeatChangeDialog] = useState<{open: boolean, bookingId: string, currentSeat: string, category: string}>({open: false, bookingId: "", currentSeat: "", category: ""});
 
   // Fetch loyalty tiers
@@ -130,30 +129,6 @@ export function BookingTable({ bookings, onExtend, onEnd, onComplete, onAddFood,
       return reward.enabled === 1 && pointsAvailable >= pointCost;
     });
   }, [customerLoyalty, loyaltyRewards]);
-
-  const redeemRewardMutation = useMutation({
-    mutationFn: async (data: { whatsappNumber: string; rewardId: string }) => {
-      return await apiRequest("POST", "/api/rewards/redeem", data);
-    },
-    onSuccess: (data: any) => {
-      queryClient.invalidateQueries({ queryKey: ["/api/customer-loyalty"] });
-      queryClient.invalidateQueries({ queryKey: ["/api/customer-loyalty/by-phone", loyaltyDialog.whatsappNumber] });
-      queryClient.invalidateQueries({ queryKey: ["/api/loyalty-rewards"] });
-      toast({
-        title: "Reward Redeemed!",
-        description: `Successfully redeemed reward. Remaining points: ${data.remainingPoints}`,
-      });
-      setSelectedRewardId(null);
-      setLoyaltyDialog({open: false, whatsappNumber: "", customerName: ""});
-    },
-    onError: (error: any) => {
-      toast({
-        title: "Redemption Failed",
-        description: error.message || "Failed to redeem reward",
-        variant: "destructive",
-      });
-    },
-  });
 
   // Fetch device configs and bookings for seat change
   const { data: deviceConfigs = [] } = useQuery<any[]>({
@@ -220,21 +195,6 @@ export function BookingTable({ bookings, onExtend, onEnd, onComplete, onAddFood,
     },
   });
 
-  const handleRedeemReward = () => {
-    if (!selectedRewardId || !loyaltyDialog.whatsappNumber) {
-      toast({
-        title: "Error",
-        description: "Please select a reward to redeem",
-        variant: "destructive",
-      });
-      return;
-    }
-    
-    redeemRewardMutation.mutate({
-      whatsappNumber: loyaltyDialog.whatsappNumber,
-      rewardId: selectedRewardId,
-    });
-  };
 
   const getRewardIcon = (type: string) => {
     switch (type) {
@@ -425,7 +385,7 @@ export function BookingTable({ bookings, onExtend, onEnd, onComplete, onAddFood,
                             data-testid={`button-select-all-${customerName}`}
                             className="h-8"
                           >
-                            <CheckSquare className="mr-2 h-4 w-4" />
+                            <Check className="mr-2 h-4 w-4" />
                             {allSelected ? 'Deselect All' : someSelected ? 'Select All' : 'Select All'}
                           </Button>
                           {customerBookings[0]?.whatsappNumber && (
@@ -735,9 +695,9 @@ export function BookingTable({ bookings, onExtend, onEnd, onComplete, onAddFood,
                 <CardContent className="pt-4">
                   <div className="space-y-2">
                     <div className="flex items-center justify-between">
-                      <span className="text-sm text-muted-foreground">Total Points</span>
-                      <span className="text-2xl font-bold text-yellow-600 dark:text-yellow-400">
-                        {customerLoyalty.pointsEarned}
+                      <span className="text-sm text-muted-foreground">Available Points</span>
+                      <span className="text-2xl font-bold text-purple-600 dark:text-purple-400">
+                        {customerLoyalty.pointsAvailable}
                       </span>
                     </div>
                     <div className="flex items-center justify-between">
@@ -752,10 +712,6 @@ export function BookingTable({ bookings, onExtend, onEnd, onComplete, onAddFood,
                           {customerTier.tierName}
                         </Badge>
                       )}
-                    </div>
-                    <div className="flex items-center justify-between">
-                      <span className="text-sm text-muted-foreground">Rewards Redeemed</span>
-                      <span className="text-sm font-semibold">{customerLoyalty.rewardsRedeemed}</span>
                     </div>
                   </div>
                 </CardContent>
@@ -774,22 +730,17 @@ export function BookingTable({ bookings, onExtend, onEnd, onComplete, onAddFood,
                 ) : (
                   <div className="space-y-2">
                     {eligibleRewards.map((reward: any) => {
-                      const isSelected = selectedRewardId === reward.id;
                       return (
                         <Card 
                           key={reward.id} 
-                          className={`border-l-4 cursor-pointer transition-all ${isSelected ? 'border-l-green-500 bg-green-50 dark:bg-green-950' : 'border-l-purple-500 hover:bg-gray-50 dark:hover:bg-gray-800'}`}
+                          className="border-l-4 border-l-purple-500"
                           data-testid={`available-reward-${reward.id}`}
-                          onClick={() => setSelectedRewardId(isSelected ? null : reward.id)}
                         >
                           <CardContent className="pt-4">
                             <div className="space-y-2">
                               <div className="flex items-center justify-between">
                                 <span className="font-semibold text-gray-900 dark:text-white">{reward.name}</span>
-                                <div className="flex items-center gap-2">
-                                  <Badge className="capitalize" variant="outline">{reward.cardType || 'bronze'}</Badge>
-                                  {isSelected && <CheckSquare className="h-5 w-5 text-green-600" />}
-                                </div>
+                                <Badge className="capitalize" variant="outline">{reward.cardType || 'bronze'}</Badge>
                               </div>
                               <p className="text-xs text-muted-foreground">
                                 {reward.description}
@@ -827,22 +778,11 @@ export function BookingTable({ bookings, onExtend, onEnd, onComplete, onAddFood,
               variant="outline" 
               onClick={() => {
                 setLoyaltyDialog({open: false, whatsappNumber: "", customerName: ""});
-                setSelectedRewardId(null);
               }}
               data-testid="button-close-loyalty"
             >
               Close
             </Button>
-            {selectedRewardId && (
-              <Button 
-                onClick={handleRedeemReward}
-                disabled={redeemRewardMutation.isPending}
-                data-testid="button-use-selected-reward"
-              >
-                <Gift className="mr-2 h-4 w-4" />
-                {redeemRewardMutation.isPending ? "Redeeming..." : "Use It"}
-              </Button>
-            )}
           </DialogFooter>
         </DialogContent>
       </Dialog>

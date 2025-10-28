@@ -499,7 +499,6 @@ export const customerLoyalty = pgTable("customer_loyalty", {
   customerName: varchar("customer_name").notNull(),
   whatsappNumber: varchar("whatsapp_number").notNull().unique(),
   totalSpent: varchar("total_spent").notNull().default("0"),
-  pointsEarned: integer("points_earned").notNull().default(0),
   pointsAvailable: integer("points_available").notNull().default(0),
   lastPurchaseDate: timestamp("last_purchase_date"),
   createdAt: timestamp("created_at").notNull().defaultNow(),

@@ -194,14 +194,40 @@ export default function History() {
                     </span>
                   </div>
 
-                  {booking.loyaltyPointsUsed && booking.loyaltyPointsUsed > 0 && (
-                    <div className="pt-2">
-                      <Badge variant="outline" className="bg-amber-50 dark:bg-amber-950 text-amber-700 dark:text-amber-300 border-amber-300 dark:border-amber-700">
-                        <Award className="h-3 w-3 mr-1" />
-                        {booking.loyaltyPointsUsed} Loyalty Points Used
-                      </Badge>
+                  {(booking.loyaltyPointsUsed && booking.loyaltyPointsUsed > 0) || booking.discountApplied || booking.bonusHoursApplied ? (
+                    <div className="flex flex-wrap gap-2 pt-2 border-t">
+                      {booking.loyaltyPointsUsed && booking.loyaltyPointsUsed > 0 && (
+                        <Badge 
+                          variant="outline" 
+                          className="bg-blue-50 dark:bg-blue-950 text-blue-700 dark:text-blue-300 border-blue-300 dark:border-blue-700"
+                          data-testid={`badge-loyalty-used-${booking.id}`}
+                        >
+                          <Award className="h-3 w-3 mr-1" />
+                          Loyalty Used
+                        </Badge>
+                      )}
+                      {booking.discountApplied && (
+                        <Badge 
+                          variant="outline" 
+                          className="bg-green-50 dark:bg-green-950 text-green-700 dark:text-green-300 border-green-300 dark:border-green-700"
+                          data-testid={`badge-discount-used-${booking.id}`}
+                        >
+                          <Percent className="h-3 w-3 mr-1" />
+                          Discount Used
+                        </Badge>
+                      )}
+                      {booking.bonusHoursApplied && (
+                        <Badge 
+                          variant="outline" 
+                          className="bg-yellow-50 dark:bg-yellow-950 text-yellow-700 dark:text-yellow-300 border-yellow-300 dark:border-yellow-700"
+                          data-testid={`badge-bonus-used-${booking.id}`}
+                        >
+                          <Gift className="h-3 w-3 mr-1" />
+                          Bonus Used
+                        </Badge>
+                      )}
                     </div>
-                  )}
+                  ) : null}
 
                   {booking.foodOrders && booking.foodOrders.length > 0 && (
                     <div className="pt-2 border-t">

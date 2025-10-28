@@ -29,11 +29,6 @@ export default function LoyaltyRewards() {
     enabled: 1,
   });
 
-  const [redemptionDialogOpen, setRedemptionDialogOpen] = useState(false);
-  const [selectedCustomer, setSelectedCustomer] = useState<CustomerLoyalty | null>(null);
-  const [selectedRewardForRedemption, setSelectedRewardForRedemption] = useState<string>("");
-  const [selectedBookingId, setSelectedBookingId] = useState<string>("");
-  const [activeBookings, setActiveBookings] = useState<any[]>([]);
   
   const [settingsDialogOpen, setSettingsDialogOpen] = useState(false);
   const [settingsForm, setSettingsForm] = useState({
@@ -141,32 +136,6 @@ export default function LoyaltyRewards() {
     },
   });
 
-  const redeemRewardMutation = useMutation({
-    mutationFn: async (data: { whatsappNumber: string; rewardId: string; bookingId?: string }) => {
-      return await apiRequest("POST", "/api/rewards/redeem", data);
-    },
-    onSuccess: (data: any) => {
-      queryClient.invalidateQueries({ queryKey: ["/api/customer-loyalty"] });
-      queryClient.invalidateQueries({ queryKey: ["/api/loyalty-rewards"] });
-      queryClient.invalidateQueries({ queryKey: ["/api/bookings"] });
-      toast({
-        title: "Reward Redeemed!",
-        description: `Successfully redeemed reward. Remaining points: ${data.remainingPoints}`,
-      });
-      setRedemptionDialogOpen(false);
-      setSelectedCustomer(null);
-      setSelectedRewardForRedemption("");
-      setSelectedBookingId("");
-      setActiveBookings([]);
-    },
-    onError: (error: any) => {
-      toast({
-        title: "Redemption Failed",
-        description: error.message || "Failed to redeem reward",
-        variant: "destructive",
-      });
-    },
-  });
 
   const updateSettingsMutation = useMutation({
     mutationFn: async (data: typeof settingsForm) => {
@@ -266,54 +235,6 @@ export default function LoyaltyRewards() {
     }
   };
 
-  const handleRedeemRewards = async (customer: CustomerLoyalty) => {
-    setSelectedCustomer(customer);
-    setRedemptionDialogOpen(true);
-    
-    try {
-      const bookings = await apiRequest("GET", `/api/customer/${encodeURIComponent(customer.whatsappNumber)}/active-bookings`);
-      setActiveBookings(bookings as any[]);
-    } catch (error) {
-      console.error("Failed to fetch active bookings:", error);
-      setActiveBookings([]);
-    }
-  };
-
-  const handleConfirmRedemption = () => {
-    if (!selectedCustomer || !selectedRewardForRedemption) {
-      toast({
-        title: "Error",
-        description: "Please select a reward to redeem",
-        variant: "destructive",
-      });
-      return;
-    }
-    
-    const selectedReward = rewards.find(r => r.id === selectedRewardForRedemption);
-    const requiresBooking = selectedReward && (selectedReward.rewardType === 'free_hour' || selectedReward.rewardType === 'free_food');
-    
-    if (requiresBooking && activeBookings.length > 1 && !selectedBookingId) {
-      toast({
-        title: "Selection Required",
-        description: "Please select which PC to apply this reward to",
-        variant: "destructive",
-      });
-      return;
-    }
-    
-    const payload: { whatsappNumber: string; rewardId: string; bookingId?: string } = {
-      whatsappNumber: selectedCustomer.whatsappNumber,
-      rewardId: selectedRewardForRedemption,
-    };
-    
-    if (selectedBookingId) {
-      payload.bookingId = selectedBookingId;
-    }
-    
-    redeemRewardMutation.mutate(payload);
-  };
-
-  const activeRewardsForRedemption = rewards.filter(r => r.enabled && (r.stock === null || r.stock > 0));
 
   const stats = {
     totalCustomers: customers.length,
@@ -491,7 +412,7 @@ export default function LoyaltyRewards() {
               <CardHeader>
                 <CardTitle>Customer Loyalty</CardTitle>
                 <CardDescription>
-                  View customer points and redeem rewards
+                  View customer points and loyalty status
                 </CardDescription>
               </CardHeader>
               <CardContent>
@@ -521,31 +442,16 @@ export default function LoyaltyRewards() {
                                   </p>
                                 </div>
                               </div>
-                              <div className="grid grid-cols-3 gap-4 mt-4">
+                              <div className="grid grid-cols-2 gap-4 mt-4">
                                 <div>
                                   <p className="text-xs text-gray-500 dark:text-gray-400">Total Spent</p>
                                   <p className="text-lg font-bold text-gray-900 dark:text-white">₹{customer.totalSpent}</p>
                                 </div>
                                 <div>
-                                  <p className="text-xs text-gray-500 dark:text-gray-400">Points Earned</p>
-                                  <p className="text-lg font-bold text-yellow-600">{customer.pointsEarned}</p>
-                                </div>
-                                <div>
-                                  <p className="text-xs text-gray-500 dark:text-gray-400">Points Available</p>
+                                  <p className="text-xs text-gray-500 dark:text-gray-400">Available Points</p>
                                   <p className="text-lg font-bold text-purple-600">{customer.pointsAvailable}</p>
                                 </div>
                               </div>
-                            </div>
-                            <div className="mt-4">
-                              <Button
-                                className="w-full"
-                                onClick={() => handleRedeemRewards(customer)}
-                                disabled={customer.pointsAvailable === 0}
-                                data-testid={`button-redeem-${customer.whatsappNumber}`}
-                              >
-                                <Gift className="mr-2 h-4 w-4" />
-                                {customer.pointsAvailable === 0 ? "No Points Available" : "Redeem Reward"}
-                              </Button>
                             </div>
                           </div>
                         </CardContent>
@@ -737,7 +643,7 @@ export default function LoyaltyRewards() {
                 placeholder="e.g., 50"
                 data-testid="input-card-points-required"
               />
-              <p className="text-xs text-gray-500">Points needed to redeem this card tier reward</p>
+              <p className="text-xs text-gray-500">Points needed to use this card tier reward</p>
             </div>
 
 
@@ -768,103 +674,6 @@ export default function LoyaltyRewards() {
         </DialogContent>
       </Dialog>
 
-      <Dialog open={redemptionDialogOpen} onOpenChange={setRedemptionDialogOpen}>
-        <DialogContent className="sm:max-w-[500px]" data-testid="dialog-reward-redemption">
-          <DialogHeader>
-            <DialogTitle>Redeem Reward</DialogTitle>
-            <DialogDescription>
-              Select a reward for {selectedCustomer?.customerName}
-            </DialogDescription>
-          </DialogHeader>
-          <div className="space-y-4 py-4">
-            {selectedCustomer && (
-              <div className="p-4 bg-purple-50 dark:bg-purple-950 rounded-lg space-y-2">
-                <div className="font-semibold">{selectedCustomer.customerName}</div>
-                <div className="text-sm text-gray-600 dark:text-gray-400">
-                  Available Points: <span className="font-bold text-purple-600">{selectedCustomer.pointsAvailable}</span>
-                </div>
-              </div>
-            )}
-            <div className="space-y-2">
-              <Label htmlFor="rewardSelect">Select Reward</Label>
-              <Select
-                value={selectedRewardForRedemption}
-                onValueChange={setSelectedRewardForRedemption}
-              >
-                <SelectTrigger data-testid="select-reward-redemption">
-                  <SelectValue placeholder="Choose a reward..." />
-                </SelectTrigger>
-                <SelectContent>
-                  {activeRewardsForRedemption.map((reward) => (
-                    <SelectItem key={reward.id} value={reward.id}>
-                      {reward.name} - {reward.pointCost} pts (₹{reward.value})
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
-            
-            {selectedRewardForRedemption && (() => {
-              const selectedReward = rewards.find(r => r.id === selectedRewardForRedemption);
-              const requiresBooking = selectedReward && (selectedReward.rewardType === 'free_hour' || selectedReward.rewardType === 'free_food');
-              
-              if (requiresBooking && activeBookings.length > 0) {
-                return (
-                  <div className="space-y-2">
-                    <Label htmlFor="bookingSelect">Select PC Session to Apply Reward</Label>
-                    <Select
-                      value={selectedBookingId}
-                      onValueChange={setSelectedBookingId}
-                    >
-                      <SelectTrigger data-testid="select-booking-for-reward">
-                        <SelectValue placeholder="Choose which PC..." />
-                      </SelectTrigger>
-                      <SelectContent>
-                        {activeBookings.map((booking) => (
-                          <SelectItem key={booking.id} value={booking.id}>
-                            {booking.category} - {booking.seatName} ({booking.status})
-                          </SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
-                    <p className="text-xs text-gray-500">
-                      {activeBookings.length === 1 
-                        ? "You have 1 active PC session" 
-                        : `You have ${activeBookings.length} active PC sessions. Select which one to apply this reward to.`}
-                    </p>
-                  </div>
-                );
-              }
-              
-              if (requiresBooking && activeBookings.length === 0) {
-                return (
-                  <div className="p-3 bg-yellow-50 dark:bg-yellow-950/20 border border-yellow-200 dark:border-yellow-800 rounded-lg">
-                    <p className="text-sm text-yellow-800 dark:text-yellow-300">
-                      ⚠️ No active PC sessions found. This reward requires an active session to be applied.
-                    </p>
-                  </div>
-                );
-              }
-              
-              return null;
-            })()}
-          </div>
-          <DialogFooter>
-            <Button variant="outline" onClick={() => {
-              setRedemptionDialogOpen(false);
-              setSelectedCustomer(null);
-              setSelectedRewardForRedemption("");
-              setSelectedBookingId("");
-              setActiveBookings([]);
-            }} data-testid="button-cancel-redemption">
-              Cancel
-            </Button>
-            <Button onClick={handleConfirmRedemption} data-testid="button-confirm-redemption">
-              Redeem Reward
-            </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
 
       <Dialog open={settingsDialogOpen} onOpenChange={setSettingsDialogOpen}>
         <DialogContent className="sm:max-w-[600px] max-h-[80vh] overflow-y-auto" data-testid="dialog-loyalty-settings">

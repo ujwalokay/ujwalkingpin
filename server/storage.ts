@@ -1601,7 +1601,6 @@ export class DatabaseStorage implements IStorage {
       totalSpent: newTotalSpent,
       lastPurchaseDate: new Date(),
       updatedAt: new Date(),
-      pointsEarned: existing.pointsEarned + earnedPoints,
       pointsAvailable: existing.pointsAvailable + earnedPoints,
     };
     
@@ -1623,7 +1622,6 @@ export class DatabaseStorage implements IStorage {
     const [updated] = await db
       .update(customerLoyalty)
       .set({ 
-        pointsEarned: existing.pointsEarned + points,
         pointsAvailable: existing.pointsAvailable + points,
         updatedAt: new Date()
       })
