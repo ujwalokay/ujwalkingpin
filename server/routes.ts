@@ -107,6 +107,43 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  app.get("/api/bookings/check-promotions", requireAuth, async (req, res) => {
+    try {
+      const { category, duration, personCount } = req.query;
+      
+      if (!category || !duration || !personCount) {
+        return res.status(400).json({ message: "Missing required parameters: category, duration, personCount" });
+      }
+
+      const activeDiscount = await storage.getActiveDiscountPromotion(
+        category as string,
+        duration as string,
+        parseInt(personCount as string)
+      );
+      
+      const activeBonus = await storage.getActiveBonusHoursPromotion(
+        category as string,
+        duration as string,
+        parseInt(personCount as string)
+      );
+
+      res.json({
+        discount: activeDiscount ? {
+          id: activeDiscount.id,
+          percentage: activeDiscount.discountPercentage,
+          description: `${activeDiscount.discountPercentage}% off ${activeDiscount.category} - ${activeDiscount.duration}`
+        } : null,
+        bonus: activeBonus ? {
+          id: activeBonus.id,
+          hours: activeBonus.bonusHours,
+          description: `+${activeBonus.bonusHours} hours free on ${activeBonus.category} - ${activeBonus.duration}`
+        } : null
+      });
+    } catch (error: any) {
+      res.status(500).json({ message: error.message });
+    }
+  });
+
   app.post("/api/bookings", requireAuth, async (req, res) => {
     try {
       const booking = insertBookingSchema.parse(req.body);
