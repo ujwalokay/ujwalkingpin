@@ -14,7 +14,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { StatusBadge } from "./StatusBadge";
 import { SessionTimer } from "./SessionTimer";
-import { Clock, X, Check, UtensilsCrossed, Search, Plus, MoreVertical, StopCircle, Trash2, Play, Pause, Gift, Percent, DollarSign, ArrowRightLeft } from "lucide-react";
+import { Clock, X, Check, UtensilsCrossed, Search, Plus, MoreVertical, StopCircle, Trash2, Play, Pause, Gift, Percent, DollarSign, ArrowRightLeft, Monitor } from "lucide-react";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent } from "@/components/ui/card";
@@ -658,26 +658,51 @@ export function BookingTable({ bookings, onExtend, onEnd, onComplete, onAddFood,
       </div>
 
       <Dialog open={seatChangeDialog.open} onOpenChange={(open) => setSeatChangeDialog({...seatChangeDialog, open})}>
-        <DialogContent className="max-w-md" data-testid="dialog-seat-change">
-          <DialogHeader>
-            <DialogTitle className="flex items-center gap-2">
-              <ArrowRightLeft className="h-5 w-5 text-blue-500" />
+        <DialogContent className="max-w-2xl" data-testid="dialog-seat-change">
+          <DialogHeader className="space-y-3">
+            <DialogTitle className="flex items-center gap-3 text-2xl">
+              <div className="p-2 bg-gradient-to-br from-blue-500 to-purple-600 rounded-lg">
+                <ArrowRightLeft className="h-6 w-6 text-white" />
+              </div>
               Change Seat
             </DialogTitle>
-            <DialogDescription>
-              Select a new available seat to move this booking
+            <DialogDescription className="text-base">
+              Select a new available seat from {seatChangeDialog.category} category
             </DialogDescription>
           </DialogHeader>
           
-          <div className="space-y-4">
-            <div className="p-3 bg-muted rounded-lg">
-              <p className="text-sm text-muted-foreground">Current Seat:</p>
-              <p className="text-lg font-semibold">{seatChangeDialog.currentSeat}</p>
+          <div className="space-y-6 py-2">
+            {/* Current Seat Display - Enhanced */}
+            <div className="relative overflow-hidden p-5 bg-gradient-to-br from-indigo-50 to-purple-50 dark:from-indigo-950/50 dark:to-purple-950/50 rounded-xl border-2 border-indigo-200 dark:border-indigo-800 shadow-sm">
+              <div className="absolute top-0 right-0 w-32 h-32 bg-gradient-to-br from-blue-400/20 to-purple-400/20 rounded-full blur-2xl"></div>
+              <div className="relative flex items-center justify-between">
+                <div className="space-y-1">
+                  <p className="text-sm font-medium text-indigo-600 dark:text-indigo-400 uppercase tracking-wide">Current Seat</p>
+                  <p className="text-3xl font-bold text-indigo-900 dark:text-indigo-100">{seatChangeDialog.currentSeat}</p>
+                  <p className="text-sm text-indigo-600 dark:text-indigo-400">{seatChangeDialog.category}</p>
+                </div>
+                <div className="p-3 bg-white/80 dark:bg-gray-900/80 rounded-full backdrop-blur-sm">
+                  <Monitor className="h-8 w-8 text-indigo-600 dark:text-indigo-400" />
+                </div>
+              </div>
             </div>
 
-            <div className="space-y-2">
-              <p className="text-sm font-medium">Select New Seat:</p>
-              <div className="grid grid-cols-3 gap-2 max-h-64 overflow-y-auto">
+            {/* Available Seats Grid - Enhanced */}
+            <div className="space-y-3">
+              <div className="flex items-center justify-between">
+                <p className="text-lg font-semibold text-foreground flex items-center gap-2">
+                  <span className="w-2 h-2 bg-green-500 rounded-full animate-pulse"></span>
+                  Available Seats
+                </p>
+                <Badge variant="secondary" className="text-xs">
+                  {availableSeatsForChange
+                    .filter((seat: any) => seat.category === seatChangeDialog.category)
+                    .flatMap((seat: any) => seat.availableSeats)
+                    .filter((seatName: string) => seatName !== seatChangeDialog.currentSeat).length} seats
+                </Badge>
+              </div>
+              
+              <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-3 max-h-80 overflow-y-auto p-1 pr-2">
                 {availableSeatsForChange
                   .filter((seat: any) => seat.category === seatChangeDialog.category)
                   .flatMap((seat: any) => seat.availableSeats)
@@ -686,7 +711,7 @@ export function BookingTable({ bookings, onExtend, onEnd, onComplete, onAddFood,
                     <Button
                       key={seatName}
                       variant="outline"
-                      className="h-12"
+                      className="h-20 flex flex-col items-center justify-center gap-2 border-2 hover:border-green-500 dark:hover:border-green-600 hover:bg-green-50 dark:hover:bg-green-950/30 hover:shadow-md transition-all duration-200 group relative overflow-hidden"
                       onClick={() => {
                         changeSeatMutation.mutate({
                           bookingId: seatChangeDialog.bookingId,
@@ -696,26 +721,38 @@ export function BookingTable({ bookings, onExtend, onEnd, onComplete, onAddFood,
                       disabled={changeSeatMutation.isPending}
                       data-testid={`button-select-seat-${seatName}`}
                     >
-                      {seatName}
+                      <div className="absolute inset-0 bg-gradient-to-br from-green-400/0 to-emerald-400/0 group-hover:from-green-400/10 group-hover:to-emerald-400/10 transition-all duration-300"></div>
+                      <Monitor className="h-6 w-6 text-muted-foreground group-hover:text-green-600 dark:group-hover:text-green-500 transition-colors" />
+                      <span className="font-semibold text-sm group-hover:text-green-700 dark:group-hover:text-green-400 transition-colors">{seatName}</span>
                     </Button>
                   ))}
               </div>
+              
               {availableSeatsForChange
                 .filter((seat: any) => seat.category === seatChangeDialog.category)
                 .flatMap((seat: any) => seat.availableSeats)
                 .filter((seatName: string) => seatName !== seatChangeDialog.currentSeat).length === 0 && (
-                <p className="text-sm text-muted-foreground text-center py-4">
-                  No available seats in this category
-                </p>
+                <div className="flex flex-col items-center justify-center py-12 space-y-3">
+                  <div className="p-4 bg-amber-50 dark:bg-amber-950/30 rounded-full">
+                    <Monitor className="h-12 w-12 text-amber-500" />
+                  </div>
+                  <p className="text-sm text-muted-foreground text-center">
+                    No available seats in {seatChangeDialog.category}
+                  </p>
+                  <p className="text-xs text-muted-foreground">
+                    All seats are currently occupied
+                  </p>
+                </div>
               )}
             </div>
           </div>
 
-          <DialogFooter>
+          <DialogFooter className="gap-2">
             <Button 
               variant="outline" 
               onClick={() => setSeatChangeDialog({open: false, bookingId: "", currentSeat: "", category: ""})}
               data-testid="button-cancel-seat-change"
+              className="min-w-24"
             >
               Cancel
             </Button>
