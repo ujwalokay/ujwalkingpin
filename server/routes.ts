@@ -171,14 +171,17 @@ export async function registerRoutes(app: Express): Promise<Server> {
         let freeHoursValue: number;
         let displayFormat: string;
         
+        // Convert to string to handle both string and numeric inputs
+        const manualFreeHoursStr = String(manualFreeHours);
+        
         // Check if it's in HH:MM format
-        if (manualFreeHours.includes(':')) {
-          const [hours, minutes] = manualFreeHours.split(':').map((val: string) => parseInt(val) || 0);
+        if (manualFreeHoursStr.includes(':')) {
+          const [hours, minutes] = manualFreeHoursStr.split(':').map((val: string) => parseInt(val) || 0);
           freeHoursValue = hours + (minutes / 60);
           displayFormat = `${hours}h ${minutes}min`;
         } else {
-          // Fallback for decimal format
-          freeHoursValue = parseFloat(manualFreeHours);
+          // Fallback for decimal format (legacy or numeric input)
+          freeHoursValue = parseFloat(manualFreeHoursStr);
           const hours = Math.floor(freeHoursValue);
           const minutes = Math.round((freeHoursValue - hours) * 60);
           displayFormat = minutes > 0 ? `${hours}h ${minutes}min` : `${hours}h`;
