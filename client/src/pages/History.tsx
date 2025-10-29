@@ -311,15 +311,17 @@ export default function History() {
               <div className="space-y-2 border-t pt-3">
                 <h3 className="font-semibold text-sm">Pricing Breakdown</h3>
                 <div className="text-sm space-y-2">
-                  {selectedBill.originalPrice && (
+                  {/* Always show original price if discount was applied */}
+                  {selectedBill.originalPrice && selectedBill.discountApplied && (
                     <div className="flex justify-between">
-                      <span className="text-muted-foreground">Original Price:</span>
-                      <span className="line-through text-muted-foreground" data-testid="bill-original-price">
+                      <span className="text-muted-foreground">Original Price (Total Time):</span>
+                      <span className="font-medium" data-testid="bill-original-price">
                         ₹{selectedBill.originalPrice}
                       </span>
                     </div>
                   )}
                   
+                  {/* Discount Section */}
                   {selectedBill.discountApplied && (
                     <div className="bg-emerald-50 dark:bg-emerald-950/30 p-3 rounded-lg space-y-1.5 border border-emerald-200 dark:border-emerald-800">
                       <div className="flex items-center gap-2">
@@ -331,7 +333,7 @@ export default function History() {
                       {selectedBill.manualDiscountPercentage && (
                         <div className="flex justify-between">
                           <span className="text-sm font-medium text-emerald-900 dark:text-emerald-100">
-                            Manual Discount
+                            Discount
                           </span>
                           <span className="text-sm font-semibold text-emerald-700 dark:text-emerald-400" data-testid="bill-discount-percentage">
                             {selectedBill.manualDiscountPercentage}% off
@@ -340,7 +342,7 @@ export default function History() {
                       )}
                       {selectedBill.promotionDetails?.discountAmount && (
                         <div className="flex justify-between">
-                          <span className="text-sm text-emerald-700 dark:text-emerald-400">Savings:</span>
+                          <span className="text-sm text-emerald-700 dark:text-emerald-400">You Saved:</span>
                           <span className="text-sm font-bold text-emerald-700 dark:text-emerald-400" data-testid="bill-discount-amount">
                             -₹{selectedBill.promotionDetails.discountAmount}
                           </span>
@@ -349,6 +351,13 @@ export default function History() {
                     </div>
                   )}
                   
+                  {/* Final Gaming Price after discount */}
+                  <div className="flex justify-between font-semibold text-base">
+                    <span>Gaming Price{selectedBill.discountApplied ? ' (After Discount)' : ''}:</span>
+                    <span className="text-primary" data-testid="bill-gaming-price">₹{selectedBill.price}</span>
+                  </div>
+                  
+                  {/* Free Hours Section */}
                   {selectedBill.bonusHoursApplied && (
                     <div className="bg-violet-50 dark:bg-violet-950/30 p-3 rounded-lg space-y-1.5 border border-violet-200 dark:border-violet-800">
                       <div className="flex items-center gap-2">
@@ -369,11 +378,6 @@ export default function History() {
                       )}
                     </div>
                   )}
-                  
-                  <div className="flex justify-between font-medium">
-                    <span>Gaming Price:</span>
-                    <span data-testid="bill-gaming-price">₹{selectedBill.price}</span>
-                  </div>
                 </div>
               </div>
 
