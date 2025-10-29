@@ -69,6 +69,10 @@ interface Booking {
     discountAmount?: string;
     bonusHours?: string;
   };
+  isPromotionalDiscount?: number;
+  isPromotionalBonus?: number;
+  manualDiscountPercentage?: number;
+  manualFreeHours?: string;
 }
 
 interface BookingTableProps {
@@ -269,28 +273,81 @@ export function BookingTable({ bookings, onExtend, onEnd, onComplete, onAddFood,
                             Total: ₹{customerTotal.toFixed(0)}
                           </span>
                           {(() => {
-                            const hasDiscount = customerBookings.some(b => b.discountApplied);
-                            const hasBonus = customerBookings.some(b => b.bonusHoursApplied);
-                            const whatsappNumber = customerBookings[0]?.whatsappNumber;
+                            // Check for new specific discount fields
+                            const hasPromotionalDiscount = customerBookings.some(b => b.isPromotionalDiscount === 1);
+                            const hasManualDiscount = customerBookings.some(b => b.manualDiscountPercentage && b.manualDiscountPercentage > 0);
+                            const hasPromotionalBonus = customerBookings.some(b => b.isPromotionalBonus === 1);
+                            const hasManualBonus = customerBookings.some(b => b.manualFreeHours);
                             
-                            if (!whatsappNumber || (!hasDiscount && !hasBonus)) return null;
+                            // Fallback to old discount/bonus fields for backward compatibility
+                            const hasGenericDiscount = customerBookings.some(b => b.discountApplied);
+                            const hasGenericBonus = customerBookings.some(b => b.bonusHoursApplied);
+                            
+                            // If new fields are available, show specific badges. Otherwise show generic badges.
+                            const showSpecificBadges = hasPromotionalDiscount || hasManualDiscount || hasPromotionalBonus || hasManualBonus;
+                            const showGenericBadges = !showSpecificBadges && (hasGenericDiscount || hasGenericBonus);
+                            
+                            if (!showSpecificBadges && !showGenericBadges) return null;
                             
                             return (
-                              <div className="flex items-center gap-1.5">
-                                {hasDiscount && (
+                              <div className="flex items-center gap-1.5 flex-wrap">
+                                {/* Show specific badges when new fields are available */}
+                                {hasPromotionalDiscount && (
                                   <Badge 
                                     variant="outline" 
-                                    className="bg-emerald-50 dark:bg-emerald-950/30 text-emerald-700 dark:text-emerald-400 border-emerald-200 dark:border-emerald-800"
+                                    className="bg-emerald-50 dark:bg-emerald-950/30 text-emerald-700 dark:text-emerald-400 border-emerald-200 dark:border-emerald-800 text-xs"
+                                    data-testid={`badge-promotional-discount-${customerName}`}
+                                  >
+                                    <Percent className="h-3 w-3 mr-1" />
+                                    Promotional Discount
+                                  </Badge>
+                                )}
+                                {hasManualDiscount && (
+                                  <Badge 
+                                    variant="outline" 
+                                    className="bg-blue-50 dark:bg-blue-950/30 text-blue-700 dark:text-blue-400 border-blue-200 dark:border-blue-800 text-xs"
+                                    data-testid={`badge-addons-discount-${customerName}`}
+                                  >
+                                    <DollarSign className="h-3 w-3 mr-1" />
+                                    Add-ons Discount
+                                  </Badge>
+                                )}
+                                {hasPromotionalBonus && (
+                                  <Badge 
+                                    variant="outline" 
+                                    className="bg-violet-50 dark:bg-violet-950/30 text-violet-700 dark:text-violet-400 border-violet-200 dark:border-violet-800 text-xs"
+                                    data-testid={`badge-promotional-bonus-${customerName}`}
+                                  >
+                                    <Gift className="h-3 w-3 mr-1" />
+                                    Promotional Bonus
+                                  </Badge>
+                                )}
+                                {hasManualBonus && (
+                                  <Badge 
+                                    variant="outline" 
+                                    className="bg-amber-50 dark:bg-amber-950/30 text-amber-700 dark:text-amber-400 border-amber-200 dark:border-amber-800 text-xs"
+                                    data-testid={`badge-addons-bonus-${customerName}`}
+                                  >
+                                    <Clock className="h-3 w-3 mr-1" />
+                                    Add-ons Bonus
+                                  </Badge>
+                                )}
+                                
+                                {/* Fallback to generic badges for backward compatibility */}
+                                {showGenericBadges && hasGenericDiscount && (
+                                  <Badge 
+                                    variant="outline" 
+                                    className="bg-emerald-50 dark:bg-emerald-950/30 text-emerald-700 dark:text-emerald-400 border-emerald-200 dark:border-emerald-800 text-xs"
                                     data-testid={`badge-discount-${customerName}`}
                                   >
                                     <Percent className="h-3 w-3 mr-1" />
                                     Discount
                                   </Badge>
                                 )}
-                                {hasBonus && (
+                                {showGenericBadges && hasGenericBonus && (
                                   <Badge 
                                     variant="outline" 
-                                    className="bg-violet-50 dark:bg-violet-950/30 text-violet-700 dark:text-violet-400 border-violet-200 dark:border-violet-800"
+                                    className="bg-violet-50 dark:bg-violet-950/30 text-violet-700 dark:text-violet-400 border-violet-200 dark:border-violet-800 text-xs"
                                     data-testid={`badge-bonus-${customerName}`}
                                   >
                                     <Gift className="h-3 w-3 mr-1" />
