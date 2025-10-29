@@ -74,6 +74,32 @@ export default function History() {
     return basePrice + foodTotal;
   };
 
+  const calculateOriginalDuration = (booking: BookingHistory) => {
+    if (!booking.bonusHoursApplied || !booking.manualFreeHours) return null;
+    
+    const start = typeof booking.startTime === 'string' ? new Date(booking.startTime) : booking.startTime;
+    const end = typeof booking.endTime === 'string' ? new Date(booking.endTime) : booking.endTime;
+    
+    if (!isValid(start) || !isValid(end)) return null;
+    
+    // Parse free hours (format could be "1:30" or "1h 30min")
+    let freeHoursInMs = 0;
+    const freeHoursStr = String(booking.manualFreeHours);
+    
+    if (freeHoursStr.includes(':')) {
+      const [hours, minutes] = freeHoursStr.split(':').map(val => parseInt(val) || 0);
+      freeHoursInMs = (hours * 60 * 60 * 1000) + (minutes * 60 * 1000);
+    } else {
+      const hours = parseFloat(freeHoursStr);
+      freeHoursInMs = hours * 60 * 60 * 1000;
+    }
+    
+    // Calculate original end time (before free hours were added)
+    const originalEndTime = new Date(end.getTime() - freeHoursInMs);
+    
+    return calculateDuration(start, originalEndTime);
+  };
+
   if (isLoading) {
     return (
       <div className="space-y-6">
@@ -299,7 +325,7 @@ export default function History() {
                     <span className="font-medium" data-testid="bill-seat-name">{selectedBill.seatName}</span>
                   </div>
                   <div className="flex justify-between">
-                    <span className="text-muted-foreground">Duration:</span>
+                    <span className="text-muted-foreground">{selectedBill.bonusHoursApplied ? 'Total Duration (With Free Hours)' : 'Duration'}:</span>
                     <span className="font-medium" data-testid="bill-duration">
                       {calculateDuration(selectedBill.startTime, selectedBill.endTime)}
                     </span>
@@ -359,23 +385,35 @@ export default function History() {
                   
                   {/* Free Hours Section */}
                   {selectedBill.bonusHoursApplied && (
-                    <div className="bg-violet-50 dark:bg-violet-950/30 p-3 rounded-lg space-y-1.5 border border-violet-200 dark:border-violet-800">
+                    <div className="bg-violet-50 dark:bg-violet-950/30 p-3 rounded-lg space-y-1.5 border border-violet-200 dark:border-violet-800 mt-2">
                       <div className="flex items-center gap-2">
                         <Badge variant="outline" className="bg-violet-100 dark:bg-violet-900/50 text-violet-700 dark:text-violet-400 border-violet-300 dark:border-violet-700">
                           <Gift className="h-3 w-3 mr-1" />
                           Free Hours Given
                         </Badge>
                       </div>
+                      {calculateOriginalDuration(selectedBill) && (
+                        <div className="flex justify-between">
+                          <span className="text-sm text-violet-700 dark:text-violet-400">Original Paid Duration:</span>
+                          <span className="text-sm font-medium text-violet-900 dark:text-violet-100">
+                            {calculateOriginalDuration(selectedBill)}
+                          </span>
+                        </div>
+                      )}
                       {selectedBill.manualFreeHours && (
                         <div className="flex justify-between">
-                          <span className="text-sm font-medium text-violet-900 dark:text-violet-100">
-                            Extra Time Added
-                          </span>
+                          <span className="text-sm text-violet-700 dark:text-violet-400">Extra Time Added:</span>
                           <span className="text-sm font-bold text-violet-700 dark:text-violet-400" data-testid="bill-free-hours">
                             +{selectedBill.manualFreeHours} FREE
                           </span>
                         </div>
                       )}
+                      <div className="flex justify-between border-t border-violet-200 dark:border-violet-700 pt-1.5">
+                        <span className="text-sm font-semibold text-violet-900 dark:text-violet-100">Total Extended Duration:</span>
+                        <span className="text-sm font-bold text-violet-700 dark:text-violet-400">
+                          {calculateDuration(selectedBill.startTime, selectedBill.endTime)}
+                        </span>
+                      </div>
                     </div>
                   )}
                 </div>
