@@ -8,6 +8,7 @@ import { Sparkles, X, Trash2, Calendar, TrendingDown, Gift, Users } from "lucide
 import { format, isAfter, isBefore } from "date-fns";
 import { queryClient, apiRequest } from "@/lib/queryClient";
 import type { DiscountPromotion, BonusHoursPromotion, PricingConfig } from "@shared/schema";
+import { PromotionPreviewDialog } from "@/components/PromotionPreviewDialog";
 
 export function PromotionsManager() {
   const { toast } = useToast();
