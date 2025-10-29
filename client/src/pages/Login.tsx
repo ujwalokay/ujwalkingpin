@@ -35,7 +35,9 @@ export default function Login({ onLoginSuccess }: LoginProps) {
     // Check authentication status on component mount
     const checkAuthStatus = async () => {
       try {
-        const response = await fetch("/api/auth/me");
+        const response = await fetch("/api/auth/me", {
+          credentials: "include"
+        });
         if (response.ok) {
           const data = await response.json();
           if (data.needsStaffLogin) {
@@ -131,6 +133,7 @@ export default function Login({ onLoginSuccess }: LoginProps) {
           "Content-Type": "application/json",
         },
         body: JSON.stringify({ username, password }),
+        credentials: "include"
       });
 
       if (response.ok) {
