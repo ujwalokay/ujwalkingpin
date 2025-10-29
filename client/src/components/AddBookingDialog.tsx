@@ -1007,28 +1007,28 @@ export function AddBookingDialog({ open, onOpenChange, onConfirm, availableSeats
                     <div className="flex items-center gap-2">
                       <Input
                         id="manual-free-hours"
-                        type="number"
-                        min="0"
-                        step="0.5"
+                        type="text"
                         value={manualFreeHours}
                         onChange={(e) => {
-                          setManualFreeHours(e.target.value);
-                          if (e.target.value) {
-                            setManualDiscountPercentage("");
-                            setUsePromotionalDiscount(false);
-                            setUsePromotionalBonus(false);
+                          const value = e.target.value;
+                          if (value === "" || /^(\d{1,2}):?(\d{0,2})?$/.test(value)) {
+                            setManualFreeHours(value);
+                            if (value) {
+                              setManualDiscountPercentage("");
+                              setUsePromotionalDiscount(false);
+                              setUsePromotionalBonus(false);
+                            }
                           }
                         }}
-                        placeholder="Enter free hours"
+                        placeholder="1:30"
                         disabled={usePromotionalDiscount || usePromotionalBonus}
                         data-testid="input-manual-free-hours"
                       />
-                      <span className="text-sm text-muted-foreground whitespace-nowrap">hours</span>
                     </div>
                     <p className="text-xs text-muted-foreground">
                       {usePromotionalDiscount || usePromotionalBonus 
                         ? "❌ Cannot use manual free hours with promotional offers - Uncheck promotional option above to use this" 
-                        : "Enter hours (e.g., 0.5 for 30 minutes, 1 for 1 hour)"}
+                        : "Format: H:MM (e.g., 1:30 for 1hr 30min, 0:30 for 30min, 2:00 for 2hrs)"}
                     </p>
                   </div>
                 </Card>

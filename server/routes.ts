@@ -167,24 +167,41 @@ export async function registerRoutes(app: Express): Promise<Server> {
         };
       }
       // Apply manual free hours
-      else if (manualFreeHours && parseFloat(manualFreeHours) > 0) {
-        const freeHoursValue = parseFloat(manualFreeHours);
-        const newEndTime = new Date(requestEnd.getTime() + (freeHoursValue * 60 * 60 * 1000));
+      else if (manualFreeHours) {
+        let freeHoursValue: number;
+        let displayFormat: string;
         
-        bookingData.originalPrice = booking.price;
-        bookingData.endTime = newEndTime;
-        bookingData.bonusHoursApplied = `+${manualFreeHours} hours (manual)`;
-        bookingData.isPromotionalBonus = 0;
-        bookingData.manualFreeHours = manualFreeHours;
-        bookingData.promotionDetails = {
-          bonusHours: manualFreeHours,
-        };
+        // Check if it's in HH:MM format
+        if (manualFreeHours.includes(':')) {
+          const [hours, minutes] = manualFreeHours.split(':').map(val => parseInt(val) || 0);
+          freeHoursValue = hours + (minutes / 60);
+          displayFormat = `${hours}h ${minutes}min`;
+        } else {
+          // Fallback for decimal format
+          freeHoursValue = parseFloat(manualFreeHours);
+          const hours = Math.floor(freeHoursValue);
+          const minutes = Math.round((freeHoursValue - hours) * 60);
+          displayFormat = minutes > 0 ? `${hours}h ${minutes}min` : `${hours}h`;
+        }
         
-        appliedPromotion = { 
-          type: 'manual_bonus', 
-          description: `+${manualFreeHours} hours free (manual)`,
-          hoursGiven: manualFreeHours
-        };
+        if (freeHoursValue > 0) {
+          const newEndTime = new Date(requestEnd.getTime() + (freeHoursValue * 60 * 60 * 1000));
+          
+          bookingData.originalPrice = booking.price;
+          bookingData.endTime = newEndTime;
+          bookingData.bonusHoursApplied = `+${displayFormat} (manual)`;
+          bookingData.isPromotionalBonus = 0;
+          bookingData.manualFreeHours = manualFreeHours;
+          bookingData.promotionDetails = {
+            bonusHours: manualFreeHours,
+          };
+          
+          appliedPromotion = { 
+            type: 'manual_bonus', 
+            description: `+${displayFormat} free (manual)`,
+            hoursGiven: displayFormat
+          };
+        }
       }
       
       const created = await storage.createBooking(bookingData);
@@ -208,7 +225,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
               action: 'create',
               entityType: 'manual_discount',
               entityId: created.id,
-              details: `Applied manual discount "${appliedPromotion.description}" to booking for ${created.customerName} at ${created.seatName}. Customer saved ₹${appliedPromotion.savingsAmount}, final price ₹${created.price}. Booking: ${startTime} to ${endTime}`
+              details: `${userRole.toUpperCase()} gave ${appliedPromotion.description} to ${created.customerName} on ${created.seatName}. Original Price: ₹${created.originalPrice}, Discount: ₹${appliedPromotion.savingsAmount}, Final Price: ₹${created.price}. Session: ${startTime} to ${endTime}`
             });
           }
           // Handle manual free hours
@@ -220,7 +237,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
               action: 'create',
               entityType: 'manual_free_hours',
               entityId: created.id,
-              details: `Applied manual free hours "${appliedPromotion.description}" to booking for ${created.customerName} at ${created.seatName}. Customer got ${appliedPromotion.hoursGiven}h free gaming time. Booking: ${startTime} to ${endTime}`
+              details: `${userRole.toUpperCase()} gave ${appliedPromotion.hoursGiven} free hours to ${created.customerName} on ${created.seatName}. Price: ₹${created.price}. Session: ${startTime} to ${endTime}`
             });
           }
         }
