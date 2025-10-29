@@ -14,8 +14,6 @@ import {
   insertPricingConfigSchema, 
   insertHappyHoursConfigSchema,
   insertHappyHoursPricingSchema,
-  insertDiscountPromotionSchema,
-  insertBonusHoursPromotionSchema,
   insertFoodItemSchema, 
   insertExpenseSchema,
   insertNotificationSchema,
@@ -107,49 +105,11 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  app.get("/api/bookings/check-promotions", requireAuth, async (req, res) => {
-    try {
-      const { category, duration, personCount } = req.query;
-      
-      if (!category || !duration || !personCount) {
-        return res.status(400).json({ message: "Missing required parameters: category, duration, personCount" });
-      }
-
-      const activeDiscount = await storage.getActiveDiscountPromotion(
-        category as string,
-        duration as string,
-        parseInt(personCount as string)
-      );
-      
-      const activeBonus = await storage.getActiveBonusHoursPromotion(
-        category as string,
-        duration as string,
-        parseInt(personCount as string)
-      );
-
-      res.json({
-        discount: activeDiscount ? {
-          id: activeDiscount.id,
-          percentage: activeDiscount.discountPercentage,
-          description: `${activeDiscount.discountPercentage}% off ${activeDiscount.category} - ${activeDiscount.duration}`
-        } : null,
-        bonus: activeBonus ? {
-          id: activeBonus.id,
-          hours: activeBonus.bonusHours,
-          description: `+${activeBonus.bonusHours} hours free on ${activeBonus.category} - ${activeBonus.duration}`
-        } : null
-      });
-    } catch (error: any) {
-      res.status(500).json({ message: error.message });
-    }
-  });
 
   app.post("/api/bookings", requireAuth, async (req, res) => {
     try {
       const booking = insertBookingSchema.parse(req.body);
       
-      const usePromotionalDiscount = req.body.usePromotionalDiscount || false;
-      const usePromotionalBonus = req.body.usePromotionalBonus || false;
       const manualDiscountPercentage = req.body.manualDiscountPercentage || null;
       const manualFreeHours = req.body.manualFreeHours || null;
       
@@ -181,90 +141,11 @@ export async function registerRoutes(app: Express): Promise<Server> {
         });
       }
       
-      // Calculate duration from booking times
-      const durationMs = requestEnd.getTime() - requestStart.getTime();
-      const durationMinutes = durationMs / (1000 * 60);
-      
-      // Determine duration string for promotion matching
-      let durationStr = "";
-      if (durationMinutes < 60) {
-        durationStr = `${durationMinutes} mins`;
-      } else {
-        const hours = durationMinutes / 60;
-        if (hours === 1) {
-          durationStr = "1 hour";
-        } else {
-          durationStr = `${hours} hours`;
-        }
-      }
-      
       let bookingData = { ...booking };
-      let appliedPromotion: { type: 'discount' | 'bonus' | 'manual_discount' | 'manual_bonus', id?: string, description: string, savingsAmount?: string, hoursGiven?: string } | null = null;
+      let appliedPromotion: { type: 'manual_discount' | 'manual_bonus', description: string, savingsAmount?: string, hoursGiven?: string } | null = null;
       
-      // Apply promotional discount if user opted in
-      if (usePromotionalDiscount) {
-        const activeDiscount = await storage.getActiveDiscountPromotion(
-          booking.category,
-          durationStr,
-          booking.personCount || 1
-        );
-        
-        if (activeDiscount) {
-          const originalPrice = parseFloat(booking.price);
-          const discountAmount = originalPrice * (activeDiscount.discountPercentage / 100);
-          const finalPrice = originalPrice - discountAmount;
-          
-          const promotionDesc = `${activeDiscount.discountPercentage}% off ${activeDiscount.category} - ${activeDiscount.duration}`;
-          
-          bookingData.originalPrice = booking.price;
-          bookingData.price = finalPrice.toFixed(2);
-          bookingData.discountApplied = promotionDesc;
-          bookingData.isPromotionalDiscount = 1;
-          bookingData.promotionDetails = {
-            discountPercentage: activeDiscount.discountPercentage,
-            discountAmount: discountAmount.toFixed(2),
-          };
-          
-          appliedPromotion = { 
-            type: 'discount', 
-            id: activeDiscount.id, 
-            description: promotionDesc,
-            savingsAmount: discountAmount.toFixed(2)
-          };
-        }
-      }
-      // Apply promotional bonus if user opted in (only if no discount applied)
-      else if (usePromotionalBonus) {
-        const activeBonus = await storage.getActiveBonusHoursPromotion(
-          booking.category,
-          durationStr,
-          booking.personCount || 1
-        );
-        
-        if (activeBonus) {
-          const bonusHoursValue = parseFloat(activeBonus.bonusHours);
-          const newEndTime = new Date(requestEnd.getTime() + (bonusHoursValue * 60 * 60 * 1000));
-          
-          const promotionDesc = `+${activeBonus.bonusHours} hours free on ${activeBonus.category} - ${activeBonus.duration}`;
-          
-          bookingData.originalPrice = booking.price;
-          bookingData.endTime = newEndTime;
-          bookingData.bonusHoursApplied = promotionDesc;
-          bookingData.isPromotionalBonus = 1;
-          bookingData.promotionDetails = {
-            bonusHours: activeBonus.bonusHours,
-          };
-          
-          appliedPromotion = { 
-            type: 'bonus', 
-            id: activeBonus.id, 
-            description: promotionDesc,
-            hoursGiven: activeBonus.bonusHours
-          };
-        }
-      }
       // Apply manual discount
-      else if (manualDiscountPercentage && manualDiscountPercentage > 0) {
+      if (manualDiscountPercentage && manualDiscountPercentage > 0) {
         const originalPrice = parseFloat(booking.price);
         const discountAmount = originalPrice * (manualDiscountPercentage / 100);
         const finalPrice = originalPrice - discountAmount;
@@ -318,36 +199,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
           const startTime = new Date(created.startTime).toLocaleString('en-IN', { dateStyle: 'medium', timeStyle: 'short' });
           const endTime = new Date(created.endTime).toLocaleString('en-IN', { dateStyle: 'medium', timeStyle: 'short' });
           
-          // Handle promotional discount
-          if (appliedPromotion.type === 'discount' && appliedPromotion.id && appliedPromotion.savingsAmount) {
-            await storage.incrementDiscountUsage(appliedPromotion.id, appliedPromotion.savingsAmount);
-            
-            await storage.createActivityLog({
-              userId,
-              username,
-              userRole,
-              action: 'use',
-              entityType: 'discount_promotion',
-              entityId: appliedPromotion.id,
-              details: `Applied promotional "${appliedPromotion.description}" to booking for ${created.customerName} at ${created.seatName}. Customer saved ₹${appliedPromotion.savingsAmount}, final price ₹${created.price}. Booking: ${startTime} to ${endTime}`
-            });
-          }
-          // Handle promotional bonus
-          else if (appliedPromotion.type === 'bonus' && appliedPromotion.id && appliedPromotion.hoursGiven) {
-            await storage.incrementBonusHoursUsage(appliedPromotion.id, appliedPromotion.hoursGiven);
-            
-            await storage.createActivityLog({
-              userId,
-              username,
-              userRole,
-              action: 'use',
-              entityType: 'bonus_hours_promotion',
-              entityId: appliedPromotion.id,
-              details: `Applied promotional "${appliedPromotion.description}" to booking for ${created.customerName} at ${created.seatName}. Customer got ${appliedPromotion.hoursGiven}h free gaming time. Booking: ${startTime} to ${endTime}`
-            });
-          }
           // Handle manual discount
-          else if (appliedPromotion.type === 'manual_discount' && appliedPromotion.savingsAmount) {
+          if (appliedPromotion.type === 'manual_discount' && appliedPromotion.savingsAmount) {
             await storage.createActivityLog({
               userId,
               username,
@@ -1059,189 +912,6 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  app.get("/api/discount-promotions", requireAuth, async (req, res) => {
-    try {
-      const promotions = await storage.getAllDiscountPromotions();
-      res.json(promotions);
-    } catch (error: any) {
-      res.status(500).json({ message: error.message });
-    }
-  });
-
-  app.post("/api/discount-promotions", requireAdmin, async (req, res) => {
-    try {
-      const promotion = insertDiscountPromotionSchema.parse(req.body);
-      const created = await storage.createDiscountPromotion(promotion);
-      
-      if (req.session.userId && req.session.username && req.session.role) {
-        const startDate = new Date(promotion.startDate).toLocaleDateString('en-IN', { dateStyle: 'medium' });
-        const endDate = new Date(promotion.endDate).toLocaleDateString('en-IN', { dateStyle: 'medium' });
-        const personInfo = (promotion.personCount && promotion.personCount > 1) ? ` for ${promotion.personCount} persons` : '';
-        
-        await storage.createActivityLog({
-          userId: req.session.userId,
-          username: req.session.username,
-          userRole: req.session.role,
-          action: 'create',
-          entityType: 'discount-promotion',
-          entityId: created.id,
-          details: `Created discount promotion: ${promotion.discountPercentage}% off ${promotion.category} - ${promotion.duration}${personInfo}. Valid from ${startDate} to ${endDate}. Status: ${promotion.enabled ? 'Enabled' : 'Disabled'}`
-        });
-      }
-      
-      res.json(created);
-    } catch (error: any) {
-      res.status(400).json({ message: error.message });
-    }
-  });
-
-  app.patch("/api/discount-promotions/:id", requireAdmin, async (req, res) => {
-    try {
-      const { id } = req.params;
-      const updated = await storage.updateDiscountPromotion(id, req.body);
-      if (!updated) {
-        return res.status(404).json({ message: "Discount promotion not found" });
-      }
-      
-      if (req.session.userId && req.session.username && req.session.role) {
-        const startDate = new Date(updated.startDate).toLocaleDateString('en-IN', { dateStyle: 'medium' });
-        const endDate = new Date(updated.endDate).toLocaleDateString('en-IN', { dateStyle: 'medium' });
-        
-        await storage.createActivityLog({
-          userId: req.session.userId,
-          username: req.session.username,
-          userRole: req.session.role,
-          action: 'update',
-          entityType: 'discount-promotion',
-          entityId: id,
-          details: `Updated discount promotion: ${updated.discountPercentage}% off ${updated.category} - ${updated.duration}. Valid ${startDate} to ${endDate}. Status: ${updated.enabled ? 'Enabled' : 'Disabled'}. Used ${updated.usageCount} times, total savings: ₹${updated.totalSavings}`
-        });
-      }
-      
-      res.json(updated);
-    } catch (error: any) {
-      res.status(400).json({ message: error.message });
-    }
-  });
-
-  app.delete("/api/discount-promotions/:id", requireAdmin, async (req, res) => {
-    try {
-      const { id } = req.params;
-      const promotion = await storage.getDiscountPromotion(id);
-      const success = await storage.deleteDiscountPromotion(id);
-      if (!success) {
-        return res.status(404).json({ message: "Discount promotion not found" });
-      }
-      
-      if (promotion && req.session.userId && req.session.username && req.session.role) {
-        await storage.createActivityLog({
-          userId: req.session.userId,
-          username: req.session.username,
-          userRole: req.session.role,
-          action: 'delete',
-          entityType: 'discount-promotion',
-          entityId: id,
-          details: `Deleted discount promotion: ${promotion.discountPercentage}% off ${promotion.category} - ${promotion.duration}. This promotion was used ${promotion.usageCount} times and saved customers a total of ₹${promotion.totalSavings}. Deleted at ${new Date().toLocaleString('en-IN', { dateStyle: 'medium', timeStyle: 'short' })}`
-        });
-      }
-      
-      res.json({ success: true });
-    } catch (error: any) {
-      res.status(500).json({ message: error.message });
-    }
-  });
-
-  app.get("/api/bonus-hours-promotions", requireAuth, async (req, res) => {
-    try {
-      const promotions = await storage.getAllBonusHoursPromotions();
-      res.json(promotions);
-    } catch (error: any) {
-      res.status(500).json({ message: error.message });
-    }
-  });
-
-  app.post("/api/bonus-hours-promotions", requireAdmin, async (req, res) => {
-    try {
-      const promotion = insertBonusHoursPromotionSchema.parse(req.body);
-      const created = await storage.createBonusHoursPromotion(promotion);
-      
-      if (req.session.userId && req.session.username && req.session.role) {
-        const startDate = new Date(promotion.startDate).toLocaleDateString('en-IN', { dateStyle: 'medium' });
-        const endDate = new Date(promotion.endDate).toLocaleDateString('en-IN', { dateStyle: 'medium' });
-        const personInfo = (promotion.personCount && promotion.personCount > 1) ? ` for ${promotion.personCount} persons` : '';
-        
-        await storage.createActivityLog({
-          userId: req.session.userId,
-          username: req.session.username,
-          userRole: req.session.role,
-          action: 'create',
-          entityType: 'bonus-hours-promotion',
-          entityId: created.id,
-          details: `Created bonus hours promotion: +${promotion.bonusHours}h free for ${promotion.category} - ${promotion.duration}${personInfo}. Valid from ${startDate} to ${endDate}. Status: ${promotion.enabled ? 'Enabled' : 'Disabled'}`
-        });
-      }
-      
-      res.json(created);
-    } catch (error: any) {
-      res.status(400).json({ message: error.message });
-    }
-  });
-
-  app.patch("/api/bonus-hours-promotions/:id", requireAdmin, async (req, res) => {
-    try {
-      const { id } = req.params;
-      const updated = await storage.updateBonusHoursPromotion(id, req.body);
-      if (!updated) {
-        return res.status(404).json({ message: "Bonus hours promotion not found" });
-      }
-      
-      if (req.session.userId && req.session.username && req.session.role) {
-        const startDate = new Date(updated.startDate).toLocaleDateString('en-IN', { dateStyle: 'medium' });
-        const endDate = new Date(updated.endDate).toLocaleDateString('en-IN', { dateStyle: 'medium' });
-        
-        await storage.createActivityLog({
-          userId: req.session.userId,
-          username: req.session.username,
-          userRole: req.session.role,
-          action: 'update',
-          entityType: 'bonus-hours-promotion',
-          entityId: id,
-          details: `Updated bonus hours promotion: +${updated.bonusHours}h free for ${updated.category} - ${updated.duration}. Valid ${startDate} to ${endDate}. Status: ${updated.enabled ? 'Enabled' : 'Disabled'}. Used ${updated.usageCount} times, total ${updated.totalHoursGiven}h given`
-        });
-      }
-      
-      res.json(updated);
-    } catch (error: any) {
-      res.status(400).json({ message: error.message });
-    }
-  });
-
-  app.delete("/api/bonus-hours-promotions/:id", requireAdmin, async (req, res) => {
-    try {
-      const { id } = req.params;
-      const promotion = await storage.getBonusHoursPromotion(id);
-      const success = await storage.deleteBonusHoursPromotion(id);
-      if (!success) {
-        return res.status(404).json({ message: "Bonus hours promotion not found" });
-      }
-      
-      if (promotion && req.session.userId && req.session.username && req.session.role) {
-        await storage.createActivityLog({
-          userId: req.session.userId,
-          username: req.session.username,
-          userRole: req.session.role,
-          action: 'delete',
-          entityType: 'bonus-hours-promotion',
-          entityId: id,
-          details: `Deleted bonus hours promotion: +${promotion.bonusHours}h free for ${promotion.category} - ${promotion.duration}. This promotion was used ${promotion.usageCount} times and gave ${promotion.totalHoursGiven}h of free gaming. Deleted at ${new Date().toLocaleString('en-IN', { dateStyle: 'medium', timeStyle: 'short' })}`
-        });
-      }
-      
-      res.json({ success: true });
-    } catch (error: any) {
-      res.status(500).json({ message: error.message });
-    }
-  });
 
   app.get("/api/food-items", requireAuth, async (req, res) => {
     try {

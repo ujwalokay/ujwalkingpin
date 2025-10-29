@@ -4,7 +4,6 @@ import { DeviceConfigCard } from "@/components/DeviceConfigCard";
 import { PricingTable } from "@/components/PricingTable";
 import { HappyHoursTable } from "@/components/HappyHoursTable";
 import { HappyHoursPricing } from "@/components/HappyHoursPricing";
-import { PromotionsManager } from "@/components/PromotionsManager";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -517,10 +516,6 @@ export default function Settings() {
             />
           ))}
         </div>
-      </div>
-
-      <div>
-        <PromotionsManager />
       </div>
 
       <Dialog open={showAddDialog} onOpenChange={setShowAddDialog}>
