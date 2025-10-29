@@ -14,7 +14,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { StatusBadge } from "./StatusBadge";
 import { SessionTimer } from "./SessionTimer";
-import { Clock, X, Check, UtensilsCrossed, Search, Plus, MoreVertical, StopCircle, Trash2, Play, Pause, Award, Gift, Percent, DollarSign, ArrowRightLeft } from "lucide-react";
+import { Clock, X, Check, UtensilsCrossed, Search, Plus, MoreVertical, StopCircle, Trash2, Play, Pause, Gift, Percent, DollarSign, ArrowRightLeft } from "lucide-react";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent } from "@/components/ui/card";
@@ -89,45 +89,7 @@ export function BookingTable({ bookings, onExtend, onEnd, onComplete, onAddFood,
   const [searchTerm, setSearchTerm] = useState("");
   const { isAdmin, canMakeChanges } = useAuth();
   const { toast } = useToast();
-  const [loyaltyDialog, setLoyaltyDialog] = useState<{open: boolean, whatsappNumber: string, customerName: string}>({open: false, whatsappNumber: "", customerName: ""});
-  const [promotionDialog, setPromotionDialog] = useState<{open: boolean, whatsappNumber: string, customerName: string}>({open: false, whatsappNumber: "", customerName: ""});
   const [seatChangeDialog, setSeatChangeDialog] = useState<{open: boolean, bookingId: string, currentSeat: string, category: string}>({open: false, bookingId: "", currentSeat: "", category: ""});
-
-  // Fetch loyalty tiers
-  const { data: loyaltyTiers = [] } = useQuery<any[]>({
-    queryKey: ["/api/loyalty-tiers"],
-  });
-
-  // Fetch loyalty rewards from catalog
-  const { data: loyaltyRewards = [] } = useQuery<any[]>({
-    queryKey: ["/api/loyalty-rewards"],
-  });
-
-  // Fetch customer loyalty data when dialog is open
-  const { data: customerLoyalty } = useQuery<any>({
-    queryKey: ["/api/customer-loyalty/by-phone", loyaltyDialog.whatsappNumber],
-    queryFn: async () => {
-      if (!loyaltyDialog.whatsappNumber) return null;
-      const response = await fetch(`/api/customer-loyalty/by-phone/${loyaltyDialog.whatsappNumber}`);
-      if (!response.ok) return null;
-      return response.json();
-    },
-    enabled: loyaltyDialog.open && !!loyaltyDialog.whatsappNumber,
-  });
-
-  const customerTier = useMemo(() => {
-    if (!customerLoyalty) return null;
-    return loyaltyTiers.find((tier: any) => tier.id === customerLoyalty.currentTierId);
-  }, [customerLoyalty, loyaltyTiers]);
-
-  const eligibleRewards = useMemo(() => {
-    if (!customerLoyalty || !loyaltyRewards.length) return [];
-    const pointsAvailable = parseInt(customerLoyalty.pointsAvailable || "0");
-    return loyaltyRewards.filter((reward: any) => {
-      const pointCost = parseInt(reward.pointCost || "0");
-      return reward.enabled === 1 && pointsAvailable >= pointCost;
-    });
-  }, [customerLoyalty, loyaltyRewards]);
 
   // Fetch device configs and bookings for seat change
   const { data: deviceConfigs = [] } = useQuery<any[]>({
@@ -193,33 +155,6 @@ export function BookingTable({ bookings, onExtend, onEnd, onComplete, onAddFood,
       queryClient.invalidateQueries({ queryKey: ["/api/device-config"] });
     },
   });
-
-
-  const getRewardIcon = (type: string) => {
-    switch (type) {
-      case "free_hours":
-        return <Clock className="h-4 w-4" />;
-      case "discount":
-        return <Percent className="h-4 w-4" />;
-      case "cashback":
-        return <DollarSign className="h-4 w-4" />;
-      default:
-        return <Gift className="h-4 w-4" />;
-    }
-  };
-
-  const getRewardLabel = (type: string, value: string) => {
-    switch (type) {
-      case "free_hours":
-        return `${value} hour${parseFloat(value) !== 1 ? 's' : ''} free`;
-      case "discount":
-        return `${value}% discount`;
-      case "cashback":
-        return `₹${value} cashback`;
-      default:
-        return value;
-    }
-  };
 
   const filteredBookings = bookings.filter((booking) => {
     const searchLower = searchTerm.toLowerCase();
@@ -345,12 +280,7 @@ export function BookingTable({ bookings, onExtend, onEnd, onComplete, onAddFood,
                                 {hasDiscount && (
                                   <Badge 
                                     variant="outline" 
-                                    className="cursor-pointer bg-emerald-50 dark:bg-emerald-950/30 text-emerald-700 dark:text-emerald-400 border-emerald-200 dark:border-emerald-800 hover:bg-emerald-100 dark:hover:bg-emerald-950/50"
-                                    onClick={() => setPromotionDialog({
-                                      open: true,
-                                      whatsappNumber: whatsappNumber,
-                                      customerName: customerName
-                                    })}
+                                    className="bg-emerald-50 dark:bg-emerald-950/30 text-emerald-700 dark:text-emerald-400 border-emerald-200 dark:border-emerald-800"
                                     data-testid={`badge-discount-${customerName}`}
                                   >
                                     <Percent className="h-3 w-3 mr-1" />
@@ -360,12 +290,7 @@ export function BookingTable({ bookings, onExtend, onEnd, onComplete, onAddFood,
                                 {hasBonus && (
                                   <Badge 
                                     variant="outline" 
-                                    className="cursor-pointer bg-violet-50 dark:bg-violet-950/30 text-violet-700 dark:text-violet-400 border-violet-200 dark:border-violet-800 hover:bg-violet-100 dark:hover:bg-violet-950/50"
-                                    onClick={() => setPromotionDialog({
-                                      open: true,
-                                      whatsappNumber: whatsappNumber,
-                                      customerName: customerName
-                                    })}
+                                    className="bg-violet-50 dark:bg-violet-950/30 text-violet-700 dark:text-violet-400 border-violet-200 dark:border-violet-800"
                                     data-testid={`badge-bonus-${customerName}`}
                                   >
                                     <Gift className="h-3 w-3 mr-1" />
@@ -387,21 +312,6 @@ export function BookingTable({ bookings, onExtend, onEnd, onComplete, onAddFood,
                             <Check className="mr-2 h-4 w-4" />
                             {allSelected ? 'Deselect All' : someSelected ? 'Select All' : 'Select All'}
                           </Button>
-                          {customerBookings[0]?.whatsappNumber && (
-                            <Button
-                              variant="outline"
-                              size="sm"
-                              onClick={() => setLoyaltyDialog({
-                                open: true,
-                                whatsappNumber: customerBookings[0].whatsappNumber || "",
-                                customerName: customerName
-                              })}
-                              data-testid={`button-loyalty-${customerName}`}
-                              className="h-8 bg-gradient-to-r from-yellow-400 to-amber-500 hover:from-yellow-500 hover:to-amber-600 text-white border-yellow-600 shadow-lg shadow-yellow-500/50"
-                            >
-                              <Award className="h-4 w-4" />
-                            </Button>
-                          )}
                         </div>
                       </div>
                     </TableCell>
@@ -675,123 +585,6 @@ export function BookingTable({ bookings, onExtend, onEnd, onComplete, onAddFood,
           </TableBody>
         </Table>
       </div>
-
-      <Dialog open={loyaltyDialog.open} onOpenChange={(open) => setLoyaltyDialog({...loyaltyDialog, open})}>
-        <DialogContent className="max-w-md" data-testid="dialog-customer-loyalty">
-          <DialogHeader>
-            <DialogTitle className="flex items-center gap-2">
-              <Award className="h-5 w-5 text-yellow-500" />
-              {loyaltyDialog.customerName} - Loyalty Status
-            </DialogTitle>
-            <DialogDescription>
-              Customer loyalty rewards and tier information
-            </DialogDescription>
-          </DialogHeader>
-          
-          {customerLoyalty ? (
-            <div className="space-y-4">
-              <Card className="bg-gradient-to-br from-yellow-50 to-amber-50 dark:from-yellow-950 dark:to-amber-950 border-yellow-200 dark:border-yellow-800">
-                <CardContent className="pt-4">
-                  <div className="space-y-2">
-                    <div className="flex items-center justify-between">
-                      <span className="text-sm text-muted-foreground">Available Points</span>
-                      <span className="text-2xl font-bold text-purple-600 dark:text-purple-400">
-                        {customerLoyalty.pointsAvailable}
-                      </span>
-                    </div>
-                    <div className="flex items-center justify-between">
-                      <span className="text-sm text-muted-foreground">Total Spent</span>
-                      <span className="text-lg font-semibold">₹{customerLoyalty.totalSpent}</span>
-                    </div>
-                    <div className="flex items-center justify-between">
-                      <span className="text-sm text-muted-foreground">Current Tier</span>
-                      {customerTier && (
-                        <Badge style={{ backgroundColor: customerTier.tierColor }}>
-                          <Award className="mr-1 h-3 w-3" />
-                          {customerTier.tierName}
-                        </Badge>
-                      )}
-                    </div>
-                  </div>
-                </CardContent>
-              </Card>
-
-              <div className="space-y-2">
-                <h3 className="font-semibold text-sm">Available Rewards</h3>
-                {eligibleRewards.length === 0 ? (
-                  <Card className="border-dashed">
-                    <CardContent className="pt-4">
-                      <p className="text-sm text-muted-foreground text-center py-2">
-                        No rewards available yet. Keep spending to unlock rewards!
-                      </p>
-                    </CardContent>
-                  </Card>
-                ) : (
-                  <div className="space-y-2">
-                    {eligibleRewards.map((reward: any) => {
-                      return (
-                        <Card 
-                          key={reward.id} 
-                          className="border-l-4 border-l-purple-500"
-                          data-testid={`available-reward-${reward.id}`}
-                        >
-                          <CardContent className="pt-4">
-                            <div className="space-y-2">
-                              <div className="flex items-center justify-between">
-                                <span className="font-semibold text-gray-900 dark:text-white">{reward.name}</span>
-                                <Badge className="capitalize" variant="outline">{reward.cardType || 'bronze'}</Badge>
-                              </div>
-                              <p className="text-xs text-muted-foreground">
-                                {reward.description}
-                              </p>
-                              <div className="flex items-center gap-2">
-                                {getRewardIcon(reward.rewardType || 'discount')}
-                                <span className="font-semibold text-yellow-600 dark:text-yellow-400">
-                                  {reward.rewardType === 'free_hour' ? `${reward.value} hrs` : reward.rewardType === 'free_food' ? `₹${reward.value} food` : `₹${reward.value}`}
-                                </span>
-                              </div>
-                              <div className="text-xs text-muted-foreground">
-                                Requires {reward.pointCost || 0} points
-                              </div>
-                            </div>
-                          </CardContent>
-                        </Card>
-                      );
-                    })}
-                  </div>
-                )}
-              </div>
-            </div>
-          ) : (
-            <Card>
-              <CardContent className="pt-4">
-                <p className="text-sm text-muted-foreground text-center py-4">
-                  No loyalty data found for this customer.
-                </p>
-              </CardContent>
-            </Card>
-          )}
-
-          <DialogFooter>
-            <Button 
-              variant="outline" 
-              onClick={() => {
-                setLoyaltyDialog({open: false, whatsappNumber: "", customerName: ""});
-              }}
-              data-testid="button-close-loyalty"
-            >
-              Close
-            </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
-
-      <PromotionUsageDialog
-        open={promotionDialog.open}
-        onOpenChange={(open) => setPromotionDialog({...promotionDialog, open})}
-        whatsappNumber={promotionDialog.whatsappNumber}
-        customerName={promotionDialog.customerName}
-      />
 
       <Dialog open={seatChangeDialog.open} onOpenChange={(open) => setSeatChangeDialog({...seatChangeDialog, open})}>
         <DialogContent className="max-w-md" data-testid="dialog-seat-change">
