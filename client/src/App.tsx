@@ -282,10 +282,10 @@ function App() {
                 <ConsumerGames />
               </Route>
               <Route path="/staff">
-                {showLogin && <Login onLoginSuccess={handleLoginSuccess} />}
+                <Login onLoginSuccess={handleLoginSuccess} />
               </Route>
               <Route>
-                {showLogin && <Login onLoginSuccess={handleLoginSuccess} />}
+                <Login onLoginSuccess={handleLoginSuccess} />
               </Route>
             </Switch>
             <CursorTrail />
