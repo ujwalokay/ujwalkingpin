@@ -41,7 +41,6 @@ export const bookings = pgTable("bookings", {
   originalPrice: varchar("original_price"),
   discountApplied: varchar("discount_applied"),
   bonusHoursApplied: varchar("bonus_hours_applied"),
-  loyaltyPointsUsed: integer("loyalty_points_used"),
   promotionDetails: jsonb("promotion_details").$type<{
     discountPercentage?: number;
     discountAmount?: string;
@@ -276,7 +275,6 @@ export const bookingHistory = pgTable("booking_history", {
   originalPrice: varchar("original_price"),
   discountApplied: varchar("discount_applied"),
   bonusHoursApplied: varchar("bonus_hours_applied"),
-  loyaltyPointsUsed: integer("loyalty_points_used"),
   promotionDetails: jsonb("promotion_details").$type<{
     discountPercentage?: number;
     discountAmount?: string;
@@ -494,72 +492,4 @@ export const insertDeviceMaintenanceSchema = createInsertSchema(deviceMaintenanc
 export type InsertDeviceMaintenance = z.infer<typeof insertDeviceMaintenanceSchema>;
 export type DeviceMaintenance = typeof deviceMaintenance.$inferSelect;
 
-export const customerLoyalty = pgTable("customer_loyalty", {
-  id: varchar("id").primaryKey().$defaultFn(() => crypto.randomUUID()),
-  customerName: varchar("customer_name").notNull(),
-  whatsappNumber: varchar("whatsapp_number").notNull().unique(),
-  totalSpent: varchar("total_spent").notNull().default("0"),
-  pointsAvailable: integer("points_available").notNull().default(0),
-  lastPurchaseDate: timestamp("last_purchase_date"),
-  createdAt: timestamp("created_at").notNull().defaultNow(),
-  updatedAt: timestamp("updated_at").notNull().defaultNow(),
-});
-
-export const insertCustomerLoyaltySchema = createInsertSchema(customerLoyalty).omit({ id: true, createdAt: true, updatedAt: true });
-export type InsertCustomerLoyalty = z.infer<typeof insertCustomerLoyaltySchema>;
-export type CustomerLoyalty = typeof customerLoyalty.$inferSelect;
-
-export const loyaltyRewards = pgTable("loyalty_rewards", {
-  id: varchar("id").primaryKey().$defaultFn(() => crypto.randomUUID()),
-  name: varchar("name").notNull(),
-  description: text("description").notNull(),
-  cardType: varchar("card_type").notNull().default("bronze"),
-  rewardType: varchar("reward_type").notNull().default("discount"),
-  pointCost: integer("point_cost").notNull().default(0),
-  category: varchar("category").notNull().default("general"),
-  value: varchar("value").notNull(),
-  minSpent: varchar("min_spent").notNull().default("0"),
-  maxSpent: varchar("max_spent"),
-  pointsPerValue: integer("points_per_value").notNull().default(1),
-  cardPointsRequired: integer("card_points_required").notNull().default(0),
-  enabled: integer("enabled").notNull().default(1),
-  stock: integer("stock"),
-  totalRedeemed: integer("total_redeemed").notNull().default(0),
-  createdAt: timestamp("created_at").notNull().defaultNow(),
-  updatedAt: timestamp("updated_at").notNull().defaultNow(),
-});
-
-export const insertLoyaltyRewardSchema = createInsertSchema(loyaltyRewards).omit({ id: true, createdAt: true, updatedAt: true, totalRedeemed: true });
-export type InsertLoyaltyReward = z.infer<typeof insertLoyaltyRewardSchema>;
-export type LoyaltyReward = typeof loyaltyRewards.$inferSelect;
-
-export const rewardRedemptions = pgTable("reward_redemptions", {
-  id: varchar("id").primaryKey().$defaultFn(() => crypto.randomUUID()),
-  customerId: varchar("customer_id").notNull(),
-  customerName: varchar("customer_name").notNull(),
-  whatsappNumber: varchar("whatsapp_number").notNull(),
-  rewardId: varchar("reward_id").notNull(),
-  rewardName: varchar("reward_name").notNull(),
-  rewardType: varchar("reward_type"),
-  rewardValue: varchar("reward_value"),
-  pointsUsed: integer("points_used").notNull(),
-  bookingId: varchar("booking_id"),
-  status: varchar("status").default("applied"),
-  redeemedAt: timestamp("redeemed_at").notNull().defaultNow(),
-});
-
-export const insertRewardRedemptionSchema = createInsertSchema(rewardRedemptions).omit({ id: true, redeemedAt: true });
-export type InsertRewardRedemption = z.infer<typeof insertRewardRedemptionSchema>;
-export type RewardRedemption = typeof rewardRedemptions.$inferSelect;
-
-export const loyaltySettings = pgTable("loyalty_settings", {
-  id: varchar("id").primaryKey().$defaultFn(() => crypto.randomUUID()),
-  pointsPerVisit: integer("points_per_visit").notNull().default(10),
-  spendingRanges: text("spending_ranges").notNull().default('[]'),
-  updatedAt: timestamp("updated_at").notNull().defaultNow(),
-});
-
-export const insertLoyaltySettingsSchema = createInsertSchema(loyaltySettings).omit({ id: true, updatedAt: true });
-export type InsertLoyaltySettings = z.infer<typeof insertLoyaltySettingsSchema>;
-export type LoyaltySettings = typeof loyaltySettings.$inferSelect;
 

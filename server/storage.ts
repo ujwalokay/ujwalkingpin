@@ -44,14 +44,6 @@ import {
   type InsertRetentionConfig,
   type DeviceMaintenance,
   type InsertDeviceMaintenance,
-  type CustomerLoyalty,
-  type InsertCustomerLoyalty,
-  type LoyaltyReward,
-  type InsertLoyaltyReward,
-  type RewardRedemption,
-  type InsertRewardRedemption,
-  type LoyaltySettings,
-  type InsertLoyaltySettings,
   bookings,
   deviceConfigs,
   pricingConfigs,
@@ -73,11 +65,7 @@ import {
   loadMetrics,
   loadPredictions,
   retentionConfig,
-  deviceMaintenance,
-  customerLoyalty,
-  loyaltyRewards,
-  rewardRedemptions,
-  loyaltySettings
+  deviceMaintenance
 } from "@shared/schema";
 import { db } from "./db";
 import { eq, and, gte, lte, lt, desc, inArray, isNotNull } from "drizzle-orm";
@@ -257,31 +245,6 @@ export interface IStorage {
   getDeviceMaintenance(category: string, seatName: string): Promise<DeviceMaintenance | undefined>;
   upsertDeviceMaintenance(data: InsertDeviceMaintenance): Promise<DeviceMaintenance>;
   updateDeviceMaintenanceStatus(category: string, seatName: string, status: string, notes?: string): Promise<DeviceMaintenance | undefined>;
-  
-  getAllCustomerLoyalty(): Promise<CustomerLoyalty[]>;
-  getCustomerLoyalty(whatsappNumber: string): Promise<CustomerLoyalty | undefined>;
-  getCustomerLoyaltyById(id: string): Promise<CustomerLoyalty | undefined>;
-  upsertCustomerLoyalty(data: InsertCustomerLoyalty): Promise<CustomerLoyalty>;
-  updateCustomerSpending(whatsappNumber: string, amount: number, earnedPoints: number): Promise<CustomerLoyalty | undefined>;
-  awardLoyaltyPoints(whatsappNumber: string, points: number): Promise<CustomerLoyalty | undefined>;
-  redeemPoints(whatsappNumber: string, points: number): Promise<CustomerLoyalty | undefined>;
-  
-  getAllLoyaltyRewards(): Promise<LoyaltyReward[]>;
-  getLoyaltyReward(id: string): Promise<LoyaltyReward | undefined>;
-  getActiveLoyaltyRewards(): Promise<LoyaltyReward[]>;
-  createLoyaltyReward(reward: InsertLoyaltyReward): Promise<LoyaltyReward>;
-  updateLoyaltyReward(id: string, data: Partial<InsertLoyaltyReward>): Promise<LoyaltyReward | undefined>;
-  deleteLoyaltyReward(id: string): Promise<boolean>;
-  incrementRewardRedeemed(id: string): Promise<void>;
-  decrementRewardStock(id: string): Promise<void>;
-  
-  getAllRewardRedemptions(): Promise<RewardRedemption[]>;
-  getRewardRedemption(id: string): Promise<RewardRedemption | undefined>;
-  getRewardRedemptionsByCustomer(whatsappNumber: string): Promise<RewardRedemption[]>;
-  createRewardRedemption(redemption: InsertRewardRedemption): Promise<RewardRedemption>;
-  
-  getLoyaltySettings(): Promise<LoyaltySettings | undefined>;
-  updateLoyaltySettings(settings: Partial<InsertLoyaltySettings>): Promise<LoyaltySettings>;
   
   getAllNotifications(): Promise<Notification[]>;
   getUnreadNotifications(): Promise<Notification[]>;
@@ -1553,209 +1516,6 @@ export class DatabaseStorage implements IStorage {
       };
       
       const [created] = await db.insert(deviceMaintenance).values(newRecord).returning();
-      return created;
-    }
-  }
-
-  async getAllCustomerLoyalty(): Promise<CustomerLoyalty[]> {
-    return await db.select().from(customerLoyalty).orderBy(desc(customerLoyalty.totalSpent));
-  }
-
-  async getCustomerLoyalty(whatsappNumber: string): Promise<CustomerLoyalty | undefined> {
-    const [customer] = await db.select().from(customerLoyalty).where(eq(customerLoyalty.whatsappNumber, whatsappNumber));
-    return customer || undefined;
-  }
-
-  async getCustomerLoyaltyById(id: string): Promise<CustomerLoyalty | undefined> {
-    const [customer] = await db.select().from(customerLoyalty).where(eq(customerLoyalty.id, id));
-    return customer || undefined;
-  }
-
-  async upsertCustomerLoyalty(data: InsertCustomerLoyalty): Promise<CustomerLoyalty> {
-    const existing = await this.getCustomerLoyalty(data.whatsappNumber);
-    
-    if (existing) {
-      const [updated] = await db
-        .update(customerLoyalty)
-        .set({ ...data, updatedAt: new Date() })
-        .where(eq(customerLoyalty.whatsappNumber, data.whatsappNumber))
-        .returning();
-      return updated;
-    }
-    
-    const [created] = await db.insert(customerLoyalty).values(data).returning();
-    return created;
-  }
-
-  async updateCustomerSpending(whatsappNumber: string, amount: number, earnedPoints: number): Promise<CustomerLoyalty | undefined> {
-    const existing = await this.getCustomerLoyalty(whatsappNumber);
-    
-    if (!existing) {
-      return undefined;
-    }
-    
-    const previousTotal = parseFloat(existing.totalSpent);
-    const newTotalSpent = (previousTotal + amount).toFixed(2);
-    
-    const updateData: any = {
-      totalSpent: newTotalSpent,
-      lastPurchaseDate: new Date(),
-      updatedAt: new Date(),
-      pointsAvailable: existing.pointsAvailable + earnedPoints,
-    };
-    
-    const [updated] = await db
-      .update(customerLoyalty)
-      .set(updateData)
-      .where(eq(customerLoyalty.whatsappNumber, whatsappNumber))
-      .returning();
-    
-    return updated || undefined;
-  }
-
-  async awardLoyaltyPoints(whatsappNumber: string, points: number): Promise<CustomerLoyalty | undefined> {
-    const existing = await this.getCustomerLoyalty(whatsappNumber);
-    if (!existing) {
-      return undefined;
-    }
-    
-    const [updated] = await db
-      .update(customerLoyalty)
-      .set({ 
-        pointsAvailable: existing.pointsAvailable + points,
-        updatedAt: new Date()
-      })
-      .where(eq(customerLoyalty.whatsappNumber, whatsappNumber))
-      .returning();
-    
-    return updated || undefined;
-  }
-
-  async redeemPoints(whatsappNumber: string, points: number): Promise<CustomerLoyalty | undefined> {
-    const existing = await this.getCustomerLoyalty(whatsappNumber);
-    if (!existing || existing.pointsAvailable < points) {
-      return undefined;
-    }
-    
-    const [updated] = await db
-      .update(customerLoyalty)
-      .set({ 
-        pointsAvailable: existing.pointsAvailable - points,
-        updatedAt: new Date()
-      })
-      .where(eq(customerLoyalty.whatsappNumber, whatsappNumber))
-      .returning();
-    
-    return updated || undefined;
-  }
-
-  async getAllLoyaltyRewards(): Promise<LoyaltyReward[]> {
-    return await db.select().from(loyaltyRewards).orderBy(loyaltyRewards.pointCost);
-  }
-
-  async getLoyaltyReward(id: string): Promise<LoyaltyReward | undefined> {
-    const [reward] = await db.select().from(loyaltyRewards).where(eq(loyaltyRewards.id, id));
-    return reward || undefined;
-  }
-
-  async getActiveLoyaltyRewards(): Promise<LoyaltyReward[]> {
-    return await db
-      .select()
-      .from(loyaltyRewards)
-      .where(eq(loyaltyRewards.enabled, 1))
-      .orderBy(loyaltyRewards.pointCost);
-  }
-
-  async createLoyaltyReward(reward: InsertLoyaltyReward): Promise<LoyaltyReward> {
-    const [created] = await db.insert(loyaltyRewards).values(reward).returning();
-    return created;
-  }
-
-  async updateLoyaltyReward(id: string, data: Partial<InsertLoyaltyReward>): Promise<LoyaltyReward | undefined> {
-    const [updated] = await db
-      .update(loyaltyRewards)
-      .set({ ...data, updatedAt: new Date() })
-      .where(eq(loyaltyRewards.id, id))
-      .returning();
-    return updated || undefined;
-  }
-
-  async deleteLoyaltyReward(id: string): Promise<boolean> {
-    const result = await db.delete(loyaltyRewards).where(eq(loyaltyRewards.id, id));
-    return result.rowCount ? result.rowCount > 0 : false;
-  }
-
-  async incrementRewardRedeemed(id: string): Promise<void> {
-    const existing = await this.getLoyaltyReward(id);
-    if (existing) {
-      await db
-        .update(loyaltyRewards)
-        .set({ 
-          totalRedeemed: existing.totalRedeemed + 1,
-          updatedAt: new Date()
-        })
-        .where(eq(loyaltyRewards.id, id));
-    }
-  }
-
-  async decrementRewardStock(id: string): Promise<void> {
-    const existing = await this.getLoyaltyReward(id);
-    if (existing && existing.stock !== null && existing.stock > 0) {
-      await db
-        .update(loyaltyRewards)
-        .set({ 
-          stock: existing.stock - 1,
-          updatedAt: new Date()
-        })
-        .where(eq(loyaltyRewards.id, id));
-    }
-  }
-
-  async getAllRewardRedemptions(): Promise<RewardRedemption[]> {
-    return await db.select().from(rewardRedemptions).orderBy(desc(rewardRedemptions.redeemedAt));
-  }
-
-  async getRewardRedemption(id: string): Promise<RewardRedemption | undefined> {
-    const [redemption] = await db.select().from(rewardRedemptions).where(eq(rewardRedemptions.id, id));
-    return redemption || undefined;
-  }
-
-  async getRewardRedemptionsByCustomer(whatsappNumber: string): Promise<RewardRedemption[]> {
-    return await db
-      .select()
-      .from(rewardRedemptions)
-      .where(eq(rewardRedemptions.whatsappNumber, whatsappNumber))
-      .orderBy(desc(rewardRedemptions.redeemedAt));
-  }
-
-  async createRewardRedemption(redemption: InsertRewardRedemption): Promise<RewardRedemption> {
-    const [created] = await db.insert(rewardRedemptions).values(redemption).returning();
-    return created;
-  }
-
-  async getLoyaltySettings(): Promise<LoyaltySettings | undefined> {
-    const result = await db.select().from(loyaltySettings).limit(1);
-    return result[0];
-  }
-
-  async updateLoyaltySettings(settings: Partial<InsertLoyaltySettings>): Promise<LoyaltySettings> {
-    const existing = await this.getLoyaltySettings();
-    
-    if (existing) {
-      const [updated] = await db
-        .update(loyaltySettings)
-        .set({ ...settings, updatedAt: new Date() })
-        .where(eq(loyaltySettings.id, existing.id))
-        .returning();
-      return updated;
-    } else {
-      const [created] = await db
-        .insert(loyaltySettings)
-        .values({
-          pointsPerVisit: settings.pointsPerVisit || 10,
-          spendingRanges: settings.spendingRanges || '[]',
-        })
-        .returning();
       return created;
     }
   }

@@ -1,4 +1,4 @@
-import { Settings, LayoutDashboard, FileText, UtensilsCrossed, CalendarClock, History, Scale, Wallet, ScrollText, Award, BarChart3, Gamepad2, Sparkles, LogOut, Brain, Package } from "lucide-react";
+import { Settings, LayoutDashboard, FileText, UtensilsCrossed, CalendarClock, History, Scale, Wallet, ScrollText, BarChart3, Gamepad2, Sparkles, LogOut, Brain, Package } from "lucide-react";
 import { Link, useLocation } from "wouter";
 import { useQuery } from "@tanstack/react-query";
 import { useTheme } from "@/components/ThemeProvider";
@@ -73,11 +73,6 @@ const menuCategories: MenuCategory[] = [
         title: "Expenses",
         url: "/expenses",
         icon: Wallet,
-      },
-      {
-        title: "Loyalty & Rewards",
-        url: "/loyalty",
-        icon: Award,
       },
     ],
   },

@@ -4,7 +4,6 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { useToast } from "@/hooks/use-toast";
-import { PromotionPreviewDialog } from "./PromotionPreviewDialog";
 import { Sparkles, X, Trash2, Calendar, TrendingDown, Gift, Users } from "lucide-react";
 import { format, isAfter, isBefore } from "date-fns";
 import { queryClient, apiRequest } from "@/lib/queryClient";
