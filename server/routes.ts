@@ -7,7 +7,7 @@ import { cleanupScheduler } from "./scheduler";
 import { db } from "./db";
 import { eq } from "drizzle-orm";
 import * as schema from "@shared/schema";
-import { notifyBookingCreated, notifyActivityLog, notifyLowInventory, notifyExpenseAdded, notifyPaymentReceived } from "./notifications";
+import { notifyActivityLog, notifyLowInventory, notifyExpenseAdded, notifyPaymentReceived, notifySessionExpired, notifySessionCompleted } from "./notifications";
 import { 
   insertBookingSchema, 
   insertDeviceConfigSchema, 
@@ -308,9 +308,6 @@ export async function registerRoutes(app: Express): Promise<Server> {
       
       const created = await storage.createBooking(bookingData);
       
-      // Send notification for new booking
-      await notifyBookingCreated(created.id, created.seatName, created.customerName);
-      
       // Increment promotion usage counter and log activity
       if (appliedPromotion) {
         const userId = req.session.userId;
@@ -396,6 +393,22 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const updated = await storage.updateBooking(id, req.body);
       if (!updated) {
         return res.status(404).json({ message: "Booking not found" });
+      }
+      
+      // Send notification when session expires or completes
+      if (existingBooking && req.body.status) {
+        const oldStatus = existingBooking.status;
+        const newStatus = req.body.status;
+        
+        // Notify when timer expires (running -> expired)
+        if (oldStatus === "running" && newStatus === "expired") {
+          await notifySessionExpired(updated.id, updated.seatName, updated.customerName);
+        }
+        
+        // Notify when session is completed (any status except completed -> completed)
+        if (oldStatus !== "completed" && newStatus === "completed") {
+          await notifySessionCompleted(updated.id, updated.seatName, updated.customerName);
+        }
       }
       
       // Adjust stock for food order changes

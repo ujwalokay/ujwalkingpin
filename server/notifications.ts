@@ -104,6 +104,36 @@ export async function notifySessionEnding(bookingId: string, seatName: string, c
   }
 }
 
+export async function notifySessionExpired(bookingId: string, seatName: string, customerName: string) {
+  try {
+    await storage.createNotification({
+      type: "alert",
+      title: "⏰ Session Timer Expired",
+      message: `${customerName}'s session on ${seatName} has ended - timer expired`,
+      entityType: "booking",
+      entityId: bookingId,
+      isRead: 0,
+    });
+  } catch (error) {
+    console.error("Failed to create session expired notification:", error);
+  }
+}
+
+export async function notifySessionCompleted(bookingId: string, seatName: string, customerName: string) {
+  try {
+    await storage.createNotification({
+      type: "alert",
+      title: "✅ Session Completed",
+      message: `${customerName}'s session on ${seatName} has been completed`,
+      entityType: "booking",
+      entityId: bookingId,
+      isRead: 0,
+    });
+  } catch (error) {
+    console.error("Failed to create session completed notification:", error);
+  }
+}
+
 export async function notifyCustomNotification(notification: Omit<InsertNotification, "isRead">) {
   try {
     await storage.createNotification({
