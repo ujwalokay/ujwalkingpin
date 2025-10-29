@@ -203,7 +203,7 @@ export default function History() {
                           data-testid={`badge-discount-used-${booking.id}`}
                         >
                           <Percent className="h-3 w-3 mr-1" />
-                          Discount Used
+                          {booking.isPromotionalDiscount === 1 ? "Promotional Discount" : "Discount"}
                         </Badge>
                       )}
                       {booking.bonusHoursApplied && (
@@ -213,7 +213,7 @@ export default function History() {
                           data-testid={`badge-bonus-used-${booking.id}`}
                         >
                           <Gift className="h-3 w-3 mr-1" />
-                          Bonus Used
+                          {booking.isPromotionalBonus === 1 ? "Promotional Bonus" : "Free Hours"}
                         </Badge>
                       )}
                     </div>

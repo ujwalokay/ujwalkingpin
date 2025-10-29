@@ -105,6 +105,11 @@ export function AddBookingDialog({ open, onOpenChange, onConfirm, availableSeats
   const [timeSlot, setTimeSlot] = useState<string>("");
   const [timePeriodFilter, setTimePeriodFilter] = useState<"all" | "am" | "pm">("all");
   const [useHappyHoursPricing, setUseHappyHoursPricing] = useState<boolean>(false);
+  const [usePromotionalDiscount, setUsePromotionalDiscount] = useState<boolean>(false);
+  const [usePromotionalBonus, setUsePromotionalBonus] = useState<boolean>(false);
+  const [manualDiscountPercentage, setManualDiscountPercentage] = useState<string>("");
+  const [manualFreeHours, setManualFreeHours] = useState<string>("");
+  const [showAddons, setShowAddons] = useState<boolean>(false);
 
   const { data: pricingConfig = [] } = useQuery<PricingConfig[]>({
     queryKey: ["/api/pricing-config"],
@@ -222,6 +227,15 @@ export function AddBookingDialog({ open, onOpenChange, onConfirm, availableSeats
   };
 
   const duration = getDurationString(durationMinutes);
+  
+  const { data: availablePromotions } = useQuery<{
+    discount: { id: string; percentage: number; description: string } | null;
+    bonus: { id: string; hours: string; description: string } | null;
+  }>({
+    queryKey: ["/api/bookings/check-promotions", category, duration, personCount],
+    enabled: !!category && !!duration && bookingType !== "happy-hours" && !useHappyHoursPricing,
+  });
+  
   // For PS5, match both duration and personCount; for others, just match duration
   const selectedSlot = category === "PS5" 
     ? slots.find(s => s.duration === duration && s.personCount === personCount)
@@ -298,7 +312,11 @@ export function AddBookingDialog({ open, onOpenChange, onConfirm, availableSeats
         bookingType: bookingTypes,
         bookingDate: bookingType === "upcoming" ? bookingDate : undefined,
         timeSlot: bookingType === "upcoming" ? timeSlot : undefined,
-      });
+        usePromotionalDiscount,
+        usePromotionalBonus,
+        manualDiscountPercentage: manualDiscountPercentage ? parseInt(manualDiscountPercentage) : undefined,
+        manualFreeHours: manualFreeHours || undefined,
+      } as any);
       setCategory("");
       setSelectedSeats([]);
       setCustomerName("");
@@ -309,6 +327,11 @@ export function AddBookingDialog({ open, onOpenChange, onConfirm, availableSeats
       setBookingDate(undefined);
       setTimeSlot("");
       setUseHappyHoursPricing(false);
+      setUsePromotionalDiscount(false);
+      setUsePromotionalBonus(false);
+      setManualDiscountPercentage("");
+      setManualFreeHours("");
+      setShowAddons(false);
       onOpenChange(false);
     }
   };
@@ -795,6 +818,149 @@ export function AddBookingDialog({ open, onOpenChange, onConfirm, availableSeats
                 <div className="text-sm text-muted-foreground" data-testid="text-price">
                   Price: ₹{selectedSlot.price}
                 </div>
+              )}
+            </div>
+          )}
+
+          {/* Promotional Discount/Bonus Prompts */}
+          {availablePromotions && !useHappyHoursPricing && (
+            <div className="space-y-2">
+              {availablePromotions.discount && !usePromotionalBonus && !manualFreeHours && (
+                <div className="flex items-start space-x-2 p-3 bg-green-50 dark:bg-green-900/20 rounded-md border border-green-200 dark:border-green-800">
+                  <Checkbox
+                    id="use-promotional-discount"
+                    checked={usePromotionalDiscount}
+                    onCheckedChange={(checked) => {
+                      setUsePromotionalDiscount(checked as boolean);
+                      if (checked) {
+                        setUsePromotionalBonus(false);
+                        setManualDiscountPercentage("");
+                      }
+                    }}
+                    data-testid="checkbox-use-promotional-discount"
+                  />
+                  <div className="flex-1">
+                    <Label htmlFor="use-promotional-discount" className="cursor-pointer font-medium text-green-900 dark:text-green-100 flex items-center gap-2">
+                      <Percent className="h-4 w-4" />
+                      Promotional Discount Available
+                    </Label>
+                    <p className="text-sm text-green-700 dark:text-green-300 mt-1">
+                      {availablePromotions.discount.description} - Click to apply
+                    </p>
+                  </div>
+                </div>
+              )}
+
+              {availablePromotions.bonus && !usePromotionalDiscount && !manualDiscountPercentage && (
+                <div className="flex items-start space-x-2 p-3 bg-yellow-50 dark:bg-yellow-900/20 rounded-md border border-yellow-200 dark:border-yellow-800">
+                  <Checkbox
+                    id="use-promotional-bonus"
+                    checked={usePromotionalBonus}
+                    onCheckedChange={(checked) => {
+                      setUsePromotionalBonus(checked as boolean);
+                      if (checked) {
+                        setUsePromotionalDiscount(false);
+                        setManualFreeHours("");
+                      }
+                    }}
+                    data-testid="checkbox-use-promotional-bonus"
+                  />
+                  <div className="flex-1">
+                    <Label htmlFor="use-promotional-bonus" className="cursor-pointer font-medium text-yellow-900 dark:text-yellow-100 flex items-center gap-2">
+                      <Gift className="h-4 w-4" />
+                      Promotional Bonus Hours Available
+                    </Label>
+                    <p className="text-sm text-yellow-700 dark:text-yellow-300 mt-1">
+                      {availablePromotions.bonus.description} - Click to apply
+                    </p>
+                  </div>
+                </div>
+              )}
+            </div>
+          )}
+
+          {/* Add-ons Section */}
+          {category && !useHappyHoursPricing && (
+            <div className="space-y-2">
+              <Button
+                type="button"
+                variant="outline"
+                onClick={() => setShowAddons(!showAddons)}
+                className="w-full justify-between"
+                data-testid="button-toggle-addons"
+              >
+                <span className="flex items-center gap-2">
+                  <DollarSign className="h-4 w-4" />
+                  Add-ons (Manual Discount/Free Hours)
+                </span>
+                <Badge variant="secondary">{showAddons ? "Hide" : "Show"}</Badge>
+              </Button>
+
+              {showAddons && (
+                <Card className="p-4 space-y-3">
+                  <div className="space-y-2">
+                    <Label htmlFor="manual-discount" className="flex items-center gap-2">
+                      <Percent className="h-4 w-4" />
+                      Manual Discount (%)
+                    </Label>
+                    <Input
+                      id="manual-discount"
+                      type="number"
+                      min="0"
+                      max="100"
+                      value={manualDiscountPercentage}
+                      onChange={(e) => {
+                        setManualDiscountPercentage(e.target.value);
+                        if (e.target.value) {
+                          setManualFreeHours("");
+                          setUsePromotionalDiscount(false);
+                          setUsePromotionalBonus(false);
+                        }
+                      }}
+                      placeholder="Enter discount percentage"
+                      disabled={usePromotionalDiscount || usePromotionalBonus}
+                      data-testid="input-manual-discount"
+                    />
+                    <p className="text-xs text-muted-foreground">
+                      {usePromotionalDiscount || usePromotionalBonus 
+                        ? "Disable promotional options to use manual discount" 
+                        : "Enter percentage (0-100) for manual discount"}
+                    </p>
+                  </div>
+
+                  <div className="space-y-2">
+                    <Label htmlFor="manual-free-hours" className="flex items-center gap-2">
+                      <Clock className="h-4 w-4" />
+                      Manual Free Hours
+                    </Label>
+                    <div className="flex items-center gap-2">
+                      <Input
+                        id="manual-free-hours"
+                        type="number"
+                        min="0"
+                        step="0.5"
+                        value={manualFreeHours}
+                        onChange={(e) => {
+                          setManualFreeHours(e.target.value);
+                          if (e.target.value) {
+                            setManualDiscountPercentage("");
+                            setUsePromotionalDiscount(false);
+                            setUsePromotionalBonus(false);
+                          }
+                        }}
+                        placeholder="Enter free hours"
+                        disabled={usePromotionalDiscount || usePromotionalBonus}
+                        data-testid="input-manual-free-hours"
+                      />
+                      <span className="text-sm text-muted-foreground whitespace-nowrap">hours</span>
+                    </div>
+                    <p className="text-xs text-muted-foreground">
+                      {usePromotionalDiscount || usePromotionalBonus 
+                        ? "Disable promotional options to use manual free hours" 
+                        : "Enter hours (e.g., 0.5 for 30 minutes, 1 for 1 hour)"}
+                    </p>
+                  </div>
+                </Card>
               )}
             </div>
           )}

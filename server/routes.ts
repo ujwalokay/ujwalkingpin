@@ -148,6 +148,11 @@ export async function registerRoutes(app: Express): Promise<Server> {
     try {
       const booking = insertBookingSchema.parse(req.body);
       
+      const usePromotionalDiscount = req.body.usePromotionalDiscount || false;
+      const usePromotionalBonus = req.body.usePromotionalBonus || false;
+      const manualDiscountPercentage = req.body.manualDiscountPercentage || null;
+      const manualFreeHours = req.body.manualFreeHours || null;
+      
       // Validate that the seat is not already booked for this time slot
       const allBookings = await storage.getAllBookings();
       const requestStart = new Date(booking.startTime);
@@ -193,63 +198,111 @@ export async function registerRoutes(app: Express): Promise<Server> {
         }
       }
       
-      // Check for active promotions and apply them
-      const activeDiscount = await storage.getActiveDiscountPromotion(
-        booking.category,
-        durationStr,
-        booking.personCount || 1
-      );
-      const activeBonus = await storage.getActiveBonusHoursPromotion(
-        booking.category,
-        durationStr,
-        booking.personCount || 1
-      );
-      
       let bookingData = { ...booking };
-      let appliedPromotion: { type: 'discount' | 'bonus', id: string, description: string, savingsAmount?: string, hoursGiven?: string } | null = null;
+      let appliedPromotion: { type: 'discount' | 'bonus' | 'manual_discount' | 'manual_bonus', id?: string, description: string, savingsAmount?: string, hoursGiven?: string } | null = null;
       
-      // Check for applicable discount promotion
-      if (activeDiscount) {
-        const originalPrice = parseFloat(booking.price);
-        const discountAmount = originalPrice * (activeDiscount.discountPercentage / 100);
-        const finalPrice = originalPrice - discountAmount;
+      // Apply promotional discount if user opted in
+      if (usePromotionalDiscount) {
+        const activeDiscount = await storage.getActiveDiscountPromotion(
+          booking.category,
+          durationStr,
+          booking.personCount || 1
+        );
         
-        const promotionDesc = `${activeDiscount.discountPercentage}% off ${activeDiscount.category} - ${activeDiscount.duration}`;
+        if (activeDiscount) {
+          const originalPrice = parseFloat(booking.price);
+          const discountAmount = originalPrice * (activeDiscount.discountPercentage / 100);
+          const finalPrice = originalPrice - discountAmount;
+          
+          const promotionDesc = `${activeDiscount.discountPercentage}% off ${activeDiscount.category} - ${activeDiscount.duration}`;
+          
+          bookingData.originalPrice = booking.price;
+          bookingData.price = finalPrice.toFixed(2);
+          bookingData.discountApplied = promotionDesc;
+          bookingData.isPromotionalDiscount = 1;
+          bookingData.promotionDetails = {
+            discountPercentage: activeDiscount.discountPercentage,
+            discountAmount: discountAmount.toFixed(2),
+          };
+          
+          appliedPromotion = { 
+            type: 'discount', 
+            id: activeDiscount.id, 
+            description: promotionDesc,
+            savingsAmount: discountAmount.toFixed(2)
+          };
+        }
+      }
+      // Apply promotional bonus if user opted in (only if no discount applied)
+      else if (usePromotionalBonus) {
+        const activeBonus = await storage.getActiveBonusHoursPromotion(
+          booking.category,
+          durationStr,
+          booking.personCount || 1
+        );
+        
+        if (activeBonus) {
+          const bonusHoursValue = parseFloat(activeBonus.bonusHours);
+          const newEndTime = new Date(requestEnd.getTime() + (bonusHoursValue * 60 * 60 * 1000));
+          
+          const promotionDesc = `+${activeBonus.bonusHours} hours free on ${activeBonus.category} - ${activeBonus.duration}`;
+          
+          bookingData.originalPrice = booking.price;
+          bookingData.endTime = newEndTime;
+          bookingData.bonusHoursApplied = promotionDesc;
+          bookingData.isPromotionalBonus = 1;
+          bookingData.promotionDetails = {
+            bonusHours: activeBonus.bonusHours,
+          };
+          
+          appliedPromotion = { 
+            type: 'bonus', 
+            id: activeBonus.id, 
+            description: promotionDesc,
+            hoursGiven: activeBonus.bonusHours
+          };
+        }
+      }
+      // Apply manual discount
+      else if (manualDiscountPercentage && manualDiscountPercentage > 0) {
+        const originalPrice = parseFloat(booking.price);
+        const discountAmount = originalPrice * (manualDiscountPercentage / 100);
+        const finalPrice = originalPrice - discountAmount;
         
         bookingData.originalPrice = booking.price;
         bookingData.price = finalPrice.toFixed(2);
-        bookingData.discountApplied = promotionDesc;
+        bookingData.discountApplied = `${manualDiscountPercentage}% manual discount`;
+        bookingData.isPromotionalDiscount = 0;
+        bookingData.manualDiscountPercentage = manualDiscountPercentage;
         bookingData.promotionDetails = {
-          discountPercentage: activeDiscount.discountPercentage,
+          discountPercentage: manualDiscountPercentage,
           discountAmount: discountAmount.toFixed(2),
         };
         
         appliedPromotion = { 
-          type: 'discount', 
-          id: activeDiscount.id, 
-          description: promotionDesc,
+          type: 'manual_discount', 
+          description: `${manualDiscountPercentage}% manual discount`,
           savingsAmount: discountAmount.toFixed(2)
         };
       }
-      // Check for applicable bonus hours promotion (only if no discount applied)
-      else if (activeBonus) {
-        const bonusHoursValue = parseFloat(activeBonus.bonusHours);
-        const newEndTime = new Date(requestEnd.getTime() + (bonusHoursValue * 60 * 60 * 1000));
-        
-        const promotionDesc = `+${activeBonus.bonusHours} hours free on ${activeBonus.category} - ${activeBonus.duration}`;
+      // Apply manual free hours
+      else if (manualFreeHours && parseFloat(manualFreeHours) > 0) {
+        const freeHoursValue = parseFloat(manualFreeHours);
+        const newEndTime = new Date(requestEnd.getTime() + (freeHoursValue * 60 * 60 * 1000));
         
         bookingData.originalPrice = booking.price;
         bookingData.endTime = newEndTime;
-        bookingData.bonusHoursApplied = promotionDesc;
+        bookingData.bonusHoursApplied = `+${manualFreeHours} hours (manual)`;
+        bookingData.isPromotionalBonus = 0;
+        bookingData.manualFreeHours = manualFreeHours;
         bookingData.promotionDetails = {
-          bonusHours: activeBonus.bonusHours,
+          bonusHours: manualFreeHours,
         };
         
         appliedPromotion = { 
-          type: 'bonus', 
-          id: activeBonus.id, 
-          description: promotionDesc,
-          hoursGiven: activeBonus.bonusHours
+          type: 'manual_bonus', 
+          description: `+${manualFreeHours} hours free (manual)`,
+          hoursGiven: manualFreeHours
         };
       }
       
@@ -258,15 +311,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
       // Send notification for new booking
       await notifyBookingCreated(created.id, created.seatName, created.customerName);
       
-      // Increment promotion usage counter if a promotion was applied
+      // Increment promotion usage counter and log activity
       if (appliedPromotion) {
-        if (appliedPromotion.type === 'discount' && appliedPromotion.savingsAmount) {
-          await storage.incrementDiscountUsage(appliedPromotion.id, appliedPromotion.savingsAmount);
-        } else if (appliedPromotion.type === 'bonus' && appliedPromotion.hoursGiven) {
-          await storage.incrementBonusHoursUsage(appliedPromotion.id, appliedPromotion.hoursGiven);
-        }
-        
-        // Log the promotion usage activity
         const userId = req.session.userId;
         const username = req.session.username;
         const userRole = req.session.role;
@@ -274,19 +320,59 @@ export async function registerRoutes(app: Express): Promise<Server> {
         if (userId && username && userRole) {
           const startTime = new Date(created.startTime).toLocaleString('en-IN', { dateStyle: 'medium', timeStyle: 'short' });
           const endTime = new Date(created.endTime).toLocaleString('en-IN', { dateStyle: 'medium', timeStyle: 'short' });
-          const promoDetails = appliedPromotion.type === 'discount' 
-            ? `saved ₹${appliedPromotion.savingsAmount}, final price ₹${created.price}` 
-            : `added ${appliedPromotion.hoursGiven}h free gaming time`;
           
-          await storage.createActivityLog({
-            userId,
-            username,
-            userRole,
-            action: 'use',
-            entityType: appliedPromotion.type === 'discount' ? 'discount_promotion' : 'bonus_hours_promotion',
-            entityId: appliedPromotion.id,
-            details: `Applied "${appliedPromotion.description}" promotion to booking for ${created.customerName} at ${created.seatName}. Customer ${promoDetails}. Booking: ${startTime} to ${endTime}`
-          });
+          // Handle promotional discount
+          if (appliedPromotion.type === 'discount' && appliedPromotion.id && appliedPromotion.savingsAmount) {
+            await storage.incrementDiscountUsage(appliedPromotion.id, appliedPromotion.savingsAmount);
+            
+            await storage.createActivityLog({
+              userId,
+              username,
+              userRole,
+              action: 'use',
+              entityType: 'discount_promotion',
+              entityId: appliedPromotion.id,
+              details: `Applied promotional "${appliedPromotion.description}" to booking for ${created.customerName} at ${created.seatName}. Customer saved ₹${appliedPromotion.savingsAmount}, final price ₹${created.price}. Booking: ${startTime} to ${endTime}`
+            });
+          }
+          // Handle promotional bonus
+          else if (appliedPromotion.type === 'bonus' && appliedPromotion.id && appliedPromotion.hoursGiven) {
+            await storage.incrementBonusHoursUsage(appliedPromotion.id, appliedPromotion.hoursGiven);
+            
+            await storage.createActivityLog({
+              userId,
+              username,
+              userRole,
+              action: 'use',
+              entityType: 'bonus_hours_promotion',
+              entityId: appliedPromotion.id,
+              details: `Applied promotional "${appliedPromotion.description}" to booking for ${created.customerName} at ${created.seatName}. Customer got ${appliedPromotion.hoursGiven}h free gaming time. Booking: ${startTime} to ${endTime}`
+            });
+          }
+          // Handle manual discount
+          else if (appliedPromotion.type === 'manual_discount' && appliedPromotion.savingsAmount) {
+            await storage.createActivityLog({
+              userId,
+              username,
+              userRole,
+              action: 'create',
+              entityType: 'manual_discount',
+              entityId: created.id,
+              details: `Applied manual discount "${appliedPromotion.description}" to booking for ${created.customerName} at ${created.seatName}. Customer saved ₹${appliedPromotion.savingsAmount}, final price ₹${created.price}. Booking: ${startTime} to ${endTime}`
+            });
+          }
+          // Handle manual free hours
+          else if (appliedPromotion.type === 'manual_bonus' && appliedPromotion.hoursGiven) {
+            await storage.createActivityLog({
+              userId,
+              username,
+              userRole,
+              action: 'create',
+              entityType: 'manual_free_hours',
+              entityId: created.id,
+              details: `Applied manual free hours "${appliedPromotion.description}" to booking for ${created.customerName} at ${created.seatName}. Customer got ${appliedPromotion.hoursGiven}h free gaming time. Booking: ${startTime} to ${endTime}`
+            });
+          }
         }
       }
       
