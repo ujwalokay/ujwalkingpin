@@ -32,7 +32,7 @@ export function NotificationCenter() {
 
   const unreadCount = unreadCountData?.count || 0;
   
-  const visibleNotifications = notifications.filter(n => n.type !== "booking" && n.type !== "payment");
+  const visibleNotifications = notifications;
 
   const markAsReadMutation = useMutation({
     mutationFn: async (id: string) =>
@@ -62,7 +62,6 @@ export function NotificationCenter() {
   });
 
   const filteredNotifications = notifications
-    .filter(n => n.type !== "booking" && n.type !== "payment")
     .filter(n => activeTab === "unread" ? n.isRead === 0 : true);
 
   const groupedNotifications = filteredNotifications.reduce((groups, notification) => {

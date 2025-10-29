@@ -154,10 +154,26 @@ export default function History() {
                       <CardTitle className="text-lg" data-testid={`text-seat-${booking.id}`}>
                         {booking.seatName}
                       </CardTitle>
-                      <CardDescription className="mt-1">
+                      <CardDescription className="mt-1 flex gap-1 flex-wrap">
                         <Badge variant="secondary" className="text-xs">
                           {booking.category}
                         </Badge>
+                        {booking.bookingType && booking.bookingType.length > 0 && booking.bookingType.map((type, idx) => (
+                          <Badge 
+                            key={idx}
+                            variant="outline" 
+                            className={`text-xs ${
+                              type === 'happy-hours' 
+                                ? 'bg-yellow-50 dark:bg-yellow-950 text-yellow-700 dark:text-yellow-300 border-yellow-300 dark:border-yellow-700' 
+                                : type === 'upcoming'
+                                ? 'bg-blue-50 dark:bg-blue-950 text-blue-700 dark:text-blue-300 border-blue-300 dark:border-blue-700'
+                                : 'bg-purple-50 dark:bg-purple-950 text-purple-700 dark:text-purple-300 border-purple-300 dark:border-purple-700'
+                            }`}
+                            data-testid={`badge-booking-type-${type}-${booking.id}`}
+                          >
+                            {type === 'happy-hours' ? '🎉 Happy Hours' : type === 'upcoming' ? '📅 Upcoming' : '🚶 Walk-in'}
+                          </Badge>
+                        ))}
                       </CardDescription>
                     </div>
                     <Badge variant="outline" className="bg-green-50 dark:bg-green-950 text-green-700 dark:text-green-300">
