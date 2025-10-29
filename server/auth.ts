@@ -31,13 +31,6 @@ export const publicApiLimiter = rateLimit({
 
 export async function loginHandler(req: Request, res: Response) {
   try {
-    // Check if Google authentication is verified
-    if (!req.session.googleVerified) {
-      return res.status(401).json({ 
-        message: "Please complete Google authentication first" 
-      });
-    }
-
     const { username, password } = loginSchema.parse(req.body);
     
     const user = await storage.validatePassword(username, password);
@@ -53,6 +46,10 @@ export async function loginHandler(req: Request, res: Response) {
     req.session.role = user.role!;
     
     // Log login activity
+    const loginMethod = req.session.googleVerified 
+      ? `two-step auth (Google: ${req.session.googleEmail})` 
+      : 'direct login';
+    
     await storage.createActivityLog({
       userId: user.id,
       username: user.username!,
@@ -60,7 +57,7 @@ export async function loginHandler(req: Request, res: Response) {
       action: 'login',
       entityType: null,
       entityId: null,
-      details: `${user.role} logged in via two-step auth (Google: ${req.session.googleEmail})`
+      details: `${user.role} logged in via ${loginMethod}`
     });
     
     res.json({
@@ -85,30 +82,29 @@ export async function logoutHandler(req: Request, res: Response) {
 }
 
 export async function getCurrentUserHandler(req: Request, res: Response) {
-  // Check if Google authentication is verified
-  if (req.session.googleVerified) {
-    // If both Google and staff/admin credentials are verified
-    if (req.session.userId) {
-      try {
-        const user = await storage.getUserById(req.session.userId);
-        if (!user) {
-          return res.status(404).json({ message: "User not found" });
-        }
-        
-        return res.json({
-          id: user.id,
-          username: user.username,
-          role: user.role,
-          googleEmail: req.session.googleEmail,
-          onboardingCompleted: user.onboardingCompleted === 1,
-          twoStepComplete: true,
-        });
-      } catch (error: any) {
-        return res.status(500).json({ message: error.message });
+  // Check if user is authenticated via staff/admin login
+  if (req.session.userId) {
+    try {
+      const user = await storage.getUserById(req.session.userId);
+      if (!user) {
+        return res.status(404).json({ message: "User not found" });
       }
+      
+      return res.json({
+        id: user.id,
+        username: user.username,
+        role: user.role,
+        googleEmail: req.session.googleEmail,
+        onboardingCompleted: user.onboardingCompleted === 1,
+        twoStepComplete: true,
+      });
+    } catch (error: any) {
+      return res.status(500).json({ message: error.message });
     }
-    
-    // Google verified but not staff/admin login yet
+  }
+  
+  // Check if Google authentication is verified but no staff login yet
+  if (req.session.googleVerified) {
     return res.status(200).json({
       googleVerified: true,
       googleEmail: req.session.googleEmail,
@@ -121,9 +117,9 @@ export async function getCurrentUserHandler(req: Request, res: Response) {
 }
 
 export function requireAuth(req: Request, res: Response, next: NextFunction) {
-  // Require both Google verification AND staff/admin login
-  if (!req.session.googleVerified || !req.session.userId) {
-    return res.status(401).json({ message: "Complete two-step authentication required" });
+  // Require staff/admin login (Google OAuth is optional)
+  if (!req.session.userId) {
+    return res.status(401).json({ message: "Authentication required" });
   }
   next();
 }
