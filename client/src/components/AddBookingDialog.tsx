@@ -105,13 +105,6 @@ export function AddBookingDialog({ open, onOpenChange, onConfirm, availableSeats
   const [timeSlot, setTimeSlot] = useState<string>("");
   const [timePeriodFilter, setTimePeriodFilter] = useState<"all" | "am" | "pm">("all");
   const [useHappyHoursPricing, setUseHappyHoursPricing] = useState<boolean>(false);
-  const [loyaltyCustomerId, setLoyaltyCustomerId] = useState<string | null>(null);
-  const [selectedReward, setSelectedReward] = useState<{
-    type: "free_hours" | "discount" | "cashback";
-    value: string;
-    tierId: string;
-  } | null>(null);
-  const [loyaltyDialogOpen, setLoyaltyDialogOpen] = useState<boolean>(false);
 
   const { data: pricingConfig = [] } = useQuery<PricingConfig[]>({
     queryKey: ["/api/pricing-config"],
@@ -185,120 +178,15 @@ export function AddBookingDialog({ open, onOpenChange, onConfirm, availableSeats
     enabled: bookingType === "upcoming" && !!bookingDate && !!timeSlot && durationMinutes > 0,
   });
 
-  // Fetch loyalty tiers
-  const { data: loyaltyTiers = [] } = useQuery<any[]>({
-    queryKey: ["/api/loyalty-tiers"],
-  });
-
-  // Fetch loyalty rewards from catalog
-  const { data: loyaltyRewards = [] } = useQuery<any[]>({
-    queryKey: ["/api/loyalty-rewards"],
-  });
-
-  // Fetch customer loyalty data when WhatsApp number is entered
-  const { data: customerLoyalty } = useQuery<any>({
-    queryKey: ["/api/customer-loyalty/by-phone", whatsappNumber],
-    queryFn: async () => {
-      if (!whatsappNumber || whatsappNumber.length < 10) return null;
-      const response = await fetch(`/api/customer-loyalty/by-phone/${whatsappNumber}`);
-      if (!response.ok) return null;
-      return response.json();
-    },
-    enabled: whatsappNumber.length >= 10,
-  });
-
-  // Get customer's current tier
-  const customerTier = useMemo(() => {
-    if (!customerLoyalty) return null;
-    return loyaltyTiers.find((tier: any) => tier.id === customerLoyalty.currentTierId);
-  }, [customerLoyalty, loyaltyTiers]);
-
-  // Get all rewards customer is eligible for (based on available points)
-  const eligibleRewards = useMemo(() => {
-    if (!customerLoyalty || !loyaltyRewards.length) return [];
-    const pointsAvailable = parseInt(customerLoyalty.pointsAvailable || "0");
-    return loyaltyRewards.filter((reward: any) => {
-      const pointCost = parseInt(reward.pointCost || "0");
-      return reward.enabled === 1 && pointsAvailable >= pointCost;
-    });
-  }, [customerLoyalty, loyaltyRewards]);
-
-  // Helper to get reward icon
-  const getRewardIcon = (type: string) => {
-    switch (type) {
-      case "free_hours":
-        return <Clock className="h-4 w-4" />;
-      case "discount":
-        return <Percent className="h-4 w-4" />;
-      case "cashback":
-        return <DollarSign className="h-4 w-4" />;
-      default:
-        return <Gift className="h-4 w-4" />;
-    }
-  };
-
-  // Helper to get reward label
-  const getRewardLabel = (type: string, value: string) => {
-    switch (type) {
-      case "free_hours":
-        return `${value} hour${parseFloat(value) !== 1 ? 's' : ''} free`;
-      case "discount":
-        return `${value}% discount`;
-      case "cashback":
-        return `₹${value} cashback`;
-      default:
-        return value;
-    }
-  };
-
-  // Calculate final price with reward applied
+  // Calculate final price
   const calculateFinalPrice = () => {
     const shouldUseHappyHoursPricing = bookingType === "happy-hours" || (bookingType === "upcoming" && useHappyHoursPricing);
     const slot = shouldUseHappyHoursPricing ? selectedHappyHoursSlot : selectedSlot;
     if (!slot) return null;
 
     let basePrice = parseFloat(slot.price.toString());
-    
-    // Apply selected reward
-    if (selectedReward) {
-      if (selectedReward.type === "discount") {
-        const discountPercent = parseFloat(selectedReward.value);
-        basePrice = basePrice * (1 - discountPercent / 100);
-      } else if (selectedReward.type === "cashback") {
-        const cashback = parseFloat(selectedReward.value);
-        basePrice = Math.max(0, basePrice - cashback);
-      } else if (selectedReward.type === "free_hours") {
-        // For free hours, calculate proportional discount
-        const freeHours = parseFloat(selectedReward.value);
-        const durationHours = durationMinutes / 60;
-        
-        if (durationHours <= freeHours) {
-          // Entire booking is covered by free hours
-          basePrice = 0;
-        } else {
-          // Partial coverage: subtract the value of free hours from total
-          // Calculate hourly rate and subtract the free hours value
-          const hourlyRate = basePrice / durationHours;
-          const freeHoursValue = hourlyRate * freeHours;
-          basePrice = Math.max(0, basePrice - freeHoursValue);
-        }
-      }
-    }
 
     return Math.round(basePrice).toString();
-  };
-
-  const handleUseReward = (reward: any) => {
-    setSelectedReward({
-      type: reward.rewardType,
-      value: reward.value,
-      tierId: reward.id
-    });
-    setLoyaltyDialogOpen(false);
-  };
-
-  const handleClearReward = () => {
-    setSelectedReward(null);
   };
 
   const seatsToDisplay = bookingType === "upcoming" && bookingDate && timeSlot && durationMinutes > 0
@@ -421,7 +309,6 @@ export function AddBookingDialog({ open, onOpenChange, onConfirm, availableSeats
       setBookingDate(undefined);
       setTimeSlot("");
       setUseHappyHoursPricing(false);
-      setSelectedReward(null);
       onOpenChange(false);
     }
   };
@@ -844,68 +731,6 @@ export function AddBookingDialog({ open, onOpenChange, onConfirm, availableSeats
             )}
           </div>
 
-          {customerLoyalty && customerTier && (
-            <Card className="border-l-4" style={{ borderLeftColor: customerTier.tierColor }}>
-              <CardContent className="pt-4">
-                <div className="space-y-3">
-                  <div className="flex items-center justify-between">
-                    <div className="flex items-center gap-2">
-                      <Award className="h-5 w-5" style={{ color: customerTier.tierColor }} />
-                      <div>
-                        <div className="font-semibold">Loyalty Member</div>
-                        <div className="flex items-center gap-2">
-                          <Badge style={{ backgroundColor: customerTier.tierColor }} className="text-xs">
-                            {customerTier.tierName}
-                          </Badge>
-                          <span className="text-sm text-muted-foreground">
-                            {customerLoyalty.pointsEarned} points
-                          </span>
-                        </div>
-                      </div>
-                    </div>
-                    <Button
-                      type="button"
-                      variant="outline"
-                      size="sm"
-                      onClick={() => setLoyaltyDialogOpen(true)}
-                      data-testid="button-view-rewards"
-                    >
-                      <Gift className="mr-2 h-4 w-4" />
-                      View Rewards
-                    </Button>
-                  </div>
-                  
-                  {selectedReward && (
-                    <div className="bg-green-50 dark:bg-green-950 border border-green-200 dark:border-green-800 rounded-lg p-3">
-                      <div className="flex items-center justify-between">
-                        <div className="flex items-center gap-2">
-                          {getRewardIcon(selectedReward.type)}
-                          <div>
-                            <div className="text-sm font-medium text-green-900 dark:text-green-100">
-                              Reward Applied
-                            </div>
-                            <div className="text-xs text-green-700 dark:text-green-300">
-                              {getRewardLabel(selectedReward.type, selectedReward.value)}
-                            </div>
-                          </div>
-                        </div>
-                        <Button
-                          type="button"
-                          variant="ghost"
-                          size="sm"
-                          onClick={handleClearReward}
-                          data-testid="button-clear-reward"
-                        >
-                          Remove
-                        </Button>
-                      </div>
-                    </div>
-                  )}
-                </div>
-              </CardContent>
-            </Card>
-          )}
-
           {(bookingType === "walk-in" || bookingType === "happy-hours") && category && (
             <div className="space-y-2">
               <Label htmlFor="duration">Duration</Label>
@@ -968,16 +793,7 @@ export function AddBookingDialog({ open, onOpenChange, onConfirm, availableSeats
               </div>
               {bookingType === "walk-in" && selectedSlot && (
                 <div className="text-sm text-muted-foreground" data-testid="text-price">
-                  {selectedReward ? (
-                    <>
-                      <span className="line-through mr-2">₹{selectedSlot.price}</span>
-                      <span className="text-green-600 dark:text-green-400 font-semibold">
-                        ₹{calculateFinalPrice()}
-                      </span>
-                    </>
-                  ) : (
-                    `Price: ₹${selectedSlot.price}`
-                  )}
+                  Price: ₹{selectedSlot.price}
                 </div>
               )}
             </div>
@@ -985,25 +801,11 @@ export function AddBookingDialog({ open, onOpenChange, onConfirm, availableSeats
 
           {bookingType === "upcoming" && category && (useHappyHoursPricing ? selectedHappyHoursSlot : selectedSlot) && (
             <div className="text-sm text-muted-foreground" data-testid="text-price">
-              {selectedReward ? (
-                <>
-                  <span className="line-through mr-2">
-                    ₹{useHappyHoursPricing && selectedHappyHoursSlot ? selectedHappyHoursSlot.price : selectedSlot?.price}
-                  </span>
-                  <span className="text-green-600 dark:text-green-400 font-semibold">
-                    ₹{calculateFinalPrice()}
-                  </span>
-                  <span className="ml-2">for {duration}</span>
-                </>
-              ) : (
-                <>
-                  Price: ₹{useHappyHoursPricing && selectedHappyHoursSlot ? selectedHappyHoursSlot.price : selectedSlot?.price} for {duration}
-                  {useHappyHoursPricing && selectedHappyHoursSlot && (
-                    <span className="ml-2 text-green-600 dark:text-green-400 font-medium">
-                      (Happy Hours 🎉)
-                    </span>
-                  )}
-                </>
+              Price: ₹{useHappyHoursPricing && selectedHappyHoursSlot ? selectedHappyHoursSlot.price : selectedSlot?.price} for {duration}
+              {useHappyHoursPricing && selectedHappyHoursSlot && (
+                <span className="ml-2 text-green-600 dark:text-green-400 font-medium">
+                  (Happy Hours 🎉)
+                </span>
               )}
             </div>
           )}
@@ -1055,122 +857,6 @@ export function AddBookingDialog({ open, onOpenChange, onConfirm, availableSeats
           </Button>
         </DialogFooter>
       </DialogContent>
-
-      <Dialog open={loyaltyDialogOpen} onOpenChange={setLoyaltyDialogOpen}>
-        <DialogContent className="max-w-md" data-testid="dialog-loyalty-rewards">
-          <DialogHeader>
-            <DialogTitle className="flex items-center gap-2">
-              <Award className="h-5 w-5 text-purple-600" />
-              Loyalty Rewards
-            </DialogTitle>
-            <DialogDescription>
-              Your loyalty status and available rewards
-            </DialogDescription>
-          </DialogHeader>
-          
-          {customerLoyalty && (
-            <div className="space-y-4">
-              <Card className="bg-gradient-to-br from-purple-50 to-blue-50 dark:from-purple-950 dark:to-blue-950">
-                <CardContent className="pt-4">
-                  <div className="space-y-2">
-                    <div className="flex items-center justify-between">
-                      <span className="text-sm text-muted-foreground">Total Points</span>
-                      <span className="text-2xl font-bold text-purple-600">
-                        {customerLoyalty.pointsEarned}
-                      </span>
-                    </div>
-                    <div className="flex items-center justify-between">
-                      <span className="text-sm text-muted-foreground">Total Spent</span>
-                      <span className="text-lg font-semibold">₹{customerLoyalty.totalSpent}</span>
-                    </div>
-                    <div className="flex items-center justify-between">
-                      <span className="text-sm text-muted-foreground">Current Tier</span>
-                      {customerTier && (
-                        <Badge style={{ backgroundColor: customerTier.tierColor }}>
-                          {customerTier.tierName}
-                        </Badge>
-                      )}
-                    </div>
-                  </div>
-                </CardContent>
-              </Card>
-
-              <div className="space-y-2">
-                <h3 className="font-semibold text-sm">Available Rewards</h3>
-                {eligibleRewards.length === 0 ? (
-                  <p className="text-sm text-muted-foreground py-4 text-center">
-                    No rewards available yet. Keep spending to unlock rewards!
-                  </p>
-                ) : (
-                  <div className="space-y-2">
-                    {eligibleRewards.map((reward: any) => {
-                      const isSelected = selectedReward?.tierId === reward.id;
-                      return (
-                        <Card 
-                          key={reward.id} 
-                          className={`border-l-4 ${isSelected ? 'bg-green-50 dark:bg-green-950 border-green-500' : 'border-l-purple-500'}`}
-                          data-testid={`reward-card-${reward.id}`}
-                        >
-                          <CardContent className="pt-4">
-                            <div className="space-y-3">
-                              <div className="flex items-start justify-between">
-                                <div className="flex-1">
-                                  <div className="flex items-center gap-2 mb-1">
-                                    <span className="font-semibold text-gray-900 dark:text-white">{reward.name}</span>
-                                    <Badge className="capitalize" variant="outline">{reward.cardType || 'bronze'}</Badge>
-                                  </div>
-                                  <p className="text-xs text-muted-foreground mt-2">
-                                    {reward.description}
-                                  </p>
-                                  <div className="flex items-center gap-2 mt-2">
-                                    {getRewardIcon(reward.rewardType || 'discount')}
-                                    <span className="font-semibold text-purple-600 dark:text-purple-400">
-                                      {reward.rewardType === 'free_hour' ? `${reward.value} hrs` : reward.rewardType === 'free_hours' ? `${reward.value} hour${parseFloat(reward.value) !== 1 ? 's' : ''} free` : reward.rewardType === 'discount' ? `${reward.value}% discount` : reward.rewardType === 'free_food' ? `₹${reward.value} food voucher` : `₹${reward.value}`}
-                                    </span>
-                                  </div>
-                                  <p className="text-xs text-muted-foreground mt-1">
-                                    Requires {reward.pointCost || 0} points
-                                  </p>
-                                </div>
-                              </div>
-                              <Button
-                                variant={isSelected ? "secondary" : "default"}
-                                size="sm"
-                                className="w-full"
-                                onClick={() => handleUseReward(reward)}
-                                disabled={isSelected}
-                                data-testid={`button-use-reward-${reward.id}`}
-                              >
-                                {isSelected ? (
-                                  <>
-                                    <Award className="mr-2 h-4 w-4" />
-                                    Applied
-                                  </>
-                                ) : (
-                                  <>
-                                    <Gift className="mr-2 h-4 w-4" />
-                                    Use It
-                                  </>
-                                )}
-                              </Button>
-                            </div>
-                          </CardContent>
-                        </Card>
-                      );
-                    })}
-                  </div>
-                )}
-              </div>
-            </div>
-          )}
-
-          <DialogFooter>
-            <Button variant="outline" onClick={() => setLoyaltyDialogOpen(false)} data-testid="button-close-loyalty-dialog">
-              Close
-            </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
     </Dialog>
   );
 }
