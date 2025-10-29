@@ -107,7 +107,6 @@ Preferred communication style: Simple, everyday language.
   - Device config logs: Show total capacity, seat lists (auto-numbered or custom), and configuration timestamps
   - Pricing config logs: Display all price tiers with durations and person counts, formatted for easy reading
   - Happy hours logs: Include time slots with enabled/disabled status and active slot counts
-  - Promotion logs: Show percentages/hours, validity date ranges, person counts, usage statistics (times used, total savings/hours given), and enabled status
   - Food inventory logs: Display before/after stock levels, supplier info, expiry dates, low stock warnings, and batch tracking notes
   - All logs formatted with Indian locale timestamps (en-IN) and currency (₹) for consistency
 - **Simplified Loyalty & Rewards System**: Easy-to-use customer loyalty program with automatic point earning and reward redemption:
@@ -123,14 +122,11 @@ Preferred communication style: Simple, everyday language.
   - Preserves all booking data (remaining time, food orders, prices, customer information)
   - Backend validation prevents double-booking conflicts
   - Automatic activity logging for all seat changes
-- **Discount Type Badges**: Visual indicators in booking tables showing discount and bonus types:
-  - Promotional Discount badge (emerald/green) for promotions from the promotional system
-  - Add-ons Discount badge (blue) for manual discounts applied by staff
-  - Promotional Bonus badge (violet/purple) for promotional bonus hours
-  - Add-ons Bonus badge (amber/orange) for manual bonus hours
-  - Backward compatible with legacy data (shows generic Discount/Bonus badges when specific fields are unavailable)
-  - Displayed in customer group headers before the "Select All" button
-  - Useful when customers want to switch seats during their gaming session
+- **Manual Adjustments for Bookings**: Staff can apply manual discounts and bonus hours to bookings:
+  - Manual discount percentage can be applied during booking creation
+  - Manual free/bonus hours can be added to extend session duration
+  - These adjustments are preserved when editing or changing seats in existing bookings
+  - Useful for providing custom pricing adjustments and customer satisfaction
 
 ## External Dependencies
 
