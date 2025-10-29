@@ -870,6 +870,7 @@ export function AddBookingDialog({ open, onOpenChange, onConfirm, availableSeats
                       if (checked) {
                         setUsePromotionalBonus(false);
                         setManualDiscountPercentage("");
+                        setManualFreeHours("");
                       }
                     }}
                     data-testid="checkbox-use-promotional-discount"
@@ -877,10 +878,13 @@ export function AddBookingDialog({ open, onOpenChange, onConfirm, availableSeats
                   <div className="flex-1">
                     <Label htmlFor="use-promotional-discount" className="cursor-pointer font-medium text-green-900 dark:text-green-100 flex items-center gap-2">
                       <Percent className="h-4 w-4" />
-                      Promotional Discount Available
+                      Discount Promotion Available!
                     </Label>
                     <p className="text-sm text-green-700 dark:text-green-300 mt-1">
-                      {availablePromotions.discount.description} - Click to apply
+                      {availablePromotions.discount.description} - Do you want to use it? 
+                      <span className="block text-xs mt-1 font-medium">
+                        Note: Add-ons discount cannot be used with promotional discount
+                      </span>
                     </p>
                   </div>
                 </div>
@@ -896,6 +900,7 @@ export function AddBookingDialog({ open, onOpenChange, onConfirm, availableSeats
                       if (checked) {
                         setUsePromotionalDiscount(false);
                         setManualFreeHours("");
+                        setManualDiscountPercentage("");
                       }
                     }}
                     data-testid="checkbox-use-promotional-bonus"
@@ -903,10 +908,13 @@ export function AddBookingDialog({ open, onOpenChange, onConfirm, availableSeats
                   <div className="flex-1">
                     <Label htmlFor="use-promotional-bonus" className="cursor-pointer font-medium text-yellow-900 dark:text-yellow-100 flex items-center gap-2">
                       <Gift className="h-4 w-4" />
-                      Promotional Bonus Hours Available
+                      Bonus Hours Promotion Available!
                     </Label>
                     <p className="text-sm text-yellow-700 dark:text-yellow-300 mt-1">
-                      {availablePromotions.bonus.description} - Click to apply
+                      {availablePromotions.bonus.description} - Do you want to use it?
+                      <span className="block text-xs mt-1 font-medium">
+                        Note: Add-ons cannot be used with promotional bonus
+                      </span>
                     </p>
                   </div>
                 </div>
@@ -974,7 +982,7 @@ export function AddBookingDialog({ open, onOpenChange, onConfirm, availableSeats
                     />
                     <p className="text-xs text-muted-foreground">
                       {usePromotionalDiscount || usePromotionalBonus 
-                        ? "Disable promotional options to use manual discount" 
+                        ? "❌ Cannot use manual discount with promotional offers - Uncheck promotional option above to use this" 
                         : "Enter percentage (0-100) for manual discount"}
                     </p>
                   </div>
@@ -1007,7 +1015,7 @@ export function AddBookingDialog({ open, onOpenChange, onConfirm, availableSeats
                     </div>
                     <p className="text-xs text-muted-foreground">
                       {usePromotionalDiscount || usePromotionalBonus 
-                        ? "Disable promotional options to use manual free hours" 
+                        ? "❌ Cannot use manual free hours with promotional offers - Uncheck promotional option above to use this" 
                         : "Enter hours (e.g., 0.5 for 30 minutes, 1 for 1 hour)"}
                     </p>
                   </div>
