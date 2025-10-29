@@ -219,7 +219,7 @@ export default function History() {
                           data-testid={`badge-discount-used-${booking.id}`}
                         >
                           <Percent className="h-3 w-3 mr-1" />
-                          {booking.isPromotionalDiscount === 1 ? "Promotional Discount" : "Discount"}
+                          Discount
                         </Badge>
                       )}
                       {booking.bonusHoursApplied && (
@@ -229,7 +229,7 @@ export default function History() {
                           data-testid={`badge-bonus-used-${booking.id}`}
                         >
                           <Gift className="h-3 w-3 mr-1" />
-                          {booking.isPromotionalBonus === 1 ? "Promotional Bonus" : "Free Hours"}
+                          Free Hours
                         </Badge>
                       )}
                     </div>
@@ -320,7 +320,7 @@ export default function History() {
                     </div>
                   )}
                   
-                  {selectedBill.discountApplied && selectedBill.promotionDetails?.discountPercentage && (
+                  {selectedBill.discountApplied && (
                     <div className="bg-emerald-50 dark:bg-emerald-950/30 p-3 rounded-lg space-y-1.5 border border-emerald-200 dark:border-emerald-800">
                       <div className="flex items-center gap-2">
                         <Badge variant="outline" className="bg-emerald-100 dark:bg-emerald-900/50 text-emerald-700 dark:text-emerald-400 border-emerald-300 dark:border-emerald-700">
@@ -328,39 +328,45 @@ export default function History() {
                           Discount Applied
                         </Badge>
                       </div>
-                      <div className="flex justify-between">
-                        <span className="text-sm font-medium text-emerald-900 dark:text-emerald-100">
-                          {selectedBill.discountApplied}
-                        </span>
-                        <span className="text-sm font-semibold text-emerald-700 dark:text-emerald-400" data-testid="bill-discount-amount">
-                          {selectedBill.promotionDetails.discountPercentage}% off
-                        </span>
-                      </div>
-                      <div className="flex justify-between">
-                        <span className="text-sm text-emerald-700 dark:text-emerald-400">Savings:</span>
-                        <span className="text-sm font-bold text-emerald-700 dark:text-emerald-400">
-                          -₹{selectedBill.promotionDetails.discountAmount}
-                        </span>
-                      </div>
+                      {selectedBill.manualDiscountPercentage && (
+                        <div className="flex justify-between">
+                          <span className="text-sm font-medium text-emerald-900 dark:text-emerald-100">
+                            Manual Discount
+                          </span>
+                          <span className="text-sm font-semibold text-emerald-700 dark:text-emerald-400" data-testid="bill-discount-percentage">
+                            {selectedBill.manualDiscountPercentage}% off
+                          </span>
+                        </div>
+                      )}
+                      {selectedBill.promotionDetails?.discountAmount && (
+                        <div className="flex justify-between">
+                          <span className="text-sm text-emerald-700 dark:text-emerald-400">Savings:</span>
+                          <span className="text-sm font-bold text-emerald-700 dark:text-emerald-400" data-testid="bill-discount-amount">
+                            -₹{selectedBill.promotionDetails.discountAmount}
+                          </span>
+                        </div>
+                      )}
                     </div>
                   )}
                   
-                  {selectedBill.bonusHoursApplied && selectedBill.promotionDetails?.bonusHours && (
+                  {selectedBill.bonusHoursApplied && (
                     <div className="bg-violet-50 dark:bg-violet-950/30 p-3 rounded-lg space-y-1.5 border border-violet-200 dark:border-violet-800">
                       <div className="flex items-center gap-2">
                         <Badge variant="outline" className="bg-violet-100 dark:bg-violet-900/50 text-violet-700 dark:text-violet-400 border-violet-300 dark:border-violet-700">
                           <Gift className="h-3 w-3 mr-1" />
-                          Bonus Hours
+                          Free Hours Given
                         </Badge>
                       </div>
-                      <div className="flex justify-between">
-                        <span className="text-sm font-medium text-violet-900 dark:text-violet-100">
-                          {selectedBill.bonusHoursApplied}
-                        </span>
-                        <span className="text-sm font-bold text-violet-700 dark:text-violet-400" data-testid="bill-bonus-hours">
-                          +{selectedBill.promotionDetails.bonusHours}h FREE
-                        </span>
-                      </div>
+                      {selectedBill.manualFreeHours && (
+                        <div className="flex justify-between">
+                          <span className="text-sm font-medium text-violet-900 dark:text-violet-100">
+                            Extra Time Added
+                          </span>
+                          <span className="text-sm font-bold text-violet-700 dark:text-violet-400" data-testid="bill-free-hours">
+                            +{selectedBill.manualFreeHours} FREE
+                          </span>
+                        </div>
+                      )}
                     </div>
                   )}
                   
