@@ -183,52 +183,6 @@ export function AddBookingDialog({ open, onOpenChange, onConfirm, availableSeats
     enabled: bookingType === "upcoming" && !!bookingDate && !!timeSlot && durationMinutes > 0,
   });
 
-  // Calculate final price
-  const calculateFinalPrice = () => {
-    const shouldUseHappyHoursPricing = bookingType === "happy-hours" || (bookingType === "upcoming" && useHappyHoursPricing);
-    const slot = shouldUseHappyHoursPricing ? selectedHappyHoursSlot : selectedSlot;
-    if (!slot) return null;
-
-    let basePrice = parseFloat(slot.price.toString());
-
-    // Apply manual discount percentage if set
-    if (manualDiscountPercentage && parseFloat(manualDiscountPercentage) > 0) {
-      const discountAmount = (basePrice * parseFloat(manualDiscountPercentage)) / 100;
-      basePrice = basePrice - discountAmount;
-    }
-
-    return Math.round(basePrice).toString();
-  };
-
-  // Calculate price breakdown for preview
-  const getPriceBreakdown = () => {
-    const shouldUseHappyHoursPricing = bookingType === "happy-hours" || (bookingType === "upcoming" && useHappyHoursPricing);
-    const slot = shouldUseHappyHoursPricing ? selectedHappyHoursSlot : selectedSlot;
-    if (!slot) return null;
-
-    const originalPrice = parseFloat(slot.price.toString());
-    let discount = 0;
-    let discountType = "";
-
-    // Calculate discount from manual discount percentage
-    if (manualDiscountPercentage && parseFloat(manualDiscountPercentage) > 0) {
-      discount = (originalPrice * parseFloat(manualDiscountPercentage)) / 100;
-      discountType = `${manualDiscountPercentage}% Manual Discount`;
-    }
-
-    const finalPrice = originalPrice - discount;
-
-    return {
-      originalPrice: Math.round(originalPrice),
-      discount: Math.round(discount),
-      discountType,
-      finalPrice: Math.round(finalPrice),
-      hasDiscount: discount > 0
-    };
-  };
-
-  const priceBreakdown = getPriceBreakdown();
-
   const seatsToDisplay = bookingType === "upcoming" && bookingDate && timeSlot && durationMinutes > 0
     ? upcomingAvailableSeats
     : availableSeats;
@@ -278,6 +232,52 @@ export function AddBookingDialog({ open, onOpenChange, onConfirm, availableSeats
   const selectedHappyHoursSlot = category === "PS5"
     ? happyHoursSlots.find(s => s.duration === duration && s.personCount === personCount)
     : happyHoursSlots.find(s => s.duration === duration);
+
+  // Calculate final price
+  const calculateFinalPrice = () => {
+    const shouldUseHappyHoursPricing = bookingType === "happy-hours" || (bookingType === "upcoming" && useHappyHoursPricing);
+    const slot = shouldUseHappyHoursPricing ? selectedHappyHoursSlot : selectedSlot;
+    if (!slot) return null;
+
+    let basePrice = parseFloat(slot.price.toString());
+
+    // Apply manual discount percentage if set
+    if (manualDiscountPercentage && parseFloat(manualDiscountPercentage) > 0) {
+      const discountAmount = (basePrice * parseFloat(manualDiscountPercentage)) / 100;
+      basePrice = basePrice - discountAmount;
+    }
+
+    return Math.round(basePrice).toString();
+  };
+
+  // Calculate price breakdown for preview
+  const getPriceBreakdown = () => {
+    const shouldUseHappyHoursPricing = bookingType === "happy-hours" || (bookingType === "upcoming" && useHappyHoursPricing);
+    const slot = shouldUseHappyHoursPricing ? selectedHappyHoursSlot : selectedSlot;
+    if (!slot) return null;
+
+    const originalPrice = parseFloat(slot.price.toString());
+    let discount = 0;
+    let discountType = "";
+
+    // Calculate discount from manual discount percentage
+    if (manualDiscountPercentage && parseFloat(manualDiscountPercentage) > 0) {
+      discount = (originalPrice * parseFloat(manualDiscountPercentage)) / 100;
+      discountType = `${manualDiscountPercentage}% Manual Discount`;
+    }
+
+    const finalPrice = originalPrice - discount;
+
+    return {
+      originalPrice: Math.round(originalPrice),
+      discount: Math.round(discount),
+      discountType,
+      finalPrice: Math.round(finalPrice),
+      hasDiscount: discount > 0
+    };
+  };
+
+  const priceBreakdown = getPriceBreakdown();
   
   // Check if next person count has pricing configured (for PS5)
   const hasNextPersonPricing = category === "PS5" && bookingType !== "happy-hours"
