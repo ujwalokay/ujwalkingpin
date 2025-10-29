@@ -123,6 +123,13 @@ Preferred communication style: Simple, everyday language.
   - Preserves all booking data (remaining time, food orders, prices, customer information)
   - Backend validation prevents double-booking conflicts
   - Automatic activity logging for all seat changes
+- **Discount Type Badges**: Visual indicators in booking tables showing discount and bonus types:
+  - Promotional Discount badge (emerald/green) for promotions from the promotional system
+  - Add-ons Discount badge (blue) for manual discounts applied by staff
+  - Promotional Bonus badge (violet/purple) for promotional bonus hours
+  - Add-ons Bonus badge (amber/orange) for manual bonus hours
+  - Backward compatible with legacy data (shows generic Discount/Bonus badges when specific fields are unavailable)
+  - Displayed in customer group headers before the "Select All" button
   - Useful when customers want to switch seats during their gaming session
 
 ## External Dependencies
