@@ -205,10 +205,10 @@ export default function Login({ onLoginSuccess }: LoginProps) {
               {/* Title */}
               <div>
                 <h2 className="text-3xl font-bold text-gray-900 dark:text-white mb-2">
-                  {googleVerified ? (isAdminLogin ? "Admin Login" : "Staff Login") : "Welcome"}
+                  Welcome
                 </h2>
                 <p className="text-gray-600 dark:text-gray-400">
-                  {googleVerified ? `Sign in to access the ${isAdminLogin ? "admin" : "staff"} panel` : "Sign in to access the staff panel"}
+                  Sign in to access the staff panel
                 </p>
                 {googleVerified && googleEmail && (
                   <p className="text-sm text-green-600 dark:text-green-400 mt-2">
@@ -217,23 +217,8 @@ export default function Login({ onLoginSuccess }: LoginProps) {
                 )}
               </div>
 
-              {!googleVerified ? (
-                // Step 1: Google Login Only
-                <div className="space-y-6">
-                  <Button
-                    type="button"
-                    onClick={handleGoogleLogin}
-                    className="w-full h-12 text-base font-medium bg-white dark:bg-gray-800 text-gray-900 dark:text-white hover:bg-gray-50 dark:hover:bg-gray-700 border-2 border-gray-300 dark:border-gray-600"
-                    data-testid="button-google-login"
-                  >
-                    <SiGoogle className="mr-2 h-5 w-5" />
-                    Continue with Google
-                  </Button>
-                </div>
-              ) : (
-                // Step 2: Staff/Admin Login Form
-                <>
-                <form onSubmit={handleSubmit} className="space-y-5">
+              {/* Staff/Admin Login Form */}
+              <form onSubmit={handleSubmit} className="space-y-5">
                 <div className="space-y-2">
                   <Label htmlFor="username" className="text-gray-700 dark:text-gray-300 font-medium">
                     Username
@@ -307,8 +292,6 @@ export default function Login({ onLoginSuccess }: LoginProps) {
                   </button>
                 </div>
               </form>
-                </>
-              )}
             </div>
           </div>
 
