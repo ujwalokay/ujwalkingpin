@@ -108,7 +108,8 @@ export function AddBookingDialog({ open, onOpenChange, onConfirm, availableSeats
   const [usePromotionalDiscount, setUsePromotionalDiscount] = useState<boolean>(false);
   const [usePromotionalBonus, setUsePromotionalBonus] = useState<boolean>(false);
   const [manualDiscountPercentage, setManualDiscountPercentage] = useState<string>("");
-  const [manualFreeHours, setManualFreeHours] = useState<string>("");
+  const [manualFreeHoursHr, setManualFreeHoursHr] = useState<string>("");
+  const [manualFreeHoursMin, setManualFreeHoursMin] = useState<string>("");
   const [showAddons, setShowAddons] = useState<boolean>(false);
 
   const { data: pricingConfig = [] } = useQuery<PricingConfig[]>({
@@ -348,6 +349,14 @@ export function AddBookingDialog({ open, onOpenChange, onConfirm, availableSeats
         bookingTypes = [bookingType];
       }
       
+      // Combine hours and minutes into H:MM format
+      let manualFreeHours: string | undefined = undefined;
+      if (manualFreeHoursHr || manualFreeHoursMin) {
+        const hours = parseInt(manualFreeHoursHr) || 0;
+        const minutes = parseInt(manualFreeHoursMin) || 0;
+        manualFreeHours = `${hours}:${minutes.toString().padStart(2, '0')}`;
+      }
+      
       onConfirm?.({
         category,
         seatNumbers: selectedSeats,
@@ -362,7 +371,7 @@ export function AddBookingDialog({ open, onOpenChange, onConfirm, availableSeats
         usePromotionalDiscount,
         usePromotionalBonus,
         manualDiscountPercentage: manualDiscountPercentage ? parseInt(manualDiscountPercentage) : undefined,
-        manualFreeHours: manualFreeHours || undefined,
+        manualFreeHours: manualFreeHours,
       } as any);
       setCategory("");
       setSelectedSeats([]);
@@ -377,7 +386,8 @@ export function AddBookingDialog({ open, onOpenChange, onConfirm, availableSeats
       setUsePromotionalDiscount(false);
       setUsePromotionalBonus(false);
       setManualDiscountPercentage("");
-      setManualFreeHours("");
+      setManualFreeHoursHr("");
+      setManualFreeHoursMin("");
       setShowAddons(false);
       onOpenChange(false);
     }
@@ -872,7 +882,7 @@ export function AddBookingDialog({ open, onOpenChange, onConfirm, availableSeats
           {/* Promotional Discount/Bonus Prompts */}
           {availablePromotions && !useHappyHoursPricing && (
             <div className="space-y-2">
-              {availablePromotions.discount && !usePromotionalBonus && !manualFreeHours && (
+              {availablePromotions.discount && !usePromotionalBonus && !manualFreeHoursHr && !manualFreeHoursMin && (
                 <div className="flex items-start space-x-2 p-3 bg-green-50 dark:bg-green-900/20 rounded-md border border-green-200 dark:border-green-800">
                   <Checkbox
                     id="use-promotional-discount"
@@ -882,7 +892,8 @@ export function AddBookingDialog({ open, onOpenChange, onConfirm, availableSeats
                       if (checked) {
                         setUsePromotionalBonus(false);
                         setManualDiscountPercentage("");
-                        setManualFreeHours("");
+                        setManualFreeHoursHr("");
+                        setManualFreeHoursMin("");
                       }
                     }}
                     data-testid="checkbox-use-promotional-discount"
@@ -911,7 +922,8 @@ export function AddBookingDialog({ open, onOpenChange, onConfirm, availableSeats
                       setUsePromotionalBonus(checked as boolean);
                       if (checked) {
                         setUsePromotionalDiscount(false);
-                        setManualFreeHours("");
+                        setManualFreeHoursHr("");
+                        setManualFreeHoursMin("");
                         setManualDiscountPercentage("");
                       }
                     }}
@@ -972,7 +984,8 @@ export function AddBookingDialog({ open, onOpenChange, onConfirm, availableSeats
                         if (value === "" || (numValue >= 0 && numValue <= 100)) {
                           setManualDiscountPercentage(value);
                           if (value) {
-                            setManualFreeHours("");
+                            setManualFreeHoursHr("");
+                            setManualFreeHoursMin("");
                             setUsePromotionalDiscount(false);
                             setUsePromotionalBonus(false);
                           }
@@ -1000,35 +1013,61 @@ export function AddBookingDialog({ open, onOpenChange, onConfirm, availableSeats
                   </div>
 
                   <div className="space-y-2">
-                    <Label htmlFor="manual-free-hours" className="flex items-center gap-2">
+                    <Label className="flex items-center gap-2">
                       <Clock className="h-4 w-4" />
                       Manual Free Hours
                     </Label>
                     <div className="flex items-center gap-2">
-                      <Input
-                        id="manual-free-hours"
-                        type="text"
-                        value={manualFreeHours}
-                        onChange={(e) => {
-                          const value = e.target.value;
-                          if (value === "" || /^(\d{1,2}):?(\d{0,2})?$/.test(value)) {
-                            setManualFreeHours(value);
-                            if (value) {
+                      <div className="flex-1">
+                        <Input
+                          id="manual-free-hours-hr"
+                          type="number"
+                          min="0"
+                          max="23"
+                          value={manualFreeHoursHr}
+                          onChange={(e) => {
+                            const value = e.target.value;
+                            setManualFreeHoursHr(value);
+                            if (value || manualFreeHoursMin) {
                               setManualDiscountPercentage("");
                               setUsePromotionalDiscount(false);
                               setUsePromotionalBonus(false);
                             }
-                          }
-                        }}
-                        placeholder="1:30"
-                        disabled={usePromotionalDiscount || usePromotionalBonus}
-                        data-testid="input-manual-free-hours"
-                      />
+                          }}
+                          placeholder="0"
+                          disabled={usePromotionalDiscount || usePromotionalBonus}
+                          data-testid="input-manual-free-hours-hr"
+                        />
+                        <p className="text-xs text-muted-foreground mt-1">Hours</p>
+                      </div>
+                      <span className="text-xl font-bold">:</span>
+                      <div className="flex-1">
+                        <Input
+                          id="manual-free-hours-min"
+                          type="number"
+                          min="0"
+                          max="59"
+                          value={manualFreeHoursMin}
+                          onChange={(e) => {
+                            const value = e.target.value;
+                            setManualFreeHoursMin(value);
+                            if (value || manualFreeHoursHr) {
+                              setManualDiscountPercentage("");
+                              setUsePromotionalDiscount(false);
+                              setUsePromotionalBonus(false);
+                            }
+                          }}
+                          placeholder="0"
+                          disabled={usePromotionalDiscount || usePromotionalBonus}
+                          data-testid="input-manual-free-hours-min"
+                        />
+                        <p className="text-xs text-muted-foreground mt-1">Minutes</p>
+                      </div>
                     </div>
                     <p className="text-xs text-muted-foreground">
                       {usePromotionalDiscount || usePromotionalBonus 
                         ? "❌ Cannot use manual free hours with promotional offers - Uncheck promotional option above to use this" 
-                        : "Format: H:MM (e.g., 1:30 for 1hr 30min, 0:30 for 30min, 2:00 for 2hrs)"}
+                        : "Enter hours and minutes separately (e.g., 1 hr 30 min)"}
                     </p>
                   </div>
                 </Card>
@@ -1066,7 +1105,18 @@ export function AddBookingDialog({ open, onOpenChange, onConfirm, availableSeats
                 </div>
                 
                 <p className="text-xs text-muted-foreground pt-1">
-                  for {duration} {useHappyHoursPricing && "(Happy Hours 🎉)"}
+                  for {duration}
+                  {(manualFreeHoursHr || manualFreeHoursMin) && (() => {
+                    const hours = parseInt(manualFreeHoursHr) || 0;
+                    const minutes = parseInt(manualFreeHoursMin) || 0;
+                    const freeText = hours > 0 && minutes > 0 
+                      ? `${hours}h ${minutes}min`
+                      : hours > 0 
+                      ? `${hours}h`
+                      : `${minutes}min`;
+                    return <span className="text-blue-600 dark:text-blue-400 font-medium"> + {freeText} free</span>;
+                  })()}
+                  {useHappyHoursPricing && " (Happy Hours 🎉)"}
                 </p>
               </CardContent>
             </Card>
