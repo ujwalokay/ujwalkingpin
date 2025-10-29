@@ -227,7 +227,9 @@ function App() {
     // Check if user is already authenticated via session
     const checkAuth = async () => {
       try {
-        const response = await fetch("/api/auth/me");
+        const response = await fetch("/api/auth/me", {
+          credentials: "include"
+        });
         if (response.ok) {
           const userData = await response.json();
           
