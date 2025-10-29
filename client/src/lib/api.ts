@@ -16,7 +16,9 @@ async function parseErrorResponse(response: Response, fallbackMessage: string): 
 }
 
 export async function fetchBookings(): Promise<Booking[]> {
-  const response = await fetch("/api/bookings");
+  const response = await fetch("/api/bookings", {
+    credentials: "include"
+  });
   if (!response.ok) {
     const message = await parseErrorResponse(response, "Failed to fetch bookings");
     throw new Error(message);
@@ -29,6 +31,7 @@ export async function createBooking(booking: InsertBooking): Promise<Booking> {
     method: "POST",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify(booking),
+    credentials: "include"
   });
   if (!response.ok) {
     const message = await parseErrorResponse(response, "Failed to create booking");
@@ -42,6 +45,7 @@ export async function updateBooking(id: string, data: Partial<InsertBooking>): P
     method: "PATCH",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify(data),
+    credentials: "include"
   });
   if (!response.ok) {
     const message = await parseErrorResponse(response, "Failed to update booking");
@@ -53,6 +57,7 @@ export async function updateBooking(id: string, data: Partial<InsertBooking>): P
 export async function deleteBooking(id: string): Promise<void> {
   const response = await fetch(`/api/bookings/${id}`, {
     method: "DELETE",
+    credentials: "include"
   });
   if (!response.ok) {
     const message = await parseErrorResponse(response, "Failed to delete booking");
@@ -61,7 +66,9 @@ export async function deleteBooking(id: string): Promise<void> {
 }
 
 export async function fetchDeviceConfigs(): Promise<DeviceConfig[]> {
-  const response = await fetch("/api/device-config");
+  const response = await fetch("/api/device-config", {
+    credentials: "include"
+  });
   if (!response.ok) {
     const message = await parseErrorResponse(response, "Failed to fetch device configs");
     throw new Error(message);
@@ -70,7 +77,9 @@ export async function fetchDeviceConfigs(): Promise<DeviceConfig[]> {
 }
 
 export async function fetchPricingConfigs(): Promise<PricingConfig[]> {
-  const response = await fetch("/api/pricing-config");
+  const response = await fetch("/api/pricing-config", {
+    credentials: "include"
+  });
   if (!response.ok) {
     const message = await parseErrorResponse(response, "Failed to fetch pricing configs");
     throw new Error(message);
@@ -79,7 +88,9 @@ export async function fetchPricingConfigs(): Promise<PricingConfig[]> {
 }
 
 export async function getServerTime(): Promise<Date> {
-  const response = await fetch("/api/server-time");
+  const response = await fetch("/api/server-time", {
+    credentials: "include"
+  });
   if (!response.ok) {
     const message = await parseErrorResponse(response, "Failed to fetch server time");
     throw new Error(message);
