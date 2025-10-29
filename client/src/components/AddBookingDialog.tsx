@@ -191,8 +191,43 @@ export function AddBookingDialog({ open, onOpenChange, onConfirm, availableSeats
 
     let basePrice = parseFloat(slot.price.toString());
 
+    // Apply manual discount percentage if set
+    if (manualDiscountPercentage && parseFloat(manualDiscountPercentage) > 0) {
+      const discountAmount = (basePrice * parseFloat(manualDiscountPercentage)) / 100;
+      basePrice = basePrice - discountAmount;
+    }
+
     return Math.round(basePrice).toString();
   };
+
+  // Calculate price breakdown for preview
+  const getPriceBreakdown = () => {
+    const shouldUseHappyHoursPricing = bookingType === "happy-hours" || (bookingType === "upcoming" && useHappyHoursPricing);
+    const slot = shouldUseHappyHoursPricing ? selectedHappyHoursSlot : selectedSlot;
+    if (!slot) return null;
+
+    const originalPrice = parseFloat(slot.price.toString());
+    let discount = 0;
+    let discountType = "";
+
+    // Calculate discount from manual discount percentage
+    if (manualDiscountPercentage && parseFloat(manualDiscountPercentage) > 0) {
+      discount = (originalPrice * parseFloat(manualDiscountPercentage)) / 100;
+      discountType = `${manualDiscountPercentage}% Manual Discount`;
+    }
+
+    const finalPrice = originalPrice - discount;
+
+    return {
+      originalPrice: Math.round(originalPrice),
+      discount: Math.round(discount),
+      discountType,
+      finalPrice: Math.round(finalPrice),
+      hasDiscount: discount > 0
+    };
+  };
+
+  const priceBreakdown = getPriceBreakdown();
 
   const seatsToDisplay = bookingType === "upcoming" && bookingDate && timeSlot && durationMinutes > 0
     ? upcomingAvailableSeats
@@ -910,11 +945,27 @@ export function AddBookingDialog({ open, onOpenChange, onConfirm, availableSeats
                       max="100"
                       value={manualDiscountPercentage}
                       onChange={(e) => {
-                        setManualDiscountPercentage(e.target.value);
-                        if (e.target.value) {
-                          setManualFreeHours("");
-                          setUsePromotionalDiscount(false);
-                          setUsePromotionalBonus(false);
+                        const value = e.target.value;
+                        const numValue = parseFloat(value);
+                        
+                        // Clamp value between 0 and 100
+                        if (value === "" || (numValue >= 0 && numValue <= 100)) {
+                          setManualDiscountPercentage(value);
+                          if (value) {
+                            setManualFreeHours("");
+                            setUsePromotionalDiscount(false);
+                            setUsePromotionalBonus(false);
+                          }
+                        }
+                      }}
+                      onBlur={(e) => {
+                        const value = e.target.value;
+                        const numValue = parseFloat(value);
+                        
+                        // On blur, enforce strict clamping
+                        if (value && !isNaN(numValue)) {
+                          const clamped = Math.min(100, Math.max(0, numValue));
+                          setManualDiscountPercentage(clamped.toString());
                         }
                       }}
                       placeholder="Enter discount percentage"
@@ -965,7 +1016,43 @@ export function AddBookingDialog({ open, onOpenChange, onConfirm, availableSeats
             </div>
           )}
 
-          {bookingType === "upcoming" && category && (useHappyHoursPricing ? selectedHappyHoursSlot : selectedSlot) && (
+          {/* Price Breakdown Preview */}
+          {category && priceBreakdown && bookingType !== "happy-hours" && (
+            <Card className="bg-gradient-to-br from-blue-50 to-indigo-50 dark:from-blue-950/30 dark:to-indigo-950/30 border-blue-200 dark:border-blue-800">
+              <CardContent className="p-4 space-y-2">
+                <div className="flex items-center justify-between text-sm">
+                  <span className="text-muted-foreground">Original Price:</span>
+                  <span className="font-medium">₹{priceBreakdown.originalPrice}</span>
+                </div>
+                
+                {priceBreakdown.hasDiscount && (
+                  <>
+                    <div className="flex items-center justify-between text-sm text-green-600 dark:text-green-400">
+                      <span className="flex items-center gap-1">
+                        <Percent className="h-3 w-3" />
+                        {priceBreakdown.discountType}
+                      </span>
+                      <span className="font-medium">-₹{priceBreakdown.discount}</span>
+                    </div>
+                    <div className="border-t border-blue-200 dark:border-blue-800 pt-2"></div>
+                  </>
+                )}
+                
+                <div className="flex items-center justify-between">
+                  <span className="font-semibold text-base">Total Amount:</span>
+                  <span className="font-bold text-lg text-blue-600 dark:text-blue-400">
+                    ₹{priceBreakdown.finalPrice}
+                  </span>
+                </div>
+                
+                <p className="text-xs text-muted-foreground pt-1">
+                  for {duration} {useHappyHoursPricing && "(Happy Hours 🎉)"}
+                </p>
+              </CardContent>
+            </Card>
+          )}
+
+          {bookingType === "upcoming" && category && (useHappyHoursPricing ? selectedHappyHoursSlot : selectedSlot) && !priceBreakdown?.hasDiscount && (
             <div className="text-sm text-muted-foreground" data-testid="text-price">
               Price: ₹{useHappyHoursPricing && selectedHappyHoursSlot ? selectedHappyHoursSlot.price : selectedSlot?.price} for {duration}
               {useHappyHoursPricing && selectedHappyHoursSlot && (
