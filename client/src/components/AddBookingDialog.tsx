@@ -222,6 +222,18 @@ export function AddBookingDialog({ open, onOpenChange, onConfirm, availableSeats
     bonus: { id: string; hours: string; description: string } | null;
   }>({
     queryKey: ["/api/bookings/check-promotions", category, duration, personCount],
+    queryFn: async () => {
+      const params = new URLSearchParams({
+        category: category || '',
+        duration: duration || '',
+        personCount: personCount.toString()
+      });
+      const response = await fetch(`/api/bookings/check-promotions?${params.toString()}`, {
+        credentials: 'include'
+      });
+      if (!response.ok) throw new Error('Failed to check promotions');
+      return response.json();
+    },
     enabled: !!category && !!duration && bookingType !== "happy-hours" && !useHappyHoursPricing,
   });
   
