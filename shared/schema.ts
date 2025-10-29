@@ -46,6 +46,10 @@ export const bookings = pgTable("bookings", {
     discountAmount?: string;
     bonusHours?: string;
   }>(),
+  isPromotionalDiscount: integer("is_promotional_discount").default(0),
+  isPromotionalBonus: integer("is_promotional_bonus").default(0),
+  manualDiscountPercentage: integer("manual_discount_percentage"),
+  manualFreeHours: varchar("manual_free_hours"),
   createdAt: timestamp("created_at").notNull().defaultNow(),
 });
 
@@ -280,6 +284,10 @@ export const bookingHistory = pgTable("booking_history", {
     discountAmount?: string;
     bonusHours?: string;
   }>(),
+  isPromotionalDiscount: integer("is_promotional_discount").default(0),
+  isPromotionalBonus: integer("is_promotional_bonus").default(0),
+  manualDiscountPercentage: integer("manual_discount_percentage"),
+  manualFreeHours: varchar("manual_free_hours"),
   createdAt: timestamp("created_at").notNull(),
   archivedAt: timestamp("archived_at").notNull().defaultNow(),
 });
