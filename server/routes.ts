@@ -173,7 +173,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         
         // Check if it's in HH:MM format
         if (manualFreeHours.includes(':')) {
-          const [hours, minutes] = manualFreeHours.split(':').map(val => parseInt(val) || 0);
+          const [hours, minutes] = manualFreeHours.split(':').map((val: string) => parseInt(val) || 0);
           freeHoursValue = hours + (minutes / 60);
           displayFormat = `${hours}h ${minutes}min`;
         } else {

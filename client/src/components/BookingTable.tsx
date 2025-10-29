@@ -476,7 +476,21 @@ export function BookingTable({ bookings, onExtend, onEnd, onComplete, onAddFood,
                       })()}
                     </TableCell>
                     <TableCell className="font-bold text-primary" data-testid={`text-price-${booking.id}`}>
-                      ₹{booking.price}
+                      <div className="flex flex-col gap-1">
+                        <div className="flex items-center gap-2">
+                          <span>₹{booking.price}</span>
+                          {booking.manualDiscountPercentage && (
+                            <Badge variant="secondary" className="text-xs bg-green-100 dark:bg-green-900 text-green-700 dark:text-green-300" data-testid={`badge-discount-${booking.id}`}>
+                              Discount Used
+                            </Badge>
+                          )}
+                          {booking.manualFreeHours && (
+                            <Badge variant="secondary" className="text-xs bg-blue-100 dark:bg-blue-900 text-blue-700 dark:text-blue-300" data-testid={`badge-free-hour-${booking.id}`}>
+                              Free Hour Used
+                            </Badge>
+                          )}
+                        </div>
+                      </div>
                     </TableCell>
                     <TableCell>
                       <StatusBadge status={booking.status} />
