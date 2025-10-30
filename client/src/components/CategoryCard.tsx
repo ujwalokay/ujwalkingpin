@@ -43,16 +43,16 @@ export function CategoryCard({ title, icon: Icon, available, total, color, onVie
           </div>
         </div>
         {onViewDetails && (
-          <Button
-            variant="outline"
-            size="sm"
+          <button
             onClick={onViewDetails}
-            className="w-full mt-2"
+            className="group/btn w-full mt-2 py-2 px-3 rounded-lg bg-gradient-to-r from-purple-500/10 to-pink-500/10 dark:from-purple-500/20 dark:to-pink-500/20 border border-purple-500/30 dark:border-purple-500/50 hover:border-purple-500/60 dark:hover:border-purple-500/80 transition-all duration-300 hover:shadow-lg hover:shadow-purple-500/20 hover:scale-[1.02] active:scale-[0.98]"
             data-testid={`button-view-details-${title.toLowerCase()}`}
           >
-            <Eye className="mr-2 h-4 w-4" />
-            View Details
-          </Button>
+            <span className="flex items-center justify-center gap-2 text-sm font-medium text-purple-700 dark:text-purple-300 group-hover/btn:text-purple-600 dark:group-hover/btn:text-purple-200 transition-colors">
+              <Eye className="h-4 w-4 group-hover/btn:scale-110 transition-transform" />
+              <span>View Details</span>
+            </span>
+          </button>
         )}
       </CardContent>
     </Card>
