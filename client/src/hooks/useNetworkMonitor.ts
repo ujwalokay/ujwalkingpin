@@ -1,7 +1,7 @@
 import { useEffect, useState, useRef } from "react";
 
 const HEALTH_CHECK_INTERVAL = 30 * 1000; // 30 seconds
-const HEALTH_CHECK_TIMEOUT = 10 * 1000; // 10 seconds timeout
+const HEALTH_CHECK_TIMEOUT = 20 * 1000; // 20 seconds timeout
 
 export function useNetworkMonitor() {
   const [isOnline, setIsOnline] = useState(true);
@@ -34,8 +34,8 @@ export function useNetworkMonitor() {
         failureCountRef.current += 1;
         console.error("[Network Monitor] Health check failed:", error);
         
-        // Show alert after 2 consecutive failures
-        if (failureCountRef.current >= 2) {
+        // Show alert after 3 consecutive failures
+        if (failureCountRef.current >= 3) {
           setIsOnline(false);
           setShowAlert(true);
         }
