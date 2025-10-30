@@ -100,7 +100,7 @@ export function AddBookingDialog({ open, onOpenChange, onConfirm, availableSeats
   const [whatsappNumber, setWhatsappNumber] = useState<string>("");
   const [durationMinutes, setDurationMinutes] = useState<number>(30);
   const [personCount, setPersonCount] = useState<number>(1);
-  const [bookingType, setBookingType] = useState<"walk-in" | "upcoming" | "happy-hours">("walk-in");
+  const [bookingType, setBookingType] = useState<"walk-in" | "upcoming">("walk-in");
   const [bookingDate, setBookingDate] = useState<Date>();
   const [timeSlot, setTimeSlot] = useState<string>("");
   const [timePeriodFilter, setTimePeriodFilter] = useState<"all" | "am" | "pm">("all");
@@ -132,7 +132,7 @@ export function AddBookingDialog({ open, onOpenChange, onConfirm, availableSeats
       if (!response.ok) throw new Error('Failed to check happy hours status');
       return response.json();
     },
-    enabled: !!category && bookingType === "happy-hours",
+    enabled: !!category && bookingType === "walk-in",
   });
 
   // Check if Happy Hours is active for the selected upcoming time slot
@@ -147,15 +147,10 @@ export function AddBookingDialog({ open, onOpenChange, onConfirm, availableSeats
     enabled: !!category && !!timeSlot && bookingType === "upcoming",
   });
 
-  // Check if happy hours is enabled (not time-based) for the category
-  const isHappyHoursEnabled = useMemo(() => {
-    if (!category || bookingType !== "happy-hours") return false;
-    const config = happyHoursConfigs.find(c => c.category === category && c.enabled === 1);
-    return !!config;
-  }, [category, bookingType, happyHoursConfigs]);
-
-  // Check if happy hours is both enabled AND currently active (within time slots)
-  const isHappyHoursActiveNow = isHappyHoursEnabled && happyHoursStatus?.active;
+  // Check if happy hours is active for walk-in bookings (current time)
+  const isWalkInHappyHoursActive = useMemo(() => {
+    return bookingType === "walk-in" && happyHoursStatus?.active;
+  }, [bookingType, happyHoursStatus]);
 
   const { data: allBookings = [] } = useQuery<Booking[]>({
     queryKey: ["/api/bookings"],
@@ -235,7 +230,7 @@ export function AddBookingDialog({ open, onOpenChange, onConfirm, availableSeats
       if (!response.ok) throw new Error('Failed to check promotions');
       return response.json();
     },
-    enabled: !!category && !!duration && bookingType !== "happy-hours" && !useHappyHoursPricing,
+    enabled: !!category && !!duration && !useHappyHoursPricing,
   });
   
   // For PS5, match both duration and personCount; for others, just match duration
@@ -248,7 +243,7 @@ export function AddBookingDialog({ open, onOpenChange, onConfirm, availableSeats
 
   // Calculate final price
   const calculateFinalPrice = () => {
-    const shouldUseHappyHoursPricing = bookingType === "happy-hours" || (bookingType === "upcoming" && useHappyHoursPricing);
+    const shouldUseHappyHoursPricing = (bookingType === "walk-in" && useHappyHoursPricing) || (bookingType === "upcoming" && useHappyHoursPricing);
     const slot = shouldUseHappyHoursPricing ? selectedHappyHoursSlot : selectedSlot;
     if (!slot) return null;
 
@@ -265,7 +260,7 @@ export function AddBookingDialog({ open, onOpenChange, onConfirm, availableSeats
 
   // Calculate price breakdown for preview
   const getPriceBreakdown = () => {
-    const shouldUseHappyHoursPricing = bookingType === "happy-hours" || (bookingType === "upcoming" && useHappyHoursPricing);
+    const shouldUseHappyHoursPricing = (bookingType === "walk-in" && useHappyHoursPricing) || (bookingType === "upcoming" && useHappyHoursPricing);
     const slot = shouldUseHappyHoursPricing ? selectedHappyHoursSlot : selectedSlot;
     if (!slot) return null;
 
@@ -293,10 +288,10 @@ export function AddBookingDialog({ open, onOpenChange, onConfirm, availableSeats
   const priceBreakdown = getPriceBreakdown();
   
   // Check if next person count has pricing configured (for PS5)
-  const hasNextPersonPricing = category === "PS5" && bookingType !== "happy-hours"
+  const hasNextPersonPricing = category === "PS5" && !useHappyHoursPricing
     ? slots.some(s => s.duration === duration && s.personCount === personCount + 1)
     : false;
-  const hasNextPersonHappyHoursPricing = category === "PS5" && bookingType === "happy-hours"
+  const hasNextPersonHappyHoursPricing = category === "PS5" && useHappyHoursPricing
     ? happyHoursSlots.some(s => s.duration === duration && s.personCount === personCount + 1)
     : false;
 
@@ -313,15 +308,8 @@ export function AddBookingDialog({ open, onOpenChange, onConfirm, availableSeats
     const isDateRequired = bookingType === "upcoming" && !bookingDate;
     const isTimeSlotRequired = bookingType === "upcoming" && !timeSlot;
     
-    // Validate Happy Hours
-    if (bookingType === "happy-hours") {
-      if (!isHappyHoursActiveNow) {
-        return; // Validation will show error message
-      }
-    }
-    
     // Determine which pricing to use
-    const shouldUseHappyHoursPricing = bookingType === "happy-hours" || (bookingType === "upcoming" && useHappyHoursPricing);
+    const shouldUseHappyHoursPricing = (bookingType === "walk-in" && useHappyHoursPricing) || (bookingType === "upcoming" && useHappyHoursPricing);
     const hasValidPrice = shouldUseHappyHoursPricing ? selectedHappyHoursSlot : selectedSlot;
     
     if (category && selectedSeats.length > 0 && customerName && duration && hasValidPrice && !isWhatsappRequired && !isDateRequired && !isTimeSlotRequired) {
@@ -345,6 +333,8 @@ export function AddBookingDialog({ open, onOpenChange, onConfirm, availableSeats
       let bookingTypes: string[];
       if (bookingType === "upcoming" && useHappyHoursPricing) {
         bookingTypes = ["upcoming", "happy-hours"];
+      } else if (bookingType === "walk-in" && useHappyHoursPricing) {
+        bookingTypes = ["walk-in", "happy-hours"];
       } else {
         bookingTypes = [bookingType];
       }
@@ -496,7 +486,7 @@ export function AddBookingDialog({ open, onOpenChange, onConfirm, availableSeats
         <div className="space-y-4">
           <div className="space-y-2">
             <Label>Booking Type</Label>
-            <RadioGroup value={bookingType} onValueChange={(value) => setBookingType(value as "walk-in" | "upcoming" | "happy-hours")}>
+            <RadioGroup value={bookingType} onValueChange={(value) => setBookingType(value as "walk-in" | "upcoming")}>
               <div className="flex items-center space-x-2">
                 <RadioGroupItem value="walk-in" id="walk-in" data-testid="radio-walk-in" />
                 <Label htmlFor="walk-in" className="cursor-pointer font-normal">Walk-in (Start Now)</Label>
@@ -505,19 +495,7 @@ export function AddBookingDialog({ open, onOpenChange, onConfirm, availableSeats
                 <RadioGroupItem value="upcoming" id="upcoming" data-testid="radio-upcoming" />
                 <Label htmlFor="upcoming" className="cursor-pointer font-normal">Upcoming Booking</Label>
               </div>
-              <div className="flex items-center space-x-2">
-                <RadioGroupItem value="happy-hours" id="happy-hours" data-testid="radio-happy-hours" />
-                <Label htmlFor="happy-hours" className="cursor-pointer font-normal">Happy Hours (Special Pricing)</Label>
-              </div>
             </RadioGroup>
-            {bookingType === "happy-hours" && category && !isHappyHoursActiveNow && (
-              <p className="text-sm text-destructive">
-                {!isHappyHoursEnabled 
-                  ? `Happy Hours is not enabled for ${category}. Please select a different booking type.`
-                  : `Happy Hours is not currently active for ${category}. Current time is outside the configured time slots.`
-                }
-              </p>
-            )}
           </div>
 
           {bookingType === "upcoming" && (
@@ -679,7 +657,7 @@ export function AddBookingDialog({ open, onOpenChange, onConfirm, availableSeats
             </>
           )}
 
-          {(bookingType === "walk-in" || bookingType === "happy-hours" || (bookingType === "upcoming" && bookingDate && timeSlot && durationMinutes > 0)) && (
+          {(bookingType === "walk-in" || (bookingType === "upcoming" && bookingDate && timeSlot && durationMinutes > 0)) && (
             <div className="space-y-2">
               <Label htmlFor="category">Category <span className="text-destructive">*</span></Label>
               <Select value={category} onValueChange={handleCategoryChange}>
@@ -771,7 +749,7 @@ export function AddBookingDialog({ open, onOpenChange, onConfirm, availableSeats
                     variant="outline"
                     size="icon"
                     onClick={increasePersonCount}
-                    disabled={bookingType === "happy-hours" ? !hasNextPersonHappyHoursPricing : !hasNextPersonPricing}
+                    disabled={useHappyHoursPricing ? !hasNextPersonHappyHoursPricing : !hasNextPersonPricing}
                     data-testid="button-increase-person"
                     className="shrink-0"
                   >
@@ -779,10 +757,10 @@ export function AddBookingDialog({ open, onOpenChange, onConfirm, availableSeats
                   </Button>
                 </div>
               </div>
-              {(bookingType === "happy-hours" ? selectedHappyHoursSlot : selectedSlot) ? (
+              {(useHappyHoursPricing ? selectedHappyHoursSlot : selectedSlot) ? (
                 <p className="text-xs text-muted-foreground">
                   {duration} for {personCount} {personCount === 1 ? 'person' : 'persons'}: ₹{
-                    bookingType === "happy-hours" 
+                    useHappyHoursPricing 
                       ? selectedHappyHoursSlot!.price
                       : selectedSlot!.price
                   } (Total Price)
@@ -811,7 +789,7 @@ export function AddBookingDialog({ open, onOpenChange, onConfirm, availableSeats
             )}
           </div>
 
-          {(bookingType === "walk-in" || bookingType === "happy-hours") && category && (
+          {bookingType === "walk-in" && category && (
             <div className="space-y-2">
               <Label htmlFor="duration">Duration</Label>
               <div className="flex flex-col sm:flex-row items-start sm:items-center gap-3">
@@ -871,11 +849,31 @@ export function AddBookingDialog({ open, onOpenChange, onConfirm, availableSeats
                   </Button>
                 </div>
               </div>
-              {bookingType === "walk-in" && selectedSlot && (
+              {bookingType === "walk-in" && selectedSlot && !useHappyHoursPricing && (
                 <div className="text-sm text-muted-foreground" data-testid="text-price">
                   Price: ₹{selectedSlot.price}
                 </div>
               )}
+            </div>
+          )}
+
+          {/* Happy Hours Pricing for Walk-in */}
+          {bookingType === "walk-in" && category && isWalkInHappyHoursActive && selectedHappyHoursSlot && (
+            <div className="flex items-start space-x-2 p-3 bg-yellow-50 dark:bg-yellow-900/20 rounded-md border border-yellow-200 dark:border-yellow-800">
+              <Checkbox
+                id="use-happy-hours-pricing-walk-in"
+                checked={useHappyHoursPricing}
+                onCheckedChange={(checked) => setUseHappyHoursPricing(checked as boolean)}
+                data-testid="checkbox-use-happy-hours-pricing-walk-in"
+              />
+              <div className="flex-1">
+                <Label htmlFor="use-happy-hours-pricing-walk-in" className="cursor-pointer font-medium text-yellow-900 dark:text-yellow-100">
+                  Use Happy Hours Pricing 🎉
+                </Label>
+                <p className="text-xs text-yellow-700 dark:text-yellow-300 mt-1">
+                  This time slot falls within Happy Hours! Get special pricing.
+                </p>
+              </div>
             </div>
           )}
 
@@ -1076,7 +1074,7 @@ export function AddBookingDialog({ open, onOpenChange, onConfirm, availableSeats
           )}
 
           {/* Price Breakdown Preview */}
-          {category && priceBreakdown && bookingType !== "happy-hours" && (
+          {category && priceBreakdown && (
             <Card className="bg-gradient-to-br from-blue-50 to-indigo-50 dark:from-blue-950/30 dark:to-indigo-950/30 border-blue-200 dark:border-blue-800">
               <CardContent className="p-4 space-y-2">
                 <div className="flex items-center justify-between text-sm">
@@ -1133,30 +1131,6 @@ export function AddBookingDialog({ open, onOpenChange, onConfirm, availableSeats
             </div>
           )}
 
-          {bookingType === "happy-hours" && category && (
-            <div className="space-y-2">
-              {selectedHappyHoursSlot ? (
-                <>
-                  <div className="text-sm font-medium" data-testid="text-happy-hours-price">
-                    Happy Hours Pricing: ₹{selectedHappyHoursSlot.price} for {duration}
-                  </div>
-                  {happyHoursStatus?.active ? (
-                    <div className="text-sm text-green-600 dark:text-green-400">
-                      ✓ Happy Hours is currently active
-                    </div>
-                  ) : (
-                    <div className="text-sm text-destructive">
-                      Happy Hours is not currently active
-                    </div>
-                  )}
-                </>
-              ) : (
-                <div className="text-sm text-muted-foreground">
-                  No happy hours pricing configured for {duration}
-                </div>
-              )}
-            </div>
-          )}
         </div>
 
         <DialogFooter className="flex-col sm:flex-row gap-2 sm:gap-0">
@@ -1170,8 +1144,7 @@ export function AddBookingDialog({ open, onOpenChange, onConfirm, availableSeats
               selectedSeats.length === 0 || 
               !customerName || 
               !duration || 
-              (bookingType === "upcoming" && (!whatsappNumber.trim() || !bookingDate || !timeSlot)) ||
-              (bookingType === "happy-hours" && (!selectedHappyHoursSlot || !isHappyHoursActiveNow))
+              (bookingType === "upcoming" && (!whatsappNumber.trim() || !bookingDate || !timeSlot))
             }
             data-testid="button-confirm-booking"
             className="w-full sm:w-auto"
