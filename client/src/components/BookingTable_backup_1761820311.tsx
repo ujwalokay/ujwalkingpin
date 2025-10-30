@@ -1,4 +1,4 @@
-import { useState, useMemo, useEffect } from "react";
+import { useState, useMemo } from "react";
 import { useQuery, useMutation } from "@tanstack/react-query";
 import { queryClient, apiRequest } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
@@ -8,19 +8,11 @@ import {
   AccordionItem,
   AccordionTrigger,
 } from "@/components/ui/accordion";
-import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from "@/components/ui/table";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { StatusBadge } from "./StatusBadge";
 import { SessionTimer } from "./SessionTimer";
-import { Clock, X, Check, UtensilsCrossed, Search, Plus, MoreVertical, Trash2, Play, Pause, Gift, Percent, DollarSign, ArrowRightLeft, Monitor, User, Phone, Users, Calendar, LayoutGrid, Table2 } from "lucide-react";
+import { Clock, X, Check, UtensilsCrossed, Search, Plus, MoreVertical, Trash2, Play, Pause, Gift, Percent, DollarSign, ArrowRightLeft, Monitor, User, Phone, Users, Calendar } from "lucide-react";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent } from "@/components/ui/card";
@@ -101,20 +93,6 @@ export function BookingTable({ bookings, onExtend, onEnd, onComplete, onAddFood,
   const { toast } = useToast();
   const [seatChangeDialog, setSeatChangeDialog] = useState<{open: boolean, bookingId: string, currentSeat: string, category: string}>({open: false, bookingId: "", currentSeat: "", category: ""});
   const [showRefreshDialog, setShowRefreshDialog] = useState(false);
-
-  // View mode state with localStorage persistence and responsive defaults
-  const getDefaultViewMode = (): "table" | "card" => {
-    const saved = localStorage.getItem("booking-view-mode");
-    if (saved === "table" || saved === "card") return saved;
-    // Responsive default: mobile=card, desktop=table
-    return window.matchMedia("(max-width: 768px)").matches ? "card" : "table";
-  };
-  
-  const [viewMode, setViewMode] = useState<"table" | "card">(getDefaultViewMode);
-
-  useEffect(() => {
-    localStorage.setItem("booking-view-mode", viewMode);
-  }, [viewMode]);
 
   const { data: deviceConfigs = [] } = useQuery<any[]>({
     queryKey: ["/api/device-config"],
@@ -237,28 +215,6 @@ export function BookingTable({ bookings, onExtend, onEnd, onComplete, onAddFood,
             data-testid="input-search-bookings"
           />
         </div>
-        <div className="flex items-center gap-1 bg-muted/50 rounded-lg p-1">
-          <Button
-            variant={viewMode === "table" ? "default" : "ghost"}
-            size="sm"
-            onClick={() => setViewMode("table")}
-            className="h-8 px-3"
-            data-testid="button-table-view"
-          >
-            <Table2 className="h-4 w-4 mr-2" />
-            Table
-          </Button>
-          <Button
-            variant={viewMode === "card" ? "default" : "ghost"}
-            size="sm"
-            onClick={() => setViewMode("card")}
-            className="h-8 px-3"
-            data-testid="button-card-view"
-          >
-            <LayoutGrid className="h-4 w-4 mr-2" />
-            Cards
-          </Button>
-        </div>
       </div>
 
       {filteredBookings.length === 0 ? (
@@ -267,7 +223,7 @@ export function BookingTable({ bookings, onExtend, onEnd, onComplete, onAddFood,
             No bookings found
           </CardContent>
         </Card>
-      ) : viewMode === "card" ? (
+      ) : (
         <Accordion type="multiple" className="space-y-3" defaultValue={Array.from(groupedByCustomer.keys())}>
           {Array.from(groupedByCustomer.entries()).map(([customerName, customerBookings], groupIndex) => {
             const customerBookingIds = customerBookings.map(b => b.id);
@@ -672,353 +628,6 @@ export function BookingTable({ bookings, onExtend, onEnd, onComplete, onAddFood,
             );
           })}
         </Accordion>
-      ) : (
-        <div className="rounded-md border glass-card overflow-hidden">
-          <div className="overflow-x-auto">
-            <Table className="min-w-[1200px]">
-              <TableHeader>
-                <TableRow>
-                  <TableHead className="w-8 sm:w-12"></TableHead>
-                  <TableHead className="whitespace-nowrap">Seat</TableHead>
-                  <TableHead className="whitespace-nowrap">Customer</TableHead>
-                  <TableHead className="whitespace-nowrap">Persons</TableHead>
-                  <TableHead className="whitespace-nowrap">WhatsApp</TableHead>
-                  {showDateColumn && <TableHead className="whitespace-nowrap">Date</TableHead>}
-                  {showTypeColumn && <TableHead className="whitespace-nowrap">Type</TableHead>}
-                  <TableHead className="whitespace-nowrap">Start</TableHead>
-                  <TableHead className="whitespace-nowrap">End</TableHead>
-                  <TableHead className="whitespace-nowrap">Time Left</TableHead>
-                  <TableHead className="whitespace-nowrap">Price</TableHead>
-                  <TableHead className="whitespace-nowrap">Status</TableHead>
-                  <TableHead className="whitespace-nowrap">Food</TableHead>
-                  <TableHead className="whitespace-nowrap">Total</TableHead>
-                  <TableHead className="text-right whitespace-nowrap">Actions</TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {Array.from(groupedByCustomer.entries()).map(([customerName, customerBookings], groupIndex) => {
-                  const customerBookingIds = customerBookings.map(b => b.id);
-                  const allSelected = customerBookingIds.every(id => selectedBookings?.has(id));
-                  const someSelected = customerBookingIds.some(id => selectedBookings?.has(id));
-                  const customerTotal = customerBookings.reduce((sum, booking) => {
-                    const foodTotal = booking.foodOrders 
-                      ? booking.foodOrders.reduce((fSum, order) => fSum + parseFloat(order.price) * order.quantity, 0)
-                      : 0;
-                    return sum + parseFloat(booking.price) + foodTotal;
-                  }, 0);
-
-                  const hasPromotionalDiscount = customerBookings.some(b => b.isPromotionalDiscount === 1);
-                  const hasManualDiscount = customerBookings.some(b => b.manualDiscountPercentage && b.manualDiscountPercentage > 0);
-                  const hasPromotionalBonus = customerBookings.some(b => b.isPromotionalBonus === 1);
-                  const hasManualBonus = customerBookings.some(b => b.manualFreeHours);
-                  const hasGenericDiscount = customerBookings.some(b => b.discountApplied);
-                  const hasGenericBonus = customerBookings.some(b => b.bonusHoursApplied);
-                  const showSpecificBadges = hasPromotionalDiscount || hasManualDiscount || hasPromotionalBonus || hasManualBonus;
-                  const showGenericBadges = !showSpecificBadges && (hasGenericDiscount || hasGenericBonus);
-
-                  return [
-                    <TableRow 
-                      key={`customer-header-${customerName}-${groupIndex}`}
-                      className="bg-muted/50 hover:bg-muted/50 border-t-2 border-primary/20"
-                    >
-                      <TableCell colSpan={13 + (showDateColumn ? 1 : 0) + (showTypeColumn ? 1 : 0)} className="py-3">
-                        <div className="flex items-center justify-between">
-                          <div className="flex items-center gap-3 flex-wrap">
-                            <h3 className="text-base font-bold" data-testid={`customer-group-${customerName}`}>
-                              {customerName}
-                            </h3>
-                            <span className="text-sm text-muted-foreground">
-                              ({customerBookings.length} PC{customerBookings.length > 1 ? 's' : ''})
-                            </span>
-                            <span className="text-sm font-semibold text-primary">
-                              Total: ₹{customerTotal.toFixed(0)}
-                            </span>
-                            {(showSpecificBadges || showGenericBadges) && (
-                              <div className="flex items-center gap-1.5 flex-wrap">
-                                {hasPromotionalDiscount && (
-                                  <Badge variant="outline" className="bg-emerald-50 dark:bg-emerald-950/30 text-emerald-700 dark:text-emerald-400 border-emerald-200 dark:border-emerald-800 text-xs">
-                                    <Percent className="h-3 w-3 mr-1" />
-                                    Promo Discount
-                                  </Badge>
-                                )}
-                                {hasManualDiscount && (
-                                  <Badge variant="outline" className="bg-blue-50 dark:bg-blue-950/30 text-blue-700 dark:text-blue-400 border-blue-200 dark:border-blue-800 text-xs">
-                                    <DollarSign className="h-3 w-3 mr-1" />
-                                    Discount
-                                  </Badge>
-                                )}
-                                {hasPromotionalBonus && (
-                                  <Badge variant="outline" className="bg-violet-50 dark:bg-violet-950/30 text-violet-700 dark:text-violet-400 border-violet-200 dark:border-violet-800 text-xs">
-                                    <Gift className="h-3 w-3 mr-1" />
-                                    Promo Bonus
-                                  </Badge>
-                                )}
-                                {hasManualBonus && (
-                                  <Badge variant="outline" className="bg-amber-50 dark:bg-amber-950/30 text-amber-700 dark:text-amber-400 border-amber-200 dark:border-amber-800 text-xs">
-                                    <Clock className="h-3 w-3 mr-1" />
-                                    Bonus
-                                  </Badge>
-                                )}
-                                {showGenericBadges && hasGenericDiscount && (
-                                  <Badge variant="outline" className="bg-emerald-50 dark:bg-emerald-950/30 text-emerald-700 dark:text-emerald-400 border-emerald-200 dark:border-emerald-800 text-xs">
-                                    <Percent className="h-3 w-3 mr-1" />
-                                    Discount
-                                  </Badge>
-                                )}
-                                {showGenericBadges && hasGenericBonus && (
-                                  <Badge variant="outline" className="bg-violet-50 dark:bg-violet-950/30 text-violet-700 dark:text-violet-400 border-violet-200 dark:border-violet-800 text-xs">
-                                    <Gift className="h-3 w-3 mr-1" />
-                                    Bonus
-                                  </Badge>
-                                )}
-                              </div>
-                            )}
-                          </div>
-                          <Button
-                            variant="outline"
-                            size="sm"
-                            onClick={() => handleSelectAllForCustomer(customerName)}
-                            data-testid={`button-select-all-${customerName}`}
-                            className="h-8"
-                          >
-                            <Check className="mr-2 h-4 w-4" />
-                            {allSelected ? 'Deselect All' : someSelected ? 'Select All' : 'Select All'}
-                          </Button>
-                        </div>
-                      </TableCell>
-                    </TableRow>,
-                    ...customerBookings.map((booking) => {
-                      const hasFoodOrders = booking.foodOrders && booking.foodOrders.length > 0;
-                      const foodTotal = hasFoodOrders 
-                        ? booking.foodOrders!.reduce((sum, order) => sum + parseFloat(order.price) * order.quantity, 0)
-                        : 0;
-                      const totalAmount = parseFloat(booking.price) + foodTotal;
-                      const isSelected = selectedBookings?.has(booking.id);
-
-                      return (
-                        <TableRow 
-                          key={booking.id}
-                          className={isSelected ? "bg-blue-50 dark:bg-blue-950/30" : ""}
-                          data-testid={`row-booking-${booking.id}`}
-                        >
-                          <TableCell>
-                            <Checkbox
-                              checked={isSelected}
-                              onCheckedChange={() => onToggleSelection?.(booking.id)}
-                              data-testid={`checkbox-booking-${booking.id}`}
-                            />
-                          </TableCell>
-                          <TableCell className="font-medium" data-testid={`text-seat-${booking.id}`}>
-                            {booking.seatName}
-                          </TableCell>
-                          <TableCell data-testid={`text-customer-${booking.id}`}>
-                            {booking.customerName}
-                          </TableCell>
-                          <TableCell data-testid={`text-persons-${booking.id}`}>
-                            {booking.personCount || 1}
-                          </TableCell>
-                          <TableCell data-testid={`text-whatsapp-${booking.id}`}>
-                            {booking.whatsappNumber || "-"}
-                          </TableCell>
-                          {showDateColumn && (
-                            <TableCell data-testid={`text-date-${booking.id}`}>
-                              {booking.startTime.toLocaleDateString('en-GB', { 
-                                day: '2-digit', 
-                                month: 'short', 
-                                year: 'numeric' 
-                              })}
-                            </TableCell>
-                          )}
-                          {showTypeColumn && (
-                            <TableCell data-testid={`text-type-${booking.id}`}>
-                              <div className="flex flex-wrap gap-1">
-                                {booking.bookingType?.includes("walk-in") && (
-                                  <span className="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-semibold bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-400">
-                                    Walk-in
-                                  </span>
-                                )}
-                                {booking.bookingType?.includes("upcoming") && (
-                                  <span className="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-semibold bg-blue-100 text-blue-800 dark:bg-blue-900/30 dark:text-blue-400">
-                                    Upcoming
-                                  </span>
-                                )}
-                                {booking.bookingType?.includes("happy-hours") && (
-                                  <span className="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-semibold bg-purple-100 text-purple-800 dark:bg-purple-900/30 dark:text-purple-400">
-                                    Happy Hours
-                                  </span>
-                                )}
-                              </div>
-                            </TableCell>
-                          )}
-                          <TableCell data-testid={`text-start-${booking.id}`}>
-                            {formatTime(booking.startTime)}
-                          </TableCell>
-                          <TableCell data-testid={`text-end-${booking.id}`}>
-                            {formatTime(booking.endTime)}
-                          </TableCell>
-                          <TableCell>
-                            {booking.status === "running" && <SessionTimer endTime={booking.endTime} />}
-                            {booking.status === "paused" && booking.pausedRemainingTime && (() => {
-                              const remainingMs = booking.pausedRemainingTime;
-                              const totalSeconds = Math.floor(remainingMs / 1000);
-                              const hours = Math.floor(totalSeconds / 3600);
-                              const minutes = Math.floor((totalSeconds % 3600) / 60);
-                              const seconds = totalSeconds % 60;
-                              const timeStr = hours > 0 
-                                ? `${hours}:${minutes.toString().padStart(2, '0')}:${seconds.toString().padStart(2, '0')}`
-                                : `${minutes}:${seconds.toString().padStart(2, '0')}`;
-                              
-                              return (
-                                <div className="flex items-center gap-2 text-amber-600 dark:text-amber-500">
-                                  <Pause className="h-4 w-4" />
-                                  <span className="font-mono text-sm font-semibold">{timeStr}</span>
-                                </div>
-                              );
-                            })()}
-                          </TableCell>
-                          <TableCell className="font-bold text-primary" data-testid={`text-price-${booking.id}`}>
-                            <div className="flex flex-col gap-1">
-                              <span>₹{booking.price}</span>
-                              {booking.manualDiscountPercentage && (
-                                <Badge variant="secondary" className="text-xs bg-green-100 dark:bg-green-900 text-green-700 dark:text-green-300">
-                                  Discount
-                                </Badge>
-                              )}
-                              {booking.manualFreeHours && (
-                                <Badge variant="secondary" className="text-xs bg-blue-100 dark:bg-blue-900 text-blue-700 dark:text-blue-300">
-                                  Free Hour
-                                </Badge>
-                              )}
-                            </div>
-                          </TableCell>
-                          <TableCell>
-                            <StatusBadge status={booking.status} />
-                          </TableCell>
-                          <TableCell>
-                            {hasFoodOrders ? (
-                              <Popover>
-                                <PopoverTrigger asChild>
-                                  <Button variant="ghost" size="sm" className="h-auto px-2 py-1">
-                                    <UtensilsCrossed className="h-4 w-4 mr-1 text-primary" />
-                                    <span className="text-sm font-medium">₹{foodTotal.toFixed(0)}</span>
-                                  </Button>
-                                </PopoverTrigger>
-                                <PopoverContent className="w-80">
-                                  <div className="space-y-2">
-                                    <h4 className="font-semibold text-sm">Food Orders</h4>
-                                    <div className="space-y-2">
-                                      {booking.foodOrders!.map((order, index) => (
-                                        <div key={index} className="flex justify-between items-center py-1 border-b last:border-0">
-                                          <div className="flex-1">
-                                            <p className="text-sm font-medium">{order.foodName}</p>
-                                            <p className="text-xs text-muted-foreground">Qty: {order.quantity}</p>
-                                          </div>
-                                          <div className="flex items-center gap-2">
-                                            <p className="text-sm font-semibold">
-                                              ₹{(parseFloat(order.price) * order.quantity).toFixed(0)}
-                                            </p>
-                                            {onDeleteFood && (
-                                              <Button
-                                                variant="ghost"
-                                                size="icon"
-                                                className="h-6 w-6 text-destructive"
-                                                onClick={() => onDeleteFood(booking.id, index)}
-                                                data-testid={`button-delete-food-${booking.id}-${index}`}
-                                              >
-                                                <Trash2 className="h-3 w-3" />
-                                              </Button>
-                                            )}
-                                          </div>
-                                        </div>
-                                      ))}
-                                    </div>
-                                    <div className="pt-2 border-t flex justify-between items-center">
-                                      <p className="text-sm font-semibold">Food Total:</p>
-                                      <p className="text-sm font-bold text-primary">₹{foodTotal.toFixed(0)}</p>
-                                    </div>
-                                  </div>
-                                </PopoverContent>
-                              </Popover>
-                            ) : (
-                              <span className="text-muted-foreground text-sm">-</span>
-                            )}
-                          </TableCell>
-                          <TableCell className="font-bold text-lg text-green-600 dark:text-green-400" data-testid={`text-total-${booking.id}`}>
-                            ₹{totalAmount.toFixed(0)}
-                          </TableCell>
-                          <TableCell className="text-right">
-                            <DropdownMenu>
-                              <DropdownMenuTrigger asChild>
-                                <Button variant="ghost" size="icon" data-testid={`button-actions-${booking.id}`}>
-                                  <MoreVertical className="h-4 w-4" />
-                                </Button>
-                              </DropdownMenuTrigger>
-                              <DropdownMenuContent align="end" data-testid={`dropdown-actions-${booking.id}`}>
-                                {booking.status === "running" && onExtend && (
-                                  <DropdownMenuItem onClick={() => onExtend(booking.id)} data-testid={`action-extend-${booking.id}`}>
-                                    <Clock className="mr-2 h-4 w-4" />
-                                    Extend Time
-                                  </DropdownMenuItem>
-                                )}
-                                {booking.status === "running" && onStopTimer && (
-                                  <DropdownMenuItem onClick={() => onStopTimer(booking.id)} data-testid={`action-pause-timer-${booking.id}`}>
-                                    <Pause className="mr-2 h-4 w-4" />
-                                    Pause Timer
-                                  </DropdownMenuItem>
-                                )}
-                                {booking.status === "paused" && onStopTimer && (
-                                  <DropdownMenuItem onClick={() => onStopTimer(booking.id)} data-testid={`action-resume-timer-${booking.id}`}>
-                                    <Play className="mr-2 h-4 w-4" />
-                                    Resume Timer
-                                  </DropdownMenuItem>
-                                )}
-                                {booking.status === "running" && onComplete && (
-                                  <DropdownMenuItem onClick={() => onComplete(booking.id)} data-testid={`action-complete-${booking.id}`}>
-                                    <Check className="mr-2 h-4 w-4" />
-                                    Over (Complete)
-                                  </DropdownMenuItem>
-                                )}
-                                {(booking.status === "running" || booking.status === "paused" || booking.status === "upcoming" || booking.status === "completed") && onEnd && (
-                                  <DropdownMenuItem onClick={() => onEnd(booking.id)} className="text-destructive" data-testid={`action-delete-${booking.id}`}>
-                                    <X className="mr-2 h-4 w-4" />
-                                    Delete
-                                  </DropdownMenuItem>
-                                )}
-                                {(booking.status === "running" || booking.status === "paused" || booking.status === "upcoming") && onAddFood && (
-                                  <DropdownMenuItem onClick={() => onAddFood(booking.id)} data-testid={`action-add-food-${booking.id}`}>
-                                    <Plus className="mr-2 h-4 w-4" />
-                                    Add Food
-                                  </DropdownMenuItem>
-                                )}
-                                {(booking.status === "running" || booking.status === "paused") && canMakeChanges && (
-                                  <DropdownMenuItem
-                                    onClick={() => {
-                                      const category = booking.seatName.split('-')[0];
-                                      setSeatChangeDialog({
-                                        open: true,
-                                        bookingId: booking.id,
-                                        currentSeat: booking.seatName,
-                                        category: category
-                                      });
-                                    }}
-                                    data-testid={`action-change-seat-${booking.id}`}
-                                  >
-                                    <ArrowRightLeft className="mr-2 h-4 w-4" />
-                                    Change Seat
-                                  </DropdownMenuItem>
-                                )}
-                              </DropdownMenuContent>
-                            </DropdownMenu>
-                          </TableCell>
-                        </TableRow>
-                      );
-                    })
-                  ];
-                }).flat()}
-              </TableBody>
-            </Table>
-          </div>
-        </div>
       )}
 
       <Dialog open={seatChangeDialog.open} onOpenChange={(open) => setSeatChangeDialog({...seatChangeDialog, open})}>
