@@ -84,7 +84,7 @@ Preferred communication style: Simple, everyday language.
 - WhatsApp Bot Integration: Automated device availability queries via Twilio.
 - Public Status Board: Customer-facing real-time availability display at `/status`.
 - Fully Responsive Design: Admin/staff users can access and edit all features on mobile, tablet, and desktop devices with a responsive, touch-friendly interface.
-- Happy Hours Feature: Configurable time-based special pricing.
+- Happy Hours Feature: Configurable time-based special pricing integrated as checkbox option in Walk-In and Upcoming bookings (no separate booking type).
 - Onboarding Tour: Comprehensive step-by-step guide for new users.
 - Data Retention Policies: Automatic cleanup of old data with configurable retention periods (default: 2 years bookings, 6 months logs, 7 years expenses). Runs daily at 2:00 AM with admin controls for manual cleanup and configuration.
 - Analytics Chart Export: Save as Image functionality for all analytics charts (Occupancy Trend, Category Distribution, Hourly Activity, Revenue & Bookings, Peak Hours) using html2canvas for high-quality PNG exports.
