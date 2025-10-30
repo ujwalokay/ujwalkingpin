@@ -719,23 +719,24 @@ export default function Dashboard() {
   }
 
   return (
-    <div className="space-y-4 md:space-y-6">
-      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 sm:gap-4">
-        <div>
-          <h1 className="text-2xl sm:text-3xl font-bold text-foreground">Seat Management</h1>
+    <div className="space-y-4 sm:space-y-5 md:space-y-6">
+      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+        <div className="space-y-1">
+          <h1 className="text-2xl sm:text-3xl lg:text-4xl font-bold text-foreground tracking-tight">Seat Management</h1>
           <p className="text-sm sm:text-base text-muted-foreground">Monitor and manage all gaming seats</p>
         </div>
         <Button 
           onClick={() => setAddDialog(true)} 
           data-testid="button-add-booking" 
-          className="w-full sm:w-auto"
+          className="w-full sm:w-auto sm:min-w-[160px] h-10 sm:h-11"
+          size="lg"
         >
-          <Plus className="mr-2 h-4 w-4" />
-          Add Booking
+          <Plus className="mr-2 h-4 w-4 sm:h-5 sm:w-5" />
+          <span className="font-semibold">Add Booking</span>
         </Button>
       </div>
 
-      <div className="grid gap-3 grid-cols-2 md:grid-cols-2 lg:grid-cols-4">
+      <div className="grid gap-3 sm:gap-4 grid-cols-1 sm:grid-cols-2 lg:grid-cols-4">
         {categories.map((cat) => {
           const available = getAvailableSeats(cat.name).length;
           return (
@@ -752,44 +753,44 @@ export default function Dashboard() {
         })}
       </div>
 
-      <Tabs defaultValue="all-in-one" className="space-y-3 md:space-y-4">
-        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
-          <TabsList data-testid="tabs-bookings" className="w-full sm:w-auto grid grid-cols-2 sm:grid-cols-4">
-            <TabsTrigger value="all-in-one" data-testid="tab-all-in-one" className="text-xs sm:text-sm">
+      <Tabs defaultValue="all-in-one" className="space-y-4 md:space-y-5">
+        <div className="flex flex-col gap-3 sm:gap-4">
+          <TabsList data-testid="tabs-bookings" className="w-full sm:w-auto grid grid-cols-2 sm:grid-cols-4 h-auto p-1">
+            <TabsTrigger value="all-in-one" data-testid="tab-all-in-one" className="text-xs sm:text-sm py-2.5 sm:py-2">
               <List className="h-3.5 w-3.5 sm:h-4 sm:w-4 mr-1 sm:mr-2" />
               <span className="hidden sm:inline">All in One</span>
               <span className="sm:hidden">All</span>
               <span className="ml-1 font-semibold">({allBookings.length})</span>
             </TabsTrigger>
-            <TabsTrigger value="walk-in" data-testid="tab-walk-in" className="text-xs sm:text-sm">
+            <TabsTrigger value="walk-in" data-testid="tab-walk-in" className="text-xs sm:text-sm py-2.5 sm:py-2">
               <Users className="h-3.5 w-3.5 sm:h-4 sm:w-4 mr-1 sm:mr-2" />
               <span className="hidden sm:inline">Walk-in List</span>
               <span className="sm:hidden">Walk-in</span>
               <span className="ml-1 font-semibold">({walkInBookings.length})</span>
             </TabsTrigger>
-            <TabsTrigger value="upcoming" data-testid="tab-upcoming" className="text-xs sm:text-sm">
+            <TabsTrigger value="upcoming" data-testid="tab-upcoming" className="text-xs sm:text-sm py-2.5 sm:py-2">
               <Calendar className="h-3.5 w-3.5 sm:h-4 sm:w-4 mr-1 sm:mr-2" />
               <span className="hidden sm:inline">Upcoming</span>
               <span className="sm:hidden">Upcoming</span>
               <span className="ml-1 font-semibold">({upcomingBookings.length})</span>
             </TabsTrigger>
-            <TabsTrigger value="happy-hours" data-testid="tab-happy-hours" className="text-xs sm:text-sm">
+            <TabsTrigger value="happy-hours" data-testid="tab-happy-hours" className="text-xs sm:text-sm py-2.5 sm:py-2">
               <Clock className="h-3.5 w-3.5 sm:h-4 sm:w-4 mr-1 sm:mr-2" />
               <span className="hidden sm:inline">Happy Hours</span>
               <span className="sm:hidden">Happy Hr</span>
               <span className="ml-1 font-semibold">({happyHoursBookings.length})</span>
             </TabsTrigger>
           </TabsList>
-          <div className="flex gap-2">
+          <div className="flex flex-wrap gap-2 sm:gap-3">
             <Button 
               variant="outline" 
               size="sm" 
               onClick={handleCalculate}
               data-testid="button-calculate"
-              className="flex-1 sm:flex-none"
+              className="flex-1 min-w-[100px] sm:flex-none h-9 sm:h-10"
             >
-              <Calculator className="mr-1 sm:mr-2 h-4 w-4" />
-              <span className="hidden sm:inline">Calculate</span> ({selectedBookings.size})
+              <Calculator className="mr-1.5 sm:mr-2 h-4 w-4" />
+              <span className="text-xs sm:text-sm">Calculate ({selectedBookings.size})</span>
             </Button>
             <Button 
               variant="outline" 
@@ -806,22 +807,20 @@ export default function Dashboard() {
                 }
               }}
               data-testid="button-payment-method"
-              className="flex-1 sm:flex-none"
+              className="flex-1 min-w-[100px] sm:flex-none h-9 sm:h-10"
             >
-              <Wallet className="mr-1 sm:mr-2 h-4 w-4" />
-              <span className="hidden sm:inline">Payment</span>
-              <span className="sm:hidden">Payment</span>
+              <Wallet className="mr-1.5 sm:mr-2 h-4 w-4" />
+              <span className="text-xs sm:text-sm">Payment</span>
             </Button>
             <Button 
               variant="outline" 
               size="sm" 
               onClick={handleRefresh}
               data-testid="button-refresh-list"
-              className="flex-1 sm:flex-none"
+              className="flex-1 min-w-[100px] sm:flex-none h-9 sm:h-10"
             >
-              <RefreshCw className="mr-1 sm:mr-2 h-4 w-4" />
-              <span className="hidden sm:inline">Refresh List</span>
-              <span className="sm:hidden">Refresh</span>
+              <RefreshCw className="mr-1.5 sm:mr-2 h-4 w-4" />
+              <span className="text-xs sm:text-sm">Refresh</span>
             </Button>
           </div>
         </div>
