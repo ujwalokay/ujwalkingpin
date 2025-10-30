@@ -47,6 +47,18 @@ interface Booking {
   bookingType: string[];
   foodOrders?: FoodOrder[];
   pausedRemainingTime?: number | null;
+  originalPrice?: string;
+  discountApplied?: string;
+  bonusHoursApplied?: string;
+  promotionDetails?: {
+    discountPercentage?: number;
+    discountAmount?: string;
+    bonusHours?: string;
+  };
+  isPromotionalDiscount?: number;
+  isPromotionalBonus?: number;
+  manualDiscountPercentage?: number;
+  manualFreeHours?: string;
 }
 
 const availableIcons = [Monitor, Gamepad2, Glasses, Car, Cpu, Tv, Radio, Box];
@@ -172,6 +184,14 @@ export default function Dashboard() {
       bookingType: dbBooking.bookingType || [],
       foodOrders: dbBooking.foodOrders || [],
       pausedRemainingTime: dbBooking.pausedRemainingTime,
+      originalPrice: dbBooking.originalPrice || undefined,
+      discountApplied: dbBooking.discountApplied || undefined,
+      bonusHoursApplied: dbBooking.bonusHoursApplied || undefined,
+      promotionDetails: dbBooking.promotionDetails || undefined,
+      isPromotionalDiscount: dbBooking.isPromotionalDiscount,
+      isPromotionalBonus: dbBooking.isPromotionalBonus,
+      manualDiscountPercentage: dbBooking.manualDiscountPercentage || undefined,
+      manualFreeHours: dbBooking.manualFreeHours || undefined,
     }));
   }, [dbBookings]);
 
