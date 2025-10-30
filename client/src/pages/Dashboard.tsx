@@ -95,6 +95,7 @@ export default function Dashboard() {
   const [selectedBookings, setSelectedBookings] = useState<Set<string>>(new Set());
   const [showTour, setShowTour] = useState(false);
   const [showPaymentDialog, setShowPaymentDialog] = useState(false);
+  const [availabilityDialog, setAvailabilityDialog] = useState<{ open: boolean; category: string; }>({ open: false, category: "" });
 
   // Dashboard keyboard shortcuts
   const dashboardShortcuts = useMemo(() => [
@@ -745,6 +746,7 @@ export default function Dashboard() {
               available={available}
               total={cat.total}
               color={cat.color}
+              onViewDetails={() => setAvailabilityDialog({ open: true, category: cat.name })}
             />
           );
         })}
@@ -1015,6 +1017,109 @@ export default function Dashboard() {
               <Wallet className="mr-2 h-5 w-5" />
               UPI / Online Payment
             </Button>
+          </div>
+        </DialogContent>
+      </Dialog>
+
+      <Dialog open={availabilityDialog.open} onOpenChange={(open) => setAvailabilityDialog({ ...availabilityDialog, open })}>
+        <DialogContent className="max-w-2xl max-h-[80vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle>{availabilityDialog.category} Availability Details</DialogTitle>
+            <DialogDescription>
+              View which specific {availabilityDialog.category} devices are available and occupied
+            </DialogDescription>
+          </DialogHeader>
+          <div className="space-y-4">
+            {(() => {
+              const config = deviceConfigs.find(c => c.category === availabilityDialog.category);
+              if (!config) return <p className="text-muted-foreground">No configuration found</p>;
+
+              const occupiedSeats = getOccupiedSeats(availabilityDialog.category);
+              const availableSeats = getAvailableSeats(availabilityDialog.category);
+              
+              const allSeatNumbers = config.seats.length > 0
+                ? config.seats.map(seatName => {
+                    const match = seatName.match(/\d+$/);
+                    return match ? parseInt(match[0]) : 0;
+                  }).filter(n => n > 0)
+                : Array.from({ length: config.count }, (_, i) => i + 1);
+
+              const getSeatInfo = (seatNum: number) => {
+                const booking = bookings.find(
+                  b => b.category === availabilityDialog.category && 
+                  b.seatNumber === seatNum && 
+                  (b.status === "running" || b.status === "paused")
+                );
+                return booking;
+              };
+
+              return (
+                <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-3">
+                  {allSeatNumbers.sort((a, b) => a - b).map(seatNum => {
+                    const isAvailable = availableSeats.includes(seatNum);
+                    const booking = getSeatInfo(seatNum);
+                    const seatName = config.seats.find(s => {
+                      const match = s.match(/\d+$/);
+                      return match && parseInt(match[0]) === seatNum;
+                    }) || `${availabilityDialog.category} ${seatNum}`;
+
+                    return (
+                      <div
+                        key={seatNum}
+                        className={`p-4 rounded-lg border-2 transition-all ${
+                          isAvailable
+                            ? "bg-green-50 dark:bg-green-950 border-green-500 dark:border-green-700"
+                            : "bg-red-50 dark:bg-red-950 border-red-500 dark:border-red-700"
+                        }`}
+                        data-testid={`seat-status-${availabilityDialog.category.toLowerCase()}-${seatNum}`}
+                      >
+                        <div className="flex flex-col gap-1">
+                          <div className="flex items-center justify-between">
+                            <span className="font-bold text-sm">{seatName}</span>
+                            <span
+                              className={`text-xs px-2 py-0.5 rounded-full ${
+                                isAvailable
+                                  ? "bg-green-500 dark:bg-green-700 text-white"
+                                  : "bg-red-500 dark:bg-red-700 text-white"
+                              }`}
+                            >
+                              {isAvailable ? "Available" : "Occupied"}
+                            </span>
+                          </div>
+                          {!isAvailable && booking && (
+                            <div className="mt-2 pt-2 border-t border-red-300 dark:border-red-800">
+                              <p className="text-xs font-medium truncate">{booking.customerName}</p>
+                              {booking.status === "paused" && (
+                                <p className="text-xs text-muted-foreground">Paused</p>
+                              )}
+                            </div>
+                          )}
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+              );
+            })()}
+            <div className="flex items-center justify-between pt-4 border-t">
+              <div className="flex items-center gap-4">
+                <div className="flex items-center gap-2">
+                  <div className="w-4 h-4 rounded bg-green-500 dark:bg-green-700"></div>
+                  <span className="text-sm">Available ({getAvailableSeats(availabilityDialog.category).length})</span>
+                </div>
+                <div className="flex items-center gap-2">
+                  <div className="w-4 h-4 rounded bg-red-500 dark:bg-red-700"></div>
+                  <span className="text-sm">Occupied ({getOccupiedSeats(availabilityDialog.category).length})</span>
+                </div>
+              </div>
+              <Button
+                variant="outline"
+                onClick={() => setAvailabilityDialog({ open: false, category: "" })}
+                data-testid="button-close-availability-dialog"
+              >
+                Close
+              </Button>
+            </div>
           </div>
         </DialogContent>
       </Dialog>

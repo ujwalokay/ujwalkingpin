@@ -1,5 +1,7 @@
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
 import { LucideIcon } from "lucide-react";
+import { Eye } from "lucide-react";
 
 interface CategoryCardProps {
   title: string;
@@ -7,14 +9,15 @@ interface CategoryCardProps {
   available: number;
   total: number;
   color: string;
+  onViewDetails?: () => void;
 }
 
-export function CategoryCard({ title, icon: Icon, available, total, color }: CategoryCardProps) {
+export function CategoryCard({ title, icon: Icon, available, total, color, onViewDetails }: CategoryCardProps) {
   const occupied = total - available;
   const percentage = total > 0 ? (occupied / total) * 100 : 0;
   
   return (
-    <Card className="glass-card group cursor-pointer shape-diagonal-rounded card-rectangular overflow-hidden" data-testid={`card-category-${title.toLowerCase()}`}>
+    <Card className="glass-card group shape-diagonal-rounded card-rectangular overflow-hidden" data-testid={`card-category-${title.toLowerCase()}`}>
       <CardHeader className="flex flex-row items-center justify-between gap-2 space-y-0 pb-3">
         <CardTitle className="text-base font-bold text-foreground">{title}</CardTitle>
         <Icon className={`h-7 w-7 ${color} group-hover:scale-110 transition-transform duration-300`} />
@@ -39,6 +42,18 @@ export function CategoryCard({ title, icon: Icon, available, total, color }: Cat
             />
           </div>
         </div>
+        {onViewDetails && (
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={onViewDetails}
+            className="w-full mt-2"
+            data-testid={`button-view-details-${title.toLowerCase()}`}
+          >
+            <Eye className="mr-2 h-4 w-4" />
+            View Details
+          </Button>
+        )}
       </CardContent>
     </Card>
   );
