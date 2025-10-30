@@ -103,7 +103,7 @@ export function BookingTable({ bookings, onExtend, onEnd, onComplete, onAddFood,
   const occupiedSeats = useMemo(() => {
     return new Set(
       bookings
-        .filter(b => b.status === 'running' || b.status === 'paused')
+        .filter(b => b.status === 'running' || b.status === 'paused' || b.status === 'upcoming')
         .map(b => b.seatName)
     );
   }, [bookings]);
