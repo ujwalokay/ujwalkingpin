@@ -94,6 +94,7 @@ export function BookingTable({ bookings, onExtend, onEnd, onComplete, onAddFood,
   const { isAdmin, canMakeChanges } = useAuth();
   const { toast } = useToast();
   const [seatChangeDialog, setSeatChangeDialog] = useState<{open: boolean, bookingId: string, currentSeat: string, category: string}>({open: false, bookingId: "", currentSeat: "", category: ""});
+  const [showRefreshDialog, setShowRefreshDialog] = useState(false);
 
   // Fetch device configs and bookings for seat change
   const { data: deviceConfigs = [] } = useQuery<any[]>({
@@ -139,10 +140,7 @@ export function BookingTable({ bookings, onExtend, onEnd, onComplete, onAddFood,
       return { previousBookings };
     },
     onSuccess: () => {
-      toast({
-        title: "Seat Changed!",
-        description: "The booking has been moved successfully.",
-      });
+      setShowRefreshDialog(true);
     },
     onError: (error: any, variables, context: any) => {
       if (context?.previousBookings) {
@@ -755,6 +753,32 @@ export function BookingTable({ bookings, onExtend, onEnd, onComplete, onAddFood,
               className="min-w-24"
             >
               Cancel
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      <Dialog open={showRefreshDialog} onOpenChange={setShowRefreshDialog}>
+        <DialogContent className="sm:max-w-md" data-testid="dialog-seat-change-refresh">
+          <DialogHeader>
+            <DialogTitle>Seat Changed Successfully!</DialogTitle>
+            <DialogDescription>
+              The seat has been changed. Would you like to refresh the page to see all updates?
+            </DialogDescription>
+          </DialogHeader>
+          <DialogFooter className="gap-2">
+            <Button
+              variant="outline"
+              onClick={() => setShowRefreshDialog(false)}
+              data-testid="button-dismiss-refresh"
+            >
+              Later
+            </Button>
+            <Button
+              onClick={() => window.location.reload()}
+              data-testid="button-refresh-now"
+            >
+              Refresh Now
             </Button>
           </DialogFooter>
         </DialogContent>
