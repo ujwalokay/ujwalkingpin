@@ -213,27 +213,28 @@ export function BookingTable({ bookings, onExtend, onEnd, onComplete, onAddFood,
         </div>
       </div>
 
-      <div className="rounded-md border glass-card">
-        <Table>
-          <TableHeader>
-            <TableRow>
-              <TableHead className="w-12"></TableHead>
-              <TableHead>Seat</TableHead>
-              <TableHead>Customer</TableHead>
-              <TableHead>Persons</TableHead>
-              <TableHead>WhatsApp</TableHead>
-              {showDateColumn && <TableHead>Date</TableHead>}
-              {showTypeColumn && <TableHead>Type</TableHead>}
-              <TableHead>Start Time</TableHead>
-              <TableHead>End Time</TableHead>
-              <TableHead>Time Left</TableHead>
-              <TableHead>Price</TableHead>
-              <TableHead>Status</TableHead>
-              <TableHead>Food</TableHead>
-              <TableHead>Total</TableHead>
-              <TableHead className="text-right">Actions</TableHead>
-            </TableRow>
-          </TableHeader>
+      <div className="rounded-md border glass-card overflow-hidden">
+        <div className="overflow-x-auto">
+          <Table className="min-w-[1200px]">
+            <TableHeader>
+              <TableRow>
+                <TableHead className="w-8 sm:w-12 text-xs sm:text-sm"></TableHead>
+                <TableHead className="text-xs sm:text-sm whitespace-nowrap">Seat</TableHead>
+                <TableHead className="text-xs sm:text-sm whitespace-nowrap">Customer</TableHead>
+                <TableHead className="text-xs sm:text-sm whitespace-nowrap">Persons</TableHead>
+                <TableHead className="text-xs sm:text-sm whitespace-nowrap">WhatsApp</TableHead>
+                {showDateColumn && <TableHead className="text-xs sm:text-sm whitespace-nowrap">Date</TableHead>}
+                {showTypeColumn && <TableHead className="text-xs sm:text-sm whitespace-nowrap">Type</TableHead>}
+                <TableHead className="text-xs sm:text-sm whitespace-nowrap">Start Time</TableHead>
+                <TableHead className="text-xs sm:text-sm whitespace-nowrap">End Time</TableHead>
+                <TableHead className="text-xs sm:text-sm whitespace-nowrap">Time Left</TableHead>
+                <TableHead className="text-xs sm:text-sm whitespace-nowrap">Price</TableHead>
+                <TableHead className="text-xs sm:text-sm whitespace-nowrap">Status</TableHead>
+                <TableHead className="text-xs sm:text-sm whitespace-nowrap">Food</TableHead>
+                <TableHead className="text-xs sm:text-sm whitespace-nowrap">Total</TableHead>
+                <TableHead className="text-right text-xs sm:text-sm whitespace-nowrap">Actions</TableHead>
+              </TableRow>
+            </TableHeader>
           <TableBody>
             {filteredBookings.length === 0 ? (
               <TableRow>
@@ -653,6 +654,7 @@ export function BookingTable({ bookings, onExtend, onEnd, onComplete, onAddFood,
             )}
           </TableBody>
         </Table>
+        </div>
       </div>
 
       <Dialog open={seatChangeDialog.open} onOpenChange={(open) => setSeatChangeDialog({...seatChangeDialog, open})}>

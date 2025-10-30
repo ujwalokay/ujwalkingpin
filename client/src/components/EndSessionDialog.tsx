@@ -33,17 +33,17 @@ export function EndSessionDialog({
 
   return (
     <AlertDialog open={open} onOpenChange={onOpenChange}>
-      <AlertDialogContent data-testid="dialog-end-session">
+      <AlertDialogContent className="w-[95vw] sm:w-full max-w-md p-4 sm:p-6" data-testid="dialog-end-session">
         <AlertDialogHeader>
-          <AlertDialogTitle>End Session</AlertDialogTitle>
-          <AlertDialogDescription>
+          <AlertDialogTitle className="text-base sm:text-lg">End Session</AlertDialogTitle>
+          <AlertDialogDescription className="text-xs sm:text-sm">
             Are you sure you want to end the session for {seatName}
             {customerName && ` (${customerName})`}? This action cannot be undone.
           </AlertDialogDescription>
         </AlertDialogHeader>
-        <AlertDialogFooter>
-          <AlertDialogCancel data-testid="button-cancel-end">Cancel</AlertDialogCancel>
-          <AlertDialogAction onClick={handleConfirm} data-testid="button-confirm-end">
+        <AlertDialogFooter className="flex-col-reverse sm:flex-row gap-2 sm:gap-0">
+          <AlertDialogCancel data-testid="button-cancel-end" className="w-full sm:w-auto mt-0">Cancel</AlertDialogCancel>
+          <AlertDialogAction onClick={handleConfirm} data-testid="button-confirm-end" className="w-full sm:w-auto">
             End Session
           </AlertDialogAction>
         </AlertDialogFooter>

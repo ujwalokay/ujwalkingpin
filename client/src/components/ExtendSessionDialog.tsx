@@ -73,26 +73,26 @@ export function ExtendSessionDialog({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent data-testid="dialog-extend-session">
+      <DialogContent className="w-[95vw] sm:w-full max-w-md p-4 sm:p-6" data-testid="dialog-extend-session">
         <DialogHeader>
-          <DialogTitle>Extend Session - {seatName}</DialogTitle>
-          <DialogDescription>
+          <DialogTitle className="text-base sm:text-lg">Extend Session - {seatName}</DialogTitle>
+          <DialogDescription className="text-xs sm:text-sm">
             Select additional time to extend the current session.
             {category && ` (${category}${personCount > 1 ? ` - ${personCount} persons` : ''})`}
           </DialogDescription>
         </DialogHeader>
 
         {isLoading ? (
-          <div className="py-8 text-center text-muted-foreground">Loading pricing...</div>
+          <div className="py-8 text-center text-muted-foreground text-sm">Loading pricing...</div>
         ) : (
-          <RadioGroup value={selectedSlot} onValueChange={setSelectedSlot} className="space-y-3">
+          <RadioGroup value={selectedSlot} onValueChange={setSelectedSlot} className="space-y-2 sm:space-y-3">
             {timeSlots.map((slot) => (
-              <div key={slot.duration} className="flex items-center space-x-3 rounded-md border p-3 hover-elevate">
+              <div key={slot.duration} className="flex items-center space-x-2 sm:space-x-3 rounded-md border p-2.5 sm:p-3 hover-elevate">
                 <RadioGroupItem value={slot.duration} id={slot.duration} data-testid={`radio-${slot.duration}`} />
                 <Label htmlFor={slot.duration} className="flex-1 cursor-pointer">
                   <div className="flex justify-between">
-                    <span>{slot.duration}</span>
-                    <span className="font-bold text-primary">₹{slot.price}</span>
+                    <span className="text-sm sm:text-base">{slot.duration}</span>
+                    <span className="font-bold text-primary text-sm sm:text-base">₹{slot.price}</span>
                   </div>
                 </Label>
               </div>
@@ -100,11 +100,11 @@ export function ExtendSessionDialog({
           </RadioGroup>
         )}
 
-        <DialogFooter>
-          <Button variant="outline" onClick={() => onOpenChange(false)} data-testid="button-cancel-extend">
+        <DialogFooter className="flex-col-reverse sm:flex-row gap-2 sm:gap-0">
+          <Button variant="outline" onClick={() => onOpenChange(false)} data-testid="button-cancel-extend" className="w-full sm:w-auto">
             Cancel
           </Button>
-          <Button onClick={handleConfirm} disabled={isLoading || !selectedSlot} data-testid="button-confirm-extend">
+          <Button onClick={handleConfirm} disabled={isLoading || !selectedSlot} data-testid="button-confirm-extend" className="w-full sm:w-auto">
             Extend Session
           </Button>
         </DialogFooter>
