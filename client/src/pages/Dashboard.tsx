@@ -183,14 +183,14 @@ export default function Dashboard() {
       status: dbBooking.status as BookingStatus,
       bookingType: dbBooking.bookingType || [],
       foodOrders: dbBooking.foodOrders || [],
-      pausedRemainingTime: dbBooking.pausedRemainingTime,
+      pausedRemainingTime: dbBooking.pausedRemainingTime ?? undefined,
       originalPrice: dbBooking.originalPrice || undefined,
       discountApplied: dbBooking.discountApplied || undefined,
       bonusHoursApplied: dbBooking.bonusHoursApplied || undefined,
       promotionDetails: dbBooking.promotionDetails || undefined,
-      isPromotionalDiscount: dbBooking.isPromotionalDiscount,
-      isPromotionalBonus: dbBooking.isPromotionalBonus,
-      manualDiscountPercentage: dbBooking.manualDiscountPercentage || undefined,
+      isPromotionalDiscount: dbBooking.isPromotionalDiscount ?? undefined,
+      isPromotionalBonus: dbBooking.isPromotionalBonus ?? undefined,
+      manualDiscountPercentage: dbBooking.manualDiscountPercentage ?? undefined,
       manualFreeHours: dbBooking.manualFreeHours || undefined,
     }));
   }, [dbBookings]);
@@ -290,6 +290,10 @@ export default function Dashboard() {
     bookingType: string[];
     bookingDate?: Date;
     timeSlot?: string;
+    usePromotionalDiscount?: boolean;
+    usePromotionalBonus?: boolean;
+    manualDiscountPercentage?: number;
+    manualFreeHours?: string;
   }) => {
     try {
       const now = await getServerTime();
@@ -335,7 +339,11 @@ export default function Dashboard() {
           status: (newBooking.bookingType.includes("walk-in") || (newBooking.bookingType.includes("happy-hours") && !newBooking.bookingType.includes("upcoming"))) ? "running" : "upcoming",
           bookingType: newBooking.bookingType,
           foodOrders: [],
-        });
+          isPromotionalDiscount: newBooking.usePromotionalDiscount ? 1 : 0,
+          isPromotionalBonus: newBooking.usePromotionalBonus ? 1 : 0,
+          manualDiscountPercentage: newBooking.manualDiscountPercentage,
+          manualFreeHours: newBooking.manualFreeHours,
+        } as any);
       }
       
       toast({
