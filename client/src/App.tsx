@@ -308,8 +308,8 @@ function App() {
               <SidebarProvider style={style as React.CSSProperties}>
                 <div className="flex h-screen w-full">
                   <AppSidebar />
-                  <div className="flex flex-col flex-1">
-                    <header className="flex items-center justify-between p-3 md:p-4 border-b sticky top-0 z-50 glass">
+                  <div className="flex flex-col flex-1 min-w-0">
+                    <header className="flex items-center justify-between p-3 md:p-4 border-b sticky top-0 z-50 bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/80">
                       <SidebarTrigger data-testid="button-sidebar-toggle" />
                       <div className="flex items-center gap-2 md:gap-4">
                         {user && (
