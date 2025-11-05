@@ -979,7 +979,23 @@ export default function Dashboard() {
         }}
         onSeparate={() => {
           if (mergeDialog.pendingBooking) {
-            createBookingForCustomer(mergeDialog.pendingBooking, false, null);
+            const normalizedBaseName = mergeDialog.customerName.toLowerCase().trim();
+            const existingNamesWithSuffix = bookings
+              .filter(b => b.customerName.toLowerCase().trim().startsWith(normalizedBaseName))
+              .map(b => b.customerName);
+            
+            let suffix = 2;
+            let newName = `${mergeDialog.customerName} (${suffix})`;
+            while (existingNamesWithSuffix.includes(newName)) {
+              suffix++;
+              newName = `${mergeDialog.customerName} (${suffix})`;
+            }
+            
+            const separateBooking = {
+              ...mergeDialog.pendingBooking,
+              customerName: newName
+            };
+            createBookingForCustomer(separateBooking, false, null);
           }
         }}
       />

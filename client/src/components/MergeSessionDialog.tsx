@@ -34,14 +34,16 @@ export function MergeSessionDialog({
             <AlertTriangle className="h-5 w-5 text-yellow-600 dark:text-yellow-400" />
             <DialogTitle>Username Match Found</DialogTitle>
           </div>
-          <DialogDescription className="pt-2">
-            The username "<span className="font-semibold text-foreground">{customerName}</span>" matches an existing session at{" "}
-            <span className="font-semibold text-foreground">{existingSeat}</span>.
-            <div className="mt-3 p-3 bg-muted rounded-md text-sm">
-              <p className="font-medium mb-1">What would you like to do?</p>
+          <DialogDescription className="pt-2 space-y-3">
+            <div>
+              The username "<span className="font-semibold text-foreground">{customerName}</span>" matches an existing session at{" "}
+              <span className="font-semibold text-foreground">{existingSeat}</span>.
+            </div>
+            <div className="p-3 bg-muted rounded-md text-sm">
+              <div className="font-medium mb-2">What would you like to do?</div>
               <ul className="space-y-1 text-muted-foreground">
-                <li>• <span className="font-medium">Merge:</span> Combine the new booking with the existing session</li>
-                <li>• <span className="font-medium">Separate:</span> Create a new independent session</li>
+                <li>• <span className="font-medium">Merge:</span> Combine the new booking with the existing session (same customer)</li>
+                <li>• <span className="font-medium">Separate:</span> Create independent session (different customer with same name)</li>
               </ul>
             </div>
           </DialogDescription>
