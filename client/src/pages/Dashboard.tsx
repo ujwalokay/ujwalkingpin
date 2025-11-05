@@ -10,6 +10,7 @@ import { EndSessionDialog } from "@/components/EndSessionDialog";
 import { AddFoodToBookingDialog } from "@/components/AddFoodToBookingDialog";
 import { OnboardingTour } from "@/components/OnboardingTour";
 import { InstallPrompt } from "@/components/InstallPrompt";
+import { MergeSessionDialog } from "@/components/MergeSessionDialog";
 import { Plus, Monitor, Gamepad2, Glasses, Car, Cpu, Tv, Radio, Box, RefreshCw, Calculator, Wallet, Users, Calendar, Clock, List, Award } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { useSoundAlert } from "@/hooks/useSoundAlert";
@@ -96,6 +97,14 @@ export default function Dashboard() {
   const [showTour, setShowTour] = useState(false);
   const [showPaymentDialog, setShowPaymentDialog] = useState(false);
   const [availabilityDialog, setAvailabilityDialog] = useState<{ open: boolean; category: string; }>({ open: false, category: "" });
+  const [mergeDialog, setMergeDialog] = useState<{ 
+    open: boolean; 
+    customerName: string; 
+    existingSeat: string; 
+    pendingBooking: any; 
+    shouldMerge: boolean;
+    existingSession: Booking | null;
+  }>({ open: false, customerName: "", existingSeat: "", pendingBooking: null, shouldMerge: false, existingSession: null });
 
   // Dashboard keyboard shortcuts
   const dashboardShortcuts = useMemo(() => [
@@ -296,6 +305,40 @@ export default function Dashboard() {
     manualDiscountPercentage?: number;
     manualFreeHours?: string;
   }) => {
+    const currentSessions = bookings.filter(b => 
+      (b.status === "running" || b.status === "paused") &&
+      b.customerName.toLowerCase().trim() === newBooking.customerName.toLowerCase().trim()
+    );
+
+    if (currentSessions.length > 0) {
+      const normalizedNewPhone = newBooking.whatsappNumber?.trim().toLowerCase();
+      const exactMatch = currentSessions.find(session => {
+        const normalizedSessionPhone = session.whatsappNumber?.trim().toLowerCase();
+        return normalizedNewPhone && normalizedSessionPhone && normalizedNewPhone === normalizedSessionPhone;
+      });
+
+      if (exactMatch) {
+        const mergedBooking = {
+          ...newBooking,
+          whatsappNumber: exactMatch.whatsappNumber || newBooking.whatsappNumber
+        };
+        await createBookingForCustomer(mergedBooking, true, exactMatch);
+      } else {
+        setMergeDialog({
+          open: true,
+          customerName: newBooking.customerName,
+          existingSeat: currentSessions[0].seatName,
+          pendingBooking: newBooking,
+          shouldMerge: false,
+          existingSession: currentSessions[0]
+        });
+      }
+    } else {
+      await createBookingForCustomer(newBooking, false, null);
+    }
+  };
+
+  const createBookingForCustomer = async (newBooking: any, isMerge: boolean, existingSession: Booking | null) => {
     try {
       const now = await getServerTime();
       const durationMap: { [key: string]: number } = {
@@ -349,7 +392,9 @@ export default function Dashboard() {
       
       toast({
         title: "Booking Added",
-        description: `${seatNames.join(", ")} booked for ${newBooking.customerName}`,
+        description: isMerge 
+          ? `${seatNames.join(", ")} merged with existing session for ${newBooking.customerName}`
+          : `${seatNames.join(", ")} booked for ${newBooking.customerName}`,
       });
     } catch (error: any) {
       toast({
@@ -916,6 +961,27 @@ export default function Dashboard() {
         seatName={foodDialog.seatName}
         customerName={foodDialog.customerName}
         onConfirm={handleConfirmAddFood}
+      />
+
+      <MergeSessionDialog
+        open={mergeDialog.open}
+        onOpenChange={(open) => setMergeDialog({ ...mergeDialog, open })}
+        customerName={mergeDialog.customerName}
+        existingSeat={mergeDialog.existingSeat}
+        onMerge={() => {
+          if (mergeDialog.pendingBooking && mergeDialog.existingSession) {
+            const mergedBooking = {
+              ...mergeDialog.pendingBooking,
+              whatsappNumber: mergeDialog.existingSession.whatsappNumber || mergeDialog.pendingBooking.whatsappNumber
+            };
+            createBookingForCustomer(mergedBooking, true, mergeDialog.existingSession);
+          }
+        }}
+        onSeparate={() => {
+          if (mergeDialog.pendingBooking) {
+            createBookingForCustomer(mergeDialog.pendingBooking, false, null);
+          }
+        }}
       />
 
       <OnboardingTour
