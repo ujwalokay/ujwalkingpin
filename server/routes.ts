@@ -691,7 +691,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  app.get("/api/credits/accounts", async (req, res) => {
+  app.get("/api/credits/accounts", requireAuth, async (req, res) => {
     try {
       const accounts = await storage.getAllCreditAccounts();
       const accountsWithEntries = await Promise.all(
@@ -707,7 +707,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  app.get("/api/credits/accounts/:id", async (req, res) => {
+  app.get("/api/credits/accounts/:id", requireAuth, async (req, res) => {
     try {
       const account = await storage.getCreditAccount(req.params.id);
       if (!account) {
@@ -718,6 +718,34 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const payments = await storage.getCreditPaymentsByAccount(account.id);
       
       res.json({ ...account, entries, payments });
+    } catch (error: any) {
+      res.status(500).json({ message: error.message });
+    }
+  });
+
+  app.patch("/api/credits/entries/:id/mark-paid", requireAuth, async (req, res) => {
+    try {
+      const { id } = req.params;
+      const userId = (req.user as any)?.id || 'unknown';
+      const username = (req.user as any)?.username || 'unknown';
+      
+      const updated = await storage.updateCreditEntry(id, { status: "paid" });
+      
+      if (!updated) {
+        return res.status(404).json({ message: "Credit entry not found" });
+      }
+      
+      await storage.createActivityLog({
+        userId,
+        username,
+        userRole: (req.user as any)?.role || 'staff',
+        action: 'update',
+        entityType: 'credit_entry',
+        entityId: id,
+        details: `Marked credit entry as paid - Credit: ₹${updated.creditIssued}`
+      });
+      
+      res.json(updated);
     } catch (error: any) {
       res.status(500).json({ message: error.message });
     }

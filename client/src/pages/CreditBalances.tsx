@@ -138,6 +138,26 @@ export default function CreditBalances() {
     },
   });
 
+  const markAsPaidMutation = useMutation({
+    mutationFn: async (entryId: string) => {
+      return await apiRequest("PATCH", `/api/credits/entries/${entryId}/mark-paid`, {});
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/credits/accounts"] });
+      toast({
+        title: "Marked as Paid",
+        description: "Credit entry has been marked as paid and will appear in reports",
+      });
+    },
+    onError: (error: Error) => {
+      toast({
+        title: "Failed to Mark as Paid",
+        description: error.message,
+        variant: "destructive",
+      });
+    },
+  });
+
   const toggleAccountExpanded = (accountId: string) => {
     setExpandedAccounts((prev) => {
       const newSet = new Set(prev);
@@ -372,6 +392,7 @@ export default function CreditBalances() {
                                   <TableHead>Remaining</TableHead>
                                   <TableHead>Status</TableHead>
                                   <TableHead>Date</TableHead>
+                                  <TableHead>Actions</TableHead>
                                 </TableRow>
                               </TableHeader>
                               <TableBody>
@@ -388,12 +409,32 @@ export default function CreditBalances() {
                                     <TableCell>
                                       <Badge
                                         variant={entry.status === "paid" ? "default" : "secondary"}
+                                        className={entry.status === "paid" ? "bg-green-600" : ""}
                                       >
                                         {entry.status}
                                       </Badge>
                                     </TableCell>
                                     <TableCell>
                                       {format(new Date(entry.issuedAt), "MMM d, yyyy")}
+                                    </TableCell>
+                                    <TableCell>
+                                      {entry.status === "pending" && (
+                                        <Button
+                                          size="sm"
+                                          variant="outline"
+                                          onClick={() => markAsPaidMutation.mutate(entry.id)}
+                                          disabled={markAsPaidMutation.isPending}
+                                          data-testid={`button-mark-paid-${entry.id}`}
+                                        >
+                                          <CreditCard className="h-4 w-4 mr-2" />
+                                          Mark as Paid
+                                        </Button>
+                                      )}
+                                      {entry.status === "paid" && (
+                                        <span className="text-sm text-green-600 dark:text-green-400 font-medium">
+                                          ✓ Completed
+                                        </span>
+                                      )}
                                     </TableCell>
                                   </TableRow>
                                 ))}

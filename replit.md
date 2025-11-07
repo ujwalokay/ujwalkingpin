@@ -17,11 +17,18 @@ Preferred communication style: Simple, everyday language.
   - Removed `/api/payment-logs` API endpoint from backend
   - Note: PaymentReconciliation.tsx component file still exists but is no longer used
   
-- **Public Access to Credit Balances**: Credit balance viewing is now publicly accessible without authentication:
-  - Removed `requireAuth` middleware from `GET /api/credits/accounts` endpoint
-  - Removed `requireAuth` middleware from `GET /api/credits/accounts/:id` endpoint
-  - Credit balance data can now be viewed without logging in
-  - Write operations (POST endpoints for payments and split payments) remain protected with authentication
+- **Enhanced Credit Balance Management**: Improved credit tracking with mark-as-paid functionality:
+  - Credit balance viewing requires authentication (secured endpoints)
+  - Added new PATCH endpoint `/api/credits/entries/:id/mark-paid` to mark credit entries as paid
+  - Added "Mark as Paid" button in Credit Balances UI for pending credit entries
+  - Paid credit entries now appear with green "Completed" status
+  - Activity logging for all credit entry status changes
+  
+- **Reports Integration for Paid Credits**: Revenue reports now include paid credit balances:
+  - Added `creditRevenue` field to BookingStats interface
+  - Reports page now calculates and displays revenue from paid credit entries
+  - Total revenue includes cash, UPI/online, and paid credit transactions
+  - Credit entries are included in reports only after being marked as "paid"
 
 ## System Architecture
 

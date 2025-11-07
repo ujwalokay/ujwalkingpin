@@ -84,6 +84,7 @@ export interface BookingStats {
   avgSessionMinutes: number;
   cashRevenue: number;
   upiRevenue: number;
+  creditRevenue: number;
 }
 
 export interface BookingHistoryItem {
@@ -488,13 +489,30 @@ export class DatabaseStorage implements IStorage {
 
     const avgSessionMinutes = totalSessions > 0 ? Math.round(totalMinutes / totalSessions) : 0;
 
+    // Add credit revenue from paid credit entries
+    const paidCreditEntries = await db
+      .select()
+      .from(creditEntries)
+      .where(
+        and(
+          eq(creditEntries.status, "paid"),
+          gte(creditEntries.issuedAt, startDate),
+          lte(creditEntries.issuedAt, endDate)
+        )
+      );
+
+    const creditRevenue = paidCreditEntries.reduce((sum, entry) => {
+      return sum + parseFloat(entry.creditIssued);
+    }, 0);
+
     return {
-      totalRevenue,
+      totalRevenue: totalRevenue + creditRevenue,
       totalFoodRevenue,
       totalSessions,
       avgSessionMinutes,
       cashRevenue,
-      upiRevenue
+      upiRevenue,
+      creditRevenue
     };
   }
 
