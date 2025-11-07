@@ -777,14 +777,48 @@ export function AddBookingDialog({ open, onOpenChange, onConfirm, availableSeats
             <Label htmlFor="whatsapp">
               WhatsApp Number {bookingType === "upcoming" && <span className="text-destructive">*</span>}
             </Label>
-            <Input
-              id="whatsapp"
-              value={whatsappNumber}
-              onChange={(e) => setWhatsappNumber(e.target.value)}
-              placeholder="Enter WhatsApp number"
-              data-testid="input-whatsapp-number"
-            />
-            {bookingType === "upcoming" && (
+            <div className="relative">
+              <Input
+                id="whatsapp"
+                value={whatsappNumber}
+                onChange={(e) => {
+                  const value = e.target.value.replace(/\D/g, '');
+                  if (value.length <= 10) {
+                    setWhatsappNumber(value);
+                  }
+                }}
+                placeholder="Enter 10-digit number"
+                data-testid="input-whatsapp-number"
+                className={`pr-16 ${
+                  whatsappNumber.length > 0 && whatsappNumber.length < 10
+                    ? 'border-destructive focus-visible:ring-destructive'
+                    : whatsappNumber.length === 10
+                    ? 'border-green-500 focus-visible:ring-green-500'
+                    : ''
+                }`}
+                maxLength={10}
+              />
+              <div className={`absolute right-3 top-1/2 -translate-y-1/2 text-xs font-medium ${
+                whatsappNumber.length === 0
+                  ? 'text-muted-foreground'
+                  : whatsappNumber.length < 10
+                  ? 'text-destructive'
+                  : 'text-green-600'
+              }`}>
+                {whatsappNumber.length}/10
+              </div>
+            </div>
+            {whatsappNumber.length > 0 && whatsappNumber.length < 10 && (
+              <p className="text-xs text-destructive flex items-center gap-1">
+                ⚠️ Please enter all 10 digits ({10 - whatsappNumber.length} more needed)
+              </p>
+            )}
+            {whatsappNumber.length === 10 && (
+              <p className="text-xs text-green-600 flex items-center gap-1">
+                ✓ Valid Indian mobile number
+              </p>
+            )}
+            {bookingType === "upcoming" && whatsappNumber.length === 0 && (
               <p className="text-xs text-muted-foreground">Required for upcoming bookings</p>
             )}
           </div>
