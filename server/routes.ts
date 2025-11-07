@@ -511,6 +511,197 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  app.post("/api/credits/split-payment", requireAuth, async (req, res) => {
+    try {
+      const { bookingId, cashAmount, creditAmount, paymentMethod, customerName, whatsappNumber } = req.body;
+      
+      if (!bookingId || !creditAmount) {
+        return res.status(400).json({ message: "Booking ID and credit amount are required" });
+      }
+      
+      const booking = await storage.getBooking(bookingId);
+      if (!booking) {
+        return res.status(404).json({ message: "Booking not found" });
+      }
+      
+      const totalBookingAmount = parseFloat(booking.price) + 
+        (booking.foodOrders || []).reduce((sum: number, order: any) => 
+          sum + (parseFloat(order.price) * order.quantity), 0);
+      const cashPaid = parseFloat(cashAmount || "0");
+      const creditIssued = parseFloat(creditAmount);
+      
+      if (Math.abs((cashPaid + creditIssued) - totalBookingAmount) > 0.01) {
+        return res.status(400).json({ message: "Cash + credit must equal total booking amount" });
+      }
+      
+      let creditAccount = await storage.getCreditAccountByCustomer(
+        customerName || booking.customerName,
+        whatsappNumber || booking.whatsappNumber || undefined
+      );
+      
+      if (!creditAccount) {
+        creditAccount = await storage.createCreditAccount({
+          customerName: customerName || booking.customerName,
+          whatsappNumber: whatsappNumber || booking.whatsappNumber || undefined,
+          currentBalance: "0"
+        });
+      }
+      
+      const currentBalance = parseFloat(creditAccount.currentBalance);
+      const newBalance = (currentBalance + creditIssued).toFixed(2);
+      
+      await storage.updateCreditAccountBalance(creditAccount.id, newBalance);
+      
+      const creditEntry = await storage.createCreditEntry({
+        creditAccountId: creditAccount.id,
+        bookingId: booking.id,
+        openingBalance: creditAccount.currentBalance,
+        creditIssued: creditAmount,
+        nonCreditPaid: cashAmount || "0",
+        remainingCredit: creditAmount,
+        status: "pending"
+      });
+      
+      await storage.updateBooking(booking.id, {
+        paymentMethod: paymentMethod || "cash",
+        paymentStatus: creditIssued > 0 ? "pending" : "paid"
+      });
+      
+      const userId = (req.user as any)?.id || 'unknown';
+      const username = (req.user as any)?.username || 'Unknown';
+      
+      await storage.createPaymentLog({
+        bookingId: booking.id,
+        seatName: booking.seatName,
+        customerName: booking.customerName,
+        amount: cashAmount || "0",
+        paymentMethod: paymentMethod || "cash",
+        paymentStatus: "paid",
+        userId,
+        username,
+        previousStatus: booking.paymentStatus,
+        previousMethod: booking.paymentMethod,
+        isCredit: false,
+        appliedCreditAmount: creditAmount,
+        creditPaymentId: null
+      });
+      
+      res.json({ 
+        success: true, 
+        creditAccount, 
+        creditEntry,
+        message: `Split payment recorded: ₹${cashAmount} paid, ₹${creditAmount} on credit` 
+      });
+    } catch (error: any) {
+      res.status(500).json({ message: error.message });
+    }
+  });
+
+  app.post("/api/credits/payment", requireAuth, async (req, res) => {
+    try {
+      const { accountId, amount, paymentMethod, entryId, notes } = req.body;
+      
+      if (!accountId || !amount || !paymentMethod) {
+        return res.status(400).json({ message: "Account ID, amount, and payment method are required" });
+      }
+      
+      const account = await storage.getCreditAccount(accountId);
+      if (!account) {
+        return res.status(404).json({ message: "Credit account not found" });
+      }
+      
+      const paymentAmount = parseFloat(amount);
+      const currentBalance = parseFloat(account.currentBalance);
+      
+      if (paymentAmount > currentBalance) {
+        return res.status(400).json({ message: "Payment amount exceeds outstanding balance" });
+      }
+      
+      const userId = (req.user as any)?.id || 'unknown';
+      const username = (req.user as any)?.username || 'Unknown';
+      
+      const payment = await storage.createCreditPayment({
+        creditAccountId: accountId,
+        creditEntryId: entryId || null,
+        bookingId: null,
+        amount: amount,
+        paymentMethod: paymentMethod,
+        recordedBy: username,
+        notes: notes || null
+      });
+      
+      const newBalance = (currentBalance - paymentAmount).toFixed(2);
+      await storage.updateCreditAccountBalance(accountId, newBalance);
+      
+      if (entryId) {
+        const entry = await storage.getCreditEntriesByAccount(accountId);
+        const targetEntry = entry.find(e => e.id === entryId);
+        
+        if (targetEntry) {
+          const remaining = parseFloat(targetEntry.remainingCredit);
+          const newRemaining = Math.max(0, remaining - paymentAmount).toFixed(2);
+          
+          await storage.updateCreditEntry(entryId, {
+            remainingCredit: newRemaining,
+            status: parseFloat(newRemaining) === 0 ? "paid" : "pending"
+          });
+        }
+      }
+      
+      await storage.createPaymentLog({
+        bookingId: entryId || accountId,
+        seatName: "Credit Payment",
+        customerName: account.customerName,
+        amount: amount,
+        paymentMethod: paymentMethod,
+        paymentStatus: "paid",
+        userId,
+        username,
+        previousStatus: null,
+        previousMethod: null,
+        isCredit: true,
+        appliedCreditAmount: amount,
+        creditPaymentId: payment.id
+      });
+      
+      res.json({ success: true, payment, newBalance, message: `Credit payment of ₹${amount} recorded` });
+    } catch (error: any) {
+      res.status(500).json({ message: error.message });
+    }
+  });
+
+  app.get("/api/credits/accounts", requireAuth, async (req, res) => {
+    try {
+      const accounts = await storage.getAllCreditAccounts();
+      const accountsWithEntries = await Promise.all(
+        accounts.map(async (account) => {
+          const entries = await storage.getCreditEntriesByAccount(account.id);
+          const payments = await storage.getCreditPaymentsByAccount(account.id);
+          return { ...account, entries, payments };
+        })
+      );
+      res.json(accountsWithEntries);
+    } catch (error: any) {
+      res.status(500).json({ message: error.message });
+    }
+  });
+
+  app.get("/api/credits/accounts/:id", requireAuth, async (req, res) => {
+    try {
+      const account = await storage.getCreditAccount(req.params.id);
+      if (!account) {
+        return res.status(404).json({ message: "Credit account not found" });
+      }
+      
+      const entries = await storage.getCreditEntriesByAccount(account.id);
+      const payments = await storage.getCreditPaymentsByAccount(account.id);
+      
+      res.json({ ...account, entries, payments });
+    } catch (error: any) {
+      res.status(500).json({ message: error.message });
+    }
+  });
+
   app.get("/api/booking-history", requireAuth, async (req, res) => {
     try {
       const history = await storage.getAllBookingHistory();
