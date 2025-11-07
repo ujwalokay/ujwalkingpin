@@ -31,7 +31,7 @@ export default function PaymentReconciliation() {
   const [selectedDate, setSelectedDate] = useState(() => format(new Date(), 'yyyy-MM-dd'));
 
   const { data: logs = [], isLoading } = useQuery<PaymentLog[]>({
-    queryKey: ['/api/payment-logs', selectedDate],
+    queryKey: ['/api/payment-logs', { date: selectedDate }],
   });
 
   const totalAmount = logs.reduce((sum, log) => sum + parseFloat(log.amount || '0'), 0);
