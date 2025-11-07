@@ -92,9 +92,12 @@ type CreditAccountWithDetails = CreditAccount & {
 export default function CreditBalances() {
   const [expandedAccounts, setExpandedAccounts] = useState<Set<string>>(new Set());
   const [paymentDialogOpen, setPaymentDialogOpen] = useState(false);
+  const [markAsPaidDialogOpen, setMarkAsPaidDialogOpen] = useState(false);
   const [selectedAccount, setSelectedAccount] = useState<CreditAccountWithDetails | null>(null);
+  const [selectedEntryId, setSelectedEntryId] = useState<string | null>(null);
   const [paymentAmount, setPaymentAmount] = useState("");
   const [paymentMethod, setPaymentMethod] = useState<"cash" | "upi_online">("cash");
+  const [markPaidPaymentMethod, setMarkPaidPaymentMethod] = useState<"cash" | "upi_online">("cash");
   const [paymentNotes, setPaymentNotes] = useState("");
   const [searchQuery, setSearchQuery] = useState("");
   const { toast } = useToast();
@@ -139,15 +142,20 @@ export default function CreditBalances() {
   });
 
   const markAsPaidMutation = useMutation({
-    mutationFn: async (entryId: string) => {
-      return await apiRequest("PATCH", `/api/credits/entries/${entryId}/mark-paid`, {});
+    mutationFn: async (data: { entryId: string; paymentMethod: string }) => {
+      return await apiRequest("PATCH", `/api/credits/entries/${data.entryId}/mark-paid`, {
+        paymentMethod: data.paymentMethod,
+      });
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["/api/credits/accounts"] });
       toast({
         title: "Marked as Paid",
-        description: "Credit entry has been marked as paid and will appear in reports",
+        description: "Credit entry has been marked as paid with payment method recorded",
       });
+      setMarkAsPaidDialogOpen(false);
+      setSelectedEntryId(null);
+      setMarkPaidPaymentMethod("cash");
     },
     onError: (error: Error) => {
       toast({
@@ -422,7 +430,10 @@ export default function CreditBalances() {
                                         <Button
                                           size="sm"
                                           variant="outline"
-                                          onClick={() => markAsPaidMutation.mutate(entry.id)}
+                                          onClick={() => {
+                                            setSelectedEntryId(entry.id);
+                                            setMarkAsPaidDialogOpen(true);
+                                          }}
                                           disabled={markAsPaidMutation.isPending}
                                           data-testid={`button-mark-paid-${entry.id}`}
                                         >
@@ -582,6 +593,70 @@ export default function CreditBalances() {
               data-testid="button-confirm-payment"
             >
               {recordPaymentMutation.isPending ? "Recording..." : "Record Payment"}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      <Dialog open={markAsPaidDialogOpen} onOpenChange={setMarkAsPaidDialogOpen}>
+        <DialogContent data-testid="dialog-mark-as-paid">
+          <DialogHeader>
+            <DialogTitle>Mark Credit Entry as Paid</DialogTitle>
+            <DialogDescription>
+              Select the payment method used for this credit entry
+            </DialogDescription>
+          </DialogHeader>
+
+          <div className="space-y-4 py-4">
+            <div className="space-y-2">
+              <Label htmlFor="markPaidPaymentMethod">Payment Method</Label>
+              <Select
+                value={markPaidPaymentMethod}
+                onValueChange={(value: any) => setMarkPaidPaymentMethod(value)}
+              >
+                <SelectTrigger data-testid="select-mark-paid-payment-method">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="cash">Cash</SelectItem>
+                  <SelectItem value="upi_online">UPI/Online</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+
+            <div className="rounded-lg border p-4 bg-muted/50">
+              <p className="text-sm text-muted-foreground">
+                This will mark the credit entry as paid and record the payment method for reporting purposes.
+              </p>
+            </div>
+          </div>
+
+          <DialogFooter>
+            <Button
+              variant="outline"
+              onClick={() => {
+                setMarkAsPaidDialogOpen(false);
+                setSelectedEntryId(null);
+                setMarkPaidPaymentMethod("cash");
+              }}
+              disabled={markAsPaidMutation.isPending}
+              data-testid="button-cancel-mark-paid"
+            >
+              Cancel
+            </Button>
+            <Button
+              onClick={() => {
+                if (selectedEntryId) {
+                  markAsPaidMutation.mutate({
+                    entryId: selectedEntryId,
+                    paymentMethod: markPaidPaymentMethod,
+                  });
+                }
+              }}
+              disabled={markAsPaidMutation.isPending}
+              data-testid="button-confirm-mark-paid"
+            >
+              {markAsPaidMutation.isPending ? "Marking..." : "Mark as Paid"}
             </Button>
           </DialogFooter>
         </DialogContent>

@@ -759,14 +759,34 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.patch("/api/credits/entries/:id/mark-paid", requireAuth, async (req, res) => {
     try {
       const { id } = req.params;
+      const { paymentMethod } = req.body;
       const userId = (req.user as any)?.id || 'unknown';
       const username = (req.user as any)?.username || 'unknown';
+      
+      if (!paymentMethod || !['cash', 'upi_online'].includes(paymentMethod)) {
+        return res.status(400).json({ message: "Valid payment method is required (cash or upi_online)" });
+      }
+      
+      const entry = await storage.getCreditEntry(id);
+      if (!entry) {
+        return res.status(404).json({ message: "Credit entry not found" });
+      }
       
       const updated = await storage.updateCreditEntry(id, { status: "paid" });
       
       if (!updated) {
         return res.status(404).json({ message: "Credit entry not found" });
       }
+      
+      await storage.createCreditPayment({
+        creditAccountId: entry.creditAccountId,
+        creditEntryId: id,
+        bookingId: entry.bookingId,
+        amount: entry.remainingCredit,
+        paymentMethod,
+        recordedBy: username,
+        notes: `Payment for credit entry marked as paid`
+      });
       
       await storage.createActivityLog({
         userId,
@@ -775,7 +795,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         action: 'update',
         entityType: 'credit_entry',
         entityId: id,
-        details: `Marked credit entry as paid - Credit: ₹${updated.creditIssued}`
+        details: `Marked credit entry as paid (${paymentMethod === 'cash' ? 'Cash' : 'UPI/Online'}) - Credit: ₹${updated.creditIssued}`
       });
       
       res.json(updated);

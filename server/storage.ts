@@ -253,6 +253,7 @@ export interface IStorage {
   updateCreditAccountBalance(id: string, newBalance: string): Promise<CreditAccount | undefined>;
   
   createCreditEntry(entry: InsertCreditEntry): Promise<CreditEntry>;
+  getCreditEntry(id: string): Promise<CreditEntry | undefined>;
   getCreditEntriesByAccount(accountId: string): Promise<CreditEntry[]>;
   getCreditEntriesByBooking(bookingId: string): Promise<CreditEntry[]>;
   updateCreditEntry(id: string, data: Partial<InsertCreditEntry>): Promise<CreditEntry | undefined>;
@@ -1066,6 +1067,14 @@ export class DatabaseStorage implements IStorage {
   async createCreditEntry(entry: InsertCreditEntry): Promise<CreditEntry> {
     const [newEntry] = await db.insert(creditEntries).values(entry).returning();
     return newEntry;
+  }
+
+  async getCreditEntry(id: string): Promise<CreditEntry | undefined> {
+    const [entry] = await db
+      .select()
+      .from(creditEntries)
+      .where(eq(creditEntries.id, id));
+    return entry || undefined;
   }
 
   async getCreditEntriesByAccount(accountId: string): Promise<CreditEntry[]> {
