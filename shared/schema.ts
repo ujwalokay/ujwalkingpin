@@ -450,4 +450,23 @@ export const insertDeviceMaintenanceSchema = createInsertSchema(deviceMaintenanc
 export type InsertDeviceMaintenance = z.infer<typeof insertDeviceMaintenanceSchema>;
 export type DeviceMaintenance = typeof deviceMaintenance.$inferSelect;
 
+export const paymentLogs = pgTable("payment_logs", {
+  id: varchar("id").primaryKey().$defaultFn(() => crypto.randomUUID()),
+  bookingId: varchar("booking_id").notNull(),
+  seatName: varchar("seat_name").notNull(),
+  customerName: varchar("customer_name").notNull(),
+  amount: varchar("amount").notNull(),
+  paymentMethod: varchar("payment_method").notNull(),
+  paymentStatus: varchar("payment_status").notNull(),
+  userId: varchar("user_id").notNull(),
+  username: varchar("username").notNull(),
+  previousStatus: varchar("previous_status"),
+  previousMethod: varchar("previous_method"),
+  createdAt: timestamp("created_at").notNull().defaultNow(),
+});
+
+export const insertPaymentLogSchema = createInsertSchema(paymentLogs).omit({ id: true, createdAt: true });
+export type InsertPaymentLog = z.infer<typeof insertPaymentLogSchema>;
+export type PaymentLog = typeof paymentLogs.$inferSelect;
+
 

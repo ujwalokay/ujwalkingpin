@@ -40,6 +40,8 @@ import {
   type InsertRetentionConfig,
   type DeviceMaintenance,
   type InsertDeviceMaintenance,
+  type PaymentLog,
+  type InsertPaymentLog,
   bookings,
   deviceConfigs,
   pricingConfigs,
@@ -59,7 +61,8 @@ import {
   loadMetrics,
   loadPredictions,
   retentionConfig,
-  deviceMaintenance
+  deviceMaintenance,
+  paymentLogs
 } from "@shared/schema";
 import { db } from "./db";
 import { eq, and, gte, lte, lt, desc, inArray, isNotNull } from "drizzle-orm";
@@ -882,6 +885,14 @@ export class DatabaseStorage implements IStorage {
       .from(bookings)
       .where(inArray(bookings.id, bookingIds));
     
+    const user = await db
+      .select()
+      .from(users)
+      .where(eq(users.id, userId))
+      .limit(1);
+    
+    const username = user.length > 0 ? (user[0].username || user[0].email || 'Unknown') : 'Unknown';
+    
     const updatedBookings = [];
     for (const booking of existingBookings) {
       const lastPaymentAction = {
@@ -903,35 +914,58 @@ export class DatabaseStorage implements IStorage {
       
       if (result.length > 0) {
         updatedBookings.push(result[0]);
+        
+        const totalAmount = parseFloat(booking.price) + 
+          (booking.foodOrders || []).reduce((sum: number, order: any) => 
+            sum + (parseFloat(order.price) * order.quantity), 0);
+        
+        await this.createPaymentLog({
+          bookingId: booking.id,
+          seatName: booking.seatName,
+          customerName: booking.customerName,
+          amount: totalAmount.toFixed(2),
+          paymentMethod: paymentMethod || 'unknown',
+          paymentStatus,
+          userId,
+          username,
+          previousStatus: booking.paymentStatus,
+          previousMethod: booking.paymentMethod
+        });
       }
     }
     
     return { bookings: updatedBookings, count: updatedBookings.length };
   }
 
-  async undoPaymentStatus(bookingIds: string[]): Promise<number> {
-    const existingBookings = await db
-      .select()
-      .from(bookings)
-      .where(inArray(bookings.id, bookingIds));
-    
-    let undoCount = 0;
-    for (const booking of existingBookings) {
-      if (booking.lastPaymentAction) {
-        const action = booking.lastPaymentAction as any;
-        await db
-          .update(bookings)
-          .set({ 
-            paymentStatus: action.previousStatus || 'unpaid',
-            paymentMethod: action.previousMethod || null,
-            lastPaymentAction: null
-          })
-          .where(eq(bookings.id, booking.id));
-        undoCount++;
-      }
+  async createPaymentLog(log: InsertPaymentLog): Promise<PaymentLog> {
+    const [newLog] = await db.insert(paymentLogs).values(log).returning();
+    return newLog;
+  }
+
+  async getPaymentLogs(date?: string): Promise<PaymentLog[]> {
+    if (date) {
+      const startOfDay = new Date(date);
+      startOfDay.setHours(0, 0, 0, 0);
+      const endOfDay = new Date(date);
+      endOfDay.setHours(23, 59, 59, 999);
+      
+      return await db
+        .select()
+        .from(paymentLogs)
+        .where(
+          and(
+            gte(paymentLogs.createdAt, startOfDay),
+            lte(paymentLogs.createdAt, endOfDay)
+          )
+        )
+        .orderBy(desc(paymentLogs.createdAt));
     }
     
-    return undoCount;
+    return await db
+      .select()
+      .from(paymentLogs)
+      .orderBy(desc(paymentLogs.createdAt))
+      .limit(100);
   }
 
   async moveBookingsToHistory(): Promise<number> {

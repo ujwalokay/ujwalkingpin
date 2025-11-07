@@ -501,16 +501,11 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  app.post("/api/bookings/undo-payment", requireAuth, async (req, res) => {
+  app.get("/api/payment-logs", requireAuth, async (req, res) => {
     try {
-      const { bookingIds } = req.body;
-      
-      if (!bookingIds || !Array.isArray(bookingIds) || bookingIds.length === 0) {
-        return res.status(400).json({ message: "Booking IDs are required" });
-      }
-      
-      const count = await storage.undoPaymentStatus(bookingIds);
-      res.json({ success: true, count });
+      const { date } = req.query;
+      const logs = await storage.getPaymentLogs(date as string | undefined);
+      res.json(logs);
     } catch (error: any) {
       res.status(500).json({ message: error.message });
     }
