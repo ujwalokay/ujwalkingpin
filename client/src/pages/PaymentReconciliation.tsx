@@ -1,5 +1,5 @@
 import { useQuery } from "@tanstack/react-query";
-import { useState } from "react";
+import { useState, useMemo } from "react";
 import { format } from "date-fns";
 import {
   Card,
@@ -10,7 +10,8 @@ import {
 } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
-import { Calendar, User, Wallet, Clock, TrendingUp } from "lucide-react";
+import { Calendar, User, Wallet, Clock, TrendingUp, Search } from "lucide-react";
+import { useAuth } from "@/contexts/AuthContext";
 
 type PaymentLog = {
   id: string;
@@ -29,19 +30,35 @@ type PaymentLog = {
 
 export default function PaymentReconciliation() {
   const [selectedDate, setSelectedDate] = useState(() => format(new Date(), 'yyyy-MM-dd'));
+  const [searchQuery, setSearchQuery] = useState("");
+  const { isStaff } = useAuth();
 
   const { data: logs = [], isLoading } = useQuery<PaymentLog[]>({
     queryKey: ['/api/payment-logs', { date: selectedDate }],
   });
 
-  const totalAmount = logs.reduce((sum, log) => sum + parseFloat(log.amount || '0'), 0);
-  const cashTotal = logs
+  const filteredLogs = useMemo(() => {
+    if (!searchQuery) return logs;
+    
+    const query = searchQuery.toLowerCase();
+    return logs.filter(log => 
+      log.seatName.toLowerCase().includes(query) ||
+      log.customerName.toLowerCase().includes(query) ||
+      log.paymentMethod.toLowerCase().includes(query) ||
+      log.paymentStatus.toLowerCase().includes(query) ||
+      log.username.toLowerCase().includes(query) ||
+      log.amount.includes(query)
+    );
+  }, [logs, searchQuery]);
+
+  const totalAmount = filteredLogs.reduce((sum, log) => sum + parseFloat(log.amount || '0'), 0);
+  const cashTotal = filteredLogs
     .filter(log => log.paymentMethod === 'cash')
     .reduce((sum, log) => sum + parseFloat(log.amount || '0'), 0);
-  const upiTotal = logs
+  const upiTotal = filteredLogs
     .filter(log => log.paymentMethod === 'upi_online')
     .reduce((sum, log) => sum + parseFloat(log.amount || '0'), 0);
-  const creditTotal = logs
+  const creditTotal = filteredLogs
     .filter(log => log.paymentMethod === 'credit')
     .reduce((sum, log) => sum + parseFloat(log.amount || '0'), 0);
 
@@ -78,43 +95,49 @@ export default function PaymentReconciliation() {
         <p className="text-muted-foreground">Review all payment actions and transactions</p>
       </div>
 
-      <div className="grid gap-4 md:grid-cols-4">
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Total Collected</CardTitle>
-            <TrendingUp className="h-4 w-4 text-muted-foreground" />
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold">₹{totalAmount.toFixed(2)}</div>
-            <p className="text-xs text-muted-foreground">{logs.length} transactions</p>
-          </CardContent>
-        </Card>
+      <div className={`grid gap-4 ${isStaff ? 'md:grid-cols-1' : 'md:grid-cols-4'}`}>
+        {!isStaff && (
+          <Card>
+            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+              <CardTitle className="text-sm font-medium">Total Collected</CardTitle>
+              <TrendingUp className="h-4 w-4 text-muted-foreground" />
+            </CardHeader>
+            <CardContent>
+              <div className="text-2xl font-bold">₹{totalAmount.toFixed(2)}</div>
+              <p className="text-xs text-muted-foreground">{filteredLogs.length} transactions</p>
+            </CardContent>
+          </Card>
+        )}
 
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Cash</CardTitle>
-            <Wallet className="h-4 w-4 text-green-600 dark:text-green-400" />
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold">₹{cashTotal.toFixed(2)}</div>
-            <p className="text-xs text-muted-foreground">
-              {logs.filter(l => l.paymentMethod === 'cash').length} payments
-            </p>
-          </CardContent>
-        </Card>
+        {!isStaff && (
+          <Card>
+            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+              <CardTitle className="text-sm font-medium">Cash</CardTitle>
+              <Wallet className="h-4 w-4 text-green-600 dark:text-green-400" />
+            </CardHeader>
+            <CardContent>
+              <div className="text-2xl font-bold">₹{cashTotal.toFixed(2)}</div>
+              <p className="text-xs text-muted-foreground">
+                {filteredLogs.filter(l => l.paymentMethod === 'cash').length} payments
+              </p>
+            </CardContent>
+          </Card>
+        )}
 
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">UPI/Online</CardTitle>
-            <Wallet className="h-4 w-4 text-blue-600 dark:text-blue-400" />
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold">₹{upiTotal.toFixed(2)}</div>
-            <p className="text-xs text-muted-foreground">
-              {logs.filter(l => l.paymentMethod === 'upi_online').length} payments
-            </p>
-          </CardContent>
-        </Card>
+        {!isStaff && (
+          <Card>
+            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+              <CardTitle className="text-sm font-medium">UPI/Online</CardTitle>
+              <Wallet className="h-4 w-4 text-blue-600 dark:text-blue-400" />
+            </CardHeader>
+            <CardContent>
+              <div className="text-2xl font-bold">₹{upiTotal.toFixed(2)}</div>
+              <p className="text-xs text-muted-foreground">
+                {filteredLogs.filter(l => l.paymentMethod === 'upi_online').length} payments
+              </p>
+            </CardContent>
+          </Card>
+        )}
 
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
@@ -124,7 +147,7 @@ export default function PaymentReconciliation() {
           <CardContent>
             <div className="text-2xl font-bold">₹{creditTotal.toFixed(2)}</div>
             <p className="text-xs text-muted-foreground">
-              {logs.filter(l => l.paymentMethod === 'credit').length} on credit
+              {filteredLogs.filter(l => l.paymentMethod === 'credit').length} on credit
             </p>
           </CardContent>
         </Card>
@@ -133,26 +156,41 @@ export default function PaymentReconciliation() {
       <Card>
         <CardHeader>
           <CardTitle>Payment Logs</CardTitle>
-          <CardDescription>Filter by date to view transactions</CardDescription>
-          <div className="flex items-center gap-2 pt-4">
-            <Calendar className="h-4 w-4 text-muted-foreground" />
-            <Input
-              type="date"
-              value={selectedDate}
-              onChange={(e) => setSelectedDate(e.target.value)}
-              className="max-w-xs"
-              data-testid="input-date-filter"
-            />
+          <CardDescription>Filter by date and search transactions</CardDescription>
+          <div className="flex flex-col sm:flex-row items-start sm:items-center gap-3 pt-4">
+            <div className="flex items-center gap-2 w-full sm:w-auto">
+              <Calendar className="h-4 w-4 text-muted-foreground" />
+              <Input
+                type="date"
+                value={selectedDate}
+                onChange={(e) => setSelectedDate(e.target.value)}
+                className="max-w-xs"
+                data-testid="input-date-filter"
+              />
+            </div>
+            <div className="flex items-center gap-2 w-full sm:flex-1">
+              <Search className="h-4 w-4 text-muted-foreground" />
+              <Input
+                type="text"
+                placeholder="Search by seat, customer, method, status, amount..."
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+                className="flex-1"
+                data-testid="input-search-logs"
+              />
+            </div>
           </div>
         </CardHeader>
         <CardContent>
           {isLoading ? (
             <p className="text-muted-foreground text-center py-8">Loading payment logs...</p>
-          ) : logs.length === 0 ? (
-            <p className="text-muted-foreground text-center py-8">No payment logs found for this date</p>
+          ) : filteredLogs.length === 0 ? (
+            <p className="text-muted-foreground text-center py-8">
+              {searchQuery ? "No payment logs match your search" : "No payment logs found for this date"}
+            </p>
           ) : (
             <div className="space-y-3">
-              {logs.map((log) => (
+              {filteredLogs.map((log) => (
                 <div
                   key={log.id}
                   className="flex flex-col gap-3 p-4 border rounded-lg bg-card"
