@@ -8,6 +8,21 @@ This project is a local admin panel web application for managing Airavoto Gaming
 
 Preferred communication style: Simple, everyday language.
 
+## Recent Changes
+
+### November 7, 2025
+- **Removed Payment Logs Feature**: Completely removed the Payment Reconciliation/Payment Logs functionality from the application, including:
+  - Removed "Payment Logs" navigation item from sidebar
+  - Removed `/payment-reconciliation` route from frontend router
+  - Removed `/api/payment-logs` API endpoint from backend
+  - Note: PaymentReconciliation.tsx component file still exists but is no longer used
+  
+- **Public Access to Credit Balances**: Credit balance viewing is now publicly accessible without authentication:
+  - Removed `requireAuth` middleware from `GET /api/credits/accounts` endpoint
+  - Removed `requireAuth` middleware from `GET /api/credits/accounts/:id` endpoint
+  - Credit balance data can now be viewed without logging in
+  - Write operations (POST endpoints for payments and split payments) remain protected with authentication
+
 ## System Architecture
 
 ### Frontend Architecture
