@@ -75,11 +75,6 @@ const menuCategories: MenuCategory[] = [
         icon: Wallet,
       },
       {
-        title: "Payment Logs",
-        url: "/payment-reconciliation",
-        icon: Receipt,
-      },
-      {
         title: "Credit Balances",
         url: "/credit-balances",
         icon: CreditCard,

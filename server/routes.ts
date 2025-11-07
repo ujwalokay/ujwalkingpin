@@ -501,16 +501,6 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  app.get("/api/payment-logs", requireAuth, async (req, res) => {
-    try {
-      const { date } = req.query;
-      const logs = await storage.getPaymentLogs(date as string | undefined);
-      res.json(logs);
-    } catch (error: any) {
-      res.status(500).json({ message: error.message });
-    }
-  });
-
   app.post("/api/credits/split-payment", requireAuth, async (req, res) => {
     try {
       const { bookingIds, cashAmount, creditAmount, paymentMethod, customerName, whatsappNumber } = req.body;
@@ -701,7 +691,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  app.get("/api/credits/accounts", requireAuth, async (req, res) => {
+  app.get("/api/credits/accounts", async (req, res) => {
     try {
       const accounts = await storage.getAllCreditAccounts();
       const accountsWithEntries = await Promise.all(
@@ -717,7 +707,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  app.get("/api/credits/accounts/:id", requireAuth, async (req, res) => {
+  app.get("/api/credits/accounts/:id", async (req, res) => {
     try {
       const account = await storage.getCreditAccount(req.params.id);
       if (!account) {
