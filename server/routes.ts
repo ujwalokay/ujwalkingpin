@@ -513,20 +513,25 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
   app.post("/api/credits/split-payment", requireAuth, async (req, res) => {
     try {
-      const { bookingId, cashAmount, creditAmount, paymentMethod, customerName, whatsappNumber } = req.body;
+      const { bookingIds, cashAmount, creditAmount, paymentMethod, customerName, whatsappNumber } = req.body;
       
-      if (!bookingId || !creditAmount) {
-        return res.status(400).json({ message: "Booking ID and credit amount are required" });
+      if (!bookingIds || !Array.isArray(bookingIds) || bookingIds.length === 0 || !creditAmount) {
+        return res.status(400).json({ message: "Booking IDs array and credit amount are required" });
       }
       
-      const booking = await storage.getBooking(bookingId);
-      if (!booking) {
-        return res.status(404).json({ message: "Booking not found" });
+      const bookings = await Promise.all(bookingIds.map(id => storage.getBooking(id)));
+      const missingBookings = bookings.filter(b => !b);
+      if (missingBookings.length > 0) {
+        return res.status(404).json({ message: "One or more bookings not found" });
       }
       
-      const totalBookingAmount = parseFloat(booking.price) + 
-        (booking.foodOrders || []).reduce((sum: number, order: any) => 
-          sum + (parseFloat(order.price) * order.quantity), 0);
+      const totalBookingAmount = bookings.reduce((sum, booking) => {
+        const bookingTotal = parseFloat(booking!.price) + 
+          (booking!.foodOrders || []).reduce((fSum: number, order: any) => 
+            fSum + (parseFloat(order.price) * order.quantity), 0);
+        return sum + bookingTotal;
+      }, 0);
+      
       const cashPaid = parseFloat(cashAmount || "0");
       const creditIssued = parseFloat(creditAmount);
       
@@ -534,15 +539,16 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(400).json({ message: "Cash + credit must equal total booking amount" });
       }
       
+      const firstBooking = bookings[0]!;
       let creditAccount = await storage.getCreditAccountByCustomer(
-        customerName || booking.customerName,
-        whatsappNumber || booking.whatsappNumber || undefined
+        customerName || firstBooking.customerName,
+        whatsappNumber || firstBooking.whatsappNumber || undefined
       );
       
       if (!creditAccount) {
         creditAccount = await storage.createCreditAccount({
-          customerName: customerName || booking.customerName,
-          whatsappNumber: whatsappNumber || booking.whatsappNumber || undefined,
+          customerName: customerName || firstBooking.customerName,
+          whatsappNumber: whatsappNumber || firstBooking.whatsappNumber || undefined,
           currentBalance: "0"
         });
       }
@@ -552,45 +558,70 @@ export async function registerRoutes(app: Express): Promise<Server> {
       
       await storage.updateCreditAccountBalance(creditAccount.id, newBalance);
       
-      const creditEntry = await storage.createCreditEntry({
-        creditAccountId: creditAccount.id,
-        bookingId: booking.id,
-        openingBalance: creditAccount.currentBalance,
-        creditIssued: creditAmount,
-        nonCreditPaid: cashAmount || "0",
-        remainingCredit: creditAmount,
-        status: "pending"
-      });
+      const creditEntries = [];
+      let totalCashDistributed = 0;
+      let totalCreditDistributed = 0;
       
-      await storage.updateBooking(booking.id, {
-        paymentMethod: paymentMethod || "cash",
-        paymentStatus: creditIssued > 0 ? "pending" : "paid"
-      });
-      
-      const userId = (req.user as any)?.id || 'unknown';
-      const username = (req.user as any)?.username || 'Unknown';
-      
-      await storage.createPaymentLog({
-        bookingId: booking.id,
-        seatName: booking.seatName,
-        customerName: booking.customerName,
-        amount: cashAmount || "0",
-        paymentMethod: paymentMethod || "cash",
-        paymentStatus: "paid",
-        userId,
-        username,
-        previousStatus: booking.paymentStatus,
-        previousMethod: booking.paymentMethod,
-        isCredit: false,
-        appliedCreditAmount: creditAmount,
-        creditPaymentId: null
-      });
+      for (let i = 0; i < bookings.length; i++) {
+        const booking = bookings[i]!;
+        let bookingCash: string;
+        let bookingCredit: string;
+        
+        if (i === bookings.length - 1) {
+          bookingCash = (cashPaid - totalCashDistributed).toFixed(2);
+          bookingCredit = (creditIssued - totalCreditDistributed).toFixed(2);
+        } else {
+          const bookingAmount = parseFloat(booking.price) + 
+            (booking.foodOrders || []).reduce((sum: number, order: any) => 
+              sum + (parseFloat(order.price) * order.quantity), 0);
+          const bookingProportion = bookingAmount / totalBookingAmount;
+          bookingCash = (cashPaid * bookingProportion).toFixed(2);
+          bookingCredit = (creditIssued * bookingProportion).toFixed(2);
+          totalCashDistributed += parseFloat(bookingCash);
+          totalCreditDistributed += parseFloat(bookingCredit);
+        }
+        
+        const creditEntry = await storage.createCreditEntry({
+          creditAccountId: creditAccount.id,
+          bookingId: booking.id,
+          openingBalance: creditAccount.currentBalance,
+          creditIssued: bookingCredit,
+          nonCreditPaid: bookingCash,
+          remainingCredit: bookingCredit,
+          status: "pending"
+        });
+        creditEntries.push(creditEntry);
+        
+        await storage.updateBooking(booking.id, {
+          paymentMethod: paymentMethod || "cash",
+          paymentStatus: creditIssued > 0 ? "pending" : "paid"
+        });
+        
+        const userId = (req.user as any)?.id || 'unknown';
+        const username = (req.user as any)?.username || 'Unknown';
+        
+        await storage.createPaymentLog({
+          bookingId: booking.id,
+          seatName: booking.seatName,
+          customerName: booking.customerName,
+          amount: bookingCash,
+          paymentMethod: paymentMethod || "cash",
+          paymentStatus: "paid",
+          userId,
+          username,
+          previousStatus: booking.paymentStatus,
+          previousMethod: booking.paymentMethod,
+          isCredit: false,
+          appliedCreditAmount: bookingCredit,
+          creditPaymentId: null
+        });
+      }
       
       res.json({ 
         success: true, 
         creditAccount, 
-        creditEntry,
-        message: `Split payment recorded: ₹${cashAmount} paid, ₹${creditAmount} on credit` 
+        creditEntries,
+        message: `Split payment recorded: ₹${cashAmount} paid, ₹${creditAmount} on credit for ${bookings.length} booking(s)` 
       });
     } catch (error: any) {
       res.status(500).json({ message: error.message });

@@ -8,6 +8,7 @@ import { AddBookingDialog } from "@/components/AddBookingDialog";
 import { ExtendSessionDialog } from "@/components/ExtendSessionDialog";
 import { EndSessionDialog } from "@/components/EndSessionDialog";
 import { AddFoodToBookingDialog } from "@/components/AddFoodToBookingDialog";
+import { SplitPaymentDialog } from "@/components/SplitPaymentDialog";
 import { OnboardingTour } from "@/components/OnboardingTour";
 import { InstallPrompt } from "@/components/InstallPrompt";
 import { MergeSessionDialog } from "@/components/MergeSessionDialog";
@@ -96,6 +97,7 @@ export default function Dashboard() {
   const [selectedBookings, setSelectedBookings] = useState<Set<string>>(new Set());
   const [showTour, setShowTour] = useState(false);
   const [showPaymentDialog, setShowPaymentDialog] = useState(false);
+  const [showSplitPaymentDialog, setShowSplitPaymentDialog] = useState(false);
   const [availabilityDialog, setAvailabilityDialog] = useState<{ open: boolean; category: string; }>({ open: false, category: "" });
   const [mergeDialog, setMergeDialog] = useState<{ 
     open: boolean; 
@@ -1112,6 +1114,27 @@ export default function Dashboard() {
               <Wallet className="mr-2 h-5 w-5" />
               Credit (Pay Later)
             </Button>
+            <div className="relative">
+              <div className="absolute inset-0 flex items-center">
+                <span className="w-full border-t" />
+              </div>
+              <div className="relative flex justify-center text-xs uppercase">
+                <span className="bg-background px-2 text-muted-foreground">Or</span>
+              </div>
+            </div>
+            <Button
+              variant="outline"
+              size="lg"
+              onClick={() => {
+                setShowPaymentDialog(false);
+                setShowSplitPaymentDialog(true);
+              }}
+              data-testid="button-payment-split"
+              className="h-16 text-lg border-2 hover:border-blue-500 hover:bg-blue-500/5 border-blue-300 dark:border-blue-700"
+            >
+              <Calculator className="mr-2 h-5 w-5" />
+              Split Payment (Part Cash + Part Credit)
+            </Button>
           </div>
         </DialogContent>
       </Dialog>
@@ -1218,6 +1241,33 @@ export default function Dashboard() {
           </div>
         </DialogContent>
       </Dialog>
+
+      <SplitPaymentDialog
+        open={showSplitPaymentDialog}
+        onOpenChange={setShowSplitPaymentDialog}
+        bookingIds={Array.from(selectedBookings)}
+        totalAmount={(() => {
+          const selectedBookingsList = filteredBookings.filter(b => selectedBookings.has(b.id));
+          return selectedBookingsList.reduce((sum, booking) => {
+            const foodTotal = booking.foodOrders 
+              ? booking.foodOrders.reduce((fSum, order) => fSum + parseFloat(order.price) * order.quantity, 0)
+              : 0;
+            return sum + parseFloat(booking.price) + foodTotal;
+          }, 0);
+        })()}
+        customerName={(() => {
+          const selectedBookingsList = filteredBookings.filter(b => selectedBookings.has(b.id));
+          return selectedBookingsList.length > 0 ? selectedBookingsList[0].customerName : "";
+        })()}
+        whatsappNumber={(() => {
+          const selectedBookingsList = filteredBookings.filter(b => selectedBookings.has(b.id));
+          return selectedBookingsList.length > 0 ? selectedBookingsList[0].whatsappNumber : "";
+        })()}
+        onSuccess={() => {
+          setSelectedBookings(new Set());
+          queryClient.invalidateQueries({ queryKey: ["/api/bookings"] });
+        }}
+      />
     </div>
   );
 }

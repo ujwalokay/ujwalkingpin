@@ -1,4 +1,4 @@
-import { Settings, LayoutDashboard, FileText, UtensilsCrossed, CalendarClock, History, Scale, Wallet, ScrollText, BarChart3, Gamepad2, Sparkles, LogOut, Brain, Package, Receipt } from "lucide-react";
+import { Settings, LayoutDashboard, FileText, UtensilsCrossed, CalendarClock, History, Scale, Wallet, ScrollText, BarChart3, Gamepad2, Sparkles, LogOut, Brain, Package, Receipt, CreditCard } from "lucide-react";
 import { Link, useLocation } from "wouter";
 import { useQuery } from "@tanstack/react-query";
 import { useTheme } from "@/components/ThemeProvider";
@@ -78,6 +78,11 @@ const menuCategories: MenuCategory[] = [
         title: "Payment Logs",
         url: "/payment-reconciliation",
         icon: Receipt,
+      },
+      {
+        title: "Credit Balances",
+        url: "/credit-balances",
+        icon: CreditCard,
       },
     ],
   },

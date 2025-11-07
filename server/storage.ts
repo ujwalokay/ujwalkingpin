@@ -440,19 +440,6 @@ export class DatabaseStorage implements IStorage {
         )
       );
 
-    const totalRevenue = completedBookings.reduce((sum, booking) => {
-      return sum + parseFloat(booking.price);
-    }, 0);
-
-    const totalFoodRevenue = completedBookings.reduce((sum, booking) => {
-      if (booking.foodOrders && booking.foodOrders.length > 0) {
-        return sum + booking.foodOrders.reduce((foodSum, order) => 
-          foodSum + parseFloat(order.price) * order.quantity, 0
-        );
-      }
-      return sum;
-    }, 0);
-
     const cashRevenue = completedBookings
       .filter(b => b.paymentMethod === "cash")
       .reduce((sum, booking) => {
@@ -474,6 +461,23 @@ export class DatabaseStorage implements IStorage {
           : 0;
         return sum + sessionPrice + foodPrice;
       }, 0);
+
+    const paidBookings = completedBookings.filter(b => 
+      b.paymentMethod === "cash" || b.paymentMethod === "upi_online"
+    );
+
+    const totalRevenue = paidBookings.reduce((sum, booking) => {
+      return sum + parseFloat(booking.price);
+    }, 0);
+
+    const totalFoodRevenue = paidBookings.reduce((sum, booking) => {
+      if (booking.foodOrders && booking.foodOrders.length > 0) {
+        return sum + booking.foodOrders.reduce((foodSum, order) => 
+          foodSum + parseFloat(order.price) * order.quantity, 0
+        );
+      }
+      return sum;
+    }, 0);
 
     const totalSessions = completedBookings.length;
 

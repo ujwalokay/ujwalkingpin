@@ -26,6 +26,7 @@ import Timeline from "@/pages/Timeline";
 import History from "@/pages/History";
 import ActivityLogs from "@/pages/ActivityLogs";
 import PaymentReconciliation from "@/pages/PaymentReconciliation";
+import CreditBalances from "@/pages/CreditBalances";
 import TermsAndConditions from "@/pages/TermsAndConditions";
 import PublicStatus from "@/pages/PublicStatus";
 import Home from "@/pages/Home";
@@ -58,6 +59,7 @@ function Router() {
       <Route path="/inventory" component={Inventory} />
       <Route path="/expenses" component={Expenses} />
       <Route path="/payment-reconciliation" component={PaymentReconciliation} />
+      <Route path="/credit-balances" component={CreditBalances} />
       <Route path="/settings" component={Settings} />
       <Route path="/reports" component={Reports} />
       <Route path="/terms" component={TermsAndConditions} />
