@@ -305,6 +305,7 @@ export function AddBookingDialog({ open, onOpenChange, onConfirm, availableSeats
 
   const handleConfirm = () => {
     const isWhatsappRequired = bookingType === "upcoming" && !whatsappNumber.trim();
+    const isWhatsappInvalid = whatsappNumber.trim() && whatsappNumber.length !== 10;
     const isDateRequired = bookingType === "upcoming" && !bookingDate;
     const isTimeSlotRequired = bookingType === "upcoming" && !timeSlot;
     
@@ -312,7 +313,7 @@ export function AddBookingDialog({ open, onOpenChange, onConfirm, availableSeats
     const shouldUseHappyHoursPricing = (bookingType === "walk-in" && useHappyHoursPricing) || (bookingType === "upcoming" && useHappyHoursPricing);
     const hasValidPrice = shouldUseHappyHoursPricing ? selectedHappyHoursSlot : selectedSlot;
     
-    if (category && selectedSeats.length > 0 && customerName && duration && hasValidPrice && !isWhatsappRequired && !isDateRequired && !isTimeSlotRequired) {
+    if (category && selectedSeats.length > 0 && customerName && duration && hasValidPrice && !isWhatsappRequired && !isWhatsappInvalid && !isDateRequired && !isTimeSlotRequired) {
       let finalPersonCount: number;
       
       if (shouldUseHappyHoursPricing) {
@@ -780,14 +781,14 @@ export function AddBookingDialog({ open, onOpenChange, onConfirm, availableSeats
             <div className="relative">
               <Input
                 id="whatsapp"
-                value={whatsappNumber}
+                value={whatsappNumber.replace(/(\d{5})(\d{1,5})/, '$1 $2')}
                 onChange={(e) => {
                   const value = e.target.value.replace(/\D/g, '');
                   if (value.length <= 10) {
                     setWhatsappNumber(value);
                   }
                 }}
-                placeholder="Enter 10-digit number"
+                placeholder="98765 43210"
                 data-testid="input-whatsapp-number"
                 className={`pr-16 ${
                   whatsappNumber.length > 0 && whatsappNumber.length < 10
@@ -796,7 +797,6 @@ export function AddBookingDialog({ open, onOpenChange, onConfirm, availableSeats
                     ? 'border-green-500 focus-visible:ring-green-500'
                     : ''
                 }`}
-                maxLength={10}
               />
               <div className={`absolute right-3 top-1/2 -translate-y-1/2 text-xs font-medium ${
                 whatsappNumber.length === 0
