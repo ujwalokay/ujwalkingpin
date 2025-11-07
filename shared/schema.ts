@@ -1,6 +1,6 @@
 import { z } from "zod";
 import { sql } from "drizzle-orm";
-import { pgTable, varchar, integer, timestamp, text, jsonb, real, index } from "drizzle-orm/pg-core";
+import { pgTable, varchar, integer, timestamp, text, jsonb, real, index, boolean } from "drizzle-orm/pg-core";
 import { createInsertSchema } from "drizzle-zod";
 
 // Session storage table for Replit Auth
@@ -462,11 +462,60 @@ export const paymentLogs = pgTable("payment_logs", {
   username: varchar("username").notNull(),
   previousStatus: varchar("previous_status"),
   previousMethod: varchar("previous_method"),
+  isCredit: boolean("is_credit").notNull().default(false),
+  appliedCreditAmount: varchar("applied_credit_amount"),
+  creditPaymentId: varchar("credit_payment_id"),
   createdAt: timestamp("created_at").notNull().defaultNow(),
 });
 
 export const insertPaymentLogSchema = createInsertSchema(paymentLogs).omit({ id: true, createdAt: true });
 export type InsertPaymentLog = z.infer<typeof insertPaymentLogSchema>;
 export type PaymentLog = typeof paymentLogs.$inferSelect;
+
+export const creditAccounts = pgTable("credit_accounts", {
+  id: varchar("id").primaryKey().$defaultFn(() => crypto.randomUUID()),
+  customerName: varchar("customer_name").notNull(),
+  whatsappNumber: varchar("whatsapp_number"),
+  currentBalance: varchar("current_balance").notNull().default("0"),
+  createdAt: timestamp("created_at").notNull().defaultNow(),
+  updatedAt: timestamp("updated_at").notNull().defaultNow(),
+});
+
+export const insertCreditAccountSchema = createInsertSchema(creditAccounts).omit({ id: true, createdAt: true, updatedAt: true });
+export type InsertCreditAccount = z.infer<typeof insertCreditAccountSchema>;
+export type CreditAccount = typeof creditAccounts.$inferSelect;
+
+export const creditEntries = pgTable("credit_entries", {
+  id: varchar("id").primaryKey().$defaultFn(() => crypto.randomUUID()),
+  creditAccountId: varchar("credit_account_id").notNull(),
+  bookingId: varchar("booking_id").notNull(),
+  openingBalance: varchar("opening_balance").notNull(),
+  creditIssued: varchar("credit_issued").notNull(),
+  nonCreditPaid: varchar("non_credit_paid").notNull().default("0"),
+  remainingCredit: varchar("remaining_credit").notNull(),
+  status: varchar("status").notNull().default("pending"),
+  issuedAt: timestamp("issued_at").notNull().defaultNow(),
+  lastActivityAt: timestamp("last_activity_at").notNull().defaultNow(),
+});
+
+export const insertCreditEntrySchema = createInsertSchema(creditEntries).omit({ id: true, issuedAt: true, lastActivityAt: true });
+export type InsertCreditEntry = z.infer<typeof insertCreditEntrySchema>;
+export type CreditEntry = typeof creditEntries.$inferSelect;
+
+export const creditPayments = pgTable("credit_payments", {
+  id: varchar("id").primaryKey().$defaultFn(() => crypto.randomUUID()),
+  creditAccountId: varchar("credit_account_id").notNull(),
+  creditEntryId: varchar("credit_entry_id"),
+  bookingId: varchar("booking_id"),
+  amount: varchar("amount").notNull(),
+  paymentMethod: varchar("payment_method").notNull(),
+  recordedBy: varchar("recorded_by").notNull(),
+  recordedAt: timestamp("recorded_at").notNull().defaultNow(),
+  notes: text("notes"),
+});
+
+export const insertCreditPaymentSchema = createInsertSchema(creditPayments).omit({ id: true, recordedAt: true });
+export type InsertCreditPayment = z.infer<typeof insertCreditPaymentSchema>;
+export type CreditPayment = typeof creditPayments.$inferSelect;
 
 

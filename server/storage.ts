@@ -42,6 +42,12 @@ import {
   type InsertDeviceMaintenance,
   type PaymentLog,
   type InsertPaymentLog,
+  type CreditAccount,
+  type InsertCreditAccount,
+  type CreditEntry,
+  type InsertCreditEntry,
+  type CreditPayment,
+  type InsertCreditPayment,
   bookings,
   deviceConfigs,
   pricingConfigs,
@@ -62,7 +68,10 @@ import {
   loadPredictions,
   retentionConfig,
   deviceMaintenance,
-  paymentLogs
+  paymentLogs,
+  creditAccounts,
+  creditEntries,
+  creditPayments
 } from "@shared/schema";
 import { db } from "./db";
 import { eq, and, gte, lte, lt, desc, inArray, isNotNull } from "drizzle-orm";
@@ -235,6 +244,26 @@ export interface IStorage {
   markAllNotificationsAsRead(): Promise<void>;
   deleteNotification(id: string): Promise<boolean>;
   getUnreadCount(): Promise<number>;
+  
+  getAllCreditAccounts(): Promise<CreditAccount[]>;
+  getCreditAccount(id: string): Promise<CreditAccount | undefined>;
+  getCreditAccountByCustomer(customerName: string, whatsappNumber?: string): Promise<CreditAccount | undefined>;
+  createCreditAccount(account: InsertCreditAccount): Promise<CreditAccount>;
+  updateCreditAccountBalance(id: string, newBalance: string): Promise<CreditAccount | undefined>;
+  
+  createCreditEntry(entry: InsertCreditEntry): Promise<CreditEntry>;
+  getCreditEntriesByAccount(accountId: string): Promise<CreditEntry[]>;
+  getCreditEntriesByBooking(bookingId: string): Promise<CreditEntry[]>;
+  updateCreditEntry(id: string, data: Partial<InsertCreditEntry>): Promise<CreditEntry | undefined>;
+  
+  createCreditPayment(payment: InsertCreditPayment): Promise<CreditPayment>;
+  getCreditPaymentsByAccount(accountId: string): Promise<CreditPayment[]>;
+  getCreditPaymentsByEntry(entryId: string): Promise<CreditPayment[]>;
+  
+  createPaymentLog(log: InsertPaymentLog): Promise<PaymentLog>;
+  getPaymentLogs(date?: string): Promise<PaymentLog[]>;
+  
+  updatePaymentStatus(bookingIds: string[], paymentStatus: string, paymentMethod: string | null, userId: string): Promise<{ bookings: Booking[], count: number }>;
   
   initializeDefaults(): Promise<void>;
 }
@@ -966,6 +995,100 @@ export class DatabaseStorage implements IStorage {
       .from(paymentLogs)
       .orderBy(desc(paymentLogs.createdAt))
       .limit(100);
+  }
+
+  async getAllCreditAccounts(): Promise<CreditAccount[]> {
+    return await db.select().from(creditAccounts).orderBy(desc(creditAccounts.createdAt));
+  }
+
+  async getCreditAccount(id: string): Promise<CreditAccount | undefined> {
+    const [account] = await db.select().from(creditAccounts).where(eq(creditAccounts.id, id));
+    return account || undefined;
+  }
+
+  async getCreditAccountByCustomer(customerName: string, whatsappNumber?: string): Promise<CreditAccount | undefined> {
+    if (whatsappNumber) {
+      const [account] = await db
+        .select()
+        .from(creditAccounts)
+        .where(
+          and(
+            eq(creditAccounts.customerName, customerName),
+            eq(creditAccounts.whatsappNumber, whatsappNumber)
+          )
+        );
+      return account || undefined;
+    }
+    
+    const [account] = await db
+      .select()
+      .from(creditAccounts)
+      .where(eq(creditAccounts.customerName, customerName));
+    return account || undefined;
+  }
+
+  async createCreditAccount(account: InsertCreditAccount): Promise<CreditAccount> {
+    const [newAccount] = await db.insert(creditAccounts).values(account).returning();
+    return newAccount;
+  }
+
+  async updateCreditAccountBalance(id: string, newBalance: string): Promise<CreditAccount | undefined> {
+    const [updated] = await db
+      .update(creditAccounts)
+      .set({ currentBalance: newBalance, updatedAt: new Date() })
+      .where(eq(creditAccounts.id, id))
+      .returning();
+    return updated || undefined;
+  }
+
+  async createCreditEntry(entry: InsertCreditEntry): Promise<CreditEntry> {
+    const [newEntry] = await db.insert(creditEntries).values(entry).returning();
+    return newEntry;
+  }
+
+  async getCreditEntriesByAccount(accountId: string): Promise<CreditEntry[]> {
+    return await db
+      .select()
+      .from(creditEntries)
+      .where(eq(creditEntries.creditAccountId, accountId))
+      .orderBy(desc(creditEntries.issuedAt));
+  }
+
+  async getCreditEntriesByBooking(bookingId: string): Promise<CreditEntry[]> {
+    return await db
+      .select()
+      .from(creditEntries)
+      .where(eq(creditEntries.bookingId, bookingId));
+  }
+
+  async updateCreditEntry(id: string, data: Partial<InsertCreditEntry>): Promise<CreditEntry | undefined> {
+    const [updated] = await db
+      .update(creditEntries)
+      .set({ ...data, lastActivityAt: new Date() })
+      .where(eq(creditEntries.id, id))
+      .returning();
+    return updated || undefined;
+  }
+
+  async createCreditPayment(payment: InsertCreditPayment): Promise<CreditPayment> {
+    const [newPayment] = await db.insert(creditPayments).values(payment).returning();
+    return newPayment;
+  }
+
+  async getCreditPaymentsByAccount(accountId: string): Promise<CreditPayment[]> {
+    return await db
+      .select()
+      .from(creditPayments)
+      .where(eq(creditPayments.creditAccountId, accountId))
+      .orderBy(desc(creditPayments.recordedAt));
+  }
+
+  async getCreditPaymentsByEntry(entryId: string): Promise<CreditPayment[]> {
+    return await db
+      .select()
+      .from(creditPayments)
+      .where(eq(creditPayments.creditEntryId, entryId))
+      .orderBy(desc(creditPayments.recordedAt));
   }
 
   async moveBookingsToHistory(): Promise<number> {
