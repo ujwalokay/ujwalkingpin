@@ -1,7 +1,7 @@
 import type { Express } from "express";
 import { createServer, type Server } from "http";
 import { storage } from "./storage";
-import { requireAuth, requireAdmin, requireAdminOrStaff, webhookLimiter, publicApiLimiter } from "./auth";
+import { requireAuth, requireAdmin, requireAdminOrStaff, webhookLimiter, publicApiLimiter, sensitiveOperationLimiter, dataExportLimiter } from "./auth";
 import { retentionService } from "./retention";
 import { cleanupScheduler } from "./scheduler";
 import { db } from "./db";
@@ -443,7 +443,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  app.post("/api/bookings/payment-method", requireAuth, async (req, res) => {
+  app.post("/api/bookings/payment-method", sensitiveOperationLimiter, requireAuth, async (req, res) => {
     try {
       const { bookingIds, paymentMethod } = req.body;
       
@@ -462,7 +462,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  app.post("/api/bookings/payment-status", requireAuth, async (req, res) => {
+  app.post("/api/bookings/payment-status", sensitiveOperationLimiter, requireAuth, async (req, res) => {
     try {
       const { bookingIds, paymentStatus, paymentMethod } = req.body;
       
@@ -534,7 +534,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  app.post("/api/credits/split-payment", requireAuth, async (req, res) => {
+  app.post("/api/credits/split-payment", sensitiveOperationLimiter, requireAuth, async (req, res) => {
     try {
       const { bookingIds, cashAmount, creditAmount, paymentMethod, customerName, whatsappNumber } = req.body;
       
@@ -651,7 +651,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  app.post("/api/credits/payment", requireAuth, async (req, res) => {
+  app.post("/api/credits/payment", sensitiveOperationLimiter, requireAuth, async (req, res) => {
     try {
       const { accountId, amount, paymentMethod, entryId, notes } = req.body;
       

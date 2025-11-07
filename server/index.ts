@@ -52,16 +52,64 @@ app.use(cors({
   allowedHeaders: ['Content-Type', 'Authorization']
 }));
 
-// Security headers
+// Security headers with enhanced CSP
 app.use(
   helmet({
-    contentSecurityPolicy: process.env.NODE_ENV === "production" ? undefined : false,
+    contentSecurityPolicy: process.env.NODE_ENV === 'production' ? {
+      directives: {
+        defaultSrc: ["'self'"],
+        scriptSrc: ["'self'"],
+        styleSrc: ["'self'", "https://fonts.googleapis.com"],
+        fontSrc: ["'self'", "https://fonts.gstatic.com", "data:"],
+        imgSrc: ["'self'", "data:", "https:", "blob:"],
+        connectSrc: ["'self'"],
+        frameSrc: ["'none'"],
+        objectSrc: ["'none'"],
+        upgradeInsecureRequests: [],
+      },
+    } : false, // Disable CSP in development for Vite HMR
+    hsts: {
+      maxAge: 31536000,
+      includeSubDomains: true,
+      preload: true
+    },
+    frameguard: {
+      action: 'deny'
+    },
+    noSniff: true,
+    xssFilter: true,
+    referrerPolicy: {
+      policy: 'strict-origin-when-cross-origin'
+    }
   })
 );
 
 // Request size limits to prevent DOS attacks
 app.use(express.json({ limit: '1mb' }));
 app.use(express.urlencoded({ extended: false, limit: '1mb' }));
+
+// HTTPS enforcement in production (after body parsers, only for HTML requests)
+if (process.env.NODE_ENV === 'production') {
+  app.use((req, res, next) => {
+    // Skip for API requests and assets
+    if (req.path.startsWith('/api/') || req.path.startsWith('/assets/')) {
+      return next();
+    }
+    
+    // Check if request is already HTTPS
+    const proto = req.headers['x-forwarded-proto'] || req.protocol;
+    if (proto === 'https' || req.secure) {
+      return next();
+    }
+    
+    // Only redirect GET requests to avoid losing POST data
+    if (req.method === 'GET' || req.method === 'HEAD') {
+      return res.redirect(301, `https://${req.headers.host}${req.url}`);
+    }
+    
+    next();
+  });
+}
 
 app.use((req, res, next) => {
   const start = Date.now();
@@ -114,12 +162,28 @@ app.use((req, res, next) => {
   
   const server = await registerRoutes(app);
 
-  app.use((err: any, _req: Request, res: Response, _next: NextFunction) => {
+  app.use((err: any, req: Request, res: Response, _next: NextFunction) => {
     const status = err.status || err.statusCode || 500;
-    const message = err.message || "Internal Server Error";
+    
+    // Log error details for debugging (but don't expose to client)
+    console.error('Error occurred:', {
+      path: req.path,
+      method: req.method,
+      error: err.message,
+      stack: process.env.NODE_ENV === 'development' ? err.stack : undefined,
+      userId: req.session?.userId,
+      ip: req.ip
+    });
+    
+    // Send generic error message to prevent information leakage
+    const message = status === 500 
+      ? "An internal error occurred. Please try again later."
+      : err.message || "An error occurred";
 
-    res.status(status).json({ message });
-    throw err;
+    res.status(status).json({ 
+      message,
+      ...(process.env.NODE_ENV === 'development' ? { stack: err.stack } : {})
+    });
   });
 
   // importantly only setup vite in development and after

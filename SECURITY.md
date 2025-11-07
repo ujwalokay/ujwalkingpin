@@ -1,42 +1,120 @@
-# Security Implementation
+# Security Documentation
 
-This application has been secured with industry-standard authentication and security measures.
+This application implements enterprise-grade security measures following industry best practices and OWASP guidelines.
 
 ## 🔐 Security Features Implemented
 
-### 1. **Backend Authentication with Password Hashing**
-- User passwords are hashed using bcrypt (10 salt rounds)
-- Passwords are never stored in plain text
-- Password validation is done securely on the server
+### 1. **Authentication & Session Management**
 
-### 2. **Session Management**
-- Secure session-based authentication using express-session
-- HttpOnly cookies to prevent XSS attacks
-- SameSite: 'lax' to prevent CSRF attacks
-- Secure flag enabled in production (HTTPS only)
-- 24-hour session lifetime
+#### Password Security
+- Bcrypt hashing with 10 salt rounds
+- Passwords never stored in plaintext
+- Generic error messages prevent username enumeration
+- Session regeneration on login prevents session fixation
 
-### 3. **Protected API Routes**
-- All API endpoints require authentication
-- Unauthorized requests receive 401 responses
-- Session validation on every request
+#### Session Security
+- PostgreSQL-backed sessions with connect-pg-simple
+- **HttpOnly** cookies prevent XSS theft
+- **SameSite: lax** for CSRF protection (required for OAuth flows)
+- **Secure** flag enforces HTTPS in production
+- 7-day session lifetime with automatic cleanup
+- Session regeneration on authentication prevents fixation
 
-### 4. **Rate Limiting**
-- Login endpoint limited to 5 attempts per 15 minutes per IP
-- Prevents brute force attacks
-- Returns clear error messages when limit exceeded
+#### Two-Step Authentication (Optional)
+- Google OAuth integration
+- Staff/Admin username+password required
+- IP address tracking in activity logs
 
-### 5. **Security Headers**
-- Helmet.js configured for security headers
-- XSS protection enabled
-- Clickjacking protection enabled
-- Content Security Policy (disabled in development for Vite HMR)
+#### Role-Based Access Control
+- `requireAuth`: Any authenticated user
+- `requireAdminOrStaff`: Staff and admin roles
+- `requireAdmin`: Admin-only operations
 
-### 6. **Frontend Security**
-- No credentials stored in localStorage
-- Session-based authentication only
-- Automatic logout on session expiry
-- Loading states to prevent double submissions
+### 2. **Advanced Rate Limiting**
+
+#### Login Protection
+- **5 attempts per 15 minutes** per IP
+- Prevents brute-force attacks
+- Automatic cooldown period
+
+#### Sensitive Operations
+- **20 requests per minute** per IP
+- Applied to payment and credit endpoints
+- Protects financial transactions
+
+#### Webhook Protection
+- **30 requests per minute** per IP
+- Prevents webhook abuse
+
+#### Public API
+- **60 requests per minute** per IP
+- General API protection
+
+#### Data Export
+- **10 exports per 5 minutes**
+- Prevents data scraping
+
+### 3. **HTTP Security Headers (Helmet.js)**
+
+#### Content Security Policy (CSP)
+**Note:** CSP is disabled in development for Vite HMR compatibility. In production:
+```javascript
+defaultSrc: ["'self'"]
+scriptSrc: ["'self'"]  // No unsafe-inline or unsafe-eval
+styleSrc: ["'self'", "fonts.googleapis.com"]
+fontSrc: ["'self'", "fonts.gstatic.com", "data:"]
+imgSrc: ["'self'", "data:", "https:", "blob:"]
+connectSrc: ["'self'"]  // May need adjustment for external APIs
+frameSrc: ["'none'"]
+objectSrc: ["'none'"]
+upgradeInsecureRequests: enabled
+```
+**Important:** If your app makes API calls to external services, you'll need to whitelist those domains in `connectSrc`.
+
+#### HTTP Strict Transport Security (HSTS)
+- **Max-Age**: 1 year (31536000 seconds)
+- **includeSubDomains**: true
+- **preload**: true
+
+#### Additional Protection
+- **X-Frame-Options**: DENY (prevents clickjacking)
+- **X-Content-Type-Options**: nosniff
+- **X-XSS-Protection**: enabled
+- **Referrer-Policy**: strict-origin-when-cross-origin
+- **X-Powered-By**: removed (reduces fingerprinting)
+
+### 4. **Input Validation & Protection**
+
+#### Request Size Limits
+- **JSON payload**: 1MB maximum
+- **URL-encoded**: 1MB maximum
+- Prevents DOS attacks via payload bombs
+
+#### Schema Validation
+- Zod schema validation on all API endpoints
+- Type-safe input validation with Drizzle ORM
+- Parameterized queries prevent SQL injection
+- Comprehensive error messages in development only
+
+### 5. **HTTPS Enforcement**
+
+- **Automatic HTTPS redirect** for GET/HEAD requests in production
+- Checks both `x-forwarded-proto` header and `req.protocol`
+- **301 permanent redirect** to HTTPS for page loads
+- Skips API endpoints to avoid issues with POST data
+- Compatible with reverse proxies (Nginx, load balancers)
+
+### 6. **Activity Logging**
+
+#### Built-in Activity Log System
+The application includes a comprehensive activity log system that tracks:
+- User logins (with IP address logged in login handler)
+- Administrative actions via createActivityLog
+- Database changes through storage layer
+- Payment and booking modifications
+- Configuration updates
+
+All activity logs are stored in the database and can be reviewed by administrators through the activity log page.
 
 ## 🚀 Setting Up Admin Credentials
 

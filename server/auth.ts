@@ -29,6 +29,24 @@ export const publicApiLimiter = rateLimit({
   legacyHeaders: false,
 });
 
+// Rate limiter for sensitive operations (payment, credit, etc.)
+export const sensitiveOperationLimiter = rateLimit({
+  windowMs: 1 * 60 * 1000, // 1 minute
+  max: 20, // Limit each IP to 20 requests per minute for sensitive operations
+  message: "Too many requests for this operation, please try again later.",
+  standardHeaders: true,
+  legacyHeaders: false,
+});
+
+// Rate limiter for data export/reports
+export const dataExportLimiter = rateLimit({
+  windowMs: 5 * 60 * 1000, // 5 minutes
+  max: 10, // Limit to 10 exports per 5 minutes
+  message: "Too many export requests, please wait before trying again.",
+  standardHeaders: true,
+  legacyHeaders: false,
+});
+
 export async function loginHandler(req: Request, res: Response) {
   try {
     const { username, password } = loginSchema.parse(req.body);
@@ -36,38 +54,61 @@ export async function loginHandler(req: Request, res: Response) {
     const user = await storage.validatePassword(username, password);
     
     if (!user) {
+      // Generic error message to prevent username enumeration
       return res.status(401).json({ 
-        message: "Invalid username or password" 
+        message: "Invalid credentials" 
       });
     }
     
-    req.session.userId = user.id;
-    req.session.username = user.username!;
-    req.session.role = user.role!;
+    // Regenerate session to prevent session fixation attacks
+    const oldSessionData = {
+      googleVerified: req.session.googleVerified,
+      googleUserId: req.session.googleUserId,
+      googleEmail: req.session.googleEmail
+    };
     
-    // Log login activity
-    const loginMethod = req.session.googleVerified 
-      ? `two-step auth (Google: ${req.session.googleEmail})` 
-      : 'direct login';
-    
-    await storage.createActivityLog({
-      userId: user.id,
-      username: user.username!,
-      userRole: user.role!,
-      action: 'login',
-      entityType: null,
-      entityId: null,
-      details: `${user.role} logged in via ${loginMethod}`
-    });
-    
-    res.json({
-      id: user.id,
-      username: user.username,
-      role: user.role,
-      googleEmail: req.session.googleEmail,
+    req.session.regenerate((err) => {
+      if (err) {
+        console.error('Session regeneration error:', err);
+        return res.status(500).json({ message: "Login failed. Please try again." });
+      }
+      
+      // Restore Google OAuth data if it existed
+      req.session.googleVerified = oldSessionData.googleVerified;
+      req.session.googleUserId = oldSessionData.googleUserId;
+      req.session.googleEmail = oldSessionData.googleEmail;
+      
+      // Set new session data
+      req.session.userId = user.id;
+      req.session.username = user.username!;
+      req.session.role = user.role!;
+      
+      // Log login activity
+      const loginMethod = req.session.googleVerified 
+        ? `two-step auth (Google: ${req.session.googleEmail})` 
+        : 'direct login';
+      
+      storage.createActivityLog({
+        userId: user.id,
+        username: user.username!,
+        userRole: user.role!,
+        action: 'login',
+        entityType: null,
+        entityId: null,
+        details: `${user.role} logged in via ${loginMethod} from IP ${req.ip}`
+      }).catch(err => console.error('Activity log error:', err));
+      
+      res.json({
+        id: user.id,
+        username: user.username,
+        role: user.role,
+        googleEmail: req.session.googleEmail,
+      });
     });
   } catch (error: any) {
-    res.status(400).json({ message: error.message });
+    // Don't expose internal error details
+    console.error('Login error:', error);
+    res.status(400).json({ message: "Invalid request" });
   }
 }
 

@@ -22,7 +22,7 @@ export function getSession() {
     cookie: {
       httpOnly: true,
       secure: process.env.NODE_ENV === "production",
-      sameSite: "strict", // CSRF protection
+      sameSite: "lax", // CSRF protection (lax required for OAuth flows)
       maxAge: sessionTtl,
     },
   });
