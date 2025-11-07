@@ -660,7 +660,7 @@ export default function Dashboard() {
     });
   };
 
-  const handlePaymentMethod = async (method: "cash" | "upi_online") => {
+  const handlePaymentMethod = async (method: "cash" | "upi_online" | "credit") => {
     if (selectedBookings.size === 0) {
       toast({
         title: "No Bookings Selected",
@@ -671,32 +671,35 @@ export default function Dashboard() {
     }
 
     try {
-      const response = await fetch('/api/bookings/payment-method', {
+      const response = await fetch('/api/bookings/payment-status', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           bookingIds: Array.from(selectedBookings),
+          paymentStatus: 'paid',
           paymentMethod: method
         }),
       });
 
       if (!response.ok) {
-        throw new Error('Failed to update payment method');
+        throw new Error('Failed to update payment status');
       }
 
       const data = await response.json();
       
       queryClient.invalidateQueries({ queryKey: ['bookings'] });
       setShowPaymentDialog(false);
+      setSelectedBookings(new Set());
       
+      const methodName = method === 'cash' ? 'Cash' : method === 'upi_online' ? 'UPI/Online' : 'Credit (Pay Later)';
       toast({
-        title: "Payment Method Updated",
-        description: `${data.count} booking(s) marked as ${method === 'cash' ? 'Cash' : 'UPI/Online'}`,
+        title: "Payment Confirmed",
+        description: `${data.count} booking(s) marked as paid via ${methodName}`,
       });
     } catch (error) {
       toast({
         title: "Error",
-        description: "Failed to update payment method",
+        description: "Failed to update payment status",
         variant: "destructive",
       });
     }
@@ -1076,14 +1079,15 @@ export default function Dashboard() {
             })()}
           </div>
 
-          <div className="grid gap-3 pt-4">
-            <p className="text-sm font-medium text-center text-muted-foreground">Select Payment Method</p>
+          <div className="grid gap-3 pt-4 border-t">
+            <p className="text-base font-bold text-center pt-4">Has payment been received?</p>
+            <p className="text-sm text-center text-muted-foreground -mt-2">Select how the customer will pay</p>
             <Button
               variant="outline"
               size="lg"
               onClick={() => handlePaymentMethod("cash")}
               data-testid="button-payment-cash"
-              className="h-16 text-lg"
+              className="h-16 text-lg border-2 hover:border-primary hover:bg-primary/5"
             >
               <Wallet className="mr-2 h-5 w-5" />
               Cash
@@ -1093,10 +1097,20 @@ export default function Dashboard() {
               size="lg"
               onClick={() => handlePaymentMethod("upi_online")}
               data-testid="button-payment-upi"
-              className="h-16 text-lg"
+              className="h-16 text-lg border-2 hover:border-primary hover:bg-primary/5"
             >
               <Wallet className="mr-2 h-5 w-5" />
               UPI / Online Payment
+            </Button>
+            <Button
+              variant="outline"
+              size="lg"
+              onClick={() => handlePaymentMethod("credit")}
+              data-testid="button-payment-credit"
+              className="h-16 text-lg border-2 hover:border-amber-500 hover:bg-amber-500/5 border-amber-300 dark:border-amber-700"
+            >
+              <Wallet className="mr-2 h-5 w-5" />
+              Credit (Pay Later)
             </Button>
           </div>
         </DialogContent>
