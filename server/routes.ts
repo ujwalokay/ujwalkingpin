@@ -481,7 +481,40 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const userId = (req.user as any)?.id || 'unknown';
       const result = await storage.updatePaymentStatus(bookingIds, paymentStatus, paymentMethod || null, userId);
       
-      if (paymentStatus === "paid" && result.bookings.length > 0) {
+      if (paymentStatus === "paid" && paymentMethod === "credit" && result.bookings.length > 0) {
+        for (const booking of result.bookings) {
+          const totalAmount = parseFloat(booking.price) + 
+            (booking.foodOrders || []).reduce((sum: number, order: any) => 
+              sum + (parseFloat(order.price) * order.quantity), 0);
+          
+          let creditAccount = await storage.getCreditAccountByCustomer(
+            booking.customerName,
+            booking.whatsappNumber || undefined
+          );
+          
+          if (!creditAccount) {
+            creditAccount = await storage.createCreditAccount({
+              customerName: booking.customerName,
+              whatsappNumber: booking.whatsappNumber || undefined,
+              currentBalance: "0"
+            });
+          }
+          
+          const currentBalance = parseFloat(creditAccount.currentBalance);
+          const newBalance = (currentBalance + totalAmount).toFixed(2);
+          await storage.updateCreditAccountBalance(creditAccount.id, newBalance);
+          
+          await storage.createCreditEntry({
+            creditAccountId: creditAccount.id,
+            bookingId: booking.id,
+            openingBalance: creditAccount.currentBalance,
+            creditIssued: totalAmount.toFixed(2),
+            nonCreditPaid: "0",
+            remainingCredit: totalAmount.toFixed(2),
+            status: "pending"
+          });
+        }
+      } else if (paymentStatus === "paid" && result.bookings.length > 0) {
         for (const booking of result.bookings) {
           const totalAmount = parseFloat(booking.price) + 
             (booking.foodOrders || []).reduce((sum: number, order: any) => 
