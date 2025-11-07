@@ -32,6 +32,13 @@ export const bookings = pgTable("bookings", {
   pausedRemainingTime: integer("paused_remaining_time"),
   personCount: integer("person_count").notNull().default(1),
   paymentMethod: varchar("payment_method"),
+  paymentStatus: varchar("payment_status").notNull().default("unpaid"),
+  lastPaymentAction: jsonb("last_payment_action").$type<{
+    previousStatus?: string;
+    previousMethod?: string | null;
+    timestamp?: string;
+    userId?: string;
+  } | null>(),
   foodOrders: jsonb("food_orders").$type<Array<{
     foodId: string;
     foodName: string;
@@ -206,6 +213,13 @@ export const bookingHistory = pgTable("booking_history", {
   pausedRemainingTime: integer("paused_remaining_time"),
   personCount: integer("person_count").notNull().default(1),
   paymentMethod: varchar("payment_method"),
+  paymentStatus: varchar("payment_status").notNull().default("unpaid"),
+  lastPaymentAction: jsonb("last_payment_action").$type<{
+    previousStatus?: string;
+    previousMethod?: string | null;
+    timestamp?: string;
+    userId?: string;
+  } | null>(),
   foodOrders: jsonb("food_orders").$type<Array<{
     foodId: string;
     foodName: string;

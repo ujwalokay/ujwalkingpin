@@ -871,6 +871,69 @@ export class DatabaseStorage implements IStorage {
     return result.rowCount || 0;
   }
 
+  async updatePaymentStatus(
+    bookingIds: string[], 
+    paymentStatus: string, 
+    paymentMethod: string | null,
+    userId: string
+  ): Promise<{ bookings: any[], count: number }> {
+    const existingBookings = await db
+      .select()
+      .from(bookings)
+      .where(inArray(bookings.id, bookingIds));
+    
+    const updatedBookings = [];
+    for (const booking of existingBookings) {
+      const lastPaymentAction = {
+        previousStatus: booking.paymentStatus,
+        previousMethod: booking.paymentMethod,
+        timestamp: new Date().toISOString(),
+        userId
+      };
+
+      const result = await db
+        .update(bookings)
+        .set({ 
+          paymentStatus, 
+          paymentMethod,
+          lastPaymentAction
+        })
+        .where(eq(bookings.id, booking.id))
+        .returning();
+      
+      if (result.length > 0) {
+        updatedBookings.push(result[0]);
+      }
+    }
+    
+    return { bookings: updatedBookings, count: updatedBookings.length };
+  }
+
+  async undoPaymentStatus(bookingIds: string[]): Promise<number> {
+    const existingBookings = await db
+      .select()
+      .from(bookings)
+      .where(inArray(bookings.id, bookingIds));
+    
+    let undoCount = 0;
+    for (const booking of existingBookings) {
+      if (booking.lastPaymentAction) {
+        const action = booking.lastPaymentAction as any;
+        await db
+          .update(bookings)
+          .set({ 
+            paymentStatus: action.previousStatus || 'unpaid',
+            paymentMethod: action.previousMethod || null,
+            lastPaymentAction: null
+          })
+          .where(eq(bookings.id, booking.id));
+        undoCount++;
+      }
+    }
+    
+    return undoCount;
+  }
+
   async moveBookingsToHistory(): Promise<number> {
     const expiredAndCompleted = await db
       .select()

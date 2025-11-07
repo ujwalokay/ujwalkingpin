@@ -462,6 +462,60 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  app.post("/api/bookings/payment-status", requireAuth, async (req, res) => {
+    try {
+      const { bookingIds, paymentStatus, paymentMethod } = req.body;
+      
+      if (!bookingIds || !Array.isArray(bookingIds) || bookingIds.length === 0) {
+        return res.status(400).json({ message: "Booking IDs are required" });
+      }
+      
+      if (!paymentStatus || !["unpaid", "pending", "paid"].includes(paymentStatus)) {
+        return res.status(400).json({ message: "Valid payment status is required (unpaid, pending, or paid)" });
+      }
+
+      if (paymentStatus === "paid" && (!paymentMethod || !["cash", "upi_online", "credit"].includes(paymentMethod))) {
+        return res.status(400).json({ message: "Valid payment method is required when marking as paid (cash, upi_online, or credit)" });
+      }
+      
+      const userId = (req.user as any)?.id || 'unknown';
+      const result = await storage.updatePaymentStatus(bookingIds, paymentStatus, paymentMethod || null, userId);
+      
+      if (paymentStatus === "paid" && result.bookings.length > 0) {
+        for (const booking of result.bookings) {
+          const totalAmount = parseFloat(booking.price) + 
+            (booking.foodOrders || []).reduce((sum: number, order: any) => 
+              sum + (parseFloat(order.price) * order.quantity), 0);
+          await notifyPaymentReceived(
+            booking.id, 
+            booking.seatName, 
+            totalAmount.toFixed(2),
+            paymentMethod || 'unknown'
+          );
+        }
+      }
+      
+      res.json({ success: true, count: result.count, bookings: result.bookings });
+    } catch (error: any) {
+      res.status(500).json({ message: error.message });
+    }
+  });
+
+  app.post("/api/bookings/undo-payment", requireAuth, async (req, res) => {
+    try {
+      const { bookingIds } = req.body;
+      
+      if (!bookingIds || !Array.isArray(bookingIds) || bookingIds.length === 0) {
+        return res.status(400).json({ message: "Booking IDs are required" });
+      }
+      
+      const count = await storage.undoPaymentStatus(bookingIds);
+      res.json({ success: true, count });
+    } catch (error: any) {
+      res.status(500).json({ message: error.message });
+    }
+  });
+
   app.get("/api/booking-history", requireAuth, async (req, res) => {
     try {
       const history = await storage.getAllBookingHistory();
