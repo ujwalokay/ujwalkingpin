@@ -39,6 +39,7 @@ import { CursorTrail } from "@/components/CursorTrail";
 import { SplashScreen } from "@/components/SplashScreen";
 import { NetworkAlert } from "@/components/NetworkAlert";
 import { NotificationCenter } from "@/components/NotificationCenter";
+import { InactivityRefreshPrompt } from "@/components/InactivityRefreshPrompt";
 import { useState, useEffect } from "react";
 import { useToast } from "@/hooks/use-toast";
 import { useNetworkMonitor } from "@/hooks/useNetworkMonitor";
@@ -377,6 +378,7 @@ function App() {
                 onRefresh={handleRefresh}
                 onDismiss={handleDismiss}
               />
+              <InactivityRefreshPrompt />
               <CursorTrail />
               <Toaster />
             </TooltipProvider>
