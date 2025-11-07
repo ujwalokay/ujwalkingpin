@@ -34,7 +34,7 @@ export default function PaymentReconciliation() {
   const { isStaff } = useAuth();
 
   const { data: logs = [], isLoading } = useQuery<PaymentLog[]>({
-    queryKey: ['/api/payment-logs', { date: selectedDate }],
+    queryKey: [`/api/payment-logs?date=${selectedDate}`],
   });
 
   const filteredLogs = useMemo(() => {
