@@ -562,13 +562,20 @@ export async function registerRoutes(app: Express): Promise<Server> {
           paymentStatus: "paid"
         });
         if (updated) {
-          updatedBookings.push(updated);
+          const serializedBooking = {
+            ...updated,
+            startTime: updated.startTime?.toISOString(),
+            endTime: updated.endTime?.toISOString(),
+            createdAt: updated.createdAt?.toISOString(),
+          };
+          updatedBookings.push(serializedBooking);
         }
       }
       
       res.json({ success: true, count: updatedBookings.length, bookings: updatedBookings });
     } catch (error: any) {
-      res.status(500).json({ message: error.message });
+      console.error('Split payment error:', error);
+      res.status(500).json({ message: error.message || "Failed to process split payment" });
     }
   });
 
