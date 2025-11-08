@@ -534,6 +534,44 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  app.post("/api/bookings/split-payment", sensitiveOperationLimiter, requireAuth, async (req, res) => {
+    try {
+      const { bookingIds, cashAmount, upiAmount } = req.body;
+      
+      if (!bookingIds || !Array.isArray(bookingIds) || bookingIds.length === 0) {
+        return res.status(400).json({ message: "Booking IDs are required" });
+      }
+      
+      const cash = parseFloat(cashAmount) || 0;
+      const upi = parseFloat(upiAmount) || 0;
+      
+      if (cash < 0 || upi < 0) {
+        return res.status(400).json({ message: "Amounts cannot be negative" });
+      }
+      
+      if (cash === 0 && upi === 0) {
+        return res.status(400).json({ message: "At least one payment amount must be greater than zero" });
+      }
+      
+      const updatedBookings = [];
+      for (const bookingId of bookingIds) {
+        const updated = await storage.updateBooking(bookingId, {
+          paymentMethod: "split",
+          cashAmount: cash.toFixed(2),
+          upiAmount: upi.toFixed(2),
+          paymentStatus: "paid"
+        });
+        if (updated) {
+          updatedBookings.push(updated);
+        }
+      }
+      
+      res.json({ success: true, count: updatedBookings.length, bookings: updatedBookings });
+    } catch (error: any) {
+      res.status(500).json({ message: error.message });
+    }
+  });
+
   app.post("/api/credits/split-payment", sensitiveOperationLimiter, requireAuth, async (req, res) => {
     try {
       const { bookingIds, cashAmount, creditAmount, paymentMethod, customerName, whatsappNumber } = req.body;

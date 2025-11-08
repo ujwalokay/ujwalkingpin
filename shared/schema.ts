@@ -32,6 +32,8 @@ export const bookings = pgTable("bookings", {
   pausedRemainingTime: integer("paused_remaining_time"),
   personCount: integer("person_count").notNull().default(1),
   paymentMethod: varchar("payment_method"),
+  cashAmount: varchar("cash_amount"),
+  upiAmount: varchar("upi_amount"),
   paymentStatus: varchar("payment_status").notNull().default("unpaid"),
   lastPaymentAction: jsonb("last_payment_action").$type<{
     previousStatus?: string;
@@ -213,6 +215,8 @@ export const bookingHistory = pgTable("booking_history", {
   pausedRemainingTime: integer("paused_remaining_time"),
   personCount: integer("person_count").notNull().default(1),
   paymentMethod: varchar("payment_method"),
+  cashAmount: varchar("cash_amount"),
+  upiAmount: varchar("upi_amount"),
   paymentStatus: varchar("payment_status").notNull().default("unpaid"),
   lastPaymentAction: jsonb("last_payment_action").$type<{
     previousStatus?: string;

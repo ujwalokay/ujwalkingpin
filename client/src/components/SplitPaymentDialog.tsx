@@ -11,15 +11,8 @@ import {
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
 import { useToast } from "@/hooks/use-toast";
-import { Wallet, CreditCard, IndianRupee } from "lucide-react";
+import { Wallet, Smartphone, IndianRupee } from "lucide-react";
 import { apiRequest, queryClient } from "@/lib/queryClient";
 
 interface SplitPaymentDialogProps {
@@ -42,40 +35,28 @@ export function SplitPaymentDialog({
   onSuccess,
 }: SplitPaymentDialogProps) {
   const [cashAmount, setCashAmount] = useState("");
-  const [creditAmount, setCreditAmount] = useState("");
-  const [paymentMethod, setPaymentMethod] = useState<"cash" | "upi_online">("cash");
-  const [customerName, setCustomerName] = useState(defaultCustomerName || "");
-  const [whatsappNumber, setWhatsappNumber] = useState(defaultWhatsappNumber || "");
+  const [upiAmount, setUpiAmount] = useState("");
   const { toast } = useToast();
-
-  useEffect(() => {
-    if (defaultCustomerName) setCustomerName(defaultCustomerName);
-    if (defaultWhatsappNumber) setWhatsappNumber(defaultWhatsappNumber);
-  }, [defaultCustomerName, defaultWhatsappNumber]);
 
   useEffect(() => {
     const cash = parseFloat(cashAmount) || 0;
     const remaining = Math.max(0, totalAmount - cash);
-    setCreditAmount(remaining.toFixed(2));
+    setUpiAmount(remaining.toFixed(2));
   }, [cashAmount, totalAmount]);
 
   const splitPaymentMutation = useMutation({
     mutationFn: async (data: {
       bookingIds: string[];
       cashAmount: string;
-      creditAmount: string;
-      paymentMethod: string;
-      customerName: string;
-      whatsappNumber?: string;
+      upiAmount: string;
     }) => {
-      return await apiRequest("POST", "/api/credits/split-payment", data);
+      return await apiRequest("POST", "/api/bookings/split-payment", data);
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["/api/bookings"] });
-      queryClient.invalidateQueries({ queryKey: ["/api/credits/accounts"] });
       toast({
         title: "Split Payment Recorded",
-        description: `₹${cashAmount} collected, ₹${creditAmount} added to credit account`,
+        description: `Cash: ₹${cashAmount} | UPI: ₹${upiAmount}`,
       });
       handleClose();
       onSuccess?.();
@@ -90,19 +71,10 @@ export function SplitPaymentDialog({
   });
 
   const handleSubmit = async () => {
-    if (!customerName.trim()) {
-      toast({
-        title: "Customer Name Required",
-        description: "Please enter the customer name",
-        variant: "destructive",
-      });
-      return;
-    }
-
     const cash = parseFloat(cashAmount) || 0;
-    const credit = parseFloat(creditAmount) || 0;
+    const upi = parseFloat(upiAmount) || 0;
 
-    if (cash < 0 || credit < 0) {
+    if (cash < 0 || upi < 0) {
       toast({
         title: "Invalid Amounts",
         description: "Amounts cannot be negative",
@@ -111,19 +83,19 @@ export function SplitPaymentDialog({
       return;
     }
 
-    if (Math.abs(cash + credit - totalAmount) > 0.01) {
+    if (Math.abs(cash + upi - totalAmount) > 0.01) {
       toast({
         title: "Amount Mismatch",
-        description: `Cash (₹${cash}) + Credit (₹${credit}) must equal Total (₹${totalAmount})`,
+        description: `Cash (₹${cash}) + UPI (₹${upi}) must equal Total (₹${totalAmount})`,
         variant: "destructive",
       });
       return;
     }
 
-    if (credit <= 0) {
+    if (cash === 0 && upi === 0) {
       toast({
-        title: "No Credit Amount",
-        description: "Please enter a credit amount greater than zero",
+        title: "No Payment",
+        description: "Please enter payment amounts",
         variant: "destructive",
       });
       return;
@@ -132,19 +104,13 @@ export function SplitPaymentDialog({
     await splitPaymentMutation.mutateAsync({
       bookingIds,
       cashAmount: cash.toFixed(2),
-      creditAmount: credit.toFixed(2),
-      paymentMethod,
-      customerName: customerName.trim(),
-      whatsappNumber: whatsappNumber.trim() || undefined,
+      upiAmount: upi.toFixed(2),
     });
   };
 
   const handleClose = () => {
     setCashAmount("");
-    setCreditAmount("");
-    setPaymentMethod("cash");
-    setCustomerName(defaultCustomerName || "");
-    setWhatsappNumber(defaultWhatsappNumber || "");
+    setUpiAmount("");
     onOpenChange(false);
   };
 
@@ -152,39 +118,20 @@ export function SplitPaymentDialog({
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="sm:max-w-[500px]" data-testid="dialog-split-payment">
         <DialogHeader>
-          <DialogTitle>Split Payment</DialogTitle>
+          <DialogTitle>Split Payment (Cash + UPI)</DialogTitle>
           <DialogDescription>
-            Split the payment between cash/UPI and credit for customer
+            Customer paying with both cash and UPI
           </DialogDescription>
         </DialogHeader>
 
         <div className="space-y-4 py-4">
-          <div className="space-y-2">
-            <Label htmlFor="customerName">Customer Name *</Label>
-            <Input
-              id="customerName"
-              value={customerName}
-              onChange={(e) => setCustomerName(e.target.value)}
-              placeholder="Enter customer name"
-              data-testid="input-customer-name"
-            />
-          </div>
-
-          <div className="space-y-2">
-            <Label htmlFor="whatsappNumber">WhatsApp Number (Optional)</Label>
-            <Input
-              id="whatsappNumber"
-              value={whatsappNumber}
-              onChange={(e) => setWhatsappNumber(e.target.value)}
-              placeholder="Enter WhatsApp number"
-              data-testid="input-whatsapp-number"
-            />
-          </div>
-
-          <div className="rounded-lg border p-4 bg-muted/50">
+          <div className="rounded-lg border p-4 bg-gradient-to-br from-primary/5 to-primary/10">
             <div className="flex items-center justify-between mb-2">
-              <span className="text-sm font-medium">Total Amount</span>
-              <span className="text-xl font-bold" data-testid="text-total-amount">
+              <span className="text-sm font-medium flex items-center gap-2">
+                <IndianRupee className="h-4 w-4" />
+                Total Amount
+              </span>
+              <span className="text-2xl font-bold text-primary" data-testid="text-total-amount">
                 ₹{totalAmount.toFixed(2)}
               </span>
             </div>
@@ -193,8 +140,8 @@ export function SplitPaymentDialog({
           <div className="space-y-2">
             <Label htmlFor="cashAmount">
               <div className="flex items-center gap-2">
-                <Wallet className="h-4 w-4" />
-                Cash/UPI Amount
+                <Wallet className="h-4 w-4 text-green-600" />
+                Cash Amount
               </div>
             </Label>
             <Input
@@ -205,43 +152,48 @@ export function SplitPaymentDialog({
               max={totalAmount}
               value={cashAmount}
               onChange={(e) => setCashAmount(e.target.value)}
-              placeholder="Enter amount paid now"
+              placeholder="Enter cash amount"
               data-testid="input-cash-amount"
+              className="text-lg"
             />
           </div>
 
           <div className="space-y-2">
-            <Label htmlFor="paymentMethod">Payment Method (for cash portion)</Label>
-            <Select value={paymentMethod} onValueChange={(value: any) => setPaymentMethod(value)}>
-              <SelectTrigger data-testid="select-payment-method">
-                <SelectValue />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="cash">Cash</SelectItem>
-                <SelectItem value="upi_online">UPI/Online</SelectItem>
-              </SelectContent>
-            </Select>
-          </div>
-
-          <div className="space-y-2">
-            <Label htmlFor="creditAmount">
+            <Label htmlFor="upiAmount">
               <div className="flex items-center gap-2">
-                <CreditCard className="h-4 w-4" />
-                Credit Amount (Balance)
+                <Smartphone className="h-4 w-4 text-blue-600" />
+                UPI Amount
               </div>
             </Label>
             <Input
-              id="creditAmount"
+              id="upiAmount"
               type="number"
               step="0.01"
-              value={creditAmount}
+              value={upiAmount}
               readOnly
-              className="bg-amber-50 dark:bg-amber-950/20 border-amber-300 dark:border-amber-700"
-              data-testid="input-credit-amount"
+              className="bg-blue-50 dark:bg-blue-950/20 border-blue-300 dark:border-blue-700 text-lg"
+              data-testid="input-upi-amount"
             />
             <p className="text-xs text-muted-foreground">
-              This amount will be added to the customer's credit account
+              Auto-calculated as remaining amount
             </p>
+          </div>
+
+          <div className="rounded-lg border p-3 bg-muted/30">
+            <div className="space-y-2 text-sm">
+              <div className="flex justify-between">
+                <span className="text-muted-foreground">Cash:</span>
+                <span className="font-semibold text-green-600">₹{cashAmount || "0.00"}</span>
+              </div>
+              <div className="flex justify-between">
+                <span className="text-muted-foreground">UPI:</span>
+                <span className="font-semibold text-blue-600">₹{upiAmount || "0.00"}</span>
+              </div>
+              <div className="flex justify-between pt-2 border-t">
+                <span className="font-medium">Total:</span>
+                <span className="font-bold">₹{((parseFloat(cashAmount) || 0) + (parseFloat(upiAmount) || 0)).toFixed(2)}</span>
+              </div>
+            </div>
           </div>
         </div>
 
