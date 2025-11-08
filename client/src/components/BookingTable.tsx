@@ -954,7 +954,7 @@ export function BookingTable({ bookings, onExtend, onEnd, onComplete, onAddFood,
                                 </Button>
                               </DropdownMenuTrigger>
                               <DropdownMenuContent align="end" data-testid={`dropdown-actions-${booking.id}`}>
-                                {booking.status === "running" && onExtend && (
+                                {(booking.status === "running" || booking.status === "expired") && onExtend && (
                                   <DropdownMenuItem onClick={() => onExtend(booking.id)} data-testid={`action-extend-${booking.id}`}>
                                     <Clock className="mr-2 h-4 w-4" />
                                     Extend Time
@@ -978,13 +978,13 @@ export function BookingTable({ bookings, onExtend, onEnd, onComplete, onAddFood,
                                     Over (Complete)
                                   </DropdownMenuItem>
                                 )}
-                                {(booking.status === "running" || booking.status === "paused" || booking.status === "upcoming" || booking.status === "completed") && onEnd && (
+                                {(booking.status === "running" || booking.status === "paused" || booking.status === "upcoming" || booking.status === "completed" || booking.status === "expired") && onEnd && (
                                   <DropdownMenuItem onClick={() => onEnd(booking.id)} className="text-destructive" data-testid={`action-delete-${booking.id}`}>
                                     <X className="mr-2 h-4 w-4" />
                                     Delete
                                   </DropdownMenuItem>
                                 )}
-                                {(booking.status === "running" || booking.status === "paused" || booking.status === "upcoming") && onAddFood && (
+                                {(booking.status === "running" || booking.status === "paused" || booking.status === "upcoming" || booking.status === "expired") && onAddFood && (
                                   <DropdownMenuItem onClick={() => onAddFood(booking.id)} data-testid={`action-add-food-${booking.id}`}>
                                     <Plus className="mr-2 h-4 w-4" />
                                     Add Food
