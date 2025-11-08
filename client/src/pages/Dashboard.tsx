@@ -681,7 +681,7 @@ export default function Dashboard() {
     });
   };
 
-  const handlePaymentMethod = async (method: "cash" | "upi_online" | "credit") => {
+  const handlePaymentMethod = async (method: "cash" | "upi_online") => {
     if (selectedBookings.size === 0) {
       toast({
         title: "No Bookings Selected",
@@ -1101,8 +1101,8 @@ export default function Dashboard() {
           </div>
 
           <div className="grid gap-3 pt-4 border-t">
-            <p className="text-base font-bold text-center pt-4">Has payment been received?</p>
-            <p className="text-sm text-center text-muted-foreground -mt-2">Select how the customer will pay</p>
+            <p className="text-base font-bold text-center pt-4">Select Payment Method</p>
+            <p className="text-sm text-center text-muted-foreground -mt-2">Choose how the customer paid</p>
             <Button
               variant="outline"
               size="lg"
@@ -1111,7 +1111,7 @@ export default function Dashboard() {
               className="h-16 text-lg border-2 hover:border-primary hover:bg-primary/5"
             >
               <Wallet className="mr-2 h-5 w-5" />
-              Cash
+              Full Cash
             </Button>
             <Button
               variant="outline"
@@ -1121,17 +1121,7 @@ export default function Dashboard() {
               className="h-16 text-lg border-2 hover:border-primary hover:bg-primary/5"
             >
               <Wallet className="mr-2 h-5 w-5" />
-              UPI / Online Payment
-            </Button>
-            <Button
-              variant="outline"
-              size="lg"
-              onClick={() => handlePaymentMethod("credit")}
-              data-testid="button-payment-credit"
-              className="h-16 text-lg border-2 hover:border-amber-500 hover:bg-amber-500/5 border-amber-300 dark:border-amber-700"
-            >
-              <Wallet className="mr-2 h-5 w-5" />
-              Credit (Pay Later)
+              Full UPI
             </Button>
             <div className="relative">
               <div className="absolute inset-0 flex items-center">
@@ -1152,7 +1142,7 @@ export default function Dashboard() {
               className="h-16 text-lg border-2 hover:border-blue-500 hover:bg-blue-500/5 border-blue-300 dark:border-blue-700"
             >
               <Calculator className="mr-2 h-5 w-5" />
-              Split Payment (Part Cash + Part UPI)
+              Split Payment (Cash + UPI)
             </Button>
           </div>
         </DialogContent>

@@ -477,9 +477,7 @@ export default function Reports() {
                       ) : record.paymentMethod === 'cash' ? (
                         'Cash'
                       ) : record.paymentMethod === 'upi_online' ? (
-                        'UPI/Online'
-                      ) : record.paymentMethod === 'credit' ? (
-                        'Credit'
+                        'UPI'
                       ) : (
                         '-'
                       )}
