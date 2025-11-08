@@ -3,7 +3,7 @@ import { useQuery } from "@tanstack/react-query";
 import { RevenueCard } from "@/components/RevenueCard";
 import { Button } from "@/components/ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Calendar, Download, IndianRupee, Users, Clock, Search } from "lucide-react";
+import { Calendar, Download, IndianRupee, Users, Clock, Search, Eye } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { getAdjustedTime } from "@/hooks/useServerTime";
 import { Input } from "@/components/ui/input";
@@ -17,6 +17,13 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { Skeleton } from "@/components/ui/skeleton";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
 
 interface BookingStats {
   totalRevenue: number;
@@ -61,6 +68,7 @@ export default function Reports() {
   const [endDate, setEndDate] = useState<string>("");
   const [selectedMonth, setSelectedMonth] = useState<string>("");
   const [searchQuery, setSearchQuery] = useState<string>("");
+  const [viewSeatsDialog, setViewSeatsDialog] = useState<{ open: boolean; seats: string[] }>({ open: false, seats: [] });
   const { toast } = useToast();
 
   const buildQueryParams = () => {
@@ -587,16 +595,15 @@ export default function Reports() {
                   <TableRow key={session.id} data-testid={`row-history-${session.id}`}>
                     <TableCell data-testid={`text-date-${session.id}`}>{session.date}</TableCell>
                     <TableCell className="font-medium" data-testid={`text-seats-${session.id}`}>
-                      <div className="flex flex-wrap gap-1">
-                        {session.seats.map((seat, idx) => (
-                          <span 
-                            key={idx} 
-                            className="inline-block px-2 py-0.5 bg-primary/10 text-primary rounded-sm text-xs font-semibold"
-                          >
-                            {seat}
-                          </span>
-                        ))}
-                      </div>
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={() => setViewSeatsDialog({ open: true, seats: session.seats })}
+                        data-testid={`button-view-seats-${session.id}`}
+                      >
+                        <Eye className="mr-2 h-4 w-4" />
+                        View Seat
+                      </Button>
                     </TableCell>
                     <TableCell data-testid={`text-customer-${session.id}`}>{session.customerName}</TableCell>
                     <TableCell data-testid={`text-duration-${session.id}`}>{session.duration}</TableCell>
@@ -636,6 +643,35 @@ export default function Reports() {
           </Table>
         </div>
       </div>
+
+      <Dialog open={viewSeatsDialog.open} onOpenChange={(open) => setViewSeatsDialog({ open, seats: [] })}>
+        <DialogContent data-testid="dialog-view-seats">
+          <DialogHeader>
+            <DialogTitle>Seat Information</DialogTitle>
+            <DialogDescription>
+              View the PC/seat details for this booking session
+            </DialogDescription>
+          </DialogHeader>
+          <div className="space-y-3">
+            <div className="flex flex-wrap gap-2">
+              {viewSeatsDialog.seats.map((seat, idx) => (
+                <div 
+                  key={idx}
+                  className="px-4 py-2 bg-primary/10 text-primary rounded-md font-semibold"
+                  data-testid={`seat-badge-${idx}`}
+                >
+                  {seat}
+                </div>
+              ))}
+            </div>
+            {viewSeatsDialog.seats.length > 1 && (
+              <p className="text-sm text-muted-foreground">
+                Total Seats: {viewSeatsDialog.seats.length}
+              </p>
+            )}
+          </div>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
