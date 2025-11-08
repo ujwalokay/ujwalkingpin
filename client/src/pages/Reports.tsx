@@ -37,6 +37,8 @@ interface BookingHistoryItem {
   foodAmount: number;
   totalAmount: number;
   paymentMethod: string | null;
+  cashAmount: string | null;
+  upiAmount: string | null;
 }
 
 export default function Reports() {
@@ -466,7 +468,19 @@ export default function Reports() {
                       ₹{(record.foodAmount || 0).toFixed(0)}
                     </TableCell>
                     <TableCell data-testid={`text-payment-${record.id}`}>
-                      {record.paymentMethod === 'cash' ? 'Cash' : record.paymentMethod === 'upi_online' ? 'UPI/Online' : '-'}
+                      {record.cashAmount && record.upiAmount ? (
+                        <span className="text-xs">
+                          ₹{parseFloat(record.cashAmount).toFixed(0)} cash + ₹{parseFloat(record.upiAmount).toFixed(0)} UPI
+                        </span>
+                      ) : record.paymentMethod === 'cash' ? (
+                        'Cash'
+                      ) : record.paymentMethod === 'upi_online' ? (
+                        'UPI/Online'
+                      ) : record.paymentMethod === 'credit' ? (
+                        'Credit'
+                      ) : (
+                        '-'
+                      )}
                     </TableCell>
                     <TableCell className="text-right font-bold text-green-600 dark:text-green-400" data-testid={`text-total-${record.id}`}>
                       ₹{(record.totalAmount || parseFloat(record.price)).toFixed(0)}

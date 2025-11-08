@@ -98,6 +98,8 @@ export interface BookingHistoryItem {
   foodAmount: number;
   totalAmount: number;
   paymentMethod: string | null;
+  cashAmount: string | null;
+  upiAmount: string | null;
 }
 
 export interface CustomerPromotionSummary {
@@ -568,7 +570,9 @@ export class DatabaseStorage implements IStorage {
           price: booking.price,
           foodAmount,
           totalAmount,
-          paymentMethod: booking.paymentMethod
+          paymentMethod: booking.paymentMethod,
+          cashAmount: booking.cashAmount,
+          upiAmount: booking.upiAmount
         };
       })
       .sort((a, b) => b.date.localeCompare(a.date));
