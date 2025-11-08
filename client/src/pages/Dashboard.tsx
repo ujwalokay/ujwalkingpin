@@ -681,7 +681,7 @@ export default function Dashboard() {
     });
   };
 
-  const handlePaymentMethod = async (method: "cash" | "upi_online") => {
+  const handlePaymentMethod = async (method: "cash" | "upi_online" | "credit_later") => {
     if (selectedBookings.size === 0) {
       toast({
         title: "No Bookings Selected",
@@ -697,7 +697,7 @@ export default function Dashboard() {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           bookingIds: Array.from(selectedBookings),
-          paymentStatus: 'paid',
+          paymentStatus: method === 'credit_later' ? 'unpaid' : 'paid',
           paymentMethod: method
         }),
       });
@@ -714,8 +714,8 @@ export default function Dashboard() {
       
       const methodName = method === 'cash' ? 'Cash' : method === 'upi_online' ? 'UPI/Online' : 'Credit (Pay Later)';
       toast({
-        title: "Payment Confirmed",
-        description: `${data.count} booking(s) marked as paid via ${methodName}`,
+        title: method === 'credit_later' ? "Credit Recorded" : "Payment Confirmed",
+        description: `${data.count} booking(s) marked as ${method === 'credit_later' ? 'credit (pay later)' : 'paid via ' + methodName}`,
       });
     } catch (error) {
       toast({
@@ -1122,6 +1122,16 @@ export default function Dashboard() {
             >
               <Wallet className="mr-2 h-5 w-5" />
               Full UPI
+            </Button>
+            <Button
+              variant="outline"
+              size="lg"
+              onClick={() => handlePaymentMethod("credit_later")}
+              data-testid="button-payment-credit-later"
+              className="h-16 text-lg border-2 hover:border-orange-500 hover:bg-orange-500/5 border-orange-300 dark:border-orange-700"
+            >
+              <Clock className="mr-2 h-5 w-5" />
+              Credit Later (Pay Later)
             </Button>
             <div className="relative">
               <div className="absolute inset-0 flex items-center">

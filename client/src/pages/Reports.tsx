@@ -41,6 +41,20 @@ interface BookingHistoryItem {
   upiAmount: string | null;
 }
 
+interface GroupedBookingSession {
+  id: string;
+  date: string;
+  customerName: string;
+  seats: string[];
+  duration: string;
+  sessionPrice: number;
+  foodAmount: number;
+  cashAmount: number;
+  upiAmount: number;
+  totalAmount: number;
+  bookingIds: string[];
+}
+
 export default function Reports() {
   const [selectedPeriod, setSelectedPeriod] = useState<string>("daily");
   const [startDate, setStartDate] = useState<string>("");
@@ -85,21 +99,91 @@ export default function Reports() {
     },
   });
 
-  const filteredHistory = useMemo(() => {
+  const groupedSessions = useMemo(() => {
     if (!history) return [];
-    if (!searchQuery.trim()) return history;
+    
+    const sessionMap = new Map<string, GroupedBookingSession>();
+    
+    history.forEach((record, index) => {
+      const recordDateTime = new Date(record.date);
+      let foundSession = false;
+      
+      for (const [key, session] of Array.from(sessionMap.entries())) {
+        const sessionDateTime = new Date(session.date);
+        const timeDifferenceMs = Math.abs(recordDateTime.getTime() - sessionDateTime.getTime());
+        const timeDifferenceMinutes = timeDifferenceMs / (1000 * 60);
+        
+        if (
+          session.customerName === record.customerName &&
+          session.duration === record.duration &&
+          timeDifferenceMinutes < 5
+        ) {
+          session.seats.push(record.seatName);
+          session.bookingIds.push(record.id);
+          session.sessionPrice += parseFloat(record.price);
+          session.foodAmount += record.foodAmount || 0;
+          session.totalAmount += record.totalAmount || parseFloat(record.price);
+          
+          if (record.cashAmount) {
+            session.cashAmount += parseFloat(record.cashAmount);
+          } else if (record.paymentMethod === 'cash') {
+            session.cashAmount += record.totalAmount || parseFloat(record.price);
+          }
+          
+          if (record.upiAmount) {
+            session.upiAmount += parseFloat(record.upiAmount);
+          } else if (record.paymentMethod === 'upi_online') {
+            session.upiAmount += record.totalAmount || parseFloat(record.price);
+          }
+          
+          foundSession = true;
+          break;
+        }
+      }
+      
+      if (!foundSession) {
+        const sessionKey = `${record.customerName}-${record.date}-${record.duration}-${index}`;
+        sessionMap.set(sessionKey, {
+          id: record.id,
+          date: record.date,
+          customerName: record.customerName,
+          seats: [record.seatName],
+          duration: record.duration,
+          sessionPrice: parseFloat(record.price),
+          foodAmount: record.foodAmount || 0,
+          cashAmount: record.cashAmount 
+            ? parseFloat(record.cashAmount)
+            : record.paymentMethod === 'cash' 
+              ? (record.totalAmount || parseFloat(record.price))
+              : 0,
+          upiAmount: record.upiAmount 
+            ? parseFloat(record.upiAmount)
+            : record.paymentMethod === 'upi_online' 
+              ? (record.totalAmount || parseFloat(record.price))
+              : 0,
+          totalAmount: record.totalAmount || parseFloat(record.price),
+          bookingIds: [record.id],
+        });
+      }
+    });
+    
+    return Array.from(sessionMap.values());
+  }, [history]);
+
+  const filteredSessions = useMemo(() => {
+    if (!searchQuery.trim()) return groupedSessions;
 
     const query = searchQuery.toLowerCase();
-    return history.filter(record => 
-      record.seatName.toLowerCase().includes(query) ||
-      record.customerName.toLowerCase().includes(query) ||
-      record.date.toLowerCase().includes(query) ||
-      record.duration.toLowerCase().includes(query)
+    return groupedSessions.filter(session => 
+      session.seats.some(seat => seat.toLowerCase().includes(query)) ||
+      session.customerName.toLowerCase().includes(query) ||
+      session.date.toLowerCase().includes(query) ||
+      session.duration.toLowerCase().includes(query)
     );
-  }, [history, searchQuery]);
+  }, [groupedSessions, searchQuery]);
 
   const handleExportExcel = () => {
-    if (!filteredHistory || filteredHistory.length === 0) {
+    if (!filteredSessions || filteredSessions.length === 0) {
       toast({
         title: "No data to export",
         description: "There are no bookings for the selected period.",
@@ -109,31 +193,20 @@ export default function Reports() {
     }
 
     try {
-      const headers = ["Date", "Seat", "Customer", "Duration", "Session Price (₹)", "Food Amount (₹)", "Cash (₹)", "UPI (₹)", "Total (₹)"];
+      const headers = ["Date", "Seats", "Customer", "Duration", "Session Price (₹)", "Food Amount (₹)", "Cash (₹)", "UPI (₹)", "Total (₹)"];
       const csvContent = [
         headers.join(","),
-        ...filteredHistory.map(record => {
-          const cashAmt = record.cashAmount 
-            ? parseFloat(record.cashAmount).toFixed(0)
-            : record.paymentMethod === 'cash' 
-              ? (record.totalAmount || parseFloat(record.price)).toFixed(0)
-              : '0';
-          const upiAmt = record.upiAmount 
-            ? parseFloat(record.upiAmount).toFixed(0)
-            : record.paymentMethod === 'upi_online' 
-              ? (record.totalAmount || parseFloat(record.price)).toFixed(0)
-              : '0';
-          
+        ...filteredSessions.map(session => {
           return [
-            record.date,
-            record.seatName,
-            record.customerName,
-            record.duration,
-            record.price,
-            (record.foodAmount || 0).toFixed(0),
-            cashAmt,
-            upiAmt,
-            (record.totalAmount || parseFloat(record.price)).toFixed(0)
+            session.date,
+            session.seats.join(' + '),
+            session.customerName,
+            session.duration,
+            session.sessionPrice.toFixed(0),
+            session.foodAmount.toFixed(0),
+            session.cashAmount.toFixed(0),
+            session.upiAmount.toFixed(0),
+            session.totalAmount.toFixed(0)
           ].join(",");
         })
       ].join("\n");
@@ -171,7 +244,7 @@ export default function Reports() {
   };
 
   const handleExportPDF = () => {
-    if (!filteredHistory || filteredHistory.length === 0) {
+    if (!filteredSessions || filteredSessions.length === 0) {
       toast({
         title: "No data to export",
         description: "There are no bookings for the selected period.",
@@ -207,6 +280,7 @@ export default function Reports() {
             th, td { padding: 12px; text-align: left; border-bottom: 1px solid #ddd; }
             th { background-color: #f5f5f5; font-weight: bold; }
             .text-right { text-align: right; }
+            .badge { display: inline-block; padding: 4px 8px; background: #f0f0f0; border-radius: 4px; margin: 2px; font-size: 11px; }
             @media print {
               body { padding: 10px; }
             }
@@ -232,7 +306,7 @@ export default function Reports() {
             <thead>
               <tr>
                 <th>Date</th>
-                <th>Seat</th>
+                <th>Seats</th>
                 <th>Customer</th>
                 <th>Duration</th>
                 <th class="text-right">Session Price</th>
@@ -243,29 +317,19 @@ export default function Reports() {
               </tr>
             </thead>
             <tbody>
-              ${filteredHistory.map(record => {
-                const cashAmt = record.cashAmount 
-                  ? parseFloat(record.cashAmount).toFixed(0)
-                  : record.paymentMethod === 'cash' 
-                    ? (record.totalAmount || parseFloat(record.price)).toFixed(0)
-                    : '-';
-                const upiAmt = record.upiAmount 
-                  ? parseFloat(record.upiAmount).toFixed(0)
-                  : record.paymentMethod === 'upi_online' 
-                    ? (record.totalAmount || parseFloat(record.price)).toFixed(0)
-                    : '-';
-                
+              ${filteredSessions.map(session => {
+                const seatsDisplay = session.seats.map(s => `<span class="badge">${s}</span>`).join(' ');
                 return `
                   <tr>
-                    <td>${record.date}</td>
-                    <td>${record.seatName}</td>
-                    <td>${record.customerName}</td>
-                    <td>${record.duration}</td>
-                    <td class="text-right">₹${record.price}</td>
-                    <td class="text-right">₹${(record.foodAmount || 0).toFixed(0)}</td>
-                    <td class="text-right">${cashAmt !== '-' ? '₹' + cashAmt : cashAmt}</td>
-                    <td class="text-right">${upiAmt !== '-' ? '₹' + upiAmt : upiAmt}</td>
-                    <td class="text-right"><strong>₹${(record.totalAmount || parseFloat(record.price)).toFixed(0)}</strong></td>
+                    <td>${session.date}</td>
+                    <td>${seatsDisplay}</td>
+                    <td>${session.customerName}</td>
+                    <td>${session.duration}</td>
+                    <td class="text-right">₹${session.sessionPrice.toFixed(0)}</td>
+                    <td class="text-right">₹${session.foodAmount.toFixed(0)}</td>
+                    <td class="text-right">${session.cashAmount > 0 ? '₹' + session.cashAmount.toFixed(0) : '-'}</td>
+                    <td class="text-right">${session.upiAmount > 0 ? '₹' + session.upiAmount.toFixed(0) : '-'}</td>
+                    <td class="text-right"><strong>₹${session.totalAmount.toFixed(0)}</strong></td>
                   </tr>
                 `;
               }).join('')}
@@ -288,7 +352,6 @@ export default function Reports() {
       printWindow.document.write(htmlContent);
       printWindow.document.close();
       
-      // Wait for the window to load before triggering print
       printWindow.onload = () => {
         printWindow.print();
       };
@@ -502,7 +565,7 @@ export default function Reports() {
             <TableHeader>
               <TableRow>
                 <TableHead>Date</TableHead>
-                <TableHead>Seat</TableHead>
+                <TableHead>Seats</TableHead>
                 <TableHead>Customer</TableHead>
                 <TableHead>Duration</TableHead>
                 <TableHead className="text-right">Session Price</TableHead>
@@ -519,41 +582,46 @@ export default function Reports() {
                     <Skeleton className="h-10 w-full" />
                   </TableCell>
                 </TableRow>
-              ) : filteredHistory && filteredHistory.length > 0 ? (
-                filteredHistory.map((record) => (
-                  <TableRow key={record.id} data-testid={`row-history-${record.id}`}>
-                    <TableCell data-testid={`text-date-${record.id}`}>{record.date}</TableCell>
-                    <TableCell className="font-medium" data-testid={`text-seat-${record.id}`}>
-                      {record.seatName}
+              ) : filteredSessions && filteredSessions.length > 0 ? (
+                filteredSessions.map((session) => (
+                  <TableRow key={session.id} data-testid={`row-history-${session.id}`}>
+                    <TableCell data-testid={`text-date-${session.id}`}>{session.date}</TableCell>
+                    <TableCell className="font-medium" data-testid={`text-seats-${session.id}`}>
+                      <div className="flex flex-wrap gap-1">
+                        {session.seats.map((seat, idx) => (
+                          <span 
+                            key={idx} 
+                            className="inline-block px-2 py-0.5 bg-primary/10 text-primary rounded-sm text-xs font-semibold"
+                          >
+                            {seat}
+                          </span>
+                        ))}
+                      </div>
                     </TableCell>
-                    <TableCell data-testid={`text-customer-${record.id}`}>{record.customerName}</TableCell>
-                    <TableCell data-testid={`text-duration-${record.id}`}>{record.duration}</TableCell>
-                    <TableCell className="text-right" data-testid={`text-session-price-${record.id}`}>
-                      ₹{record.price}
+                    <TableCell data-testid={`text-customer-${session.id}`}>{session.customerName}</TableCell>
+                    <TableCell data-testid={`text-duration-${session.id}`}>{session.duration}</TableCell>
+                    <TableCell className="text-right" data-testid={`text-session-price-${session.id}`}>
+                      ₹{session.sessionPrice.toFixed(0)}
                     </TableCell>
-                    <TableCell className="text-right" data-testid={`text-food-amount-${record.id}`}>
-                      ₹{(record.foodAmount || 0).toFixed(0)}
+                    <TableCell className="text-right" data-testid={`text-food-amount-${session.id}`}>
+                      ₹{session.foodAmount.toFixed(0)}
                     </TableCell>
-                    <TableCell className="text-right" data-testid={`text-cash-${record.id}`}>
-                      {record.cashAmount ? (
-                        <span className="text-green-600 dark:text-green-400">₹{parseFloat(record.cashAmount).toFixed(0)}</span>
-                      ) : record.paymentMethod === 'cash' ? (
-                        <span className="text-green-600 dark:text-green-400">₹{(record.totalAmount || parseFloat(record.price)).toFixed(0)}</span>
+                    <TableCell className="text-right" data-testid={`text-cash-${session.id}`}>
+                      {session.cashAmount > 0 ? (
+                        <span className="text-green-600 dark:text-green-400">₹{session.cashAmount.toFixed(0)}</span>
                       ) : (
                         '-'
                       )}
                     </TableCell>
-                    <TableCell className="text-right" data-testid={`text-upi-${record.id}`}>
-                      {record.upiAmount ? (
-                        <span className="text-blue-600 dark:text-blue-400">₹{parseFloat(record.upiAmount).toFixed(0)}</span>
-                      ) : record.paymentMethod === 'upi_online' ? (
-                        <span className="text-blue-600 dark:text-blue-400">₹{(record.totalAmount || parseFloat(record.price)).toFixed(0)}</span>
+                    <TableCell className="text-right" data-testid={`text-upi-${session.id}`}>
+                      {session.upiAmount > 0 ? (
+                        <span className="text-blue-600 dark:text-blue-400">₹{session.upiAmount.toFixed(0)}</span>
                       ) : (
                         '-'
                       )}
                     </TableCell>
-                    <TableCell className="text-right font-bold text-green-600 dark:text-green-400" data-testid={`text-total-${record.id}`}>
-                      ₹{(record.totalAmount || parseFloat(record.price)).toFixed(0)}
+                    <TableCell className="text-right font-bold text-green-600 dark:text-green-400" data-testid={`text-total-${session.id}`}>
+                      ₹{session.totalAmount.toFixed(0)}
                     </TableCell>
                   </TableRow>
                 ))
