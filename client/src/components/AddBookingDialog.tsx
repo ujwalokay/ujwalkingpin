@@ -98,6 +98,7 @@ export function AddBookingDialog({ open, onOpenChange, onConfirm, availableSeats
   const [selectedSeats, setSelectedSeats] = useState<number[]>([]);
   const [customerName, setCustomerName] = useState<string>("");
   const [whatsappNumber, setWhatsappNumber] = useState<string>("");
+  const [isWhatsappFocused, setIsWhatsappFocused] = useState<boolean>(false);
   const [durationMinutes, setDurationMinutes] = useState<number>(30);
   const [personCount, setPersonCount] = useState<number>(1);
   const [bookingType, setBookingType] = useState<"walk-in" | "upcoming">("walk-in");
@@ -781,13 +782,19 @@ export function AddBookingDialog({ open, onOpenChange, onConfirm, availableSeats
             <div className="relative">
               <Input
                 id="whatsapp"
-                value={whatsappNumber.replace(/(\d{5})(\d{1,5})/, '$1 $2')}
+                value={
+                  isWhatsappFocused || whatsappNumber.length === 0
+                    ? whatsappNumber.replace(/(\d{5})(\d{1,5})/, '$1 $2')
+                    : 'xxxxx xxxxx'
+                }
                 onChange={(e) => {
                   const value = e.target.value.replace(/\D/g, '');
                   if (value.length <= 10) {
                     setWhatsappNumber(value);
                   }
                 }}
+                onFocus={() => setIsWhatsappFocused(true)}
+                onBlur={() => setIsWhatsappFocused(false)}
                 placeholder="98765 43210"
                 data-testid="input-whatsapp-number"
                 className={`pr-16 ${
