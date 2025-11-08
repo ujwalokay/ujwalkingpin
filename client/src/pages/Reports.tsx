@@ -1,9 +1,9 @@
-import { useState } from "react";
+import { useState, useMemo } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { RevenueCard } from "@/components/RevenueCard";
 import { Button } from "@/components/ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Calendar, Download, IndianRupee, Users, Clock } from "lucide-react";
+import { Calendar, Download, IndianRupee, Users, Clock, Search } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { getAdjustedTime } from "@/hooks/useServerTime";
 import { Input } from "@/components/ui/input";
@@ -46,6 +46,7 @@ export default function Reports() {
   const [startDate, setStartDate] = useState<string>("");
   const [endDate, setEndDate] = useState<string>("");
   const [selectedMonth, setSelectedMonth] = useState<string>("");
+  const [searchQuery, setSearchQuery] = useState<string>("");
   const { toast } = useToast();
 
   const buildQueryParams = () => {
@@ -84,8 +85,21 @@ export default function Reports() {
     },
   });
 
+  const filteredHistory = useMemo(() => {
+    if (!history) return [];
+    if (!searchQuery.trim()) return history;
+
+    const query = searchQuery.toLowerCase();
+    return history.filter(record => 
+      record.seatName.toLowerCase().includes(query) ||
+      record.customerName.toLowerCase().includes(query) ||
+      record.date.toLowerCase().includes(query) ||
+      record.duration.toLowerCase().includes(query)
+    );
+  }, [history, searchQuery]);
+
   const handleExportExcel = () => {
-    if (!history || history.length === 0) {
+    if (!filteredHistory || filteredHistory.length === 0) {
       toast({
         title: "No data to export",
         description: "There are no bookings for the selected period.",
@@ -95,18 +109,33 @@ export default function Reports() {
     }
 
     try {
-      const headers = ["Date", "Seat", "Customer", "Duration", "Session Price (₹)", "Food Amount (₹)", "Total (₹)"];
+      const headers = ["Date", "Seat", "Customer", "Duration", "Session Price (₹)", "Food Amount (₹)", "Cash (₹)", "UPI (₹)", "Total (₹)"];
       const csvContent = [
         headers.join(","),
-        ...history.map(record => [
-          record.date,
-          record.seatName,
-          record.customerName,
-          record.duration,
-          record.price,
-          (record.foodAmount || 0).toFixed(0),
-          (record.totalAmount || parseFloat(record.price)).toFixed(0)
-        ].join(","))
+        ...filteredHistory.map(record => {
+          const cashAmt = record.cashAmount 
+            ? parseFloat(record.cashAmount).toFixed(0)
+            : record.paymentMethod === 'cash' 
+              ? (record.totalAmount || parseFloat(record.price)).toFixed(0)
+              : '0';
+          const upiAmt = record.upiAmount 
+            ? parseFloat(record.upiAmount).toFixed(0)
+            : record.paymentMethod === 'upi_online' 
+              ? (record.totalAmount || parseFloat(record.price)).toFixed(0)
+              : '0';
+          
+          return [
+            record.date,
+            record.seatName,
+            record.customerName,
+            record.duration,
+            record.price,
+            (record.foodAmount || 0).toFixed(0),
+            cashAmt,
+            upiAmt,
+            (record.totalAmount || parseFloat(record.price)).toFixed(0)
+          ].join(",");
+        })
       ].join("\n");
 
       const blob = new Blob([csvContent], { type: "text/csv;charset=utf-8;" });
@@ -142,7 +171,7 @@ export default function Reports() {
   };
 
   const handleExportPDF = () => {
-    if (!history || history.length === 0) {
+    if (!filteredHistory || filteredHistory.length === 0) {
       toast({
         title: "No data to export",
         description: "There are no bookings for the selected period.",
@@ -208,21 +237,38 @@ export default function Reports() {
                 <th>Duration</th>
                 <th class="text-right">Session Price</th>
                 <th class="text-right">Food Amount</th>
+                <th class="text-right">Cash</th>
+                <th class="text-right">UPI</th>
                 <th class="text-right">Total</th>
               </tr>
             </thead>
             <tbody>
-              ${history.map(record => `
-                <tr>
-                  <td>${record.date}</td>
-                  <td>${record.seatName}</td>
-                  <td>${record.customerName}</td>
-                  <td>${record.duration}</td>
-                  <td class="text-right">₹${record.price}</td>
-                  <td class="text-right">₹${(record.foodAmount || 0).toFixed(0)}</td>
-                  <td class="text-right"><strong>₹${(record.totalAmount || parseFloat(record.price)).toFixed(0)}</strong></td>
-                </tr>
-              `).join('')}
+              ${filteredHistory.map(record => {
+                const cashAmt = record.cashAmount 
+                  ? parseFloat(record.cashAmount).toFixed(0)
+                  : record.paymentMethod === 'cash' 
+                    ? (record.totalAmount || parseFloat(record.price)).toFixed(0)
+                    : '-';
+                const upiAmt = record.upiAmount 
+                  ? parseFloat(record.upiAmount).toFixed(0)
+                  : record.paymentMethod === 'upi_online' 
+                    ? (record.totalAmount || parseFloat(record.price)).toFixed(0)
+                    : '-';
+                
+                return `
+                  <tr>
+                    <td>${record.date}</td>
+                    <td>${record.seatName}</td>
+                    <td>${record.customerName}</td>
+                    <td>${record.duration}</td>
+                    <td class="text-right">₹${record.price}</td>
+                    <td class="text-right">₹${(record.foodAmount || 0).toFixed(0)}</td>
+                    <td class="text-right">${cashAmt !== '-' ? '₹' + cashAmt : cashAmt}</td>
+                    <td class="text-right">${upiAmt !== '-' ? '₹' + upiAmt : upiAmt}</td>
+                    <td class="text-right"><strong>₹${(record.totalAmount || parseFloat(record.price)).toFixed(0)}</strong></td>
+                  </tr>
+                `;
+              }).join('')}
             </tbody>
           </table>
           <script>
@@ -337,21 +383,28 @@ export default function Reports() {
 
         {selectedPeriod === "monthly" && (
           <div className="glass-card p-4 rounded-lg mt-4">
-            <Label htmlFor="month-select" className="text-sm font-semibold mb-2 block">Select Month</Label>
-            <div className="flex gap-3">
-              <Input
-                id="month-select"
-                type="month"
-                value={selectedMonth}
-                onChange={(e) => setSelectedMonth(e.target.value)}
-                className="max-w-xs"
-                data-testid="input-select-month"
-              />
+            <Label htmlFor="month-select" className="text-sm font-semibold mb-2 block">
+              <Calendar className="inline-block mr-2 h-4 w-4" />
+              Select Month & Year
+            </Label>
+            <div className="flex flex-col sm:flex-row gap-3">
+              <div className="flex-1">
+                <Input
+                  id="month-select"
+                  type="month"
+                  value={selectedMonth}
+                  onChange={(e) => setSelectedMonth(e.target.value)}
+                  className="w-full"
+                  placeholder="Choose a month"
+                  data-testid="input-select-month"
+                />
+              </div>
               {selectedMonth && (
                 <Button
                   variant="outline"
                   size="sm"
                   onClick={() => setSelectedMonth("")}
+                  className="self-start sm:self-center"
                   data-testid="button-clear-month"
                 >
                   Clear
@@ -430,7 +483,20 @@ export default function Reports() {
       </Tabs>
 
       <div className="space-y-4">
-        <h2 className="text-lg sm:text-xl font-semibold">Booking History</h2>
+        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
+          <h2 className="text-lg sm:text-xl font-semibold">Booking History</h2>
+          <div className="relative flex-1 max-w-sm">
+            <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+            <Input
+              type="text"
+              placeholder="Search by seat, customer, date..."
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              className="pl-9"
+              data-testid="input-search-bookings"
+            />
+          </div>
+        </div>
         <div className="rounded-md border overflow-x-auto">
           <Table>
             <TableHeader>
@@ -441,19 +507,20 @@ export default function Reports() {
                 <TableHead>Duration</TableHead>
                 <TableHead className="text-right">Session Price</TableHead>
                 <TableHead className="text-right">Food Amount</TableHead>
-                <TableHead>Payment</TableHead>
+                <TableHead className="text-right">Cash</TableHead>
+                <TableHead className="text-right">UPI</TableHead>
                 <TableHead className="text-right">Total</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
               {historyLoading ? (
                 <TableRow>
-                  <TableCell colSpan={8}>
+                  <TableCell colSpan={9}>
                     <Skeleton className="h-10 w-full" />
                   </TableCell>
                 </TableRow>
-              ) : history && history.length > 0 ? (
-                history.map((record) => (
+              ) : filteredHistory && filteredHistory.length > 0 ? (
+                filteredHistory.map((record) => (
                   <TableRow key={record.id} data-testid={`row-history-${record.id}`}>
                     <TableCell data-testid={`text-date-${record.id}`}>{record.date}</TableCell>
                     <TableCell className="font-medium" data-testid={`text-seat-${record.id}`}>
@@ -467,17 +534,20 @@ export default function Reports() {
                     <TableCell className="text-right" data-testid={`text-food-amount-${record.id}`}>
                       ₹{(record.foodAmount || 0).toFixed(0)}
                     </TableCell>
-                    <TableCell data-testid={`text-payment-${record.id}`}>
-                      {record.cashAmount && record.upiAmount ? (
-                        <span className="text-xs">
-                          ₹{parseFloat(record.cashAmount).toFixed(0)} cash + ₹{parseFloat(record.upiAmount).toFixed(0)} UPI
-                        </span>
-                      ) : record.paymentMethod === 'split' ? (
-                        <span className="text-xs">Split Payment</span>
+                    <TableCell className="text-right" data-testid={`text-cash-${record.id}`}>
+                      {record.cashAmount ? (
+                        <span className="text-green-600 dark:text-green-400">₹{parseFloat(record.cashAmount).toFixed(0)}</span>
                       ) : record.paymentMethod === 'cash' ? (
-                        'Cash'
+                        <span className="text-green-600 dark:text-green-400">₹{(record.totalAmount || parseFloat(record.price)).toFixed(0)}</span>
+                      ) : (
+                        '-'
+                      )}
+                    </TableCell>
+                    <TableCell className="text-right" data-testid={`text-upi-${record.id}`}>
+                      {record.upiAmount ? (
+                        <span className="text-blue-600 dark:text-blue-400">₹{parseFloat(record.upiAmount).toFixed(0)}</span>
                       ) : record.paymentMethod === 'upi_online' ? (
-                        'UPI'
+                        <span className="text-blue-600 dark:text-blue-400">₹{(record.totalAmount || parseFloat(record.price)).toFixed(0)}</span>
                       ) : (
                         '-'
                       )}
@@ -489,8 +559,8 @@ export default function Reports() {
                 ))
               ) : (
                 <TableRow>
-                  <TableCell colSpan={7} className="text-center text-muted-foreground">
-                    No booking history for this period
+                  <TableCell colSpan={9} className="text-center text-muted-foreground">
+                    {searchQuery.trim() ? 'No bookings found matching your search' : 'No booking history for this period'}
                   </TableCell>
                 </TableRow>
               )}
