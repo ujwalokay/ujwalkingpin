@@ -954,7 +954,7 @@ export function BookingTable({ bookings, onExtend, onEnd, onComplete, onAddFood,
                                 </Button>
                               </DropdownMenuTrigger>
                               <DropdownMenuContent align="end" data-testid={`dropdown-actions-${booking.id}`}>
-                                {(booking.status === "running" || booking.status === "expired") && onExtend && (
+                                {(booking.status === "running" || booking.status === "expired" || booking.status === "completed") && onExtend && (
                                   <DropdownMenuItem onClick={() => onExtend(booking.id)} data-testid={`action-extend-${booking.id}`}>
                                     <Clock className="mr-2 h-4 w-4" />
                                     Extend Time
@@ -984,7 +984,7 @@ export function BookingTable({ bookings, onExtend, onEnd, onComplete, onAddFood,
                                     Delete
                                   </DropdownMenuItem>
                                 )}
-                                {(booking.status === "running" || booking.status === "paused" || booking.status === "upcoming" || booking.status === "expired") && onAddFood && (
+                                {(booking.status === "running" || booking.status === "paused" || booking.status === "upcoming" || booking.status === "expired" || booking.status === "completed") && onAddFood && (
                                   <DropdownMenuItem onClick={() => onAddFood(booking.id)} data-testid={`action-add-food-${booking.id}`}>
                                     <Plus className="mr-2 h-4 w-4" />
                                     Add Food

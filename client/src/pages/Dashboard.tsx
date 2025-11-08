@@ -438,17 +438,36 @@ export default function Dashboard() {
       };
       
       const minutes = parseDuration(duration);
-      const newEndTime = new Date(booking.endTime.getTime() + minutes * 60 * 1000);
+      const now = new Date();
+      const isExpiredOrCompleted = booking.status === "expired" || booking.status === "completed";
+      
+      const newEndTime = isExpiredOrCompleted
+        ? new Date(now.getTime() + minutes * 60 * 1000)
+        : new Date(booking.endTime.getTime() + minutes * 60 * 1000);
+      
       const newPrice = (parseFloat(booking.price) + parseFloat(price)).toFixed(2);
+      
+      const updateData: any = {
+        endTime: newEndTime,
+        price: newPrice,
+      };
+      
+      if (isExpiredOrCompleted) {
+        updateData.status = "running";
+        updateData.startTime = now;
+        updateData.pausedRemainingTime = null;
+      }
       
       await extendBookingMutation.mutateAsync({
         id: extendDialog.bookingId,
-        data: { endTime: newEndTime as any, price: newPrice },
+        data: updateData,
       });
       
       toast({
-        title: "Session Extended",
-        description: `${booking.seatName} extended by ${duration} - ₹${price} added`,
+        title: isExpiredOrCompleted ? "Session Reactivated" : "Session Extended",
+        description: isExpiredOrCompleted 
+          ? `${booking.seatName} reactivated with ${duration} - ₹${price} added`
+          : `${booking.seatName} extended by ${duration} - ₹${price} added`,
       });
     }
     setExtendDialog({ open: false, bookingId: "" });
