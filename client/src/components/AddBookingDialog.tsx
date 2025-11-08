@@ -783,9 +783,11 @@ export function AddBookingDialog({ open, onOpenChange, onConfirm, availableSeats
               <Input
                 id="whatsapp"
                 value={
-                  isWhatsappFocused || whatsappNumber.length === 0
+                  isWhatsappFocused
                     ? whatsappNumber.replace(/(\d{5})(\d{1,5})/, '$1 $2')
-                    : 'xxxxx xxxxx'
+                    : whatsappNumber.length > 0
+                    ? 'xxxxx xxxxx'
+                    : ''
                 }
                 onChange={(e) => {
                   const value = e.target.value.replace(/\D/g, '');
@@ -795,7 +797,7 @@ export function AddBookingDialog({ open, onOpenChange, onConfirm, availableSeats
                 }}
                 onFocus={() => setIsWhatsappFocused(true)}
                 onBlur={() => setIsWhatsappFocused(false)}
-                placeholder="98765 43210"
+                placeholder="xxxxx xxxxx"
                 data-testid="input-whatsapp-number"
                 className={`pr-16 ${
                   whatsappNumber.length > 0 && whatsappNumber.length < 10
