@@ -1127,27 +1127,17 @@ export class DatabaseStorage implements IStorage {
   }
 
   async moveBookingsToHistory(): Promise<number> {
-    const expiredAndCompleted = await db
+    const expiredBookings = await db
       .select()
       .from(bookings)
-      .where(
-        and(
-          eq(bookings.status, "expired"),
-          isNotNull(bookings.paymentMethod)
-        )
-      );
+      .where(eq(bookings.status, "expired"));
 
-    const completed = await db
+    const completedBookings = await db
       .select()
       .from(bookings)
-      .where(
-        and(
-          eq(bookings.status, "completed"),
-          isNotNull(bookings.paymentMethod)
-        )
-      );
+      .where(eq(bookings.status, "completed"));
 
-    const bookingsToArchive = [...expiredAndCompleted, ...completed];
+    const bookingsToArchive = [...expiredBookings, ...completedBookings];
 
     if (bookingsToArchive.length === 0) {
       return 0;
@@ -1168,7 +1158,19 @@ export class DatabaseStorage implements IStorage {
       pausedRemainingTime: booking.pausedRemainingTime,
       personCount: booking.personCount,
       paymentMethod: booking.paymentMethod,
+      cashAmount: booking.cashAmount,
+      upiAmount: booking.upiAmount,
+      paymentStatus: booking.paymentStatus,
+      lastPaymentAction: booking.lastPaymentAction,
       foodOrders: booking.foodOrders,
+      originalPrice: booking.originalPrice,
+      discountApplied: booking.discountApplied,
+      bonusHoursApplied: booking.bonusHoursApplied,
+      promotionDetails: booking.promotionDetails,
+      isPromotionalDiscount: booking.isPromotionalDiscount,
+      isPromotionalBonus: booking.isPromotionalBonus,
+      manualDiscountPercentage: booking.manualDiscountPercentage,
+      manualFreeHours: booking.manualFreeHours,
       createdAt: booking.createdAt,
     }));
 
