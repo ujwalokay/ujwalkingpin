@@ -1152,7 +1152,7 @@ export default function Dashboard() {
               className="h-16 text-lg border-2 hover:border-blue-500 hover:bg-blue-500/5 border-blue-300 dark:border-blue-700"
             >
               <Calculator className="mr-2 h-5 w-5" />
-              Split Payment (Part Cash + Part Credit)
+              Split Payment (Part Cash + Part UPI)
             </Button>
           </div>
         </DialogContent>

@@ -472,6 +472,8 @@ export default function Reports() {
                         <span className="text-xs">
                           ₹{parseFloat(record.cashAmount).toFixed(0)} cash + ₹{parseFloat(record.upiAmount).toFixed(0)} UPI
                         </span>
+                      ) : record.paymentMethod === 'split' ? (
+                        <span className="text-xs">Split Payment</span>
                       ) : record.paymentMethod === 'cash' ? (
                         'Cash'
                       ) : record.paymentMethod === 'upi_online' ? (

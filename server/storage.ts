@@ -445,29 +445,37 @@ export class DatabaseStorage implements IStorage {
       );
 
     const cashRevenue = completedBookings
-      .filter(b => b.paymentMethod === "cash")
       .reduce((sum, booking) => {
-        const sessionPrice = parseFloat(booking.price);
-        const foodPrice = booking.foodOrders && booking.foodOrders.length > 0
-          ? booking.foodOrders.reduce((foodSum, order) => 
-              foodSum + parseFloat(order.price) * order.quantity, 0)
-          : 0;
-        return sum + sessionPrice + foodPrice;
+        if (booking.paymentMethod === "cash") {
+          const sessionPrice = parseFloat(booking.price);
+          const foodPrice = booking.foodOrders && booking.foodOrders.length > 0
+            ? booking.foodOrders.reduce((foodSum, order) => 
+                foodSum + parseFloat(order.price) * order.quantity, 0)
+            : 0;
+          return sum + sessionPrice + foodPrice;
+        } else if (booking.paymentMethod === "split" && booking.cashAmount) {
+          return sum + parseFloat(booking.cashAmount);
+        }
+        return sum;
       }, 0);
 
     const upiRevenue = completedBookings
-      .filter(b => b.paymentMethod === "upi_online")
       .reduce((sum, booking) => {
-        const sessionPrice = parseFloat(booking.price);
-        const foodPrice = booking.foodOrders && booking.foodOrders.length > 0
-          ? booking.foodOrders.reduce((foodSum, order) => 
-              foodSum + parseFloat(order.price) * order.quantity, 0)
-          : 0;
-        return sum + sessionPrice + foodPrice;
+        if (booking.paymentMethod === "upi_online") {
+          const sessionPrice = parseFloat(booking.price);
+          const foodPrice = booking.foodOrders && booking.foodOrders.length > 0
+            ? booking.foodOrders.reduce((foodSum, order) => 
+                foodSum + parseFloat(order.price) * order.quantity, 0)
+            : 0;
+          return sum + sessionPrice + foodPrice;
+        } else if (booking.paymentMethod === "split" && booking.upiAmount) {
+          return sum + parseFloat(booking.upiAmount);
+        }
+        return sum;
       }, 0);
 
     const paidBookings = completedBookings.filter(b => 
-      b.paymentMethod === "cash" || b.paymentMethod === "upi_online"
+      b.paymentMethod === "cash" || b.paymentMethod === "upi_online" || b.paymentMethod === "split"
     );
 
     const totalRevenue = paidBookings.reduce((sum, booking) => {
