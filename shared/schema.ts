@@ -513,6 +513,8 @@ export const creditPayments = pgTable("credit_payments", {
   bookingId: varchar("booking_id"),
   amount: varchar("amount").notNull(),
   paymentMethod: varchar("payment_method").notNull(),
+  cashAmount: varchar("cash_amount"),
+  upiAmount: varchar("upi_amount"),
   recordedBy: varchar("recorded_by").notNull(),
   recordedAt: timestamp("recorded_at").notNull().defaultNow(),
   notes: text("notes"),

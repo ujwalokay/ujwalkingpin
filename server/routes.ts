@@ -813,17 +813,55 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.patch("/api/credits/entries/:id/mark-paid", requireAuth, async (req, res) => {
     try {
       const { id } = req.params;
-      const { paymentMethod } = req.body;
+      const { paymentMethod, cashAmount, upiAmount } = req.body;
       const userId = (req.user as any)?.id || 'unknown';
       const username = (req.user as any)?.username || 'unknown';
       
-      if (!paymentMethod || !['cash', 'upi_online'].includes(paymentMethod)) {
-        return res.status(400).json({ message: "Valid payment method is required (cash or upi_online)" });
+      if (!paymentMethod || !['cash', 'upi_online', 'split'].includes(paymentMethod)) {
+        return res.status(400).json({ message: "Valid payment method is required (cash, upi_online, or split)" });
       }
       
       const entry = await storage.getCreditEntry(id);
       if (!entry) {
         return res.status(404).json({ message: "Credit entry not found" });
+      }
+      
+      const remainingCredit = parseFloat(entry.remainingCredit);
+      let paymentCashAmount: string | undefined;
+      let paymentUpiAmount: string | undefined;
+      let paymentDetails = '';
+      
+      if (paymentMethod === 'split') {
+        if (!cashAmount || !upiAmount) {
+          return res.status(400).json({ message: "Cash and UPI amounts are required for split payments" });
+        }
+        
+        const cash = parseFloat(cashAmount);
+        const upi = parseFloat(upiAmount);
+        
+        if (!Number.isFinite(cash) || !Number.isFinite(upi)) {
+          return res.status(400).json({ message: "Cash and UPI amounts must be valid numbers" });
+        }
+        
+        if (cash < 0 || upi < 0) {
+          return res.status(400).json({ message: "Cash and UPI amounts cannot be negative" });
+        }
+        
+        if (Math.abs((cash + upi) - remainingCredit) > 0.01) {
+          return res.status(400).json({ 
+            message: `Cash (₹${cash}) + UPI (₹${upi}) must equal remaining credit (₹${remainingCredit})` 
+          });
+        }
+        
+        if (cash === 0 && upi === 0) {
+          return res.status(400).json({ message: "At least one payment amount must be greater than zero" });
+        }
+        
+        paymentCashAmount = cash.toFixed(2);
+        paymentUpiAmount = upi.toFixed(2);
+        paymentDetails = `Cash: ₹${paymentCashAmount}, UPI: ₹${paymentUpiAmount}`;
+      } else {
+        paymentDetails = paymentMethod === 'cash' ? 'Cash' : 'UPI/Online';
       }
       
       const updated = await storage.updateCreditEntry(id, { status: "paid" });
@@ -838,6 +876,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
         bookingId: entry.bookingId,
         amount: entry.remainingCredit,
         paymentMethod,
+        cashAmount: paymentCashAmount,
+        upiAmount: paymentUpiAmount,
         recordedBy: username,
         notes: `Payment for credit entry marked as paid`
       });
@@ -849,7 +889,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         action: 'update',
         entityType: 'credit_entry',
         entityId: id,
-        details: `Marked credit entry as paid (${paymentMethod === 'cash' ? 'Cash' : 'UPI/Online'}) - Credit: ₹${updated.creditIssued}`
+        details: `Marked credit entry as paid (${paymentDetails}) - Credit: ₹${updated.creditIssued}`
       });
       
       res.json(updated);
