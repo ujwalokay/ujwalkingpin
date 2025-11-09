@@ -12,6 +12,8 @@ import { SplitPaymentDialog } from "@/components/SplitPaymentDialog";
 import { OnboardingTour } from "@/components/OnboardingTour";
 import { InstallPrompt } from "@/components/InstallPrompt";
 import { MergeSessionDialog } from "@/components/MergeSessionDialog";
+import { useTour } from "@/contexts/TourContext";
+import { dashboardTourSteps } from "@/lib/tourSteps";
 import { Plus, Monitor, Gamepad2, Glasses, Car, Cpu, Tv, Radio, Box, RefreshCw, Calculator, Wallet, Users, Calendar, Clock, List, Award } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { useSoundAlert } from "@/hooks/useSoundAlert";
@@ -89,6 +91,7 @@ export default function Dashboard() {
   const queryClient = useQueryClient();
   const { getTime } = useServerTime();
   const { canMakeChanges, deviceRestricted, user, onboardingCompleted } = useAuth();
+  const { registerSteps } = useTour();
   const [addDialog, setAddDialog] = useState(false);
   const [extendDialog, setExtendDialog] = useState({ open: false, bookingId: "" });
   const [deleteDialog, setDeleteDialog] = useState({ open: false, bookingId: "", seatName: "", customerName: "" });
@@ -212,6 +215,10 @@ export default function Dashboard() {
   }, [bookings]);
 
   useKeepAlive(hasActiveTimers);
+
+  useEffect(() => {
+    registerSteps(dashboardTourSteps);
+  }, [registerSteps]);
 
   const getOccupiedSeats = (category: string) => {
     return bookings
@@ -799,7 +806,8 @@ export default function Dashboard() {
             <TooltipTrigger asChild>
               <Button 
                 onClick={() => setAddDialog(true)} 
-                data-testid="button-add-booking" 
+                data-testid="button-add-booking"
+                data-joyride="add-booking-button"
                 className="w-full sm:w-auto sm:min-w-[160px] h-10 sm:h-11"
                 size="lg"
               >
@@ -814,7 +822,7 @@ export default function Dashboard() {
         </TooltipProvider>
       </div>
 
-      <div className="grid gap-3 sm:gap-4 grid-cols-1 sm:grid-cols-2 lg:grid-cols-4">
+      <div className="grid gap-3 sm:gap-4 grid-cols-1 sm:grid-cols-2 lg:grid-cols-4" data-joyride="category-cards">
         {categories.map((cat) => {
           const available = getAvailableSeats(cat.name).length;
           return (
@@ -833,7 +841,7 @@ export default function Dashboard() {
 
       <Tabs defaultValue="all-in-one" className="space-y-4 md:space-y-5">
         <div className="flex flex-col gap-3 sm:gap-4">
-          <TabsList data-testid="tabs-bookings" className="w-full sm:w-auto grid grid-cols-2 sm:grid-cols-4 h-auto p-1">
+          <TabsList data-testid="tabs-bookings" data-joyride="view-toggle" className="w-full sm:w-auto grid grid-cols-2 sm:grid-cols-4 h-auto p-1">
             <TabsTrigger value="all-in-one" data-testid="tab-all-in-one" className="text-xs sm:text-sm py-2.5 sm:py-2">
               <List className="h-3.5 w-3.5 sm:h-4 sm:w-4 mr-1 sm:mr-2" />
               <span className="hidden sm:inline">All in One</span>
@@ -934,7 +942,7 @@ export default function Dashboard() {
           </div>
         </div>
 
-        <TabsContent value="all-in-one" className="space-y-4">
+        <TabsContent value="all-in-one" className="space-y-4" data-joyride="booking-table">
           <BookingTable
             bookings={allBookings}
             onExtend={handleExtend}

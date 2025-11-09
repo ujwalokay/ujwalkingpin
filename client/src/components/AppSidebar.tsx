@@ -220,6 +220,7 @@ export function AppSidebar() {
                                 isActive={isActive}
                                 className={isActive ? 'bg-purple-50 dark:bg-purple-950/30 text-purple-700 dark:text-purple-400 font-medium hover:bg-purple-100 dark:hover:bg-purple-950/50' : ''}
                                 data-testid={`link-${item.title.toLowerCase().replace(/\s+/g, '-')}`}
+                                data-joyride={`sidebar-${item.title.toLowerCase().replace(/\s+/g, '-')}`}
                               >
                                 <Link href={item.url}>
                                   <item.icon className={isActive ? 'text-purple-600 dark:text-purple-400' : ''} />
