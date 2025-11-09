@@ -112,6 +112,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
       
       const manualDiscountPercentage = req.body.manualDiscountPercentage || null;
       const manualFreeHours = req.body.manualFreeHours || null;
+      const discount = req.body.discount || null;
+      const bonus = req.body.bonus || null;
       
       // Validate that the seat is not already booked for this time slot
       const allBookings = await storage.getAllBookings();
@@ -143,6 +145,14 @@ export async function registerRoutes(app: Express): Promise<Server> {
       
       let bookingData = { ...booking };
       let appliedPromotion: { type: 'manual_discount' | 'manual_bonus', description: string, savingsAmount?: string, hoursGiven?: string } | null = null;
+      
+      // Add discount and bonus fields if provided
+      if (discount) {
+        bookingData.discount = discount;
+      }
+      if (bonus) {
+        bookingData.bonus = bonus;
+      }
       
       // Apply manual discount
       if (manualDiscountPercentage && manualDiscountPercentage > 0) {

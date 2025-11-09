@@ -580,7 +580,9 @@ export class DatabaseStorage implements IStorage {
           totalAmount,
           paymentMethod: booking.paymentMethod,
           cashAmount: booking.cashAmount,
-          upiAmount: booking.upiAmount
+          upiAmount: booking.upiAmount,
+          discount: booking.discount,
+          bonus: booking.bonus
         };
       })
       .sort((a, b) => b.date.localeCompare(a.date));

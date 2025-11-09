@@ -111,6 +111,8 @@ export function AddBookingDialog({ open, onOpenChange, onConfirm, availableSeats
   const [manualDiscountPercentage, setManualDiscountPercentage] = useState<string>("");
   const [manualFreeHoursHr, setManualFreeHoursHr] = useState<string>("");
   const [manualFreeHoursMin, setManualFreeHoursMin] = useState<string>("");
+  const [discount, setDiscount] = useState<string>("");
+  const [bonus, setBonus] = useState<string>("");
   const [showAddons, setShowAddons] = useState<boolean>(false);
 
   const { data: pricingConfig = [] } = useQuery<PricingConfig[]>({
@@ -364,6 +366,8 @@ export function AddBookingDialog({ open, onOpenChange, onConfirm, availableSeats
         usePromotionalBonus,
         manualDiscountPercentage: manualDiscountPercentage ? parseInt(manualDiscountPercentage) : undefined,
         manualFreeHours: manualFreeHours,
+        discount: discount.trim() || undefined,
+        bonus: bonus.trim() || undefined,
       } as any);
       setCategory("");
       setSelectedSeats([]);
@@ -380,6 +384,8 @@ export function AddBookingDialog({ open, onOpenChange, onConfirm, availableSeats
       setManualDiscountPercentage("");
       setManualFreeHoursHr("");
       setManualFreeHoursMin("");
+      setDiscount("");
+      setBonus("");
       setShowAddons(false);
       onOpenChange(false);
     }
@@ -1109,6 +1115,42 @@ export function AddBookingDialog({ open, onOpenChange, onConfirm, availableSeats
                       {usePromotionalDiscount || usePromotionalBonus 
                         ? "❌ Cannot use manual free hours with promotional offers - Uncheck promotional option above to use this" 
                         : "Enter hours and minutes separately (e.g., 1 hr 30 min)"}
+                    </p>
+                  </div>
+
+                  <div className="space-y-2">
+                    <Label htmlFor="discount" className="flex items-center gap-2">
+                      <DollarSign className="h-4 w-4" />
+                      Discount Amount (₹)
+                    </Label>
+                    <Input
+                      id="discount"
+                      type="text"
+                      value={discount}
+                      onChange={(e) => setDiscount(e.target.value)}
+                      placeholder="Enter discount amount"
+                      data-testid="input-discount"
+                    />
+                    <p className="text-xs text-muted-foreground">
+                      Optional: Enter any discount amount for this booking
+                    </p>
+                  </div>
+
+                  <div className="space-y-2">
+                    <Label htmlFor="bonus" className="flex items-center gap-2">
+                      <Gift className="h-4 w-4" />
+                      Bonus Details
+                    </Label>
+                    <Input
+                      id="bonus"
+                      type="text"
+                      value={bonus}
+                      onChange={(e) => setBonus(e.target.value)}
+                      placeholder="Enter bonus details"
+                      data-testid="input-bonus"
+                    />
+                    <p className="text-xs text-muted-foreground">
+                      Optional: Enter any bonus information for this booking
                     </p>
                   </div>
                 </Card>

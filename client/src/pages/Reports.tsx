@@ -1,4 +1,4 @@
-import { useState, useMemo } from "react";
+import { useState, useMemo, useCallback } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { RevenueCard } from "@/components/RevenueCard";
 import { Button } from "@/components/ui/button";
@@ -8,6 +8,7 @@ import { useToast } from "@/hooks/use-toast";
 import { getAdjustedTime } from "@/hooks/useServerTime";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { ColumnVisibilityToggle } from "@/components/ColumnVisibilityToggle";
 import {
   Table,
   TableBody,
@@ -46,6 +47,8 @@ interface BookingHistoryItem {
   paymentMethod: string | null;
   cashAmount: string | null;
   upiAmount: string | null;
+  discount?: string | null;
+  bonus?: string | null;
 }
 
 interface GroupedBookingSession {
@@ -69,7 +72,26 @@ export default function Reports() {
   const [selectedMonth, setSelectedMonth] = useState<string>("");
   const [searchQuery, setSearchQuery] = useState<string>("");
   const [viewSeatsDialog, setViewSeatsDialog] = useState<{ open: boolean; seats: string[] }>({ open: false, seats: [] });
+  const [visibleColumns, setVisibleColumns] = useState<string[]>([]);
   const { toast } = useToast();
+
+  const reportColumns = useMemo(() => [
+    { id: "date", label: "Date", defaultVisible: true },
+    { id: "seats", label: "Seats", defaultVisible: true },
+    { id: "customer", label: "Customer", defaultVisible: true },
+    { id: "duration", label: "Duration", defaultVisible: true },
+    { id: "sessionPrice", label: "Session Price", defaultVisible: true },
+    { id: "foodAmount", label: "Food Amount", defaultVisible: true },
+    { id: "discount", label: "Discount", defaultVisible: true },
+    { id: "bonus", label: "Bonus", defaultVisible: true },
+    { id: "cash", label: "Cash", defaultVisible: true },
+    { id: "upi", label: "UPI", defaultVisible: true },
+    { id: "total", label: "Total", defaultVisible: true },
+  ], []);
+
+  const handleVisibilityChange = useCallback((columns: string[]) => {
+    setVisibleColumns(columns);
+  }, []);
 
   const buildQueryParams = () => {
     const params = new URLSearchParams();
@@ -144,6 +166,16 @@ export default function Reports() {
             session.upiAmount += record.totalAmount || parseFloat(record.price);
           }
           
+          if (record.discount) {
+            const discountValue = parseFloat(record.discount);
+            session.discount = ((session.discount ? parseFloat(session.discount) : 0) + discountValue).toString();
+          }
+          if (record.bonus) {
+            session.bonus = session.bonus 
+              ? `${session.bonus}, ${record.bonus}`
+              : record.bonus;
+          }
+          
           foundSession = true;
           break;
         }
@@ -171,6 +203,8 @@ export default function Reports() {
               : 0,
           totalAmount: record.totalAmount || parseFloat(record.price),
           bookingIds: [record.id],
+          discount: record.discount || undefined,
+          bonus: record.bonus || undefined,
         });
       }
     });
@@ -556,15 +590,22 @@ export default function Reports() {
       <div className="space-y-4">
         <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
           <h2 className="text-lg sm:text-xl font-semibold">Booking History</h2>
-          <div className="relative flex-1 max-w-sm">
-            <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-            <Input
-              type="text"
-              placeholder="Search by seat, customer, date..."
-              value={searchQuery}
-              onChange={(e) => setSearchQuery(e.target.value)}
-              className="pl-9"
-              data-testid="input-search-bookings"
+          <div className="flex gap-2 flex-1 max-w-2xl">
+            <div className="relative flex-1">
+              <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+              <Input
+                type="text"
+                placeholder="Search by seat, customer, date..."
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+                className="pl-9"
+                data-testid="input-search-bookings"
+              />
+            </div>
+            <ColumnVisibilityToggle
+              columns={reportColumns}
+              storageKey="reports-visible-columns"
+              onVisibilityChange={handleVisibilityChange}
             />
           </div>
         </div>
@@ -572,69 +613,99 @@ export default function Reports() {
           <Table>
             <TableHeader>
               <TableRow>
-                <TableHead>Date</TableHead>
-                <TableHead>Seats</TableHead>
-                <TableHead>Customer</TableHead>
-                <TableHead>Duration</TableHead>
-                <TableHead className="text-right">Session Price</TableHead>
-                <TableHead className="text-right">Food Amount</TableHead>
-                <TableHead className="text-right">Cash</TableHead>
-                <TableHead className="text-right">UPI</TableHead>
-                <TableHead className="text-right">Total</TableHead>
+                {visibleColumns.includes("date") && <TableHead>Date</TableHead>}
+                {visibleColumns.includes("seats") && <TableHead>Seats</TableHead>}
+                {visibleColumns.includes("customer") && <TableHead>Customer</TableHead>}
+                {visibleColumns.includes("duration") && <TableHead>Duration</TableHead>}
+                {visibleColumns.includes("sessionPrice") && <TableHead className="text-right">Session Price</TableHead>}
+                {visibleColumns.includes("foodAmount") && <TableHead className="text-right">Food Amount</TableHead>}
+                {visibleColumns.includes("discount") && <TableHead className="text-right">Discount</TableHead>}
+                {visibleColumns.includes("bonus") && <TableHead className="text-right">Bonus</TableHead>}
+                {visibleColumns.includes("cash") && <TableHead className="text-right">Cash</TableHead>}
+                {visibleColumns.includes("upi") && <TableHead className="text-right">UPI</TableHead>}
+                {visibleColumns.includes("total") && <TableHead className="text-right">Total</TableHead>}
               </TableRow>
             </TableHeader>
             <TableBody>
               {historyLoading ? (
                 <TableRow>
-                  <TableCell colSpan={9}>
+                  <TableCell colSpan={visibleColumns.length}>
                     <Skeleton className="h-10 w-full" />
                   </TableCell>
                 </TableRow>
               ) : filteredSessions && filteredSessions.length > 0 ? (
                 filteredSessions.map((session) => (
                   <TableRow key={session.id} data-testid={`row-history-${session.id}`}>
-                    <TableCell data-testid={`text-date-${session.id}`}>{session.date}</TableCell>
-                    <TableCell className="font-medium" data-testid={`text-seats-${session.id}`}>
-                      <Button
-                        variant="outline"
-                        size="sm"
-                        onClick={() => setViewSeatsDialog({ open: true, seats: session.seats })}
-                        data-testid={`button-view-seats-${session.id}`}
-                      >
-                        <Eye className="mr-2 h-4 w-4" />
-                        View Seat
-                      </Button>
-                    </TableCell>
-                    <TableCell data-testid={`text-customer-${session.id}`}>{session.customerName}</TableCell>
-                    <TableCell data-testid={`text-duration-${session.id}`}>{session.duration}</TableCell>
-                    <TableCell className="text-right" data-testid={`text-session-price-${session.id}`}>
-                      ₹{session.sessionPrice.toFixed(0)}
-                    </TableCell>
-                    <TableCell className="text-right" data-testid={`text-food-amount-${session.id}`}>
-                      ₹{session.foodAmount.toFixed(0)}
-                    </TableCell>
-                    <TableCell className="text-right" data-testid={`text-cash-${session.id}`}>
-                      {session.cashAmount > 0 ? (
-                        <span className="text-green-600 dark:text-green-400">₹{session.cashAmount.toFixed(0)}</span>
-                      ) : (
-                        '-'
-                      )}
-                    </TableCell>
-                    <TableCell className="text-right" data-testid={`text-upi-${session.id}`}>
-                      {session.upiAmount > 0 ? (
-                        <span className="text-blue-600 dark:text-blue-400">₹{session.upiAmount.toFixed(0)}</span>
-                      ) : (
-                        '-'
-                      )}
-                    </TableCell>
-                    <TableCell className="text-right font-bold text-green-600 dark:text-green-400" data-testid={`text-total-${session.id}`}>
-                      ₹{session.totalAmount.toFixed(0)}
-                    </TableCell>
+                    {visibleColumns.includes("date") && (
+                      <TableCell data-testid={`text-date-${session.id}`}>{session.date}</TableCell>
+                    )}
+                    {visibleColumns.includes("seats") && (
+                      <TableCell className="font-medium" data-testid={`text-seats-${session.id}`}>
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          onClick={() => setViewSeatsDialog({ open: true, seats: session.seats })}
+                          data-testid={`button-view-seats-${session.id}`}
+                        >
+                          <Eye className="mr-2 h-4 w-4" />
+                          View Seat
+                        </Button>
+                      </TableCell>
+                    )}
+                    {visibleColumns.includes("customer") && (
+                      <TableCell data-testid={`text-customer-${session.id}`}>{session.customerName}</TableCell>
+                    )}
+                    {visibleColumns.includes("duration") && (
+                      <TableCell data-testid={`text-duration-${session.id}`}>{session.duration}</TableCell>
+                    )}
+                    {visibleColumns.includes("sessionPrice") && (
+                      <TableCell className="text-right" data-testid={`text-session-price-${session.id}`}>
+                        ₹{session.sessionPrice.toFixed(0)}
+                      </TableCell>
+                    )}
+                    {visibleColumns.includes("foodAmount") && (
+                      <TableCell className="text-right" data-testid={`text-food-amount-${session.id}`}>
+                        ₹{session.foodAmount.toFixed(0)}
+                      </TableCell>
+                    )}
+                    {visibleColumns.includes("discount") && (
+                      <TableCell className="text-right" data-testid={`text-discount-${session.id}`}>
+                        {(session as any).discount ? `₹${parseFloat((session as any).discount).toFixed(0)}` : '-'}
+                      </TableCell>
+                    )}
+                    {visibleColumns.includes("bonus") && (
+                      <TableCell className="text-right" data-testid={`text-bonus-${session.id}`}>
+                        {(session as any).bonus || '-'}
+                      </TableCell>
+                    )}
+                    {visibleColumns.includes("cash") && (
+                      <TableCell className="text-right" data-testid={`text-cash-${session.id}`}>
+                        {session.cashAmount > 0 ? (
+                          <span className="text-green-600 dark:text-green-400">₹{session.cashAmount.toFixed(0)}</span>
+                        ) : (
+                          '-'
+                        )}
+                      </TableCell>
+                    )}
+                    {visibleColumns.includes("upi") && (
+                      <TableCell className="text-right" data-testid={`text-upi-${session.id}`}>
+                        {session.upiAmount > 0 ? (
+                          <span className="text-blue-600 dark:text-blue-400">₹{session.upiAmount.toFixed(0)}</span>
+                        ) : (
+                          '-'
+                        )}
+                      </TableCell>
+                    )}
+                    {visibleColumns.includes("total") && (
+                      <TableCell className="text-right font-bold text-green-600 dark:text-green-400" data-testid={`text-total-${session.id}`}>
+                        ₹{session.totalAmount.toFixed(0)}
+                      </TableCell>
+                    )}
                   </TableRow>
                 ))
               ) : (
                 <TableRow>
-                  <TableCell colSpan={9} className="text-center text-muted-foreground">
+                  <TableCell colSpan={visibleColumns.length} className="text-center text-muted-foreground">
                     {searchQuery.trim() ? 'No bookings found matching your search' : 'No booking history for this period'}
                   </TableCell>
                 </TableRow>
