@@ -30,6 +30,7 @@ import {
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import type { Booking } from "@shared/schema";
 import { useAuth } from "@/contexts/AuthContext";
 import { useUnsavedChanges } from "@/hooks/useUnsavedChanges";
@@ -415,15 +416,24 @@ export default function Settings() {
           <p className="text-sm text-muted-foreground sm:text-base">Configure devices and pricing{!isAdmin && " (View Only)"}</p>
         </div>
         {isAdmin && (
-          <Button 
-            onClick={handleSave} 
-            data-testid="button-save-settings"
-            disabled={saveDeviceConfigMutation.isPending || savePricingConfigMutation.isPending}
-            className="w-full sm:w-auto"
-          >
-            <Save className="mr-2 h-4 w-4" />
-            Save Changes
-          </Button>
+          <TooltipProvider>
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <Button 
+                  onClick={handleSave} 
+                  data-testid="button-save-settings"
+                  disabled={saveDeviceConfigMutation.isPending || savePricingConfigMutation.isPending}
+                  className="w-full sm:w-auto"
+                >
+                  <Save className="mr-2 h-4 w-4" />
+                  Save Changes
+                </Button>
+              </TooltipTrigger>
+              <TooltipContent>
+                <p>Save all device, pricing, and happy hours configuration changes</p>
+              </TooltipContent>
+            </Tooltip>
+          </TooltipProvider>
         )}
       </div>
 
@@ -431,15 +441,24 @@ export default function Settings() {
         <div className="flex flex-col gap-3 mb-4 sm:flex-row sm:items-center sm:justify-between">
           <h2 className="text-lg font-semibold sm:text-xl">Device Configuration</h2>
           {isAdmin && (
-            <Button 
-              variant="outline" 
-              onClick={() => setShowAddDialog(true)}
-              data-testid="button-add-category"
-              className="w-full sm:w-auto"
-            >
-              <Plus className="mr-2 h-4 w-4" />
-              Add Category
-            </Button>
+            <TooltipProvider>
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <Button 
+                    variant="outline" 
+                    onClick={() => setShowAddDialog(true)}
+                    data-testid="button-add-category"
+                    className="w-full sm:w-auto"
+                  >
+                    <Plus className="mr-2 h-4 w-4" />
+                    Add Category
+                  </Button>
+                </TooltipTrigger>
+                <TooltipContent>
+                  <p>Add a new device category (e.g., PC, PS5, VR) to your gaming center</p>
+                </TooltipContent>
+              </Tooltip>
+            </TooltipProvider>
           )}
         </div>
         <div className="grid gap-4 sm:grid-cols-1 lg:grid-cols-2 xl:grid-cols-3">
@@ -454,15 +473,24 @@ export default function Settings() {
                 onToggleVisibility={isAdmin ? (seatName) => toggleSeatVisibility(cat.category, seatName) : () => {}}
               />
               {isAdmin && (
-                <Button
-                  variant="ghost"
-                  size="icon"
-                  className="absolute top-2 right-2"
-                  onClick={() => deleteCategory(cat.category)}
-                  data-testid={`button-delete-${cat.category.toLowerCase()}`}
-                >
-                  <Trash2 className="h-4 w-4" />
-                </Button>
+                <TooltipProvider>
+                  <Tooltip>
+                    <TooltipTrigger asChild>
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        className="absolute top-2 right-2"
+                        onClick={() => deleteCategory(cat.category)}
+                        data-testid={`button-delete-${cat.category.toLowerCase()}`}
+                      >
+                        <Trash2 className="h-4 w-4" />
+                      </Button>
+                    </TooltipTrigger>
+                    <TooltipContent>
+                      <p>Delete {cat.category} category and all its settings</p>
+                    </TooltipContent>
+                  </Tooltip>
+                </TooltipProvider>
               )}
             </div>
           ))}

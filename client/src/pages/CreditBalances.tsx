@@ -35,6 +35,7 @@ import {
 } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
 import { Textarea } from "@/components/ui/textarea";
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import { useToast } from "@/hooks/use-toast";
 import { apiRequest, queryClient } from "@/lib/queryClient";
 import {
@@ -377,17 +378,26 @@ export default function CreditBalances() {
                           </div>
 
                           {hasBalance && (
-                            <Button
-                              size="sm"
-                              onClick={(e) => {
-                                e.stopPropagation();
-                                handleRecordPayment(account);
-                              }}
-                              data-testid={`button-record-payment-${account.id}`}
-                            >
-                              <Wallet className="h-4 w-4 mr-2" />
-                              Record Payment
-                            </Button>
+                            <TooltipProvider>
+                              <Tooltip>
+                                <TooltipTrigger asChild>
+                                  <Button
+                                    size="sm"
+                                    onClick={(e) => {
+                                      e.stopPropagation();
+                                      handleRecordPayment(account);
+                                    }}
+                                    data-testid={`button-record-payment-${account.id}`}
+                                  >
+                                    <Wallet className="h-4 w-4 mr-2" />
+                                    Record Payment
+                                  </Button>
+                                </TooltipTrigger>
+                                <TooltipContent>
+                                  <p>Record a payment received from {account.customerName} to reduce their credit balance</p>
+                                </TooltipContent>
+                              </Tooltip>
+                            </TooltipProvider>
                           )}
 
                           {isExpanded ? (
@@ -443,20 +453,29 @@ export default function CreditBalances() {
                                     </TableCell>
                                     <TableCell>
                                       {entry.status === "pending" && (
-                                        <Button
-                                          size="sm"
-                                          variant="outline"
-                                          onClick={() => {
-                                            setSelectedEntryId(entry.id);
-                                            setSelectedEntry(entry);
-                                            setMarkAsPaidDialogOpen(true);
-                                          }}
-                                          disabled={markAsPaidMutation.isPending}
-                                          data-testid={`button-mark-paid-${entry.id}`}
-                                        >
-                                          <CreditCard className="h-4 w-4 mr-2" />
-                                          Mark as Paid
-                                        </Button>
+                                        <TooltipProvider>
+                                          <Tooltip>
+                                            <TooltipTrigger asChild>
+                                              <Button
+                                                size="sm"
+                                                variant="outline"
+                                                onClick={() => {
+                                                  setSelectedEntryId(entry.id);
+                                                  setSelectedEntry(entry);
+                                                  setMarkAsPaidDialogOpen(true);
+                                                }}
+                                                disabled={markAsPaidMutation.isPending}
+                                                data-testid={`button-mark-paid-${entry.id}`}
+                                              >
+                                                <CreditCard className="h-4 w-4 mr-2" />
+                                                Mark as Paid
+                                              </Button>
+                                            </TooltipTrigger>
+                                            <TooltipContent>
+                                              <p>Mark this ₹{parseFloat(entry.remainingCredit).toFixed(2)} credit entry as fully paid</p>
+                                            </TooltipContent>
+                                          </Tooltip>
+                                        </TooltipProvider>
                                       )}
                                       {entry.status === "paid" && (
                                         <span className="text-sm text-green-600 dark:text-green-400 font-medium">

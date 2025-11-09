@@ -5,6 +5,7 @@ import { useTheme } from "@/components/ThemeProvider";
 import { useToast } from "@/hooks/use-toast";
 import { useAuth } from "@/contexts/AuthContext";
 import { Badge } from "@/components/ui/badge";
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import {
   Sidebar,
   SidebarContent,
@@ -27,6 +28,7 @@ interface MenuItem {
   countKey?: string;
   hasAI?: boolean;
   adminOnly?: boolean;
+  tooltip: string;
 }
 
 interface MenuCategory {
@@ -42,16 +44,19 @@ const menuCategories: MenuCategory[] = [
         title: "Dashboard",
         url: "/",
         icon: LayoutDashboard,
+        tooltip: "Manage active bookings, view seat availability, and control gaming sessions",
       },
       {
         title: "Timeline",
         url: "/timeline",
         icon: CalendarClock,
+        tooltip: "Visual timeline view of all bookings showing session schedules",
       },
       {
         title: "History",
         url: "/history",
         icon: History,
+        tooltip: "View past booking records and completed sessions",
       },
     ],
   },
@@ -62,22 +67,26 @@ const menuCategories: MenuCategory[] = [
         title: "Food",
         url: "/food",
         icon: UtensilsCrossed,
+        tooltip: "Manage food menu items, pricing, and categories",
       },
       {
         title: "Inventory",
         url: "/inventory",
         icon: Package,
         countKey: "lowStock",
+        tooltip: "Track food stock levels and get low stock alerts",
       },
       {
         title: "Expenses",
         url: "/expenses",
         icon: Wallet,
+        tooltip: "Record and manage operational expenses",
       },
       {
         title: "Credit Balances",
         url: "/credit-balances",
         icon: CreditCard,
+        tooltip: "Manage customer credit accounts and track payment history",
       },
     ],
   },
@@ -89,12 +98,14 @@ const menuCategories: MenuCategory[] = [
         url: "/analytics",
         icon: BarChart3,
         hasAI: true,
+        tooltip: "View detailed analytics with AI-powered traffic predictions",
       },
       {
         title: "Reports",
         url: "/reports",
         icon: FileText,
         adminOnly: true,
+        tooltip: "Generate revenue reports and view booking statistics",
       },
     ],
   },
@@ -106,22 +117,26 @@ const menuCategories: MenuCategory[] = [
         url: "/ai-maintenance",
         icon: Brain,
         hasAI: true,
+        tooltip: "AI-powered predictive maintenance insights for devices",
       },
       {
         title: "Activity Logs",
         url: "/activity-logs",
         icon: ScrollText,
+        tooltip: "View all administrative and staff actions audit trail",
       },
       {
         title: "Settings",
         url: "/settings",
         icon: Settings,
+        tooltip: "Configure devices, pricing, and happy hours settings",
       },
       {
         title: "Terms & Conditions",
         url: "/terms",
         icon: Scale,
         adminOnly: true,
+        tooltip: "View and manage service terms and conditions",
       },
     ],
   },
@@ -197,30 +212,39 @@ export function AppSidebar() {
                     
                     return (
                       <SidebarMenuItem key={item.title}>
-                        <SidebarMenuButton 
-                          asChild 
-                          isActive={isActive}
-                          className={isActive ? 'bg-purple-50 dark:bg-purple-950/30 text-purple-700 dark:text-purple-400 font-medium hover:bg-purple-100 dark:hover:bg-purple-950/50' : ''}
-                          data-testid={`link-${item.title.toLowerCase().replace(/\s+/g, '-')}`}
-                        >
-                          <Link href={item.url}>
-                            <item.icon className={isActive ? 'text-purple-600 dark:text-purple-400' : ''} />
-                            <span className="flex items-center gap-1.5 flex-1">
-                              {item.title}
-                              {item.hasAI && (
-                                <Sparkles className="h-3 w-3 text-purple-500 animate-pulse" />
-                              )}
-                            </span>
-                            {count > 0 && (
-                              <Badge 
-                                variant="secondary" 
-                                className="ml-auto bg-purple-100 dark:bg-purple-900/30 text-purple-700 dark:text-purple-300 border-0"
+                        <TooltipProvider>
+                          <Tooltip>
+                            <TooltipTrigger asChild>
+                              <SidebarMenuButton 
+                                asChild 
+                                isActive={isActive}
+                                className={isActive ? 'bg-purple-50 dark:bg-purple-950/30 text-purple-700 dark:text-purple-400 font-medium hover:bg-purple-100 dark:hover:bg-purple-950/50' : ''}
+                                data-testid={`link-${item.title.toLowerCase().replace(/\s+/g, '-')}`}
                               >
-                                {count}
-                              </Badge>
-                            )}
-                          </Link>
-                        </SidebarMenuButton>
+                                <Link href={item.url}>
+                                  <item.icon className={isActive ? 'text-purple-600 dark:text-purple-400' : ''} />
+                                  <span className="flex items-center gap-1.5 flex-1">
+                                    {item.title}
+                                    {item.hasAI && (
+                                      <Sparkles className="h-3 w-3 text-purple-500 animate-pulse" />
+                                    )}
+                                  </span>
+                                  {count > 0 && (
+                                    <Badge 
+                                      variant="secondary" 
+                                      className="ml-auto bg-purple-100 dark:bg-purple-900/30 text-purple-700 dark:text-purple-300 border-0"
+                                    >
+                                      {count}
+                                    </Badge>
+                                  )}
+                                </Link>
+                              </SidebarMenuButton>
+                            </TooltipTrigger>
+                            <TooltipContent side="right">
+                              <p>{item.tooltip}</p>
+                            </TooltipContent>
+                          </Tooltip>
+                        </TooltipProvider>
                       </SidebarMenuItem>
                     );
                   })}
@@ -234,10 +258,19 @@ export function AppSidebar() {
       <SidebarFooter>
         <SidebarMenu>
           <SidebarMenuItem>
-            <SidebarMenuButton onClick={handleLogout} data-testid="button-logout">
-              <LogOut />
-              <span>Logout</span>
-            </SidebarMenuButton>
+            <TooltipProvider>
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <SidebarMenuButton onClick={handleLogout} data-testid="button-logout">
+                    <LogOut />
+                    <span>Logout</span>
+                  </SidebarMenuButton>
+                </TooltipTrigger>
+                <TooltipContent side="right">
+                  <p>Sign out from your account and return to login page</p>
+                </TooltipContent>
+              </Tooltip>
+            </TooltipProvider>
           </SidebarMenuItem>
         </SidebarMenu>
       </SidebarFooter>

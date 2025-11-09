@@ -43,6 +43,7 @@ import {
   DialogTitle,
   DialogFooter,
 } from "@/components/ui/dialog";
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import { useAuth } from "@/contexts/AuthContext";
 
 type BookingStatus = "available" | "running" | "expired" | "upcoming" | "completed" | "paused";
@@ -238,26 +239,44 @@ export function BookingTable({ bookings, onExtend, onEnd, onComplete, onAddFood,
           />
         </div>
         <div className="flex items-center gap-1 bg-muted/50 rounded-lg p-1">
-          <Button
-            variant={viewMode === "table" ? "default" : "ghost"}
-            size="sm"
-            onClick={() => setViewMode("table")}
-            className="h-8 px-3"
-            data-testid="button-table-view"
-          >
-            <Table2 className="h-4 w-4 mr-2" />
-            Table
-          </Button>
-          <Button
-            variant={viewMode === "card" ? "default" : "ghost"}
-            size="sm"
-            onClick={() => setViewMode("card")}
-            className="h-8 px-3"
-            data-testid="button-card-view"
-          >
-            <LayoutGrid className="h-4 w-4 mr-2" />
-            Cards
-          </Button>
+          <TooltipProvider>
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <Button
+                  variant={viewMode === "table" ? "default" : "ghost"}
+                  size="sm"
+                  onClick={() => setViewMode("table")}
+                  className="h-8 px-3"
+                  data-testid="button-table-view"
+                >
+                  <Table2 className="h-4 w-4 mr-2" />
+                  Table
+                </Button>
+              </TooltipTrigger>
+              <TooltipContent>
+                <p>View bookings in detailed table format showing all information</p>
+              </TooltipContent>
+            </Tooltip>
+          </TooltipProvider>
+          <TooltipProvider>
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <Button
+                  variant={viewMode === "card" ? "default" : "ghost"}
+                  size="sm"
+                  onClick={() => setViewMode("card")}
+                  className="h-8 px-3"
+                  data-testid="button-card-view"
+                >
+                  <LayoutGrid className="h-4 w-4 mr-2" />
+                  Cards
+                </Button>
+              </TooltipTrigger>
+              <TooltipContent>
+                <p>View bookings grouped by customer in card layout (better for mobile)</p>
+              </TooltipContent>
+            </Tooltip>
+          </TooltipProvider>
         </div>
       </div>
 

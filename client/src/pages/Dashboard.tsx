@@ -794,15 +794,24 @@ export default function Dashboard() {
           <h1 className="text-2xl sm:text-3xl lg:text-4xl font-bold text-foreground tracking-tight">Seat Management</h1>
           <p className="text-sm sm:text-base text-muted-foreground">Monitor and manage all gaming seats</p>
         </div>
-        <Button 
-          onClick={() => setAddDialog(true)} 
-          data-testid="button-add-booking" 
-          className="w-full sm:w-auto sm:min-w-[160px] h-10 sm:h-11"
-          size="lg"
-        >
-          <Plus className="mr-2 h-4 w-4 sm:h-5 sm:w-5" />
-          <span className="font-semibold">Add Booking</span>
-        </Button>
+        <TooltipProvider>
+          <Tooltip>
+            <TooltipTrigger asChild>
+              <Button 
+                onClick={() => setAddDialog(true)} 
+                data-testid="button-add-booking" 
+                className="w-full sm:w-auto sm:min-w-[160px] h-10 sm:h-11"
+                size="lg"
+              >
+                <Plus className="mr-2 h-4 w-4 sm:h-5 sm:w-5" />
+                <span className="font-semibold">Add Booking</span>
+              </Button>
+            </TooltipTrigger>
+            <TooltipContent>
+              <p>Create a new booking for any available gaming seat (Ctrl+N)</p>
+            </TooltipContent>
+          </Tooltip>
+        </TooltipProvider>
       </div>
 
       <div className="grid gap-3 sm:gap-4 grid-cols-1 sm:grid-cols-2 lg:grid-cols-4">
@@ -851,46 +860,77 @@ export default function Dashboard() {
             </TabsTrigger>
           </TabsList>
           <div className="flex flex-wrap gap-2 sm:gap-3">
-            <Button 
-              variant="outline" 
-              size="sm" 
-              onClick={handleCalculate}
-              data-testid="button-calculate"
-              className="flex-1 min-w-[100px] sm:flex-none h-9 sm:h-10"
-            >
-              <Calculator className="mr-1.5 sm:mr-2 h-4 w-4" />
-              <span className="text-xs sm:text-sm">Calculate ({selectedBookings.size})</span>
-            </Button>
-            <Button 
-              variant="outline" 
-              size="sm" 
-              onClick={() => {
-                if (selectedBookings.size === 0) {
-                  toast({
-                    title: "No Bookings Selected",
-                    description: "Please select bookings from the list first",
-                    variant: "destructive",
-                  });
-                } else {
-                  setShowPaymentDialog(true);
-                }
-              }}
-              data-testid="button-payment-method"
-              className="flex-1 min-w-[100px] sm:flex-none h-9 sm:h-10"
-            >
-              <Wallet className="mr-1.5 sm:mr-2 h-4 w-4" />
-              <span className="text-xs sm:text-sm">Payment</span>
-            </Button>
-            <Button 
-              variant="outline" 
-              size="sm" 
-              onClick={handleRefresh}
-              data-testid="button-refresh-list"
-              className="flex-1 min-w-[100px] sm:flex-none h-9 sm:h-10"
-            >
-              <RefreshCw className="mr-1.5 sm:mr-2 h-4 w-4" />
-              <span className="text-xs sm:text-sm">Refresh</span>
-            </Button>
+            <TooltipProvider>
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <Button 
+                    variant="outline" 
+                    size="sm" 
+                    onClick={handleCalculate}
+                    data-testid="button-calculate"
+                    className="flex-1 min-w-[100px] sm:flex-none h-9 sm:h-10"
+                  >
+                    <Calculator className="mr-1.5 sm:mr-2 h-4 w-4" />
+                    <span className="text-xs sm:text-sm">Calculate ({selectedBookings.size})</span>
+                  </Button>
+                </TooltipTrigger>
+                <TooltipContent>
+                  <p>{selectedBookings.size > 0 
+                    ? `Calculate total amount for ${selectedBookings.size} selected booking${selectedBookings.size > 1 ? 's' : ''} including food orders` 
+                    : 'Select bookings from the list below to calculate total payment amount'}</p>
+                </TooltipContent>
+              </Tooltip>
+            </TooltipProvider>
+            <TooltipProvider>
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <Button 
+                    variant="outline" 
+                    size="sm" 
+                    onClick={() => {
+                      if (selectedBookings.size === 0) {
+                        toast({
+                          title: "No Bookings Selected",
+                          description: "Please select bookings from the list first",
+                          variant: "destructive",
+                        });
+                      } else {
+                        setShowPaymentDialog(true);
+                      }
+                    }}
+                    data-testid="button-payment-method"
+                    className="flex-1 min-w-[100px] sm:flex-none h-9 sm:h-10"
+                  >
+                    <Wallet className="mr-1.5 sm:mr-2 h-4 w-4" />
+                    <span className="text-xs sm:text-sm">Payment</span>
+                  </Button>
+                </TooltipTrigger>
+                <TooltipContent>
+                  <p>{selectedBookings.size > 0 
+                    ? `Mark ${selectedBookings.size} selected booking${selectedBookings.size > 1 ? 's' : ''} as paid via Cash, UPI, or Credit` 
+                    : 'Select completed sessions to mark payment method and record payment'}</p>
+                </TooltipContent>
+              </Tooltip>
+            </TooltipProvider>
+            <TooltipProvider>
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <Button 
+                    variant="outline" 
+                    size="sm" 
+                    onClick={handleRefresh}
+                    data-testid="button-refresh-list"
+                    className="flex-1 min-w-[100px] sm:flex-none h-9 sm:h-10"
+                  >
+                    <RefreshCw className="mr-1.5 sm:mr-2 h-4 w-4" />
+                    <span className="text-xs sm:text-sm">Refresh</span>
+                  </Button>
+                </TooltipTrigger>
+                <TooltipContent>
+                  <p>Archive completed bookings and move them to history report. Use after marking payments. (Ctrl+R)</p>
+                </TooltipContent>
+              </Tooltip>
+            </TooltipProvider>
           </div>
         </div>
 
