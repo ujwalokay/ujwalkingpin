@@ -509,25 +509,67 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(400).json({ message: "Booking IDs are required" });
       }
       
-      const cash = parseFloat(cashAmount) || 0;
-      const upi = parseFloat(upiAmount) || 0;
+      const totalCash = parseFloat(cashAmount) || 0;
+      const totalUpi = parseFloat(upiAmount) || 0;
       
-      if (cash < 0 || upi < 0) {
+      if (totalCash < 0 || totalUpi < 0) {
         return res.status(400).json({ message: "Amounts cannot be negative" });
       }
       
-      if (cash === 0 && upi === 0) {
+      if (totalCash === 0 && totalUpi === 0) {
         return res.status(400).json({ message: "At least one payment amount must be greater than zero" });
       }
       
+      const bookings = await Promise.all(bookingIds.map(id => storage.getBooking(id)));
+      const missingBookings = bookings.filter(b => !b);
+      if (missingBookings.length > 0) {
+        return res.status(404).json({ message: "One or more bookings not found" });
+      }
+      
+      const grandTotal = bookings.reduce((sum, booking) => {
+        const bookingTotal = parseFloat(booking!.price) + 
+          (booking!.foodOrders || []).reduce((fSum: number, order: any) => 
+            fSum + (parseFloat(order.price) * order.quantity), 0);
+        return sum + bookingTotal;
+      }, 0);
+      
+      if (Math.abs((totalCash + totalUpi) - grandTotal) > 0.01) {
+        return res.status(400).json({ 
+          message: `Cash (₹${totalCash}) + UPI (₹${totalUpi}) must equal total booking amount (₹${grandTotal.toFixed(2)})` 
+        });
+      }
+      
       const updatedBookings = [];
-      for (const bookingId of bookingIds) {
-        const updated = await storage.updateBooking(bookingId, {
+      let remainingCash = totalCash;
+      let remainingUpi = totalUpi;
+      
+      for (let i = 0; i < bookings.length; i++) {
+        const booking = bookings[i]!;
+        const bookingTotal = parseFloat(booking.price) + 
+          (booking.foodOrders || []).reduce((fSum: number, order: any) => 
+            fSum + (parseFloat(order.price) * order.quantity), 0);
+        
+        let bookingCash: number;
+        let bookingUpi: number;
+        
+        if (i === bookings.length - 1) {
+          bookingCash = remainingCash;
+          bookingUpi = remainingUpi;
+        } else {
+          const proportion = bookingTotal / grandTotal;
+          bookingCash = Math.round(totalCash * proportion * 100) / 100;
+          bookingUpi = Math.round(totalUpi * proportion * 100) / 100;
+          remainingCash -= bookingCash;
+          remainingUpi -= bookingUpi;
+        }
+        
+        const updated = await storage.updateBooking(booking.id, {
           paymentMethod: "split",
-          cashAmount: cash.toFixed(2),
-          upiAmount: upi.toFixed(2),
+          cashAmount: bookingCash.toFixed(2),
+          upiAmount: bookingUpi.toFixed(2),
           paymentStatus: "paid"
         });
+        
         if (updated) {
           const serializedBooking = {
             ...updated,
