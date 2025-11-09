@@ -879,8 +879,12 @@ export class DatabaseStorage implements IStorage {
   }
 
   async getExpiringItems(daysAhead: number): Promise<FoodItem[]> {
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+    
     const futureDate = new Date();
     futureDate.setDate(futureDate.getDate() + daysAhead);
+    futureDate.setHours(23, 59, 59, 999);
     
     const items = await db
       .select()
@@ -889,6 +893,7 @@ export class DatabaseStorage implements IStorage {
         and(
           eq(foodItems.inInventory, 1),
           isNotNull(foodItems.expiryDate),
+          gte(foodItems.expiryDate, today),
           lte(foodItems.expiryDate, futureDate)
         )
       );
