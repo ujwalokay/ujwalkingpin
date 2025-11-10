@@ -63,6 +63,8 @@ interface GroupedBookingSession {
   upiAmount: number;
   totalAmount: number;
   bookingIds: string[];
+  discount?: string;
+  bonus?: string;
 }
 
 export default function Reports() {
@@ -670,12 +672,12 @@ export default function Reports() {
                     )}
                     {visibleColumns.includes("discount") && (
                       <TableCell className="text-right" data-testid={`text-discount-${session.id}`}>
-                        {(session as any).discount ? `₹${parseFloat((session as any).discount).toFixed(0)}` : '-'}
+                        {session.discount ? `₹${parseFloat(session.discount).toFixed(0)}` : '-'}
                       </TableCell>
                     )}
                     {visibleColumns.includes("bonus") && (
                       <TableCell className="text-right" data-testid={`text-bonus-${session.id}`}>
-                        {(session as any).bonus || '-'}
+                        {session.bonus || '-'}
                       </TableCell>
                     )}
                     {visibleColumns.includes("cash") && (
