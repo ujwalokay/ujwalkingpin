@@ -41,7 +41,7 @@ import { SplashScreen } from "@/components/SplashScreen";
 import { NetworkAlert } from "@/components/NetworkAlert";
 import { NotificationCenter } from "@/components/NotificationCenter";
 import { InactivityRefreshPrompt } from "@/components/InactivityRefreshPrompt";
-import { LiveClock } from "@/components/LiveClock";
+import { FlipClock } from "@/components/FlipClock";
 import { useState, useEffect } from "react";
 import { useToast } from "@/hooks/use-toast";
 import { useNetworkMonitor } from "@/hooks/useNetworkMonitor";
@@ -321,7 +321,7 @@ function App() {
                             </div>
                           )}
                           <div className="hidden md:block">
-                            <LiveClock />
+                            <FlipClock />
                           </div>
                           <div data-joyride="notification-center">
                             <NotificationCenter />
