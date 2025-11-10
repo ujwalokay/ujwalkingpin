@@ -100,6 +100,10 @@ export interface BookingHistoryItem {
   paymentMethod: string | null;
   cashAmount: string | null;
   upiAmount: string | null;
+  discount?: string | null;
+  bonus?: string | null;
+  discountApplied?: string | null;
+  bonusHoursApplied?: string | null;
 }
 
 export interface CustomerPromotionSummary {
@@ -583,7 +587,9 @@ export class DatabaseStorage implements IStorage {
           cashAmount: booking.cashAmount,
           upiAmount: booking.upiAmount,
           discount: booking.discount,
-          bonus: booking.bonus
+          bonus: booking.bonus,
+          discountApplied: booking.discountApplied,
+          bonusHoursApplied: booking.bonusHoursApplied
         };
       })
       .sort((a, b) => b.date.localeCompare(a.date));

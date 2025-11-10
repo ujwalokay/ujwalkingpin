@@ -50,6 +50,8 @@ interface BookingHistoryItem {
   upiAmount: string | null;
   discount?: string | null;
   bonus?: string | null;
+  discountApplied?: string | null;
+  bonusHoursApplied?: string | null;
 }
 
 interface GroupedBookingSession {
@@ -66,6 +68,8 @@ interface GroupedBookingSession {
   bookingIds: string[];
   discount?: string;
   bonus?: string;
+  discountApplied?: string;
+  bonusHoursApplied?: string;
   paymentStatus: string;
 }
 
@@ -171,14 +175,15 @@ export default function Reports() {
             session.upiAmount += record.totalAmount || parseFloat(record.price);
           }
           
-          if (record.discount) {
-            const discountValue = parseFloat(record.discount);
-            session.discount = ((session.discount ? parseFloat(session.discount) : 0) + discountValue).toString();
+          if (record.discountApplied) {
+            session.discountApplied = session.discountApplied 
+              ? `${session.discountApplied}, ${record.discountApplied}`
+              : record.discountApplied;
           }
-          if (record.bonus) {
-            session.bonus = session.bonus 
-              ? `${session.bonus}, ${record.bonus}`
-              : record.bonus;
+          if (record.bonusHoursApplied) {
+            session.bonusHoursApplied = session.bonusHoursApplied 
+              ? `${session.bonusHoursApplied}, ${record.bonusHoursApplied}`
+              : record.bonusHoursApplied;
           }
           
           const currentStatus = session.paymentStatus || 'unpaid';
@@ -216,6 +221,8 @@ export default function Reports() {
           bookingIds: [record.id],
           discount: record.discount || undefined,
           bonus: record.bonus || undefined,
+          discountApplied: record.discountApplied || undefined,
+          bonusHoursApplied: record.bonusHoursApplied || undefined,
           paymentStatus: record.paymentStatus || 'unpaid',
         });
       }
@@ -683,12 +690,12 @@ export default function Reports() {
                     )}
                     {visibleColumns.includes("discount") && (
                       <TableCell className="text-right" data-testid={`text-discount-${session.id}`}>
-                        {session.discount || '-'}
+                        {session.discountApplied || '-'}
                       </TableCell>
                     )}
                     {visibleColumns.includes("bonus") && (
                       <TableCell className="text-right" data-testid={`text-bonus-${session.id}`}>
-                        {session.bonus || '-'}
+                        {session.bonusHoursApplied || '-'}
                       </TableCell>
                     )}
                     {visibleColumns.includes("paymentStatus") && (
