@@ -23,7 +23,8 @@ import {
   Receipt,
   Laptop,
   Gamepad2,
-  BarChart3
+  BarChart3,
+  Wallet
 } from "lucide-react";
 
 interface OnboardingTourProps {
@@ -104,6 +105,40 @@ const tourSteps: TourStep[] = [
       "🔔 Timer turns red when expired - automatic alert",
       "🔔 Paused sessions retain remaining time",
       "🔔 Food orders add to total booking amount"
+    ]
+  },
+  {
+    title: "Payment Processing 💳",
+    description: "Record payments for completed sessions",
+    icon: <DollarSign className="h-12 w-12 text-green-500" />,
+    content: "Use the Calculate and Payment buttons to process customer payments. Select completed bookings from the table, calculate the total, then record how they paid.",
+    features: [
+      { icon: <Users className="h-5 w-5 text-blue-500" />, text: "Select Bookings - Check boxes on completed sessions" },
+      { icon: <Receipt className="h-5 w-5 text-purple-500" />, text: "Calculate - Get total amount including food orders" },
+      { icon: <Wallet className="h-5 w-5 text-green-500" />, text: "Payment - Mark as Cash, UPI, or Credit payment" },
+      { icon: <DollarSign className="h-5 w-5 text-orange-500" />, text: "Split Payment - Combine Cash and UPI if needed" }
+    ],
+    tips: [
+      "💰 Select multiple bookings to process payments together",
+      "💰 Calculate shows total including all food orders",
+      "💰 Split payment lets you record Cash + UPI combinations"
+    ]
+  },
+  {
+    title: "Refresh & Archive 🔄",
+    description: "Keep your dashboard clean and organized",
+    icon: <Clock className="h-12 w-12 text-blue-500" />,
+    content: "After marking payments, click the Refresh button to archive completed bookings and move them to the History page. This keeps your dashboard showing only active sessions.",
+    features: [
+      { icon: <Receipt className="h-5 w-5 text-green-500" />, text: "Archive Completed - Moves paid bookings to history" },
+      { icon: <Calendar className="h-5 w-5 text-blue-500" />, text: "Clean Dashboard - Shows only active sessions" },
+      { icon: <Clock className="h-5 w-5 text-orange-500" />, text: "Auto-Cleanup - Daily cleanup at 2 AM" },
+      { icon: <Settings className="h-5 w-5 text-purple-500" />, text: "Ctrl+R Shortcut - Quick data refresh (no archive)" }
+    ],
+    tips: [
+      "🔄 Click Refresh button after processing payments to archive",
+      "🔄 Archived bookings move to History page",
+      "🔄 Ctrl+R refreshes data without archiving"
     ]
   },
   {
