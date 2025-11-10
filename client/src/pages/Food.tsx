@@ -168,13 +168,13 @@ export default function Food() {
           <h1 className="text-2xl sm:text-3xl font-bold text-foreground">Food Management</h1>
           <p className="text-sm sm:text-base text-muted-foreground">Manage food items available for customers</p>
         </div>
-        <Button onClick={() => { setAddDialog(true); setFormData(initialFormData); }} data-testid="button-add-food" className="w-full sm:w-auto">
+        <Button onClick={() => { setAddDialog(true); setFormData(initialFormData); }} data-testid="button-add-food" data-joyride="add-food-button" className="w-full sm:w-auto">
           <Plus className="mr-2 h-4 w-4" />
           Add Food Item
         </Button>
       </div>
 
-      <div className="grid gap-3 grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
+      <div className="grid gap-3 grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4" data-joyride="food-items-grid">
         {foodItems.map((item) => (
           <div
             key={item.id}

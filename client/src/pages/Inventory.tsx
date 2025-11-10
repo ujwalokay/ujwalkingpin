@@ -224,6 +224,7 @@ export default function Inventory() {
           onClick={() => setAddDialog(true)}
           disabled={!canMakeChanges}
           data-testid="button-add-from-food"
+          data-joyride="add-to-inventory-button"
         >
           <Plus className="h-4 w-4 mr-2" />
           Add from Food
@@ -231,7 +232,7 @@ export default function Inventory() {
       </div>
 
       {lowStockItems.length > 0 && (
-        <Alert variant="destructive" data-testid="alert-low-stock">
+        <Alert variant="destructive" data-testid="alert-low-stock" data-joyride="low-stock-alert">
           <AlertTriangle className="h-4 w-4" />
           <AlertDescription>
             <strong>Low Stock Warning:</strong> {lowStockItems.length} item{lowStockItems.length > 1 ? 's' : ''} below minimum quantity - {lowStockItems.map(item => item.name).join(', ')}
@@ -248,14 +249,14 @@ export default function Inventory() {
         </Alert>
       )}
 
-      <Tabs value={categoryFilter} onValueChange={setCategoryFilter}>
+      <Tabs value={categoryFilter} onValueChange={setCategoryFilter} data-joyride="inventory-tabs">
         <TabsList>
           <TabsTrigger value="all">All Items</TabsTrigger>
           <TabsTrigger value="trackable">Trackable Only</TabsTrigger>
           <TabsTrigger value="made-to-order">Made to Order</TabsTrigger>
         </TabsList>
 
-        <TabsContent value={categoryFilter} className="mt-4">
+        <TabsContent value={categoryFilter} className="mt-4" data-joyride="inventory-table">
           {filteredItems.length === 0 ? (
             <Card>
               <CardContent className="flex flex-col items-center justify-center py-12">

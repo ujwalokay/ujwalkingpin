@@ -53,6 +53,41 @@ export const dashboardTourSteps: Step[] = [
     placement: 'top',
   },
   {
+    target: '[data-joyride="sidebar-food"]',
+    content: 'The Food page is where you manage your menu items. Add snacks, drinks, and meals with pricing, cost price, and categories (Trackable or Made to Order). These items can be added to bookings for extra revenue!',
+    placement: 'right',
+  },
+  {
+    target: '[data-joyride="add-food-button"]',
+    content: 'Click "Add Food Item" to create new menu items. Set the name, selling price, cost price (for profit tracking), supplier, and minimum stock levels. Trackable items can have inventory management!',
+    placement: 'left',
+  },
+  {
+    target: '[data-joyride="food-items-grid"]',
+    content: 'Your menu items appear here as cards. Each card shows the item name, price, cost/profit, category, and expiry date. You can edit or delete items directly from these cards.',
+    placement: 'top',
+  },
+  {
+    target: '[data-joyride="sidebar-inventory"]',
+    content: 'The Inventory page helps you track stock levels for trackable items like chips, drinks, and packaged snacks. Get low stock alerts and manage expiry dates to reduce waste!',
+    placement: 'right',
+  },
+  {
+    target: '[data-joyride="add-to-inventory-button"]',
+    content: 'Add food items from your Food page to the Inventory. Only "Trackable" category items need inventory management - made-to-order items don\'t need stock tracking.',
+    placement: 'left',
+  },
+  {
+    target: '[data-joyride="inventory-tabs"]',
+    content: 'Filter inventory by category: view all items, only trackable items (with stock), or made-to-order items. This helps you focus on what needs restocking.',
+    placement: 'top',
+  },
+  {
+    target: '[data-joyride="inventory-table"]',
+    content: 'The inventory table shows current stock, minimum levels, profit margins, and status. Items below minimum stock are highlighted in red. You can add/remove stock and track supplier information here.',
+    placement: 'top',
+  },
+  {
     target: '[data-joyride="sidebar-settings"]',
     content: 'Visit Settings to configure your gaming devices, pricing tiers, happy hours, and more. This is where you customize everything for your gaming center.',
     placement: 'right',
