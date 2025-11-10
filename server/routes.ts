@@ -489,6 +489,46 @@ export async function registerRoutes(app: Express): Promise<Server> {
       }
       
       const userId = (req.user as any)?.id || 'unknown';
+      
+      if (paymentMethod === "credit_later") {
+        const bookingsData = await Promise.all(bookingIds.map(id => storage.getBooking(id)));
+        const validBookings = bookingsData.filter(b => b !== undefined);
+        
+        for (const booking of validBookings) {
+          let creditAccount = await storage.getCreditAccountByCustomer(
+            booking.customerName,
+            booking.whatsappNumber || undefined
+          );
+          
+          if (!creditAccount) {
+            creditAccount = await storage.createCreditAccount({
+              customerName: booking.customerName,
+              whatsappNumber: booking.whatsappNumber || undefined,
+              currentBalance: "0"
+            });
+          }
+          
+          const totalAmount = parseFloat(booking.price) + 
+            (booking.foodOrders || []).reduce((sum: number, order: any) => 
+              sum + (parseFloat(order.price) * order.quantity), 0);
+          
+          const currentBalance = parseFloat(creditAccount.currentBalance);
+          const newBalance = currentBalance + totalAmount;
+          
+          await storage.createCreditEntry({
+            creditAccountId: creditAccount.id,
+            bookingId: booking.id,
+            openingBalance: currentBalance.toFixed(2),
+            creditIssued: totalAmount.toFixed(2),
+            nonCreditPaid: "0",
+            remainingCredit: totalAmount.toFixed(2),
+            status: "pending"
+          });
+          
+          await storage.updateCreditAccountBalance(creditAccount.id, newBalance.toFixed(2));
+        }
+      }
+      
       const result = await storage.updatePaymentStatus(bookingIds, paymentStatus, paymentMethod || null, userId);
       
       if (paymentStatus === "paid" && result.bookings.length > 0) {
