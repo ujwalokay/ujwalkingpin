@@ -18,12 +18,12 @@ const FlipDigit = memo(({ value, prevValue, label }: FlipDigitProps) => {
   }, [value, prevValue]);
 
   return (
-    <div className="flex flex-col items-center gap-1">
-      <div className="relative w-10 h-12 md:w-14 md:h-16" style={{ perspective: '400px' }}>
-        <div className="absolute inset-0 overflow-hidden rounded-lg">
-          <div className="absolute inset-0 bg-gradient-to-br from-[#7B68EE] to-[#6A5ACD] rounded-lg shadow-lg border border-white/10">
+    <div className="flex flex-col items-center gap-0.5">
+      <div className="relative w-6 h-8" style={{ perspective: '200px' }}>
+        <div className="absolute inset-0 overflow-hidden rounded">
+          <div className="absolute inset-0 bg-gradient-to-br from-[#7B68EE] to-[#6A5ACD] rounded shadow-md border border-white/10">
             <div className="absolute inset-x-0 top-0 h-1/2 overflow-hidden border-b border-white/5">
-              <div className="absolute inset-0 flex items-center justify-center font-mono font-bold text-2xl md:text-4xl text-white">
+              <div className="absolute inset-0 flex items-center justify-center font-mono font-bold text-lg text-white">
                 {value}
               </div>
             </div>
@@ -32,7 +32,7 @@ const FlipDigit = memo(({ value, prevValue, label }: FlipDigitProps) => {
 
         {isFlipping && (
           <div 
-            className="absolute inset-0 overflow-hidden rounded-lg"
+            className="absolute inset-0 overflow-hidden rounded"
             style={{ 
               transformStyle: 'preserve-3d',
               transformOrigin: 'center bottom',
@@ -40,11 +40,11 @@ const FlipDigit = memo(({ value, prevValue, label }: FlipDigitProps) => {
             }}
           >
             <div 
-              className="absolute inset-0 bg-gradient-to-br from-[#7B68EE] to-[#6A5ACD] rounded-lg shadow-lg border border-white/10"
+              className="absolute inset-0 bg-gradient-to-br from-[#7B68EE] to-[#6A5ACD] rounded shadow-md border border-white/10"
               style={{ backfaceVisibility: 'hidden' }}
             >
               <div className="absolute inset-x-0 top-0 h-1/2 overflow-hidden border-b border-white/5">
-                <div className="absolute inset-0 flex items-center justify-center font-mono font-bold text-2xl md:text-4xl text-white">
+                <div className="absolute inset-0 flex items-center justify-center font-mono font-bold text-lg text-white">
                   {prevValue}
                 </div>
               </div>
@@ -52,10 +52,10 @@ const FlipDigit = memo(({ value, prevValue, label }: FlipDigitProps) => {
           </div>
         )}
 
-        <div className="absolute inset-0 overflow-hidden pointer-events-none rounded-lg">
-          <div className="absolute inset-0 bg-gradient-to-br from-[#6A5ACD] to-[#5B4BC4] rounded-lg shadow-lg border border-white/10">
+        <div className="absolute inset-0 overflow-hidden pointer-events-none rounded">
+          <div className="absolute inset-0 bg-gradient-to-br from-[#6A5ACD] to-[#5B4BC4] rounded shadow-md border border-white/10">
             <div className="absolute inset-x-0 bottom-0 h-1/2 overflow-hidden border-t border-white/5">
-              <div className="absolute inset-0 flex items-center justify-center font-mono font-bold text-2xl md:text-4xl text-white" style={{ transform: 'translateY(-100%)' }}>
+              <div className="absolute inset-0 flex items-center justify-center font-mono font-bold text-lg text-white" style={{ transform: 'translateY(-100%)' }}>
                 {value}
               </div>
             </div>
@@ -64,7 +64,7 @@ const FlipDigit = memo(({ value, prevValue, label }: FlipDigitProps) => {
       </div>
       
       {label && (
-        <div className="text-xs md:text-sm font-bold text-foreground uppercase tracking-wider">
+        <div className="text-[8px] font-bold text-foreground uppercase tracking-wide">
           {label}
         </div>
       )}
@@ -95,8 +95,8 @@ export function FlipClock() {
       hours: [hours[0], hours[1]],
       minutes: [minutes[0], minutes[1]],
       seconds: [seconds[0], seconds[1]],
-      day: now.toLocaleDateString('en-US', { weekday: 'long' }),
-      month: now.toLocaleDateString('en-US', { month: 'long' }),
+      day: now.toLocaleDateString('en-US', { weekday: 'short' }),
+      month: now.toLocaleDateString('en-US', { month: 'short' }),
       date: now.getDate().toString(),
       year: now.getFullYear().toString()
     };
@@ -117,8 +117,8 @@ export function FlipClock() {
         hours: [hours[0], hours[1]],
         minutes: [minutes[0], minutes[1]],
         seconds: [seconds[0], seconds[1]],
-        day: now.toLocaleDateString('en-US', { weekday: 'long' }),
-        month: now.toLocaleDateString('en-US', { month: 'long' }),
+        day: now.toLocaleDateString('en-US', { weekday: 'short' }),
+        month: now.toLocaleDateString('en-US', { month: 'short' }),
         date: now.getDate().toString(),
         year: now.getFullYear().toString()
       });
@@ -129,27 +129,27 @@ export function FlipClock() {
 
   return (
     <div 
-      className="flex flex-col gap-3"
+      className="flex items-center gap-2"
       data-testid="flip-clock"
     >
-      <div className="flex items-center gap-3">
-        <div className="flex items-center gap-1">
+      <div className="flex items-center gap-1.5">
+        <div className="flex items-center gap-0.5">
           <FlipDigit value={currentTime.hours[0]} prevValue={prevTime.hours[0]} />
           <FlipDigit value={currentTime.hours[1]} prevValue={prevTime.hours[1]} label="HOURS" />
         </div>
         
-        <div className="flex items-center gap-1">
+        <div className="flex items-center gap-0.5">
           <FlipDigit value={currentTime.minutes[0]} prevValue={prevTime.minutes[0]} />
           <FlipDigit value={currentTime.minutes[1]} prevValue={prevTime.minutes[1]} label="MINUTES" />
         </div>
         
-        <div className="flex items-center gap-1">
+        <div className="flex items-center gap-0.5">
           <FlipDigit value={currentTime.seconds[0]} prevValue={prevTime.seconds[0]} />
           <FlipDigit value={currentTime.seconds[1]} prevValue={prevTime.seconds[1]} label="SECONDS" />
         </div>
       </div>
       
-      <div className="text-center text-sm md:text-base text-muted-foreground font-medium">
+      <div className="text-xs text-muted-foreground font-medium">
         {currentTime.day}, {currentTime.month} {currentTime.date}, {currentTime.year}
       </div>
     </div>
