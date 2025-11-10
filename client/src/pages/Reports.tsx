@@ -80,6 +80,7 @@ export default function Reports() {
   const [selectedMonth, setSelectedMonth] = useState<string>("");
   const [searchQuery, setSearchQuery] = useState<string>("");
   const [viewSeatsDialog, setViewSeatsDialog] = useState<{ open: boolean; seats: string[] }>({ open: false, seats: [] });
+  const [viewBonusDialog, setViewBonusDialog] = useState<{ open: boolean; bonusHours: string }>({ open: false, bonusHours: '' });
   const [visibleColumns, setVisibleColumns] = useState<string[]>([]);
   const { toast } = useToast();
 
@@ -695,7 +696,19 @@ export default function Reports() {
                     )}
                     {visibleColumns.includes("bonus") && (
                       <TableCell className="text-right" data-testid={`text-bonus-${session.id}`}>
-                        {session.bonusHoursApplied || '-'}
+                        {session.bonusHoursApplied ? (
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            onClick={() => setViewBonusDialog({ open: true, bonusHours: session.bonusHoursApplied! })}
+                            data-testid={`button-view-bonus-${session.id}`}
+                          >
+                            <Eye className="mr-2 h-4 w-4" />
+                            View Hours
+                          </Button>
+                        ) : (
+                          '-'
+                        )}
                       </TableCell>
                     )}
                     {visibleColumns.includes("paymentStatus") && (
@@ -779,6 +792,27 @@ export default function Reports() {
                 Total Seats: {viewSeatsDialog.seats.length}
               </p>
             )}
+          </div>
+        </DialogContent>
+      </Dialog>
+
+      <Dialog open={viewBonusDialog.open} onOpenChange={(open) => setViewBonusDialog({ open, bonusHours: '' })}>
+        <DialogContent data-testid="dialog-view-bonus">
+          <DialogHeader>
+            <DialogTitle>Bonus Free Hours</DialogTitle>
+            <DialogDescription>
+              Free hours given for this booking session
+            </DialogDescription>
+          </DialogHeader>
+          <div className="space-y-3">
+            <div className="flex justify-center">
+              <div className="px-6 py-4 bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-400 rounded-md font-semibold text-lg">
+                {viewBonusDialog.bonusHours}
+              </div>
+            </div>
+            <p className="text-sm text-muted-foreground text-center">
+              This session received free bonus hours
+            </p>
           </div>
         </DialogContent>
       </Dialog>
