@@ -33,6 +33,10 @@ interface BookingStats {
   avgSessionMinutes: number;
   cashRevenue: number;
   upiRevenue: number;
+  creditRevenue?: number;
+  creditIssued?: number;
+  creditRecovered?: number;
+  creditOutstanding?: number;
 }
 
 interface BookingHistoryItem {
@@ -604,6 +608,39 @@ export default function Reports() {
               </>
             )}
           </div>
+
+          {stats && (stats.creditIssued || stats.creditRecovered || stats.creditOutstanding) ? (
+            <div className="grid gap-3 grid-cols-1 sm:grid-cols-3">
+              {statsLoading ? (
+                <>
+                  <Skeleton className="h-32" />
+                  <Skeleton className="h-32" />
+                  <Skeleton className="h-32" />
+                </>
+              ) : (
+                <>
+                  <RevenueCard
+                    title="Credit Issued"
+                    amount={stats?.creditIssued || 0}
+                    trend={0}
+                    icon={<IndianRupee className="h-4 w-4 text-amber-600 dark:text-amber-400" />}
+                  />
+                  <RevenueCard
+                    title="Credit Recovered"
+                    amount={stats?.creditRecovered || 0}
+                    trend={0}
+                    icon={<IndianRupee className="h-4 w-4 text-emerald-600 dark:text-emerald-400" />}
+                  />
+                  <RevenueCard
+                    title="Credit Outstanding"
+                    amount={stats?.creditOutstanding || 0}
+                    trend={0}
+                    icon={<IndianRupee className="h-4 w-4 text-orange-600 dark:text-orange-400" />}
+                  />
+                </>
+              )}
+            </div>
+          ) : null}
         </TabsContent>
       </Tabs>
 

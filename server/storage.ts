@@ -85,6 +85,22 @@ export interface BookingStats {
   cashRevenue: number;
   upiRevenue: number;
   creditRevenue: number;
+  creditIssued?: number;
+  creditRecovered?: number;
+  creditOutstanding?: number;
+}
+
+export interface CreditSummary {
+  totalOutstanding: number;
+  totalIssued: number;
+  totalRepaid: number;
+  accountsWithBalance: number;
+  topDebtors: Array<{
+    accountId: string;
+    customerName: string;
+    whatsappNumber: string | null;
+    balance: number;
+  }>;
 }
 
 export interface BookingHistoryItem {
@@ -257,6 +273,7 @@ export interface IStorage {
   getCreditAccountByCustomer(customerName: string, whatsappNumber?: string): Promise<CreditAccount | undefined>;
   createCreditAccount(account: InsertCreditAccount): Promise<CreditAccount>;
   updateCreditAccountBalance(id: string, newBalance: string): Promise<CreditAccount | undefined>;
+  getCreditSummary(startDate?: Date, endDate?: Date): Promise<CreditSummary>;
   
   createCreditEntry(entry: InsertCreditEntry): Promise<CreditEntry>;
   getCreditEntry(id: string): Promise<CreditEntry | undefined>;
@@ -504,6 +521,9 @@ export class DatabaseStorage implements IStorage {
 
     const avgSessionMinutes = totalSessions > 0 ? Math.round(totalMinutes / totalSessions) : 0;
 
+    // Get credit metrics for this period
+    const creditSummary = await this.getCreditSummary(startDate, endDate);
+    
     // Add credit revenue from paid credit entries
     const paidCreditEntries = await db
       .select()
@@ -527,7 +547,10 @@ export class DatabaseStorage implements IStorage {
       avgSessionMinutes,
       cashRevenue,
       upiRevenue,
-      creditRevenue
+      creditRevenue,
+      creditIssued: creditSummary.totalIssued,
+      creditRecovered: creditSummary.totalRepaid,
+      creditOutstanding: creditSummary.totalOutstanding
     };
   }
 
@@ -1088,6 +1111,63 @@ export class DatabaseStorage implements IStorage {
       .where(eq(creditAccounts.id, id))
       .returning();
     return updated || undefined;
+  }
+
+  async getCreditSummary(startDate?: Date, endDate?: Date): Promise<CreditSummary> {
+    const allAccounts = await db.select().from(creditAccounts);
+    
+    const totalOutstanding = allAccounts.reduce((sum, account) => 
+      sum + parseFloat(account.currentBalance), 0);
+    
+    const accountsWithBalance = allAccounts.filter(account => 
+      parseFloat(account.currentBalance) > 0).length;
+    
+    let entriesQuery = db.select().from(creditEntries);
+    if (startDate && endDate) {
+      entriesQuery = entriesQuery.where(
+        and(
+          gte(creditEntries.issuedAt, startDate),
+          lte(creditEntries.issuedAt, endDate)
+        )
+      ) as any;
+    }
+    const entries = await entriesQuery;
+    
+    const totalIssued = entries.reduce((sum, entry) => 
+      sum + parseFloat(entry.creditIssued), 0);
+    
+    let paymentsQuery = db.select().from(creditPayments);
+    if (startDate && endDate) {
+      paymentsQuery = paymentsQuery.where(
+        and(
+          gte(creditPayments.recordedAt, startDate),
+          lte(creditPayments.recordedAt, endDate)
+        )
+      ) as any;
+    }
+    const payments = await paymentsQuery;
+    
+    const totalRepaid = payments.reduce((sum, payment) => 
+      sum + parseFloat(payment.amount), 0);
+    
+    const topDebtors = allAccounts
+      .filter(account => parseFloat(account.currentBalance) > 0)
+      .sort((a, b) => parseFloat(b.currentBalance) - parseFloat(a.currentBalance))
+      .slice(0, 5)
+      .map(account => ({
+        accountId: account.id,
+        customerName: account.customerName,
+        whatsappNumber: account.whatsappNumber,
+        balance: parseFloat(account.currentBalance)
+      }));
+    
+    return {
+      totalOutstanding,
+      totalIssued,
+      totalRepaid,
+      accountsWithBalance,
+      topDebtors
+    };
   }
 
   async createCreditEntry(entry: InsertCreditEntry): Promise<CreditEntry> {
