@@ -876,6 +876,7 @@ export default function Dashboard() {
                     size="sm" 
                     onClick={handleCalculate}
                     data-testid="button-calculate"
+                    data-joyride="calculate-button"
                     className="flex-1 min-w-[100px] sm:flex-none h-9 sm:h-10"
                   >
                     <Calculator className="mr-1.5 sm:mr-2 h-4 w-4" />
@@ -907,6 +908,7 @@ export default function Dashboard() {
                       }
                     }}
                     data-testid="button-payment-method"
+                    data-joyride="payment-button"
                     className="flex-1 min-w-[100px] sm:flex-none h-9 sm:h-10"
                   >
                     <Wallet className="mr-1.5 sm:mr-2 h-4 w-4" />
@@ -928,6 +930,7 @@ export default function Dashboard() {
                     size="sm" 
                     onClick={handleRefresh}
                     data-testid="button-refresh-list"
+                    data-joyride="refresh-button"
                     className="flex-1 min-w-[100px] sm:flex-none h-9 sm:h-10"
                   >
                     <RefreshCw className="mr-1.5 sm:mr-2 h-4 w-4" />

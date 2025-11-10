@@ -38,6 +38,21 @@ export const dashboardTourSteps: Step[] = [
     placement: 'top',
   },
   {
+    target: '[data-joyride="calculate-button"]',
+    content: 'After completing sessions, select the checkboxes in the booking table, then click Calculate to see the total amount including all food orders. Perfect for processing multiple customers at once!',
+    placement: 'top',
+  },
+  {
+    target: '[data-joyride="payment-button"]',
+    content: 'Use the Payment button to record how customers paid. You can mark payments as Cash, UPI, or Credit. For mixed payments (Cash + UPI), use the Split Payment option.',
+    placement: 'top',
+  },
+  {
+    target: '[data-joyride="refresh-button"]',
+    content: 'Click Refresh to archive completed bookings and move them to the History page. This keeps your dashboard clean and showing only active sessions. Use after marking payments!',
+    placement: 'top',
+  },
+  {
     target: '[data-joyride="sidebar-settings"]',
     content: 'Visit Settings to configure your gaming devices, pricing tiers, happy hours, and more. This is where you customize everything for your gaming center.',
     placement: 'right',
