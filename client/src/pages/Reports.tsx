@@ -683,7 +683,7 @@ export default function Reports() {
                     )}
                     {visibleColumns.includes("discount") && (
                       <TableCell className="text-right" data-testid={`text-discount-${session.id}`}>
-                        {session.discount ? `₹${parseFloat(session.discount).toFixed(0)}` : '-'}
+                        {session.discount || '-'}
                       </TableCell>
                     )}
                     {visibleColumns.includes("bonus") && (
