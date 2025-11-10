@@ -579,6 +579,7 @@ export class DatabaseStorage implements IStorage {
           foodAmount,
           totalAmount,
           paymentMethod: booking.paymentMethod,
+          paymentStatus: booking.paymentStatus,
           cashAmount: booking.cashAmount,
           upiAmount: booking.upiAmount,
           discount: booking.discount,

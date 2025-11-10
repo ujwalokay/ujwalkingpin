@@ -45,6 +45,7 @@ interface BookingHistoryItem {
   foodAmount: number;
   totalAmount: number;
   paymentMethod: string | null;
+  paymentStatus: string;
   cashAmount: string | null;
   upiAmount: string | null;
   discount?: string | null;
@@ -65,6 +66,7 @@ interface GroupedBookingSession {
   bookingIds: string[];
   discount?: string;
   bonus?: string;
+  paymentStatus: string;
 }
 
 export default function Reports() {
@@ -86,6 +88,7 @@ export default function Reports() {
     { id: "foodAmount", label: "Food Amount", defaultVisible: true },
     { id: "discount", label: "Discount", defaultVisible: true },
     { id: "bonus", label: "Bonus", defaultVisible: true },
+    { id: "paymentStatus", label: "Payment Status", defaultVisible: true },
     { id: "cash", label: "Cash", defaultVisible: true },
     { id: "upi", label: "UPI", defaultVisible: true },
     { id: "total", label: "Total", defaultVisible: true },
@@ -178,6 +181,12 @@ export default function Reports() {
               : record.bonus;
           }
           
+          const currentStatus = session.paymentStatus || 'unpaid';
+          const recordStatus = record.paymentStatus || 'unpaid';
+          if (currentStatus !== recordStatus) {
+            session.paymentStatus = "Mixed";
+          }
+          
           foundSession = true;
           break;
         }
@@ -207,6 +216,7 @@ export default function Reports() {
           bookingIds: [record.id],
           discount: record.discount || undefined,
           bonus: record.bonus || undefined,
+          paymentStatus: record.paymentStatus || 'unpaid',
         });
       }
     });
@@ -623,6 +633,7 @@ export default function Reports() {
                 {visibleColumns.includes("foodAmount") && <TableHead className="text-right">Food Amount</TableHead>}
                 {visibleColumns.includes("discount") && <TableHead className="text-right">Discount</TableHead>}
                 {visibleColumns.includes("bonus") && <TableHead className="text-right">Bonus</TableHead>}
+                {visibleColumns.includes("paymentStatus") && <TableHead>Payment Status</TableHead>}
                 {visibleColumns.includes("cash") && <TableHead className="text-right">Cash</TableHead>}
                 {visibleColumns.includes("upi") && <TableHead className="text-right">UPI</TableHead>}
                 {visibleColumns.includes("total") && <TableHead className="text-right">Total</TableHead>}
@@ -678,6 +689,25 @@ export default function Reports() {
                     {visibleColumns.includes("bonus") && (
                       <TableCell className="text-right" data-testid={`text-bonus-${session.id}`}>
                         {session.bonus || '-'}
+                      </TableCell>
+                    )}
+                    {visibleColumns.includes("paymentStatus") && (
+                      <TableCell data-testid={`text-payment-status-${session.id}`}>
+                        {session.paymentStatus ? (
+                          <span className={`inline-flex items-center px-2 py-1 rounded-md text-xs font-medium ${
+                            session.paymentStatus === 'paid' 
+                              ? 'bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-400' 
+                              : session.paymentStatus === 'unpaid'
+                              ? 'bg-red-100 dark:bg-red-900/30 text-red-700 dark:text-red-400'
+                              : session.paymentStatus === 'partial'
+                              ? 'bg-yellow-100 dark:bg-yellow-900/30 text-yellow-700 dark:text-yellow-400'
+                              : 'bg-gray-100 dark:bg-gray-800 text-gray-700 dark:text-gray-400'
+                          }`}>
+                            {session.paymentStatus.charAt(0).toUpperCase() + session.paymentStatus.slice(1)}
+                          </span>
+                        ) : (
+                          <span className="text-muted-foreground text-xs">-</span>
+                        )}
                       </TableCell>
                     )}
                     {visibleColumns.includes("cash") && (
