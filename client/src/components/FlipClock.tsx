@@ -18,12 +18,12 @@ const FlipDigit = memo(({ value, prevValue }: FlipDigitProps) => {
   }, [value, prevValue]);
 
   return (
-    <div className="relative w-5 h-7 md:w-6 md:h-9" style={{ perspective: '300px' }}>
+    <div className="relative w-4 h-6 md:w-5 md:h-7" style={{ perspective: '250px' }}>
       {/* Static top half */}
       <div className="absolute inset-0 overflow-hidden">
-        <div className="absolute inset-0 bg-gradient-to-b from-card to-card/90 rounded-sm border border-border shadow-sm">
-          <div className="absolute inset-x-0 top-0 h-1/2 overflow-hidden border-b border-border/40">
-            <div className="absolute inset-0 flex items-center justify-center font-mono font-bold text-sm md:text-lg text-primary">
+        <div className="absolute inset-0 bg-gradient-to-b from-card to-card/90 rounded-sm border border-border/60 shadow-sm">
+          <div className="absolute inset-x-0 top-0 h-1/2 overflow-hidden">
+            <div className="absolute inset-0 flex items-center justify-center font-mono font-bold text-xs md:text-sm text-white dark:text-white">
               {value}
             </div>
           </div>
@@ -40,11 +40,11 @@ const FlipDigit = memo(({ value, prevValue }: FlipDigitProps) => {
           }}
         >
           <div 
-            className="absolute inset-0 bg-gradient-to-b from-card to-card/90 rounded-sm border border-border shadow-sm animate-flip"
+            className="absolute inset-0 bg-gradient-to-b from-card to-card/90 rounded-sm border border-border/60 shadow-sm animate-flip"
             style={{ backfaceVisibility: 'hidden' }}
           >
-            <div className="absolute inset-x-0 top-0 h-1/2 overflow-hidden border-b border-border/40">
-              <div className="absolute inset-0 flex items-center justify-center font-mono font-bold text-sm md:text-lg text-primary">
+            <div className="absolute inset-x-0 top-0 h-1/2 overflow-hidden">
+              <div className="absolute inset-0 flex items-center justify-center font-mono font-bold text-xs md:text-sm text-white dark:text-white">
                 {prevValue}
               </div>
             </div>
@@ -54,17 +54,14 @@ const FlipDigit = memo(({ value, prevValue }: FlipDigitProps) => {
 
       {/* Static bottom half */}
       <div className="absolute inset-0 overflow-hidden pointer-events-none">
-        <div className="absolute inset-0 bg-gradient-to-b from-card/90 to-card rounded-sm border border-border shadow-sm">
-          <div className="absolute inset-x-0 bottom-0 h-1/2 overflow-hidden border-t border-border/40">
-            <div className="absolute inset-0 flex items-center justify-center font-mono font-bold text-sm md:text-lg text-primary" style={{ transform: 'translateY(-100%)' }}>
+        <div className="absolute inset-0 bg-gradient-to-b from-card/90 to-card rounded-sm border border-border/60 shadow-sm">
+          <div className="absolute inset-x-0 bottom-0 h-1/2 overflow-hidden">
+            <div className="absolute inset-0 flex items-center justify-center font-mono font-bold text-xs md:text-sm text-white dark:text-white" style={{ transform: 'translateY(-100%)' }}>
               {value}
             </div>
           </div>
         </div>
       </div>
-
-      {/* Center line shadow */}
-      <div className="absolute inset-x-0 top-1/2 h-px bg-background/30 z-10" />
     </div>
   );
 });
@@ -74,8 +71,8 @@ FlipDigit.displayName = 'FlipDigit';
 function Separator() {
   return (
     <div className="flex flex-col gap-0.5 px-0.5 items-center justify-center">
-      <div className="w-1 h-1 rounded-full bg-primary/70 animate-pulse" />
-      <div className="w-1 h-1 rounded-full bg-primary/70 animate-pulse" style={{ animationDelay: '0.5s' }} />
+      <div className="w-0.5 h-0.5 rounded-full bg-white/80 dark:bg-white/80 animate-pulse" />
+      <div className="w-0.5 h-0.5 rounded-full bg-white/80 dark:bg-white/80 animate-pulse" style={{ animationDelay: '0.5s' }} />
     </div>
   );
 }
@@ -139,11 +136,11 @@ export function FlipClock() {
 
   return (
     <div 
-      className="flex flex-col gap-1.5 px-2 py-1.5 rounded-md bg-gradient-to-br from-card/90 to-card/70 backdrop-blur-sm border border-border/50 shadow-md"
+      className="flex flex-col gap-1 px-1.5 py-1 rounded-md bg-gradient-to-br from-card/90 to-card/70 backdrop-blur-sm border border-border/50 shadow-sm"
       data-testid="flip-clock"
     >
       <div className="flex items-center gap-0.5">
-        <Clock className="h-2.5 w-2.5 text-primary/70 mr-0.5" />
+        <Clock className="h-2 w-2 text-white/70 dark:text-white/70 mr-0.5" />
         
         {/* Hours */}
         <div className="flex items-center gap-0.5">
@@ -167,12 +164,12 @@ export function FlipClock() {
           <FlipDigit value={currentTime.seconds[1]} prevValue={prevTime.seconds[1]} />
         </div>
         
-        <div className="ml-0.5 text-[9px] md:text-[10px] font-bold text-primary min-w-[18px]">
+        <div className="ml-0.5 text-[8px] md:text-[9px] font-bold text-white/90 dark:text-white/90 min-w-[16px]">
           {currentTime.isPM ? 'PM' : 'AM'}
         </div>
       </div>
       
-      <div className="text-[8px] md:text-[9px] text-center text-primary/80 font-medium border-t border-border/30 pt-1">
+      <div className="text-[7px] md:text-[8px] text-center text-white/80 dark:text-white/80 font-medium border-t border-border/30 pt-0.5">
         {currentTime.date}
       </div>
     </div>
