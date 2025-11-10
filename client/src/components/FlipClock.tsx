@@ -17,20 +17,16 @@ const FlipDigit = memo(({ value, prevValue }: FlipDigitProps) => {
   }, [value, prevValue]);
 
   return (
-    <div className="relative w-5 h-7" style={{ perspective: '200px' }}>
-      <div className="absolute inset-0 overflow-hidden rounded">
-        <div className="absolute inset-0 bg-gradient-to-br from-[#7B68EE] to-[#6A5ACD] rounded shadow-sm border border-white/10">
-          <div className="absolute inset-x-0 top-0 h-1/2 overflow-hidden border-b border-white/5">
-            <div className="absolute inset-0 flex items-center justify-center font-mono font-bold text-base text-white">
-              {value}
-            </div>
-          </div>
+    <div className="relative w-6 h-8" style={{ perspective: '200px' }}>
+      <div className="absolute inset-0 overflow-visible rounded">
+        <div className="absolute inset-0 bg-gradient-to-br from-[#7B68EE] to-[#6A5ACD] rounded shadow-sm border border-white/10 flex items-center justify-center">
+          <span className="font-mono font-bold text-xl text-white leading-none">{value}</span>
         </div>
       </div>
 
       {isFlipping && (
         <div 
-          className="absolute inset-0 overflow-hidden rounded"
+          className="absolute inset-0 overflow-visible rounded"
           style={{ 
             transformStyle: 'preserve-3d',
             transformOrigin: 'center bottom',
@@ -38,27 +34,13 @@ const FlipDigit = memo(({ value, prevValue }: FlipDigitProps) => {
           }}
         >
           <div 
-            className="absolute inset-0 bg-gradient-to-br from-[#7B68EE] to-[#6A5ACD] rounded shadow-sm border border-white/10"
+            className="absolute inset-0 bg-gradient-to-br from-[#7B68EE] to-[#6A5ACD] rounded shadow-sm border border-white/10 flex items-center justify-center"
             style={{ backfaceVisibility: 'hidden' }}
           >
-            <div className="absolute inset-x-0 top-0 h-1/2 overflow-hidden border-b border-white/5">
-              <div className="absolute inset-0 flex items-center justify-center font-mono font-bold text-base text-white">
-                {prevValue}
-              </div>
-            </div>
+            <span className="font-mono font-bold text-xl text-white leading-none">{prevValue}</span>
           </div>
         </div>
       )}
-
-      <div className="absolute inset-0 overflow-hidden pointer-events-none rounded">
-        <div className="absolute inset-0 bg-gradient-to-br from-[#6A5ACD] to-[#5B4BC4] rounded shadow-sm border border-white/10">
-          <div className="absolute inset-x-0 bottom-0 h-1/2 overflow-hidden border-t border-white/5">
-            <div className="absolute inset-0 flex items-center justify-center font-mono font-bold text-base text-white" style={{ transform: 'translateY(-100%)' }}>
-              {value}
-            </div>
-          </div>
-        </div>
-      </div>
     </div>
   );
 });
@@ -128,12 +110,12 @@ export function FlipClock() {
         <FlipDigit value={currentTime.hours[0]} prevValue={prevTime.hours[0]} />
         <FlipDigit value={currentTime.hours[1]} prevValue={prevTime.hours[1]} />
         
-        <span className="text-base font-bold text-muted-foreground mx-0.5">:</span>
+        <span className="text-lg font-bold text-muted-foreground mx-0.5">:</span>
         
         <FlipDigit value={currentTime.minutes[0]} prevValue={prevTime.minutes[0]} />
         <FlipDigit value={currentTime.minutes[1]} prevValue={prevTime.minutes[1]} />
         
-        <span className="text-base font-bold text-muted-foreground mx-0.5">:</span>
+        <span className="text-lg font-bold text-muted-foreground mx-0.5">:</span>
         
         <FlipDigit value={currentTime.seconds[0]} prevValue={prevTime.seconds[0]} />
         <FlipDigit value={currentTime.seconds[1]} prevValue={prevTime.seconds[1]} />
