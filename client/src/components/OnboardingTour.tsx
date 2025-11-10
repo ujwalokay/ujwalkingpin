@@ -192,6 +192,54 @@ const tourSteps: TourStep[] = [
     ]
   },
   {
+    title: "Timeline View 📅",
+    description: "Visual calendar of all bookings",
+    icon: <Calendar className="h-12 w-12 text-blue-500" />,
+    content: "The Timeline page shows a visual calendar of all your bookings. Great for planning and seeing your gaming center's schedule at a glance.",
+    features: [
+      { icon: <Calendar className="h-5 w-5 text-blue-500" />, text: "Calendar View - See all bookings by date" },
+      { icon: <Clock className="h-5 w-5 text-orange-500" />, text: "Advance Bookings - View upcoming reservations" },
+      { icon: <Users className="h-5 w-5 text-purple-500" />, text: "Customer Names - Quick identification" },
+      { icon: <Laptop className="h-5 w-5 text-green-500" />, text: "Device Breakdown - See which devices are booked" }
+    ],
+    tips: [
+      "📅 Click on dates to see all bookings for that day",
+      "📅 Shows both walk-in and advance bookings"
+    ]
+  },
+  {
+    title: "Reports & Exports 📄",
+    description: "Professional reports for your business",
+    icon: <Receipt className="h-12 w-12 text-indigo-500" />,
+    content: "Generate comprehensive reports for accounting or business analysis. Export data to CSV or PDF formats for easy sharing and record-keeping.",
+    features: [
+      { icon: <BarChart3 className="h-5 w-5 text-blue-500" />, text: "Booking Reports - See all sessions and revenue" },
+      { icon: <Receipt className="h-5 w-5 text-green-500" />, text: "Expense Reports - Track all costs" },
+      { icon: <Calendar className="h-5 w-5 text-purple-500" />, text: "Date Filters - Custom report periods" },
+      { icon: <DollarSign className="h-5 w-5 text-orange-500" />, text: "Export Options - CSV and PDF formats" }
+    ],
+    tips: [
+      "📊 Reports page has export buttons for CSV/PDF",
+      "📊 Use date filters to customize report periods",
+      "📊 Great for accounting and tax preparation"
+    ]
+  },
+  {
+    title: "Notifications & Alerts 🔔",
+    description: "Stay informed about important events",
+    icon: <Clock className="h-12 w-12 text-yellow-500" />,
+    content: "The notification center keeps you updated about expired sessions and other important events in your gaming center.",
+    features: [
+      { icon: <Clock className="h-5 w-5 text-red-500" />, text: "Session Expiry - Alerts when time runs out" },
+      { icon: <Calendar className="h-5 w-5 text-blue-500" />, text: "Booking Updates - Track booking changes" },
+      { icon: <DollarSign className="h-5 w-5 text-green-500" />, text: "Payment Alerts - Payment confirmations" }
+    ],
+    tips: [
+      "🔔 Click the bell icon to view notifications",
+      "🔔 Important alerts help you stay on top of operations"
+    ]
+  },
+  {
     title: "History & Activity Logs 📚",
     description: "Complete audit trail of all operations",
     icon: <Clock className="h-12 w-12 text-cyan-500" />,
