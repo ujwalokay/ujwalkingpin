@@ -41,6 +41,7 @@ import { SplashScreen } from "@/components/SplashScreen";
 import { NetworkAlert } from "@/components/NetworkAlert";
 import { NotificationCenter } from "@/components/NotificationCenter";
 import { InactivityRefreshPrompt } from "@/components/InactivityRefreshPrompt";
+import { LiveClock } from "@/components/LiveClock";
 import { useState, useEffect } from "react";
 import { useToast } from "@/hooks/use-toast";
 import { useNetworkMonitor } from "@/hooks/useNetworkMonitor";
@@ -319,13 +320,8 @@ function App() {
                               {user.username} <span className="text-xs text-muted-foreground hidden md:inline">({user.role})</span>
                             </div>
                           )}
-                          <div className="text-xs md:text-sm text-muted-foreground hidden md:block">
-                            {new Date().toLocaleDateString('en-IN', { 
-                              weekday: 'short', 
-                              year: 'numeric', 
-                              month: 'short', 
-                              day: 'numeric' 
-                            })}
+                          <div className="hidden md:block">
+                            <LiveClock />
                           </div>
                           <div data-joyride="notification-center">
                             <NotificationCenter />
