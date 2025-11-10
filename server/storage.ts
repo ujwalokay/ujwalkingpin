@@ -1152,12 +1152,18 @@ export class DatabaseStorage implements IStorage {
     const expiredBookings = await db
       .select()
       .from(bookings)
-      .where(eq(bookings.status, "expired"));
+      .where(and(
+        eq(bookings.status, "expired"),
+        eq(bookings.paymentStatus, "paid")
+      ));
 
     const completedBookings = await db
       .select()
       .from(bookings)
-      .where(eq(bookings.status, "completed"));
+      .where(and(
+        eq(bookings.status, "completed"),
+        eq(bookings.paymentStatus, "paid")
+      ));
 
     const bookingsToArchive = [...expiredBookings, ...completedBookings];
 
