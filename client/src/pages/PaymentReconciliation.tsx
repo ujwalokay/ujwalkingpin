@@ -25,6 +25,9 @@ type PaymentLog = {
   username: string;
   previousStatus: string | null;
   previousMethod: string | null;
+  isCredit: boolean;
+  appliedCreditAmount: string | null;
+  creditPaymentId: string | null;
   createdAt: Date;
 };
 
@@ -57,9 +60,13 @@ export default function PaymentReconciliation() {
   const upiTotal = filteredLogs
     .filter(log => log.paymentMethod === 'upi_online')
     .reduce((sum, log) => sum + parseFloat(log.amount || '0'), 0);
-  const creditTotal = filteredLogs
+  const creditIssued = filteredLogs
     .filter(log => log.paymentMethod === 'credit')
     .reduce((sum, log) => sum + parseFloat(log.amount || '0'), 0);
+  const creditRecovered = filteredLogs
+    .filter(log => log.isCredit === true && log.appliedCreditAmount)
+    .reduce((sum, log) => sum + parseFloat(log.appliedCreditAmount || '0'), 0);
+  const creditOutstanding = Math.max(0, creditIssued - creditRecovered);
   const actualCollected = cashTotal + upiTotal;
 
   const getPaymentMethodBadge = (method: string) => {
@@ -95,23 +102,23 @@ export default function PaymentReconciliation() {
         <p className="text-muted-foreground">Review all payment actions and transactions</p>
       </div>
 
-      <div className={`grid gap-4 ${isStaff ? 'md:grid-cols-1' : 'md:grid-cols-4'}`}>
+      <div className={`grid gap-4 ${isStaff ? 'md:grid-cols-2' : 'md:grid-cols-5'}`}>
         {!isStaff && (
           <Card>
-            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+            <CardHeader className="flex flex-row items-center justify-between gap-2 space-y-0 pb-2">
               <CardTitle className="text-sm font-medium">Actually Collected</CardTitle>
               <TrendingUp className="h-4 w-4 text-muted-foreground" />
             </CardHeader>
             <CardContent>
               <div className="text-2xl font-bold text-green-600 dark:text-green-400">₹{actualCollected.toFixed(2)}</div>
-              <p className="text-xs text-muted-foreground">Cash + UPI (excludes credit)</p>
+              <p className="text-xs text-muted-foreground">Cash + UPI (incl. credit repaid)</p>
             </CardContent>
           </Card>
         )}
 
         {!isStaff && (
           <Card>
-            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+            <CardHeader className="flex flex-row items-center justify-between gap-2 space-y-0 pb-2">
               <CardTitle className="text-sm font-medium">Cash</CardTitle>
               <Wallet className="h-4 w-4 text-green-600 dark:text-green-400" />
             </CardHeader>
@@ -126,7 +133,7 @@ export default function PaymentReconciliation() {
 
         {!isStaff && (
           <Card>
-            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+            <CardHeader className="flex flex-row items-center justify-between gap-2 space-y-0 pb-2">
               <CardTitle className="text-sm font-medium">UPI/Online</CardTitle>
               <Wallet className="h-4 w-4 text-blue-600 dark:text-blue-400" />
             </CardHeader>
@@ -140,18 +147,46 @@ export default function PaymentReconciliation() {
         )}
 
         <Card className="border-amber-200 dark:border-amber-800">
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+          <CardHeader className="flex flex-row items-center justify-between gap-2 space-y-0 pb-2">
             <CardTitle className="text-sm font-medium">Credit Issued</CardTitle>
             <Wallet className="h-4 w-4 text-amber-600 dark:text-amber-400" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold text-amber-600 dark:text-amber-400">₹{creditTotal.toFixed(2)}</div>
+            <div className="text-2xl font-bold text-amber-600 dark:text-amber-400">₹{creditIssued.toFixed(2)}</div>
             <p className="text-xs text-muted-foreground">
-              {filteredLogs.filter(l => l.paymentMethod === 'credit').length} pending payment
+              {filteredLogs.filter(l => l.paymentMethod === 'credit').length} new credit
+            </p>
+          </CardContent>
+        </Card>
+
+        <Card className="border-emerald-200 dark:border-emerald-800">
+          <CardHeader className="flex flex-row items-center justify-between gap-2 space-y-0 pb-2">
+            <CardTitle className="text-sm font-medium">Credit Recovered</CardTitle>
+            <Wallet className="h-4 w-4 text-emerald-600 dark:text-emerald-400" />
+          </CardHeader>
+          <CardContent>
+            <div className="text-2xl font-bold text-emerald-600 dark:text-emerald-400">₹{creditRecovered.toFixed(2)}</div>
+            <p className="text-xs text-muted-foreground">
+              {filteredLogs.filter(l => l.isCredit === true).length} repayments
             </p>
           </CardContent>
         </Card>
       </div>
+
+      {!isStaff && creditOutstanding > 0 && (
+        <Card className="border-orange-200 dark:border-orange-800 bg-orange-50/50 dark:bg-orange-950/20">
+          <CardHeader className="flex flex-row items-center justify-between gap-2 space-y-0 pb-2">
+            <CardTitle className="text-sm font-medium">Credit Outstanding (This Date)</CardTitle>
+            <Wallet className="h-4 w-4 text-orange-600 dark:text-orange-400" />
+          </CardHeader>
+          <CardContent>
+            <div className="text-2xl font-bold text-orange-600 dark:text-orange-400">₹{creditOutstanding.toFixed(2)}</div>
+            <p className="text-xs text-muted-foreground">
+              Issued: ₹{creditIssued.toFixed(2)} - Recovered: ₹{creditRecovered.toFixed(2)}
+            </p>
+          </CardContent>
+        </Card>
+      )}
 
       <Card>
         <CardHeader>
@@ -197,13 +232,18 @@ export default function PaymentReconciliation() {
                   data-testid={`log-item-${log.id}`}
                 >
                   <div className="flex items-center justify-between">
-                    <div className="flex items-center gap-2">
+                    <div className="flex items-center gap-2 flex-wrap">
                       <span className="font-semibold">{log.seatName}</span>
                       <span className="text-muted-foreground">•</span>
                       <span className="text-muted-foreground">{log.customerName}</span>
                     </div>
-                    <div className="flex items-center gap-2">
+                    <div className="flex items-center gap-2 flex-wrap">
                       {getPaymentMethodBadge(log.paymentMethod)}
+                      {log.isCredit && (
+                        <Badge variant="outline" className="bg-emerald-500/10 text-emerald-700 dark:text-emerald-400 border-emerald-300 dark:border-emerald-700">
+                          Credit Repaid
+                        </Badge>
+                      )}
                       {getStatusBadge(log.paymentStatus)}
                     </div>
                   </div>
