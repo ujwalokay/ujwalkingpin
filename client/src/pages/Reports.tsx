@@ -80,6 +80,29 @@ interface GroupedBookingSession {
   paymentStatus: string;
 }
 
+interface UnifiedTransaction {
+  id: string;
+  date: string;
+  transactionType: 'booking' | 'credit_payment';
+  customerName: string;
+  seats?: string[];
+  duration?: string;
+  sessionPrice?: number;
+  foodAmount: number;
+  cashAmount: number;
+  upiAmount: number;
+  creditAmount?: number;
+  totalAmount: number;
+  paymentMethod: string | null;
+  paymentStatus?: string;
+  discount?: string;
+  bonus?: string;
+  discountApplied?: string;
+  bonusHoursApplied?: string;
+  notes?: string | null;
+  bookingIds?: string[];
+}
+
 export default function Reports() {
   const [mainTab, setMainTab] = useState<string>("reports");
   const [selectedPeriod, setSelectedPeriod] = useState<string>("daily");
@@ -89,23 +112,32 @@ export default function Reports() {
   const [searchQuery, setSearchQuery] = useState<string>("");
   const [viewSeatsDialog, setViewSeatsDialog] = useState<{ open: boolean; seats: string[] }>({ open: false, seats: [] });
   const [viewBonusDialog, setViewBonusDialog] = useState<{ open: boolean; bonusHours: string }>({ open: false, bonusHours: '' });
-  const [visibleColumns, setVisibleColumns] = useState<string[]>([]);
   const { toast } = useToast();
 
   const reportColumns = useMemo(() => [
     { id: "date", label: "Date", defaultVisible: true },
-    { id: "seats", label: "Seats", defaultVisible: true },
+    { id: "type", label: "Type", defaultVisible: true },
     { id: "customer", label: "Customer", defaultVisible: true },
+    { id: "seats", label: "Seats", defaultVisible: true },
     { id: "duration", label: "Duration", defaultVisible: true },
     { id: "sessionPrice", label: "Session Price", defaultVisible: true },
     { id: "foodAmount", label: "Food Amount", defaultVisible: true },
-    { id: "discount", label: "Discount", defaultVisible: true },
-    { id: "bonus", label: "Bonus", defaultVisible: true },
-    { id: "paymentStatus", label: "Payment Status", defaultVisible: true },
+    { id: "discount", label: "Discount", defaultVisible: false },
+    { id: "bonus", label: "Bonus", defaultVisible: false },
+    { id: "paymentMethod", label: "Payment Method", defaultVisible: true },
+    { id: "credit", label: "Credit", defaultVisible: true },
     { id: "cash", label: "Cash", defaultVisible: true },
     { id: "upi", label: "UPI", defaultVisible: true },
     { id: "total", label: "Total", defaultVisible: true },
+    { id: "status", label: "Status/Notes", defaultVisible: true },
   ], []);
+
+  const defaultVisibleColumns = useMemo(() => 
+    reportColumns.filter(col => col.defaultVisible).map(col => col.id),
+    [reportColumns]
+  );
+
+  const [visibleColumns, setVisibleColumns] = useState<string[]>(defaultVisibleColumns);
 
   const handleVisibilityChange = useCallback((columns: string[]) => {
     setVisibleColumns(columns);
@@ -257,105 +289,130 @@ export default function Reports() {
       }));
   }, [history]);
 
-  const [paymentSearchQuery, setPaymentSearchQuery] = useState<string>("");
-
-  const filteredPayments = useMemo(() => {
-    if (!paymentSearchQuery.trim()) return creditPayments;
-
-    const query = paymentSearchQuery.toLowerCase();
-    return creditPayments.filter(payment => 
-      payment.customerName.toLowerCase().includes(query) ||
-      payment.date.toLowerCase().includes(query) ||
-      payment.paymentMethod.toLowerCase().includes(query)
-    );
-  }, [creditPayments, paymentSearchQuery]);
-
-  const handleExportPaymentsCSV = () => {
-    if (!filteredPayments || filteredPayments.length === 0) {
-      toast({
-        title: "No data to export",
-        description: "There are no credit payments for the selected period.",
-        variant: "destructive",
-      });
-      return;
-    }
-
-    try {
-      const headers = ["Date", "Customer", "Amount (₹)", "Cash (₹)", "UPI (₹)", "Method"];
-      const csvContent = [
-        headers.join(","),
-        ...filteredPayments.map(payment => {
-          return [
-            payment.date,
-            payment.customerName,
-            payment.amount.toFixed(0),
-            payment.cashAmount.toFixed(0),
-            payment.upiAmount.toFixed(0),
-            payment.paymentMethod
-          ].join(",");
-        })
-      ].join("\n");
-
-      const blob = new Blob([csvContent], { type: "text/csv;charset=utf-8;" });
-      const link = document.createElement("a");
-      const url = URL.createObjectURL(blob);
-      link.setAttribute("href", url);
-      link.setAttribute("download", `credit_payments_${selectedPeriod}_${getAdjustedTime().toISOString().split('T')[0]}.csv`);
-      link.style.visibility = "hidden";
-      document.body.appendChild(link);
-      link.click();
-      document.body.removeChild(link);
+  const unifiedTransactions = useMemo(() => {
+    if (!history) return [];
+    
+    const bookingTransactions: UnifiedTransaction[] = groupedSessions.map((session) => {
+      const creditAmount = Math.max(session.totalAmount - (session.cashAmount + session.upiAmount), 0);
       
-      toast({
-        title: "Export successful",
-        description: "Credit payments CSV file has been downloaded.",
-      });
-    } catch (error) {
-      toast({
-        title: "Export failed",
-        description: "Failed to export CSV file. Please try again.",
-        variant: "destructive",
-      });
-    }
-  };
+      let paymentMethod: string | null = null;
+      if (session.cashAmount > 0 && session.upiAmount > 0) {
+        paymentMethod = "Split";
+      } else if (session.cashAmount > 0) {
+        paymentMethod = "Cash";
+      } else if (session.upiAmount > 0) {
+        paymentMethod = "UPI";
+      } else if (creditAmount > 0) {
+        paymentMethod = "Credit";
+      }
+      
+      return {
+        id: session.id,
+        date: session.date,
+        transactionType: 'booking' as const,
+        customerName: session.customerName,
+        seats: session.seats,
+        duration: session.duration,
+        sessionPrice: session.sessionPrice,
+        foodAmount: session.foodAmount,
+        cashAmount: session.cashAmount,
+        upiAmount: session.upiAmount,
+        creditAmount,
+        totalAmount: session.totalAmount,
+        paymentMethod,
+        paymentStatus: session.paymentStatus,
+        discount: session.discount,
+        bonus: session.bonus,
+        discountApplied: session.discountApplied,
+        bonusHoursApplied: session.bonusHoursApplied,
+        bookingIds: session.bookingIds,
+      };
+    });
+    
+    const creditTransactions: UnifiedTransaction[] = creditPayments.map((payment) => {
+      const recoveredCredit = payment.cashAmount + payment.upiAmount;
+      
+      let paymentMethod = payment.paymentMethod;
+      if (paymentMethod === 'upi_online') {
+        paymentMethod = 'UPI';
+      } else if (paymentMethod === 'cash') {
+        paymentMethod = 'Cash';
+      } else if (paymentMethod === 'split') {
+        paymentMethod = 'Split';
+      }
+      
+      return {
+        id: payment.id,
+        date: payment.date,
+        transactionType: 'credit_payment' as const,
+        customerName: payment.customerName,
+        foodAmount: 0,
+        cashAmount: payment.cashAmount,
+        upiAmount: payment.upiAmount,
+        creditAmount: recoveredCredit,
+        totalAmount: payment.amount,
+        paymentMethod,
+        notes: payment.notes,
+      };
+    });
+    
+    const allTransactions = [...bookingTransactions, ...creditTransactions];
+    
+    allTransactions.sort((a, b) => {
+      const dateA = new Date(a.date);
+      const dateB = new Date(b.date);
+      return dateB.getTime() - dateA.getTime();
+    });
+    
+    return allTransactions;
+  }, [groupedSessions, creditPayments, history]);
 
-  const filteredSessions = useMemo(() => {
-    if (!searchQuery.trim()) return groupedSessions;
+  const filteredTransactions = useMemo(() => {
+    if (!searchQuery.trim()) return unifiedTransactions;
 
     const query = searchQuery.toLowerCase();
-    return groupedSessions.filter(session => 
-      session.seats.some(seat => seat.toLowerCase().includes(query)) ||
-      session.customerName.toLowerCase().includes(query) ||
-      session.date.toLowerCase().includes(query) ||
-      session.duration.toLowerCase().includes(query)
-    );
-  }, [groupedSessions, searchQuery]);
+    return unifiedTransactions.filter(transaction => {
+      const matchesType = transaction.transactionType.toLowerCase().includes(query);
+      const matchesCustomer = transaction.customerName.toLowerCase().includes(query);
+      const matchesDate = transaction.date.toLowerCase().includes(query);
+      const matchesSeats = transaction.seats?.some(seat => seat.toLowerCase().includes(query));
+      const matchesDuration = transaction.duration?.toLowerCase().includes(query);
+      const matchesPaymentMethod = transaction.paymentMethod?.toLowerCase().includes(query);
+      const matchesNotes = transaction.notes?.toLowerCase().includes(query);
+      
+      return matchesType || matchesCustomer || matchesDate || matchesSeats || matchesDuration || matchesPaymentMethod || matchesNotes;
+    });
+  }, [unifiedTransactions, searchQuery]);
 
   const handleExportExcel = () => {
-    if (!filteredSessions || filteredSessions.length === 0) {
+    if (!filteredTransactions || filteredTransactions.length === 0) {
       toast({
         title: "No data to export",
-        description: "There are no bookings for the selected period.",
+        description: "There are no transactions for the selected period.",
         variant: "destructive",
       });
       return;
     }
 
     try {
-      const headers = ["Date", "Seats", "Customer", "Duration", "Session Price (₹)", "Food Amount (₹)", "Cash (₹)", "UPI (₹)", "Total (₹)"];
+      const headers = ["Date", "Type", "Customer", "Seats", "Duration", "Session Price (₹)", "Food (₹)", "Payment Method", "Credit (₹)", "Cash (₹)", "UPI (₹)", "Total (₹)", "Status/Notes"];
       const csvContent = [
         headers.join(","),
-        ...filteredSessions.map(session => {
+        ...filteredTransactions.map(transaction => {
           return [
-            session.date,
-            session.seats.join(' + '),
-            session.customerName,
-            session.duration,
-            session.sessionPrice.toFixed(0),
-            session.foodAmount.toFixed(0),
-            session.cashAmount.toFixed(0),
-            session.upiAmount.toFixed(0),
-            session.totalAmount.toFixed(0)
+            transaction.date,
+            transaction.transactionType === 'booking' ? 'Booking' : 'Credit Payment',
+            transaction.customerName,
+            transaction.seats?.join(' + ') || '-',
+            transaction.duration || '-',
+            transaction.sessionPrice?.toFixed(0) || '-',
+            transaction.foodAmount.toFixed(0),
+            transaction.paymentMethod || '-',
+            transaction.creditAmount?.toFixed(0) || '0',
+            transaction.cashAmount.toFixed(0),
+            transaction.upiAmount.toFixed(0),
+            transaction.totalAmount.toFixed(0),
+            transaction.transactionType === 'credit_payment' ? (transaction.notes || 'Credit Payment') : (transaction.paymentStatus || '-')
           ].join(",");
         })
       ].join("\n");
@@ -364,7 +421,7 @@ export default function Reports() {
       const link = document.createElement("a");
       const url = URL.createObjectURL(blob);
       link.setAttribute("href", url);
-      link.setAttribute("download", `booking_report_${selectedPeriod}_${getAdjustedTime().toISOString().split('T')[0]}.csv`);
+      link.setAttribute("download", `transactions_report_${selectedPeriod}_${getAdjustedTime().toISOString().split('T')[0]}.csv`);
       link.style.visibility = "hidden";
       document.body.appendChild(link);
       link.click();
@@ -393,10 +450,10 @@ export default function Reports() {
   };
 
   const handleExportPDF = () => {
-    if (!filteredSessions || filteredSessions.length === 0) {
+    if (!filteredTransactions || filteredTransactions.length === 0) {
       toast({
         title: "No data to export",
-        description: "There are no bookings for the selected period.",
+        description: "There are no transactions for the selected period.",
         variant: "destructive",
       });
       return;
@@ -417,7 +474,7 @@ export default function Reports() {
         <!DOCTYPE html>
         <html>
         <head>
-          <title>Booking Report - ${getPeriodLabel()}</title>
+          <title>Transactions Report - ${getPeriodLabel()}</title>
           <style>
             body { font-family: Arial, sans-serif; padding: 20px; }
             h1 { color: #333; }
@@ -425,18 +482,21 @@ export default function Reports() {
             .stat-card { flex: 1; padding: 15px; border: 1px solid #ddd; border-radius: 8px; }
             .stat-card h3 { margin: 0 0 10px 0; font-size: 14px; color: #666; }
             .stat-card .value { font-size: 24px; font-weight: bold; }
-            table { width: 100%; border-collapse: collapse; margin-top: 20px; }
-            th, td { padding: 12px; text-align: left; border-bottom: 1px solid #ddd; }
+            table { width: 100%; border-collapse: collapse; margin-top: 20px; font-size: 12px; }
+            th, td { padding: 8px; text-align: left; border-bottom: 1px solid #ddd; }
             th { background-color: #f5f5f5; font-weight: bold; }
             .text-right { text-align: right; }
-            .badge { display: inline-block; padding: 4px 8px; background: #f0f0f0; border-radius: 4px; margin: 2px; font-size: 11px; }
+            .badge { display: inline-block; padding: 2px 6px; background: #f0f0f0; border-radius: 4px; margin: 1px; font-size: 10px; }
+            .type-badge { display: inline-block; padding: 2px 8px; border-radius: 4px; font-size: 10px; }
+            .booking { background: #e3f2fd; color: #1976d2; }
+            .credit-payment { background: #e8f5e9; color: #388e3c; }
             @media print {
               body { padding: 10px; }
             }
           </style>
         </head>
         <body>
-          <h1>Booking Report - ${getPeriodLabel()}</h1>
+          <h1>Transactions Report - ${getPeriodLabel()}</h1>
           <div class="stats">
             <div class="stat-card">
               <h3>${getPeriodLabel()} Revenue</h3>
@@ -455,30 +515,34 @@ export default function Reports() {
             <thead>
               <tr>
                 <th>Date</th>
-                <th>Seats</th>
+                <th>Type</th>
                 <th>Customer</th>
-                <th>Duration</th>
-                <th class="text-right">Session Price</th>
-                <th class="text-right">Food Amount</th>
+                <th>Seats/Details</th>
+                <th class="text-right">Payment Method</th>
+                <th class="text-right">Credit</th>
                 <th class="text-right">Cash</th>
                 <th class="text-right">UPI</th>
                 <th class="text-right">Total</th>
               </tr>
             </thead>
             <tbody>
-              ${filteredSessions.map(session => {
-                const seatsDisplay = session.seats.map(s => `<span class="badge">${s}</span>`).join(' ');
+              ${filteredTransactions.map(transaction => {
+                const typeClass = transaction.transactionType === 'booking' ? 'booking' : 'credit-payment';
+                const typeLabel = transaction.transactionType === 'booking' ? 'Booking' : 'Credit Payment';
+                const detailsDisplay = transaction.seats 
+                  ? transaction.seats.map(s => `<span class="badge">${s}</span>`).join(' ')
+                  : (transaction.notes || '-');
                 return `
                   <tr>
-                    <td>${session.date}</td>
-                    <td>${seatsDisplay}</td>
-                    <td>${session.customerName}</td>
-                    <td>${session.duration}</td>
-                    <td class="text-right">₹${session.sessionPrice.toFixed(0)}</td>
-                    <td class="text-right">₹${session.foodAmount.toFixed(0)}</td>
-                    <td class="text-right">${session.cashAmount > 0 ? '₹' + session.cashAmount.toFixed(0) : '-'}</td>
-                    <td class="text-right">${session.upiAmount > 0 ? '₹' + session.upiAmount.toFixed(0) : '-'}</td>
-                    <td class="text-right"><strong>₹${session.totalAmount.toFixed(0)}</strong></td>
+                    <td>${transaction.date}</td>
+                    <td><span class="type-badge ${typeClass}">${typeLabel}</span></td>
+                    <td>${transaction.customerName}</td>
+                    <td>${detailsDisplay}</td>
+                    <td class="text-right">${transaction.paymentMethod || '-'}</td>
+                    <td class="text-right">${transaction.creditAmount && transaction.creditAmount > 0 ? '₹' + transaction.creditAmount.toFixed(0) : '-'}</td>
+                    <td class="text-right">${transaction.cashAmount > 0 ? '₹' + transaction.cashAmount.toFixed(0) : '-'}</td>
+                    <td class="text-right">${transaction.upiAmount > 0 ? '₹' + transaction.upiAmount.toFixed(0) : '-'}</td>
+                    <td class="text-right"><strong>₹${transaction.totalAmount.toFixed(0)}</strong></td>
                   </tr>
                 `;
               }).join('')}
@@ -741,17 +805,17 @@ export default function Reports() {
 
       <div className="space-y-4">
         <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
-          <h2 className="text-lg sm:text-xl font-semibold">Booking History</h2>
+          <h2 className="text-lg sm:text-xl font-semibold">Transactions History</h2>
           <div className="flex gap-2 flex-1 max-w-2xl">
             <div className="relative flex-1">
               <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
               <Input
                 type="text"
-                placeholder="Search by seat, customer, date..."
+                placeholder="Search by type, customer, seat, payment method..."
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
                 className="pl-9"
-                data-testid="input-search-bookings"
+                data-testid="input-search-transactions"
               />
             </div>
             <ColumnVisibilityToggle
@@ -766,17 +830,20 @@ export default function Reports() {
             <TableHeader>
               <TableRow>
                 {visibleColumns.includes("date") && <TableHead>Date</TableHead>}
-                {visibleColumns.includes("seats") && <TableHead>Seats</TableHead>}
+                {visibleColumns.includes("type") && <TableHead>Type</TableHead>}
                 {visibleColumns.includes("customer") && <TableHead>Customer</TableHead>}
+                {visibleColumns.includes("seats") && <TableHead>Seats</TableHead>}
                 {visibleColumns.includes("duration") && <TableHead>Duration</TableHead>}
                 {visibleColumns.includes("sessionPrice") && <TableHead className="text-right">Session Price</TableHead>}
-                {visibleColumns.includes("foodAmount") && <TableHead className="text-right">Food Amount</TableHead>}
+                {visibleColumns.includes("foodAmount") && <TableHead className="text-right">Food</TableHead>}
                 {visibleColumns.includes("discount") && <TableHead className="text-right">Discount</TableHead>}
                 {visibleColumns.includes("bonus") && <TableHead className="text-right">Bonus</TableHead>}
-                {visibleColumns.includes("paymentStatus") && <TableHead>Payment Status</TableHead>}
+                {visibleColumns.includes("paymentMethod") && <TableHead>Payment Method</TableHead>}
+                {visibleColumns.includes("credit") && <TableHead className="text-right">Credit</TableHead>}
                 {visibleColumns.includes("cash") && <TableHead className="text-right">Cash</TableHead>}
                 {visibleColumns.includes("upi") && <TableHead className="text-right">UPI</TableHead>}
                 {visibleColumns.includes("total") && <TableHead className="text-right">Total</TableHead>}
+                {visibleColumns.includes("status") && <TableHead>Status/Notes</TableHead>}
               </TableRow>
             </TableHeader>
             <TableBody>
@@ -786,76 +853,109 @@ export default function Reports() {
                     <Skeleton className="h-10 w-full" />
                   </TableCell>
                 </TableRow>
-              ) : filteredSessions && filteredSessions.length > 0 ? (
-                filteredSessions.map((session) => (
-                  <TableRow key={session.id} data-testid={`row-history-${session.id}`}>
+              ) : filteredTransactions && filteredTransactions.length > 0 ? (
+                filteredTransactions.map((transaction) => (
+                  <TableRow key={transaction.id} data-testid={`row-transaction-${transaction.id}`}>
                     {visibleColumns.includes("date") && (
-                      <TableCell data-testid={`text-date-${session.id}`}>{session.date}</TableCell>
+                      <TableCell data-testid={`text-date-${transaction.id}`}>{transaction.date}</TableCell>
                     )}
-                    {visibleColumns.includes("seats") && (
-                      <TableCell className="font-medium" data-testid={`text-seats-${session.id}`}>
-                        <Button
-                          variant="outline"
-                          size="sm"
-                          onClick={() => setViewSeatsDialog({ open: true, seats: session.seats })}
-                          data-testid={`button-view-seats-${session.id}`}
-                        >
-                          <Eye className="mr-2 h-4 w-4" />
-                          View Seat
-                        </Button>
+                    {visibleColumns.includes("type") && (
+                      <TableCell data-testid={`text-type-${transaction.id}`}>
+                        <span className={`inline-flex items-center px-2 py-1 rounded-md text-xs font-medium ${
+                          transaction.transactionType === 'booking' 
+                            ? 'bg-blue-100 dark:bg-blue-900/30 text-blue-700 dark:text-blue-400' 
+                            : 'bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-400'
+                        }`}>
+                          {transaction.transactionType === 'booking' ? 'Booking' : 'Credit Payment'}
+                        </span>
                       </TableCell>
                     )}
                     {visibleColumns.includes("customer") && (
-                      <TableCell data-testid={`text-customer-${session.id}`}>{session.customerName}</TableCell>
-                    )}
-                    {visibleColumns.includes("duration") && (
-                      <TableCell data-testid={`text-duration-${session.id}`}>{session.duration}</TableCell>
-                    )}
-                    {visibleColumns.includes("sessionPrice") && (
-                      <TableCell className="text-right" data-testid={`text-session-price-${session.id}`}>
-                        ₹{session.sessionPrice.toFixed(0)}
+                      <TableCell className="font-medium" data-testid={`text-customer-${transaction.id}`}>
+                        {transaction.customerName}
                       </TableCell>
                     )}
-                    {visibleColumns.includes("foodAmount") && (
-                      <TableCell className="text-right" data-testid={`text-food-amount-${session.id}`}>
-                        ₹{session.foodAmount.toFixed(0)}
-                      </TableCell>
-                    )}
-                    {visibleColumns.includes("discount") && (
-                      <TableCell className="text-right" data-testid={`text-discount-${session.id}`}>
-                        {session.discountApplied || '-'}
-                      </TableCell>
-                    )}
-                    {visibleColumns.includes("bonus") && (
-                      <TableCell className="text-right" data-testid={`text-bonus-${session.id}`}>
-                        {session.bonusHoursApplied ? (
+                    {visibleColumns.includes("seats") && (
+                      <TableCell data-testid={`text-seats-${transaction.id}`}>
+                        {transaction.seats && transaction.seats.length > 0 ? (
                           <Button
                             variant="outline"
                             size="sm"
-                            onClick={() => setViewBonusDialog({ open: true, bonusHours: session.bonusHoursApplied! })}
-                            data-testid={`button-view-bonus-${session.id}`}
+                            onClick={() => setViewSeatsDialog({ open: true, seats: transaction.seats! })}
+                            data-testid={`button-view-seats-${transaction.id}`}
                           >
                             <Eye className="mr-2 h-4 w-4" />
-                            View Hours
+                            View ({transaction.seats.length})
                           </Button>
                         ) : (
-                          '-'
+                          <span className="text-muted-foreground text-xs">-</span>
                         )}
                       </TableCell>
                     )}
-                    {visibleColumns.includes("paymentStatus") && (
-                      <TableCell data-testid={`text-payment-status-${session.id}`}>
-                        {session.paymentStatus ? (
+                    {visibleColumns.includes("duration") && (
+                      <TableCell data-testid={`text-duration-${transaction.id}`}>
+                        {transaction.duration || <span className="text-muted-foreground text-xs">-</span>}
+                      </TableCell>
+                    )}
+                    {visibleColumns.includes("sessionPrice") && (
+                      <TableCell className="text-right" data-testid={`text-session-price-${transaction.id}`}>
+                        {transaction.sessionPrice ? `₹${transaction.sessionPrice.toFixed(0)}` : <span className="text-muted-foreground text-xs">-</span>}
+                      </TableCell>
+                    )}
+                    {visibleColumns.includes("foodAmount") && (
+                      <TableCell className="text-right" data-testid={`text-food-amount-${transaction.id}`}>
+                        {transaction.foodAmount > 0 ? `₹${transaction.foodAmount.toFixed(0)}` : <span className="text-muted-foreground text-xs">-</span>}
+                      </TableCell>
+                    )}
+                    {visibleColumns.includes("discount") && (
+                      <TableCell className="text-right" data-testid={`text-discount-${transaction.id}`}>
+                        {transaction.discountApplied || <span className="text-muted-foreground text-xs">-</span>}
+                      </TableCell>
+                    )}
+                    {visibleColumns.includes("bonus") && (
+                      <TableCell className="text-right" data-testid={`text-bonus-${transaction.id}`}>
+                        {transaction.bonusHoursApplied ? (
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            onClick={() => setViewBonusDialog({ open: true, bonusHours: transaction.bonusHoursApplied! })}
+                            data-testid={`button-view-bonus-${transaction.id}`}
+                          >
+                            <Eye className="mr-2 h-4 w-4" />
+                            View
+                          </Button>
+                        ) : (
+                          <span className="text-muted-foreground text-xs">-</span>
+                        )}
+                      </TableCell>
+                    )}
+                    {visibleColumns.includes("paymentMethod") && (
+                      <TableCell data-testid={`text-payment-method-${transaction.id}`}>
+                        {transaction.paymentMethod ? (
                           <span className={`inline-flex items-center px-2 py-1 rounded-md text-xs font-medium ${
-                            session.paymentStatus === 'paid' 
+                            transaction.paymentMethod === 'Cash' 
                               ? 'bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-400' 
-                              : session.paymentStatus === 'unpaid'
-                              ? 'bg-red-100 dark:bg-red-900/30 text-red-700 dark:text-red-400'
-                              : session.paymentStatus === 'partial'
-                              ? 'bg-yellow-100 dark:bg-yellow-900/30 text-yellow-700 dark:text-yellow-400'
+                              : transaction.paymentMethod === 'UPI'
+                              ? 'bg-blue-100 dark:bg-blue-900/30 text-blue-700 dark:text-blue-400'
+                              : transaction.paymentMethod === 'Split'
+                              ? 'bg-purple-100 dark:bg-purple-900/30 text-purple-700 dark:text-purple-400'
+                              : transaction.paymentMethod === 'Credit'
+                              ? 'bg-amber-100 dark:bg-amber-900/30 text-amber-700 dark:text-amber-400'
                               : 'bg-gray-100 dark:bg-gray-800 text-gray-700 dark:text-gray-400'
                           }`}>
-                            {session.paymentStatus.charAt(0).toUpperCase() + session.paymentStatus.slice(1)}
+                            {transaction.paymentMethod}
+                          </span>
+                        ) : (
+                          <span className="text-muted-foreground text-xs">-</span>
+                        )}
+                      </TableCell>
+                    )}
+                    {visibleColumns.includes("credit") && (
+                      <TableCell className="text-right" data-testid={`text-credit-${transaction.id}`}>
+                        {transaction.creditAmount && transaction.creditAmount > 0 ? (
+                          <span className={transaction.transactionType === 'credit_payment' ? 'text-emerald-600 dark:text-emerald-400' : 'text-amber-600 dark:text-amber-400'}>
+                            ₹{transaction.creditAmount.toFixed(0)}
+                            {transaction.transactionType === 'credit_payment' && <span className="text-xs ml-1">(Recovered)</span>}
                           </span>
                         ) : (
                           <span className="text-muted-foreground text-xs">-</span>
@@ -863,26 +963,49 @@ export default function Reports() {
                       </TableCell>
                     )}
                     {visibleColumns.includes("cash") && (
-                      <TableCell className="text-right" data-testid={`text-cash-${session.id}`}>
-                        {session.cashAmount > 0 ? (
-                          <span className="text-green-600 dark:text-green-400">₹{session.cashAmount.toFixed(0)}</span>
+                      <TableCell className="text-right" data-testid={`text-cash-${transaction.id}`}>
+                        {transaction.cashAmount > 0 ? (
+                          <span className="text-green-600 dark:text-green-400">₹{transaction.cashAmount.toFixed(0)}</span>
                         ) : (
-                          '-'
+                          <span className="text-muted-foreground text-xs">-</span>
                         )}
                       </TableCell>
                     )}
                     {visibleColumns.includes("upi") && (
-                      <TableCell className="text-right" data-testid={`text-upi-${session.id}`}>
-                        {session.upiAmount > 0 ? (
-                          <span className="text-blue-600 dark:text-blue-400">₹{session.upiAmount.toFixed(0)}</span>
+                      <TableCell className="text-right" data-testid={`text-upi-${transaction.id}`}>
+                        {transaction.upiAmount > 0 ? (
+                          <span className="text-blue-600 dark:text-blue-400">₹{transaction.upiAmount.toFixed(0)}</span>
                         ) : (
-                          '-'
+                          <span className="text-muted-foreground text-xs">-</span>
                         )}
                       </TableCell>
                     )}
                     {visibleColumns.includes("total") && (
-                      <TableCell className="text-right font-bold text-green-600 dark:text-green-400" data-testid={`text-total-${session.id}`}>
-                        ₹{session.totalAmount.toFixed(0)}
+                      <TableCell className="text-right font-bold" data-testid={`text-total-${transaction.id}`}>
+                        <span className={transaction.transactionType === 'credit_payment' ? 'text-emerald-600 dark:text-emerald-400' : 'text-foreground'}>
+                          ₹{transaction.totalAmount.toFixed(0)}
+                        </span>
+                      </TableCell>
+                    )}
+                    {visibleColumns.includes("status") && (
+                      <TableCell data-testid={`text-status-${transaction.id}`}>
+                        {transaction.transactionType === 'booking' && transaction.paymentStatus ? (
+                          <span className={`inline-flex items-center px-2 py-1 rounded-md text-xs font-medium ${
+                            transaction.paymentStatus === 'paid' 
+                              ? 'bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-400' 
+                              : transaction.paymentStatus === 'unpaid'
+                              ? 'bg-red-100 dark:bg-red-900/30 text-red-700 dark:text-red-400'
+                              : transaction.paymentStatus === 'partial'
+                              ? 'bg-yellow-100 dark:bg-yellow-900/30 text-yellow-700 dark:text-yellow-400'
+                              : 'bg-gray-100 dark:bg-gray-800 text-gray-700 dark:text-gray-400'
+                          }`}>
+                            {transaction.paymentStatus.charAt(0).toUpperCase() + transaction.paymentStatus.slice(1)}
+                          </span>
+                        ) : transaction.notes ? (
+                          <span className="text-xs text-muted-foreground">{transaction.notes}</span>
+                        ) : (
+                          <span className="text-muted-foreground text-xs">-</span>
+                        )}
                       </TableCell>
                     )}
                   </TableRow>
@@ -890,7 +1013,7 @@ export default function Reports() {
               ) : (
                 <TableRow>
                   <TableCell colSpan={visibleColumns.length} className="text-center text-muted-foreground">
-                    {searchQuery.trim() ? 'No bookings found matching your search' : 'No booking history for this period'}
+                    {searchQuery.trim() ? 'No transactions found matching your search' : 'No transactions for this period'}
                   </TableCell>
                 </TableRow>
               )}
@@ -898,97 +1021,6 @@ export default function Reports() {
           </Table>
         </div>
       </div>
-
-      {creditPayments && creditPayments.length > 0 && (
-        <div className="space-y-4 mt-8">
-          <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
-            <h2 className="text-lg sm:text-xl font-semibold">Credit Payments</h2>
-            <div className="flex gap-2 flex-1 max-w-2xl">
-              <div className="relative flex-1">
-                <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-                <Input
-                  type="text"
-                  placeholder="Search by customer, date, method..."
-                  value={paymentSearchQuery}
-                  onChange={(e) => setPaymentSearchQuery(e.target.value)}
-                  className="pl-9"
-                  data-testid="input-search-payments"
-                />
-              </div>
-              <Button
-                variant="outline"
-                size="sm"
-                onClick={handleExportPaymentsCSV}
-                disabled={!filteredPayments || filteredPayments.length === 0}
-                data-testid="button-export-payments-csv"
-              >
-                <Download className="mr-2 h-4 w-4" />
-                Export CSV
-              </Button>
-            </div>
-          </div>
-          <div className="rounded-md border overflow-x-auto">
-            <Table>
-              <TableHeader>
-                <TableRow>
-                  <TableHead>Date</TableHead>
-                  <TableHead>Customer</TableHead>
-                  <TableHead className="text-right">Amount</TableHead>
-                  <TableHead className="text-right">Cash</TableHead>
-                  <TableHead className="text-right">UPI</TableHead>
-                  <TableHead>Method</TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {filteredPayments && filteredPayments.length > 0 ? (
-                  filteredPayments.map((payment) => (
-                    <TableRow key={payment.id} data-testid={`row-credit-payment-${payment.id}`}>
-                      <TableCell data-testid={`text-payment-date-${payment.id}`}>{payment.date}</TableCell>
-                      <TableCell className="font-medium" data-testid={`text-payment-customer-${payment.id}`}>
-                        {payment.customerName}
-                      </TableCell>
-                      <TableCell className="text-right font-bold text-green-600 dark:text-green-400" data-testid={`text-payment-amount-${payment.id}`}>
-                        ₹{payment.amount.toFixed(0)}
-                      </TableCell>
-                      <TableCell className="text-right" data-testid={`text-payment-cash-${payment.id}`}>
-                        {payment.cashAmount > 0 ? (
-                          <span className="text-green-600 dark:text-green-400">₹{payment.cashAmount.toFixed(0)}</span>
-                        ) : (
-                          '-'
-                        )}
-                      </TableCell>
-                      <TableCell className="text-right" data-testid={`text-payment-upi-${payment.id}`}>
-                        {payment.upiAmount > 0 ? (
-                          <span className="text-blue-600 dark:text-blue-400">₹{payment.upiAmount.toFixed(0)}</span>
-                        ) : (
-                          '-'
-                        )}
-                      </TableCell>
-                      <TableCell data-testid={`text-payment-method-${payment.id}`}>
-                        <span className={`inline-flex items-center px-2 py-1 rounded-md text-xs font-medium ${
-                          payment.paymentMethod === 'cash' 
-                            ? 'bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-400' 
-                            : payment.paymentMethod === 'upi_online'
-                            ? 'bg-blue-100 dark:bg-blue-900/30 text-blue-700 dark:text-blue-400'
-                            : 'bg-gray-100 dark:bg-gray-800 text-gray-700 dark:text-gray-400'
-                        }`}>
-                          {payment.paymentMethod === 'upi_online' ? 'UPI' : payment.paymentMethod.charAt(0).toUpperCase() + payment.paymentMethod.slice(1)}
-                        </span>
-                      </TableCell>
-                    </TableRow>
-                  ))
-                ) : (
-                  <TableRow>
-                    <TableCell colSpan={6} className="text-center text-muted-foreground">
-                      {paymentSearchQuery.trim() ? 'No credit payments found matching your search' : 'No credit payments for this period'}
-                    </TableCell>
-                  </TableRow>
-                )}
-              </TableBody>
-            </Table>
-          </div>
-        </div>
-      )}
 
       <Dialog open={viewSeatsDialog.open} onOpenChange={(open) => setViewSeatsDialog({ open, seats: [] })}>
         <DialogContent data-testid="dialog-view-seats">
