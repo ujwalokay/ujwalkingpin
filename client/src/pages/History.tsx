@@ -4,12 +4,18 @@ import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { ScrollArea } from "@/components/ui/scroll-area";
-import { Clock, User, Phone, DollarSign, Calendar, Search, Receipt, Percent, Gift, Award } from "lucide-react";
-import { useState } from "react";
-import { format, isValid, isSameDay, parseISO } from "date-fns";
+import { Clock, User, Phone, DollarSign, Calendar, Search, FileText, Percent, Gift, UtensilsCrossed } from "lucide-react";
+import { useState, useMemo } from "react";
+import { format, isValid, isSameDay } from "date-fns";
 import type { BookingHistory } from "@shared/schema";
 import { getAdjustedTime } from "@/hooks/useServerTime";
 import { useAuth } from "@/contexts/AuthContext";
+import {
+  Accordion,
+  AccordionContent,
+  AccordionItem,
+  AccordionTrigger,
+} from "@/components/ui/accordion";
 import {
   Dialog,
   DialogContent,
@@ -17,11 +23,19 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from "@/components/ui/table";
 
 export default function History() {
   const [searchQuery, setSearchQuery] = useState("");
   const [selectedDate, setSelectedDate] = useState<string>("");
-  const [selectedBill, setSelectedBill] = useState<BookingHistory | null>(null);
+  const [selectedBooking, setSelectedBooking] = useState<BookingHistory | null>(null);
   const { isStaff } = useAuth();
 
   const { data: bookings = [], isLoading } = useQuery<BookingHistory[]>({
@@ -46,6 +60,18 @@ export default function History() {
     
     return true;
   });
+
+  const groupedByCustomer = useMemo(() => {
+    const groups = new Map<string, BookingHistory[]>();
+    filteredBookings.forEach(booking => {
+      const customerName = booking.customerName;
+      if (!groups.has(customerName)) {
+        groups.set(customerName, []);
+      }
+      groups.get(customerName)!.push(booking);
+    });
+    return groups;
+  }, [filteredBookings]);
 
   const formatDate = (date: Date | string) => {
     const d = typeof date === 'string' ? new Date(date) : date;
@@ -74,32 +100,6 @@ export default function History() {
     return basePrice + foodTotal;
   };
 
-  const calculateOriginalDuration = (booking: BookingHistory) => {
-    if (!booking.bonusHoursApplied || !booking.manualFreeHours) return null;
-    
-    const start = typeof booking.startTime === 'string' ? new Date(booking.startTime) : booking.startTime;
-    const end = typeof booking.endTime === 'string' ? new Date(booking.endTime) : booking.endTime;
-    
-    if (!isValid(start) || !isValid(end)) return null;
-    
-    // Parse free hours (format could be "1:30" or "1h 30min")
-    let freeHoursInMs = 0;
-    const freeHoursStr = String(booking.manualFreeHours);
-    
-    if (freeHoursStr.includes(':')) {
-      const [hours, minutes] = freeHoursStr.split(':').map(val => parseInt(val) || 0);
-      freeHoursInMs = (hours * 60 * 60 * 1000) + (minutes * 60 * 1000);
-    } else {
-      const hours = parseFloat(freeHoursStr);
-      freeHoursInMs = hours * 60 * 60 * 1000;
-    }
-    
-    // Calculate original end time (before free hours were added)
-    const originalEndTime = new Date(end.getTime() - freeHoursInMs);
-    
-    return calculateDuration(start, originalEndTime);
-  };
-
   if (isLoading) {
     return (
       <div className="space-y-6">
@@ -116,7 +116,7 @@ export default function History() {
       <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-2">
         <div>
           <h1 className="text-3xl font-bold" data-testid="heading-history">Booking History</h1>
-          <p className="text-muted-foreground mt-2">View all completed bookings</p>
+          <p className="text-muted-foreground mt-2">View all completed bookings grouped by customer</p>
         </div>
         <div className="text-sm text-muted-foreground" data-testid="text-current-date">
           {getAdjustedTime().toLocaleDateString('en-IN', { 
@@ -162,7 +162,7 @@ export default function History() {
       </div>
 
       <ScrollArea className="h-[calc(100vh-280px)]">
-        {filteredBookings.length === 0 ? (
+        {groupedByCustomer.size === 0 ? (
           <Card className="glass-card">
             <CardContent className="flex items-center justify-center py-12">
               <p className="text-muted-foreground" data-testid="text-no-history">
@@ -171,285 +171,333 @@ export default function History() {
             </CardContent>
           </Card>
         ) : (
-          <div className="grid gap-4 sm:grid-cols-1 md:grid-cols-2 lg:grid-cols-3">
-            {filteredBookings.map((booking) => (
-              <Card key={booking.id} className="glass-card" data-testid={`card-booking-${booking.id}`}>
-                <CardHeader className="pb-3">
-                  <div className="flex items-start justify-between">
-                    <div>
-                      <CardTitle className="text-lg" data-testid={`text-seat-${booking.id}`}>
-                        {booking.seatName}
-                      </CardTitle>
-                      <CardDescription className="mt-1 flex gap-1 flex-wrap">
-                        <Badge variant="secondary" className="text-xs">
-                          {booking.category}
-                        </Badge>
-                        {booking.bookingType && booking.bookingType.length > 0 && booking.bookingType.map((type, idx) => (
-                          <Badge 
-                            key={idx}
-                            variant="outline" 
-                            className={`text-xs ${
-                              type === 'happy-hours' 
-                                ? 'bg-yellow-50 dark:bg-yellow-950 text-yellow-700 dark:text-yellow-300 border-yellow-300 dark:border-yellow-700' 
-                                : type === 'upcoming'
-                                ? 'bg-blue-50 dark:bg-blue-950 text-blue-700 dark:text-blue-300 border-blue-300 dark:border-blue-700'
-                                : 'bg-purple-50 dark:bg-purple-950 text-purple-700 dark:text-purple-300 border-purple-300 dark:border-purple-700'
-                            }`}
-                            data-testid={`badge-booking-type-${type}-${booking.id}`}
-                          >
-                            {type === 'happy-hours' ? '🎉 Happy Hours' : type === 'upcoming' ? '📅 Upcoming' : '🚶 Walk-in'}
-                          </Badge>
-                        ))}
-                      </CardDescription>
-                    </div>
-                    <Badge variant="outline" className="bg-green-50 dark:bg-green-950 text-green-700 dark:text-green-300">
-                      Completed
-                    </Badge>
-                  </div>
-                </CardHeader>
-                <CardContent className="space-y-3 text-sm">
-                  <div className="flex items-center gap-2" data-testid={`text-customer-${booking.id}`}>
-                    <User className="h-4 w-4 text-muted-foreground" />
-                    <span className="font-medium">{booking.customerName}</span>
-                  </div>
-                  
-                  {!isStaff && booking.whatsappNumber && (
-                    <div className="flex items-center gap-2" data-testid={`text-phone-${booking.id}`}>
-                      <Phone className="h-4 w-4 text-muted-foreground" />
-                      <span className="text-muted-foreground">{booking.whatsappNumber}</span>
-                    </div>
-                  )}
-                  
-                  <div className="flex items-center gap-2" data-testid={`text-start-time-${booking.id}`}>
-                    <Calendar className="h-4 w-4 text-muted-foreground" />
-                    <span className="text-muted-foreground">{formatDate(booking.startTime)}</span>
-                  </div>
-                  
-                  <div className="flex items-center gap-2 text-xs text-muted-foreground" data-testid={`text-archived-${booking.id}`}>
-                    <span>Archived: {formatDate(booking.archivedAt)}</span>
-                  </div>
-                  
-                  <div className="flex items-center gap-2" data-testid={`text-duration-${booking.id}`}>
-                    <Clock className="h-4 w-4 text-muted-foreground" />
-                    <span className="text-muted-foreground">
-                      Duration: {calculateDuration(booking.startTime, booking.endTime)}
-                    </span>
-                  </div>
-
-                  {booking.discountApplied || booking.bonusHoursApplied ? (
-                    <div className="flex flex-wrap gap-2 pt-2 border-t">
-                      {booking.discountApplied && (
-                        <Badge 
-                          variant="outline" 
-                          className="bg-green-50 dark:bg-green-950 text-green-700 dark:text-green-300 border-green-300 dark:border-green-700"
-                          data-testid={`badge-discount-used-${booking.id}`}
-                        >
-                          <Percent className="h-3 w-3 mr-1" />
-                          Discount
-                        </Badge>
-                      )}
-                      {booking.bonusHoursApplied && (
-                        <Badge 
-                          variant="outline" 
-                          className="bg-yellow-50 dark:bg-yellow-950 text-yellow-700 dark:text-yellow-300 border-yellow-300 dark:border-yellow-700"
-                          data-testid={`badge-bonus-used-${booking.id}`}
-                        >
-                          <Gift className="h-3 w-3 mr-1" />
-                          Free Hours
-                        </Badge>
-                      )}
-                    </div>
-                  ) : null}
-
-                  {booking.foodOrders && booking.foodOrders.length > 0 && (
-                    <div className="pt-2 border-t">
-                      <p className="text-xs font-medium mb-2">Food Orders:</p>
-                      <div className="space-y-1">
-                        {booking.foodOrders.map((order, idx) => (
-                          <div key={idx} className="text-xs text-muted-foreground flex justify-between">
-                            <span>{order.foodName} x{order.quantity}</span>
-                            <span>₹{parseFloat(order.price) * order.quantity}</span>
+          <Accordion type="multiple" className="space-y-4">
+            {Array.from(groupedByCustomer.entries()).map(([customerName, customerBookings]) => {
+              const totalAmount = customerBookings.reduce((sum, booking) => sum + calculateTotal(booking), 0);
+              
+              return (
+                <AccordionItem 
+                  key={customerName} 
+                  value={customerName}
+                  className="border rounded-md px-4 bg-card"
+                  data-testid={`accordion-customer-${customerName}`}
+                >
+                  <AccordionTrigger className="hover:no-underline py-4">
+                    <div className="flex items-center justify-between w-full pr-4">
+                      <div className="flex items-center gap-3">
+                        <User className="h-5 w-5 text-muted-foreground" />
+                        <div className="text-left">
+                          <div className="font-semibold text-base" data-testid={`text-customer-name-${customerName}`}>
+                            {customerName}
                           </div>
-                        ))}
+                          <div className="text-sm text-muted-foreground">
+                            {customerBookings.length} booking{customerBookings.length > 1 ? 's' : ''}
+                          </div>
+                        </div>
+                      </div>
+                      <div className="flex items-center gap-2">
+                        <Badge variant="secondary" className="text-sm">
+                          ₹{totalAmount}
+                        </Badge>
                       </div>
                     </div>
-                  )}
-                  
-                  <div className="flex items-center justify-between pt-2 border-t" data-testid={`text-total-${booking.id}`}>
-                    <div className="flex items-center gap-2">
-                      <DollarSign className="h-4 w-4 text-muted-foreground" />
-                      <span className="font-semibold">Total</span>
+                  </AccordionTrigger>
+                  <AccordionContent className="pt-4 pb-4">
+                    <div className="grid gap-4 sm:grid-cols-1 md:grid-cols-2 lg:grid-cols-3">
+                      {customerBookings.map((booking) => (
+                        <Card key={booking.id} className="glass-card" data-testid={`card-booking-${booking.id}`}>
+                          <CardHeader className="pb-3">
+                            <div className="flex items-start justify-between">
+                              <div>
+                                <CardTitle className="text-lg" data-testid={`text-seat-${booking.id}`}>
+                                  {booking.seatName}
+                                </CardTitle>
+                                <CardDescription className="mt-1 flex gap-1 flex-wrap">
+                                  <Badge variant="secondary" className="text-xs">
+                                    {booking.category}
+                                  </Badge>
+                                  {booking.bookingType && booking.bookingType.length > 0 && booking.bookingType.map((type, idx) => (
+                                    <Badge 
+                                      key={idx}
+                                      variant="outline" 
+                                      className={`text-xs ${
+                                        type === 'happy-hours' 
+                                          ? 'bg-yellow-50 dark:bg-yellow-950 text-yellow-700 dark:text-yellow-300 border-yellow-300 dark:border-yellow-700' 
+                                          : type === 'upcoming'
+                                          ? 'bg-blue-50 dark:bg-blue-950 text-blue-700 dark:text-blue-300 border-blue-300 dark:border-blue-700'
+                                          : 'bg-purple-50 dark:bg-purple-950 text-purple-700 dark:text-purple-300 border-purple-300 dark:border-purple-700'
+                                      }`}
+                                      data-testid={`badge-booking-type-${type}-${booking.id}`}
+                                    >
+                                      {type === 'happy-hours' ? 'Happy Hours' : type === 'upcoming' ? 'Upcoming' : 'Walk-in'}
+                                    </Badge>
+                                  ))}
+                                </CardDescription>
+                              </div>
+                              <Badge variant="outline" className="bg-green-50 dark:bg-green-950 text-green-700 dark:text-green-300">
+                                Completed
+                              </Badge>
+                            </div>
+                          </CardHeader>
+                          <CardContent className="space-y-3 text-sm">
+                            {!isStaff && booking.whatsappNumber && (
+                              <div className="flex items-center gap-2" data-testid={`text-phone-${booking.id}`}>
+                                <Phone className="h-4 w-4 text-muted-foreground" />
+                                <span className="text-muted-foreground">{booking.whatsappNumber}</span>
+                              </div>
+                            )}
+                            
+                            <div className="flex items-center gap-2" data-testid={`text-start-time-${booking.id}`}>
+                              <Calendar className="h-4 w-4 text-muted-foreground" />
+                              <span className="text-muted-foreground">{formatDate(booking.startTime)}</span>
+                            </div>
+                            
+                            <div className="flex items-center gap-2" data-testid={`text-duration-${booking.id}`}>
+                              <Clock className="h-4 w-4 text-muted-foreground" />
+                              <span className="text-muted-foreground">
+                                Duration: {calculateDuration(booking.startTime, booking.endTime)}
+                              </span>
+                            </div>
+
+                            {booking.discountApplied || booking.bonusHoursApplied ? (
+                              <div className="flex flex-wrap gap-2 pt-2 border-t">
+                                {booking.discountApplied && (
+                                  <Badge 
+                                    variant="outline" 
+                                    className="bg-green-50 dark:bg-green-950 text-green-700 dark:text-green-300 border-green-300 dark:border-green-700"
+                                    data-testid={`badge-discount-used-${booking.id}`}
+                                  >
+                                    <Percent className="h-3 w-3 mr-1" />
+                                    Discount
+                                  </Badge>
+                                )}
+                                {booking.bonusHoursApplied && (
+                                  <Badge 
+                                    variant="outline" 
+                                    className="bg-yellow-50 dark:bg-yellow-950 text-yellow-700 dark:text-yellow-300 border-yellow-300 dark:border-yellow-700"
+                                    data-testid={`badge-bonus-used-${booking.id}`}
+                                  >
+                                    <Gift className="h-3 w-3 mr-1" />
+                                    Free Hours
+                                  </Badge>
+                                )}
+                              </div>
+                            ) : null}
+
+                            {booking.foodOrders && booking.foodOrders.length > 0 && (
+                              <div className="pt-2 border-t">
+                                <div className="flex items-center gap-2 mb-2">
+                                  <UtensilsCrossed className="h-4 w-4 text-muted-foreground" />
+                                  <p className="text-xs font-medium">
+                                    {booking.foodOrders.length} item{booking.foodOrders.length > 1 ? 's' : ''}
+                                  </p>
+                                </div>
+                              </div>
+                            )}
+                            
+                            <div className="flex items-center justify-between pt-2 border-t" data-testid={`text-total-${booking.id}`}>
+                              <div className="flex items-center gap-2">
+                                <DollarSign className="h-4 w-4 text-muted-foreground" />
+                                <span className="font-semibold">Total</span>
+                              </div>
+                              <span className="font-bold text-lg">₹{calculateTotal(booking)}</span>
+                            </div>
+                            
+                            <Button
+                              variant="outline"
+                              size="sm"
+                              className="w-full mt-2"
+                              onClick={() => setSelectedBooking(booking)}
+                              data-testid={`button-view-detail-${booking.id}`}
+                            >
+                              <FileText className="h-4 w-4 mr-2" />
+                              View Detail
+                            </Button>
+                          </CardContent>
+                        </Card>
+                      ))}
                     </div>
-                    <span className="font-bold text-lg">₹{calculateTotal(booking)}</span>
-                  </div>
-                  
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    className="w-full mt-2"
-                    onClick={() => setSelectedBill(booking)}
-                    data-testid={`button-view-bill-${booking.id}`}
-                  >
-                    <Receipt className="h-4 w-4 mr-2" />
-                    View Bill
-                  </Button>
-                </CardContent>
-              </Card>
-            ))}
-          </div>
+                  </AccordionContent>
+                </AccordionItem>
+              );
+            })}
+          </Accordion>
         )}
       </ScrollArea>
 
-      {/* Bill Detail Dialog */}
-      <Dialog open={!!selectedBill} onOpenChange={() => setSelectedBill(null)}>
-        <DialogContent className="max-w-md" data-testid="dialog-bill-detail">
+      {/* Booking Detail Dialog with Table */}
+      <Dialog open={!!selectedBooking} onOpenChange={() => setSelectedBooking(null)}>
+        <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto" data-testid="dialog-booking-detail">
           <DialogHeader>
-            <DialogTitle>Bill Details</DialogTitle>
+            <DialogTitle>Booking Details</DialogTitle>
             <DialogDescription>
-              Complete billing information for this booking
+              Complete information for this booking
             </DialogDescription>
           </DialogHeader>
           
-          {selectedBill && (
-            <div className="space-y-4">
-              {/* Customer Info */}
-              <div className="space-y-2">
-                <h3 className="font-semibold text-sm">Customer Information</h3>
-                <div className="text-sm space-y-1">
-                  <div className="flex justify-between">
-                    <span className="text-muted-foreground">Name:</span>
-                    <span className="font-medium" data-testid="bill-customer-name">{selectedBill.customerName}</span>
-                  </div>
-                  <div className="flex justify-between">
-                    <span className="text-muted-foreground">Seat:</span>
-                    <span className="font-medium" data-testid="bill-seat-name">{selectedBill.seatName}</span>
-                  </div>
-                  <div className="flex justify-between">
-                    <span className="text-muted-foreground">{selectedBill.bonusHoursApplied ? 'Total Duration (With Free Hours)' : 'Duration'}:</span>
-                    <span className="font-medium" data-testid="bill-duration">
-                      {calculateDuration(selectedBill.startTime, selectedBill.endTime)}
-                    </span>
-                  </div>
+          {selectedBooking && (
+            <div className="space-y-6">
+              {/* Customer Summary */}
+              <div className="grid grid-cols-2 gap-4 p-4 bg-muted/50 rounded-md">
+                <div>
+                  <p className="text-xs text-muted-foreground">Customer Name</p>
+                  <p className="font-semibold" data-testid="detail-customer-name">{selectedBooking.customerName}</p>
+                </div>
+                <div>
+                  <p className="text-xs text-muted-foreground">Seat</p>
+                  <p className="font-semibold" data-testid="detail-seat-name">{selectedBooking.seatName}</p>
+                </div>
+                <div>
+                  <p className="text-xs text-muted-foreground">Category</p>
+                  <Badge variant="secondary">{selectedBooking.category}</Badge>
+                </div>
+                <div>
+                  <p className="text-xs text-muted-foreground">Status</p>
+                  <Badge variant="outline" className="bg-green-50 dark:bg-green-950 text-green-700 dark:text-green-300">
+                    Completed
+                  </Badge>
                 </div>
               </div>
 
-              {/* Pricing Breakdown */}
-              <div className="space-y-2 border-t pt-3">
-                <h3 className="font-semibold text-sm">Pricing Breakdown</h3>
-                <div className="text-sm space-y-2">
-                  {/* Always show original price if discount was applied */}
-                  {selectedBill.originalPrice && selectedBill.discountApplied && (
-                    <div className="flex justify-between">
-                      <span className="text-muted-foreground">Original Price (Total Time):</span>
-                      <span className="font-medium" data-testid="bill-original-price">
-                        ₹{selectedBill.originalPrice}
-                      </span>
-                    </div>
-                  )}
-                  
-                  {/* Discount Section */}
-                  {selectedBill.discountApplied && (
-                    <div className="bg-emerald-50 dark:bg-emerald-950/30 p-3 rounded-lg space-y-1.5 border border-emerald-200 dark:border-emerald-800">
-                      <div className="flex items-center gap-2">
-                        <Badge variant="outline" className="bg-emerald-100 dark:bg-emerald-900/50 text-emerald-700 dark:text-emerald-400 border-emerald-300 dark:border-emerald-700">
-                          <Percent className="h-3 w-3 mr-1" />
-                          Discount Applied
-                        </Badge>
-                      </div>
-                      {selectedBill.manualDiscountPercentage && (
-                        <div className="flex justify-between">
-                          <span className="text-sm font-medium text-emerald-900 dark:text-emerald-100">
-                            Discount
-                          </span>
-                          <span className="text-sm font-semibold text-emerald-700 dark:text-emerald-400" data-testid="bill-discount-percentage">
-                            {selectedBill.manualDiscountPercentage}% off
-                          </span>
-                        </div>
-                      )}
-                      {selectedBill.promotionDetails?.discountAmount && (
-                        <div className="flex justify-between">
-                          <span className="text-sm text-emerald-700 dark:text-emerald-400">You Saved:</span>
-                          <span className="text-sm font-bold text-emerald-700 dark:text-emerald-400" data-testid="bill-discount-amount">
-                            -₹{selectedBill.promotionDetails.discountAmount}
-                          </span>
-                        </div>
-                      )}
-                    </div>
-                  )}
-                  
-                  {/* Final Gaming Price after discount */}
-                  <div className="flex justify-between font-semibold text-base">
-                    <span>Gaming Price{selectedBill.discountApplied ? ' (After Discount)' : ''}:</span>
-                    <span className="text-primary" data-testid="bill-gaming-price">₹{selectedBill.price}</span>
-                  </div>
-                  
-                  {/* Free Hours Section */}
-                  {selectedBill.bonusHoursApplied && (
-                    <div className="bg-violet-50 dark:bg-violet-950/30 p-3 rounded-lg space-y-1.5 border border-violet-200 dark:border-violet-800 mt-2">
-                      <div className="flex items-center gap-2">
-                        <Badge variant="outline" className="bg-violet-100 dark:bg-violet-900/50 text-violet-700 dark:text-violet-400 border-violet-300 dark:border-violet-700">
-                          <Gift className="h-3 w-3 mr-1" />
-                          Free Hours Given
-                        </Badge>
-                      </div>
-                      {calculateOriginalDuration(selectedBill) && (
-                        <div className="flex justify-between">
-                          <span className="text-sm text-violet-700 dark:text-violet-400">Original Paid Duration:</span>
-                          <span className="text-sm font-medium text-violet-900 dark:text-violet-100">
-                            {calculateOriginalDuration(selectedBill)}
-                          </span>
-                        </div>
-                      )}
-                      {selectedBill.manualFreeHours && (
-                        <div className="flex justify-between">
-                          <span className="text-sm text-violet-700 dark:text-violet-400">Extra Time Added:</span>
-                          <span className="text-sm font-bold text-violet-700 dark:text-violet-400" data-testid="bill-free-hours">
-                            +{selectedBill.manualFreeHours} FREE
-                          </span>
-                        </div>
-                      )}
-                      <div className="flex justify-between border-t border-violet-200 dark:border-violet-700 pt-1.5">
-                        <span className="text-sm font-semibold text-violet-900 dark:text-violet-100">Total Extended Duration:</span>
-                        <span className="text-sm font-bold text-violet-700 dark:text-violet-400">
-                          {calculateDuration(selectedBill.startTime, selectedBill.endTime)}
-                        </span>
-                      </div>
-                    </div>
-                  )}
-                </div>
+              {/* Booking Information Table */}
+              <div>
+                <h3 className="font-semibold mb-3">Booking Information</h3>
+                <Table>
+                  <TableHeader>
+                    <TableRow>
+                      <TableHead>Field</TableHead>
+                      <TableHead>Details</TableHead>
+                    </TableRow>
+                  </TableHeader>
+                  <TableBody>
+                    {!isStaff && selectedBooking.whatsappNumber && (
+                      <TableRow>
+                        <TableCell className="font-medium">WhatsApp Number</TableCell>
+                        <TableCell data-testid="detail-phone">{selectedBooking.whatsappNumber}</TableCell>
+                      </TableRow>
+                    )}
+                    <TableRow>
+                      <TableCell className="font-medium">Start Time</TableCell>
+                      <TableCell data-testid="detail-start-time">{formatDate(selectedBooking.startTime)}</TableCell>
+                    </TableRow>
+                    <TableRow>
+                      <TableCell className="font-medium">End Time</TableCell>
+                      <TableCell data-testid="detail-end-time">{formatDate(selectedBooking.endTime)}</TableCell>
+                    </TableRow>
+                    <TableRow>
+                      <TableCell className="font-medium">Duration</TableCell>
+                      <TableCell data-testid="detail-duration">
+                        {calculateDuration(selectedBooking.startTime, selectedBooking.endTime)}
+                      </TableCell>
+                    </TableRow>
+                    <TableRow>
+                      <TableCell className="font-medium">Archived At</TableCell>
+                      <TableCell data-testid="detail-archived">{formatDate(selectedBooking.archivedAt)}</TableCell>
+                    </TableRow>
+                    {selectedBooking.personCount && (
+                      <TableRow>
+                        <TableCell className="font-medium">Person Count</TableCell>
+                        <TableCell data-testid="detail-person-count">{selectedBooking.personCount}</TableCell>
+                      </TableRow>
+                    )}
+                  </TableBody>
+                </Table>
               </div>
 
-              {/* Food Orders */}
-              {selectedBill.foodOrders && selectedBill.foodOrders.length > 0 && (
-                <div className="space-y-2 border-t pt-3">
-                  <h3 className="font-semibold text-sm">Food Orders</h3>
-                  <div className="text-sm space-y-1">
-                    {selectedBill.foodOrders.map((order, idx) => (
-                      <div key={idx} className="flex justify-between" data-testid={`bill-food-${idx}`}>
-                        <span className="text-muted-foreground">
-                          {order.foodName} x{order.quantity}
-                        </span>
-                        <span>₹{(parseFloat(order.price) * order.quantity).toFixed(2)}</span>
-                      </div>
-                    ))}
-                  </div>
+              {/* Pricing Table */}
+              <div>
+                <h3 className="font-semibold mb-3">Pricing Details</h3>
+                <Table>
+                  <TableHeader>
+                    <TableRow>
+                      <TableHead>Item</TableHead>
+                      <TableHead className="text-right">Amount</TableHead>
+                    </TableRow>
+                  </TableHeader>
+                  <TableBody>
+                    {selectedBooking.originalPrice && selectedBooking.discountApplied && (
+                      <TableRow>
+                        <TableCell>Original Price</TableCell>
+                        <TableCell className="text-right" data-testid="detail-original-price">₹{selectedBooking.originalPrice}</TableCell>
+                      </TableRow>
+                    )}
+                    {selectedBooking.discountApplied && selectedBooking.manualDiscountPercentage && (
+                      <TableRow className="bg-emerald-50/50 dark:bg-emerald-950/20">
+                        <TableCell className="font-medium text-emerald-700 dark:text-emerald-400">
+                          <div className="flex items-center gap-2">
+                            <Percent className="h-4 w-4" />
+                            Discount ({selectedBooking.manualDiscountPercentage}%)
+                          </div>
+                        </TableCell>
+                        <TableCell className="text-right text-emerald-700 dark:text-emerald-400" data-testid="detail-discount">
+                          {selectedBooking.promotionDetails?.discountAmount && `-₹${selectedBooking.promotionDetails.discountAmount}`}
+                        </TableCell>
+                      </TableRow>
+                    )}
+                    <TableRow>
+                      <TableCell className="font-medium">Gaming Price{selectedBooking.discountApplied ? ' (After Discount)' : ''}</TableCell>
+                      <TableCell className="text-right font-semibold" data-testid="detail-gaming-price">₹{selectedBooking.price}</TableCell>
+                    </TableRow>
+                    {selectedBooking.bonusHoursApplied && selectedBooking.manualFreeHours && (
+                      <TableRow className="bg-violet-50/50 dark:bg-violet-950/20">
+                        <TableCell className="font-medium text-violet-700 dark:text-violet-400">
+                          <div className="flex items-center gap-2">
+                            <Gift className="h-4 w-4" />
+                            Free Hours Added
+                          </div>
+                        </TableCell>
+                        <TableCell className="text-right text-violet-700 dark:text-violet-400" data-testid="detail-free-hours">
+                          +{selectedBooking.manualFreeHours} FREE
+                        </TableCell>
+                      </TableRow>
+                    )}
+                  </TableBody>
+                </Table>
+              </div>
+
+              {/* Food Orders Table */}
+              {selectedBooking.foodOrders && selectedBooking.foodOrders.length > 0 && (
+                <div>
+                  <h3 className="font-semibold mb-3">Food Orders</h3>
+                  <Table>
+                    <TableHeader>
+                      <TableRow>
+                        <TableHead>Item</TableHead>
+                        <TableHead className="text-center">Quantity</TableHead>
+                        <TableHead className="text-right">Price</TableHead>
+                        <TableHead className="text-right">Total</TableHead>
+                      </TableRow>
+                    </TableHeader>
+                    <TableBody>
+                      {selectedBooking.foodOrders.map((order, idx) => (
+                        <TableRow key={idx}>
+                          <TableCell data-testid={`detail-food-name-${idx}`}>{order.foodName}</TableCell>
+                          <TableCell className="text-center" data-testid={`detail-food-quantity-${idx}`}>{order.quantity}</TableCell>
+                          <TableCell className="text-right">₹{parseFloat(order.price)}</TableCell>
+                          <TableCell className="text-right font-medium" data-testid={`detail-food-total-${idx}`}>
+                            ₹{(parseFloat(order.price) * order.quantity).toFixed(2)}
+                          </TableCell>
+                        </TableRow>
+                      ))}
+                    </TableBody>
+                  </Table>
                 </div>
               )}
 
-              {/* Total */}
-              <div className="flex items-center justify-between pt-3 border-t">
+              {/* Grand Total */}
+              <div className="flex items-center justify-between pt-4 border-t">
                 <span className="font-bold text-lg">Grand Total</span>
-                <span className="font-bold text-2xl text-primary" data-testid="bill-grand-total">
-                  ₹{calculateTotal(selectedBill)}
+                <span className="font-bold text-2xl text-primary" data-testid="detail-grand-total">
+                  ₹{calculateTotal(selectedBooking)}
                 </span>
               </div>
 
               {/* Payment Method */}
-              {selectedBill.paymentMethod && (
-                <div className="flex justify-between text-sm border-t pt-3">
-                  <span className="text-muted-foreground">Payment Method:</span>
-                  <Badge variant="secondary" data-testid="bill-payment-method">
-                    {selectedBill.paymentMethod === 'cash' ? 'Cash' : 'UPI/Online'}
+              {selectedBooking.paymentMethod && (
+                <div className="flex justify-between items-center pt-2 border-t">
+                  <span className="text-sm text-muted-foreground">Payment Method:</span>
+                  <Badge variant="secondary" data-testid="detail-payment-method">
+                    {selectedBooking.paymentMethod === 'cash' ? 'Cash' : 'UPI/Online'}
                   </Badge>
                 </div>
               )}
