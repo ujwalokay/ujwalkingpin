@@ -301,6 +301,14 @@ export interface IStorage {
   getCreditEntriesByAccount(accountId: string): Promise<CreditEntry[]>;
   getCreditEntriesByBooking(bookingId: string): Promise<CreditEntry[]>;
   updateCreditEntry(id: string, data: Partial<InsertCreditEntry>): Promise<CreditEntry | undefined>;
+  settleCreditEntry(entryId: string, paymentData: {
+    paymentMethod: string;
+    cashAmount?: string;
+    upiAmount?: string;
+    userId: string;
+    username: string;
+    userRole: string;
+  }): Promise<{ entry: CreditEntry; booking: Booking }>;
   
   createCreditPayment(payment: InsertCreditPayment): Promise<CreditPayment>;
   getCreditPaymentsByAccount(accountId: string): Promise<CreditPayment[]>;
@@ -1353,6 +1361,125 @@ export class DatabaseStorage implements IStorage {
       .where(eq(creditEntries.id, id))
       .returning();
     return updated || undefined;
+  }
+
+  async settleCreditEntry(entryId: string, paymentData: {
+    paymentMethod: string;
+    cashAmount?: string;
+    upiAmount?: string;
+    userId: string;
+    username: string;
+    userRole: string;
+  }): Promise<{ entry: CreditEntry; booking: Booking }> {
+    return await db.transaction(async (tx) => {
+      const [entry] = await tx
+        .select()
+        .from(creditEntries)
+        .where(eq(creditEntries.id, entryId));
+      
+      if (!entry) {
+        throw new Error("Credit entry not found");
+      }
+      
+      if (entry.status === "paid") {
+        throw new Error("Credit entry already marked as paid");
+      }
+      
+      const [booking] = await tx
+        .select()
+        .from(bookings)
+        .where(eq(bookings.id, entry.bookingId));
+      
+      if (!booking) {
+        throw new Error("Associated booking not found");
+      }
+      
+      const [updatedEntry] = await tx
+        .update(creditEntries)
+        .set({ 
+          status: "paid", 
+          remainingCredit: "0.00",
+          lastActivityAt: new Date() 
+        })
+        .where(eq(creditEntries.id, entryId))
+        .returning();
+      
+      const bookingUpdate: any = {
+        paymentMethod: paymentData.paymentMethod,
+        cashAmount: paymentData.cashAmount,
+        upiAmount: paymentData.upiAmount,
+        paymentStatus: "paid"
+      };
+      
+      if (booking.status !== "completed" && booking.status !== "expired") {
+        bookingUpdate.status = "completed";
+      }
+      
+      const [updatedBooking] = await tx
+        .update(bookings)
+        .set(bookingUpdate)
+        .where(eq(bookings.id, entry.bookingId))
+        .returning();
+      
+      const remainingCreditAmount = parseFloat(entry.remainingCredit);
+      const [account] = await tx
+        .select()
+        .from(creditAccounts)
+        .where(eq(creditAccounts.id, entry.creditAccountId));
+      
+      if (account) {
+        const currentBalance = parseFloat(account.currentBalance);
+        const newBalance = Math.max(0, currentBalance - remainingCreditAmount);
+        
+        await tx
+          .update(creditAccounts)
+          .set({ 
+            currentBalance: newBalance.toFixed(2),
+            updatedAt: new Date()
+          })
+          .where(eq(creditAccounts.id, entry.creditAccountId));
+      }
+      
+      await tx.insert(creditPayments).values({
+        creditAccountId: entry.creditAccountId,
+        creditEntryId: entryId,
+        bookingId: entry.bookingId,
+        amount: entry.remainingCredit,
+        paymentMethod: paymentData.paymentMethod,
+        cashAmount: paymentData.cashAmount,
+        upiAmount: paymentData.upiAmount,
+        recordedBy: paymentData.username,
+        notes: `Credit entry settled via mark as paid`
+      });
+      
+      await tx.insert(paymentLogs).values({
+        bookingId: entry.bookingId,
+        seatName: booking.seatName,
+        customerName: booking.customerName,
+        amount: entry.remainingCredit,
+        paymentMethod: paymentData.paymentMethod,
+        paymentStatus: "paid",
+        userId: paymentData.userId,
+        username: paymentData.username,
+        previousStatus: booking.paymentStatus || "unpaid",
+        previousMethod: booking.paymentMethod || null,
+        isCredit: true,
+        appliedCreditAmount: entry.remainingCredit,
+        creditPaymentId: entryId
+      });
+      
+      await tx.insert(activityLogs).values({
+        userId: paymentData.userId,
+        username: paymentData.username,
+        userRole: paymentData.userRole,
+        action: 'update',
+        entityType: 'credit_entry',
+        entityId: entryId,
+        details: `Settled credit entry - Amount: ₹${entry.remainingCredit}, Method: ${paymentData.paymentMethod}`
+      });
+      
+      return { entry: updatedEntry, booking: updatedBooking };
+    });
   }
 
   async createCreditPayment(payment: InsertCreditPayment): Promise<CreditPayment> {

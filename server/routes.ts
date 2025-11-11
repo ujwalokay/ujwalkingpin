@@ -880,6 +880,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const { paymentMethod, cashAmount, upiAmount } = req.body;
       const userId = (req.user as any)?.id || 'unknown';
       const username = (req.user as any)?.username || 'unknown';
+      const userRole = (req.user as any)?.role || 'staff';
       
       if (!paymentMethod || !['cash', 'upi_online', 'split'].includes(paymentMethod)) {
         return res.status(400).json({ message: "Valid payment method is required (cash, upi_online, or split)" });
@@ -893,7 +894,6 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const remainingCredit = parseFloat(entry.remainingCredit);
       let paymentCashAmount: string | undefined;
       let paymentUpiAmount: string | undefined;
-      let paymentDetails = '';
       
       if (paymentMethod === 'split') {
         if (!cashAmount || !upiAmount) {
@@ -923,41 +923,25 @@ export async function registerRoutes(app: Express): Promise<Server> {
         
         paymentCashAmount = cash.toFixed(2);
         paymentUpiAmount = upi.toFixed(2);
-        paymentDetails = `Cash: ₹${paymentCashAmount}, UPI: ₹${paymentUpiAmount}`;
-      } else {
-        paymentDetails = paymentMethod === 'cash' ? 'Cash' : 'UPI/Online';
       }
       
-      const updated = await storage.updateCreditEntry(id, { status: "paid" });
-      
-      if (!updated) {
-        return res.status(404).json({ message: "Credit entry not found" });
-      }
-      
-      await storage.createCreditPayment({
-        creditAccountId: entry.creditAccountId,
-        creditEntryId: id,
-        bookingId: entry.bookingId,
-        amount: entry.remainingCredit,
+      const result = await storage.settleCreditEntry(id, {
         paymentMethod,
         cashAmount: paymentCashAmount,
         upiAmount: paymentUpiAmount,
-        recordedBy: username,
-        notes: `Payment for credit entry marked as paid`
-      });
-      
-      await storage.createActivityLog({
         userId,
         username,
-        userRole: (req.user as any)?.role || 'staff',
-        action: 'update',
-        entityType: 'credit_entry',
-        entityId: id,
-        details: `Marked credit entry as paid (${paymentDetails}) - Credit: ₹${updated.creditIssued}`
+        userRole
       });
       
-      res.json(updated);
+      res.json(result.entry);
     } catch (error: any) {
+      if (error.message.includes("already marked as paid")) {
+        return res.status(409).json({ message: error.message });
+      }
+      if (error.message.includes("not found")) {
+        return res.status(404).json({ message: error.message });
+      }
       res.status(500).json({ message: error.message });
     }
   });

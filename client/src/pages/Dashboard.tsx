@@ -184,30 +184,32 @@ export default function Dashboard() {
   }, [onboardingCompleted, user]);
 
   const bookings: Booking[] = useMemo(() => {
-    return dbBookings.map((dbBooking: DBBooking) => ({
-      id: dbBooking.id,
-      category: dbBooking.category,
-      seatNumber: dbBooking.seatNumber,
-      seatName: dbBooking.seatName,
-      customerName: dbBooking.customerName,
-      whatsappNumber: dbBooking.whatsappNumber || undefined,
-      startTime: new Date(dbBooking.startTime),
-      endTime: new Date(dbBooking.endTime),
-      price: dbBooking.price,
-      personCount: dbBooking.personCount,
-      status: dbBooking.status as BookingStatus,
-      bookingType: dbBooking.bookingType || [],
-      foodOrders: dbBooking.foodOrders || [],
-      pausedRemainingTime: dbBooking.pausedRemainingTime ?? undefined,
-      originalPrice: dbBooking.originalPrice || undefined,
-      discountApplied: dbBooking.discountApplied || undefined,
-      bonusHoursApplied: dbBooking.bonusHoursApplied || undefined,
-      promotionDetails: dbBooking.promotionDetails || undefined,
-      isPromotionalDiscount: dbBooking.isPromotionalDiscount ?? undefined,
-      isPromotionalBonus: dbBooking.isPromotionalBonus ?? undefined,
-      manualDiscountPercentage: dbBooking.manualDiscountPercentage ?? undefined,
-      manualFreeHours: dbBooking.manualFreeHours || undefined,
-    }));
+    return dbBookings
+      .filter((dbBooking: DBBooking) => dbBooking.paymentMethod !== "credit_later")
+      .map((dbBooking: DBBooking) => ({
+        id: dbBooking.id,
+        category: dbBooking.category,
+        seatNumber: dbBooking.seatNumber,
+        seatName: dbBooking.seatName,
+        customerName: dbBooking.customerName,
+        whatsappNumber: dbBooking.whatsappNumber || undefined,
+        startTime: new Date(dbBooking.startTime),
+        endTime: new Date(dbBooking.endTime),
+        price: dbBooking.price,
+        personCount: dbBooking.personCount,
+        status: dbBooking.status as BookingStatus,
+        bookingType: dbBooking.bookingType || [],
+        foodOrders: dbBooking.foodOrders || [],
+        pausedRemainingTime: dbBooking.pausedRemainingTime ?? undefined,
+        originalPrice: dbBooking.originalPrice || undefined,
+        discountApplied: dbBooking.discountApplied || undefined,
+        bonusHoursApplied: dbBooking.bonusHoursApplied || undefined,
+        promotionDetails: dbBooking.promotionDetails || undefined,
+        isPromotionalDiscount: dbBooking.isPromotionalDiscount ?? undefined,
+        isPromotionalBonus: dbBooking.isPromotionalBonus ?? undefined,
+        manualDiscountPercentage: dbBooking.manualDiscountPercentage ?? undefined,
+        manualFreeHours: dbBooking.manualFreeHours || undefined,
+      }));
   }, [dbBookings]);
 
   const hasActiveTimers = useMemo(() => {
