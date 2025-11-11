@@ -42,12 +42,6 @@ import {
   type InsertDeviceMaintenance,
   type PaymentLog,
   type InsertPaymentLog,
-  type CreditAccount,
-  type InsertCreditAccount,
-  type CreditEntry,
-  type InsertCreditEntry,
-  type CreditPayment,
-  type InsertCreditPayment,
   bookings,
   deviceConfigs,
   pricingConfigs,
@@ -68,10 +62,7 @@ import {
   loadPredictions,
   retentionConfig,
   deviceMaintenance,
-  paymentLogs,
-  creditAccounts,
-  creditEntries,
-  creditPayments
+  paymentLogs
 } from "@shared/schema";
 import { db } from "./db";
 import { eq, and, gte, lte, lt, desc, inArray, isNotNull } from "drizzle-orm";
@@ -84,29 +75,11 @@ export interface BookingStats {
   avgSessionMinutes: number;
   cashRevenue: number;
   upiRevenue: number;
-  creditRevenue: number;
-  creditIssued?: number;
-  creditRecovered?: number;
-  creditOutstanding?: number;
-}
-
-export interface CreditSummary {
-  totalOutstanding: number;
-  totalIssued: number;
-  totalRepaid: number;
-  accountsWithBalance: number;
-  topDebtors: Array<{
-    accountId: string;
-    customerName: string;
-    whatsappNumber: string | null;
-    balance: number;
-  }>;
 }
 
 export interface BookingHistoryItem {
   id: string;
   date: string;
-  transactionType?: 'booking' | 'credit_payment';
   seatName: string;
   customerName: string;
   duration: string;
@@ -122,7 +95,6 @@ export interface BookingHistoryItem {
   bonus?: string | null;
   discountApplied?: string | null;
   bonusHoursApplied?: string | null;
-  notes?: string | null;
 }
 
 export interface CustomerPromotionSummary {
@@ -292,32 +264,6 @@ export interface IStorage {
   markAllNotificationsAsRead(): Promise<void>;
   deleteNotification(id: string): Promise<boolean>;
   getUnreadCount(): Promise<number>;
-  
-  getAllCreditAccounts(): Promise<CreditAccount[]>;
-  getCreditAccount(id: string): Promise<CreditAccount | undefined>;
-  getCreditAccountByCustomer(customerName: string, whatsappNumber?: string): Promise<CreditAccount | undefined>;
-  createCreditAccount(account: InsertCreditAccount): Promise<CreditAccount>;
-  updateCreditAccountBalance(id: string, newBalance: string): Promise<CreditAccount | undefined>;
-  getCreditSummary(startDate?: Date, endDate?: Date): Promise<CreditSummary>;
-  
-  createCreditEntry(entry: InsertCreditEntry): Promise<CreditEntry>;
-  getCreditEntry(id: string): Promise<CreditEntry | undefined>;
-  getCreditEntriesByAccount(accountId: string): Promise<CreditEntry[]>;
-  getCreditEntriesByBooking(bookingId: string): Promise<CreditEntry[]>;
-  updateCreditEntry(id: string, data: Partial<InsertCreditEntry>): Promise<CreditEntry | undefined>;
-  settleCreditEntry(entryId: string, paymentData: {
-    paymentMethod: string;
-    cashAmount?: string;
-    upiAmount?: string;
-    userId: string;
-    username: string;
-    userRole: string;
-  }): Promise<{ entry: CreditEntry; booking: Booking }>;
-  
-  createCreditPayment(payment: InsertCreditPayment): Promise<CreditPayment>;
-  getCreditPaymentsByAccount(accountId: string): Promise<CreditPayment[]>;
-  getCreditPaymentsByEntry(entryId: string): Promise<CreditPayment[]>;
-  getCreditPaymentsByDateRange(startDate: Date, endDate: Date): Promise<CreditPayment[]>;
   
   createPaymentLog(log: InsertPaymentLog): Promise<PaymentLog>;
   getPaymentLogs(date?: string): Promise<PaymentLog[]>;
@@ -504,18 +450,7 @@ export class DatabaseStorage implements IStorage {
         )
       );
 
-    // Get credit payments in this period
-    const creditPaymentsInPeriod = await db
-      .select()
-      .from(creditPayments)
-      .where(
-        and(
-          gte(creditPayments.recordedAt, startDate),
-          lte(creditPayments.recordedAt, endDate)
-        )
-      );
-
-    let cashRevenue = completedBookings
+    const cashRevenue = completedBookings
       .reduce((sum, booking) => {
         if (booking.paymentMethod === "cash") {
           const sessionPrice = parseFloat(booking.price);
@@ -530,7 +465,7 @@ export class DatabaseStorage implements IStorage {
         return sum;
       }, 0);
 
-    let upiRevenue = completedBookings
+    const upiRevenue = completedBookings
       .reduce((sum, booking) => {
         if (booking.paymentMethod === "upi_online") {
           const sessionPrice = parseFloat(booking.price);
@@ -544,23 +479,6 @@ export class DatabaseStorage implements IStorage {
         }
         return sum;
       }, 0);
-
-    // Add credit payments to cash/UPI revenue based on payment method
-    creditPaymentsInPeriod.forEach(payment => {
-      const amount = parseFloat(payment.amount);
-      if (payment.paymentMethod === 'cash') {
-        cashRevenue += amount;
-      } else if (payment.paymentMethod === 'upi_online') {
-        upiRevenue += amount;
-      } else if (payment.paymentMethod === 'split') {
-        if (payment.cashAmount) {
-          cashRevenue += parseFloat(payment.cashAmount);
-        }
-        if (payment.upiAmount) {
-          upiRevenue += parseFloat(payment.upiAmount);
-        }
-      }
-    });
 
     const paidBookings = completedBookings.filter(b => 
       b.paymentMethod === "cash" || b.paymentMethod === "upi_online" || b.paymentMethod === "split"
@@ -588,36 +506,13 @@ export class DatabaseStorage implements IStorage {
 
     const avgSessionMinutes = totalSessions > 0 ? Math.round(totalMinutes / totalSessions) : 0;
 
-    // Get credit metrics for this period
-    const creditSummary = await this.getCreditSummary(startDate, endDate);
-    
-    // Add credit revenue from paid credit entries
-    const paidCreditEntries = await db
-      .select()
-      .from(creditEntries)
-      .where(
-        and(
-          eq(creditEntries.status, "paid"),
-          gte(creditEntries.issuedAt, startDate),
-          lte(creditEntries.issuedAt, endDate)
-        )
-      );
-
-    const creditRevenue = paidCreditEntries.reduce((sum, entry) => {
-      return sum + parseFloat(entry.creditIssued);
-    }, 0);
-
     return {
-      totalRevenue: totalRevenue + creditRevenue,
+      totalRevenue,
       totalFoodRevenue,
       totalSessions,
       avgSessionMinutes,
       cashRevenue,
-      upiRevenue,
-      creditRevenue,
-      creditIssued: creditSummary.totalIssued,
-      creditRecovered: creditSummary.totalRepaid,
-      creditOutstanding: creditSummary.totalOutstanding
+      upiRevenue
     };
   }
 
@@ -629,16 +524,6 @@ export class DatabaseStorage implements IStorage {
         and(
           gte(bookingHistory.startTime, startDate),
           lte(bookingHistory.startTime, endDate)
-        )
-      );
-
-    const creditPaymentsInRange = await db
-      .select()
-      .from(creditPayments)
-      .where(
-        and(
-          gte(creditPayments.recordedAt, startDate),
-          lte(creditPayments.recordedAt, endDate)
         )
       );
 
@@ -674,7 +559,6 @@ export class DatabaseStorage implements IStorage {
       return {
         id: booking.id,
         date: formattedDate,
-        transactionType: 'booking' as const,
         seatName: booking.seatName,
         customerName: booking.customerName,
         duration,
@@ -693,100 +577,7 @@ export class DatabaseStorage implements IStorage {
       };
     });
 
-    const accountIds = Array.from(new Set(creditPaymentsInRange.map(p => p.creditAccountId)));
-    const accounts = accountIds.length > 0
-      ? await db
-          .select()
-          .from(creditAccounts)
-          .where(inArray(creditAccounts.id, accountIds))
-      : [];
-    
-    const accountMap = new Map(accounts.map(acc => [acc.id, acc]));
-
-    const bookingIds = creditPaymentsInRange
-      .map(p => p.bookingId)
-      .filter((id): id is string => id !== null && id !== undefined);
-    
-    const relatedBookings = bookingIds.length > 0
-      ? await db
-          .select()
-          .from(bookingHistory)
-          .where(inArray(bookingHistory.id, bookingIds))
-      : [];
-    
-    const bookingMap = new Map(relatedBookings.map(booking => [booking.id, booking]));
-
-    const paymentItems: BookingHistoryItem[] = creditPaymentsInRange.map(payment => {
-      const dateObj = new Date(payment.recordedAt);
-      const formattedDate = dateObj.toLocaleDateString('en-US', { 
-        month: 'short', 
-        day: 'numeric', 
-        year: 'numeric' 
-      });
-
-      const amount = parseFloat(payment.amount);
-      const account = accountMap.get(payment.creditAccountId);
-      const customerName = account?.customerName || 'Unknown Customer';
-      
-      const relatedBooking = payment.bookingId ? bookingMap.get(payment.bookingId) : null;
-      
-      let duration = '-';
-      let durationMinutes = 0;
-      let price = '0';
-      let foodAmount = 0;
-      let seatName = 'Credit Payment';
-      
-      if (relatedBooking) {
-        const durationMs = relatedBooking.endTime.getTime() - relatedBooking.startTime.getTime();
-        durationMinutes = Math.round(durationMs / 1000 / 60);
-        const hours = Math.floor(durationMinutes / 60);
-        const mins = durationMinutes % 60;
-        
-        if (hours > 0 && mins > 0) {
-          duration = `${hours} hour${hours > 1 ? 's' : ''} ${mins} mins`;
-        } else if (hours > 0) {
-          duration = `${hours} hour${hours > 1 ? 's' : ''}`;
-        } else {
-          duration = `${mins} mins`;
-        }
-        
-        price = relatedBooking.price;
-        seatName = relatedBooking.seatName;
-        
-        foodAmount = relatedBooking.foodOrders && relatedBooking.foodOrders.length > 0
-          ? relatedBooking.foodOrders.reduce((sum, order) => sum + parseFloat(order.price) * order.quantity, 0)
-          : 0;
-      }
-
-      return {
-        id: payment.id,
-        date: formattedDate,
-        transactionType: 'credit_payment' as const,
-        seatName,
-        customerName: customerName,
-        duration,
-        durationMinutes,
-        price,
-        foodAmount,
-        totalAmount: amount,
-        paymentMethod: payment.paymentMethod,
-        paymentStatus: 'paid',
-        cashAmount: payment.cashAmount || null,
-        upiAmount: payment.upiAmount || null,
-        notes: payment.notes,
-        originalBookingId: payment.bookingId,
-      };
-    });
-
-    const allItems = [...bookingItems, ...paymentItems];
-
-    allItems.sort((a, b) => {
-      const dateA = new Date(a.date);
-      const dateB = new Date(b.date);
-      return dateB.getTime() - dateA.getTime();
-    });
-
-    return allItems;
+    return bookingItems.sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
   }
 
   async getRetentionMetrics(startDate: Date, endDate: Date, period: 'daily' | 'weekly' | 'monthly'): Promise<RetentionMetrics> {
@@ -1365,295 +1156,6 @@ export class DatabaseStorage implements IStorage {
       .from(paymentLogs)
       .orderBy(desc(paymentLogs.createdAt))
       .limit(100);
-  }
-
-  async getAllCreditAccounts(): Promise<CreditAccount[]> {
-    return await db.select().from(creditAccounts).orderBy(desc(creditAccounts.createdAt));
-  }
-
-  async getCreditAccount(id: string): Promise<CreditAccount | undefined> {
-    const [account] = await db.select().from(creditAccounts).where(eq(creditAccounts.id, id));
-    return account || undefined;
-  }
-
-  async getCreditAccountByCustomer(customerName: string, whatsappNumber?: string): Promise<CreditAccount | undefined> {
-    if (whatsappNumber) {
-      const [account] = await db
-        .select()
-        .from(creditAccounts)
-        .where(
-          and(
-            eq(creditAccounts.customerName, customerName),
-            eq(creditAccounts.whatsappNumber, whatsappNumber)
-          )
-        );
-      return account || undefined;
-    }
-    
-    const [account] = await db
-      .select()
-      .from(creditAccounts)
-      .where(eq(creditAccounts.customerName, customerName));
-    return account || undefined;
-  }
-
-  async createCreditAccount(account: InsertCreditAccount): Promise<CreditAccount> {
-    const [newAccount] = await db.insert(creditAccounts).values(account).returning();
-    return newAccount;
-  }
-
-  async updateCreditAccountBalance(id: string, newBalance: string): Promise<CreditAccount | undefined> {
-    const [updated] = await db
-      .update(creditAccounts)
-      .set({ currentBalance: newBalance, updatedAt: new Date() })
-      .where(eq(creditAccounts.id, id))
-      .returning();
-    return updated || undefined;
-  }
-
-  async getCreditSummary(startDate?: Date, endDate?: Date): Promise<CreditSummary> {
-    const allAccounts = await db.select().from(creditAccounts);
-    
-    const totalOutstanding = allAccounts.reduce((sum, account) => 
-      sum + parseFloat(account.currentBalance), 0);
-    
-    const accountsWithBalance = allAccounts.filter(account => 
-      parseFloat(account.currentBalance) > 0).length;
-    
-    let entriesQuery = db.select().from(creditEntries);
-    if (startDate && endDate) {
-      entriesQuery = entriesQuery.where(
-        and(
-          gte(creditEntries.issuedAt, startDate),
-          lte(creditEntries.issuedAt, endDate)
-        )
-      ) as any;
-    }
-    const entries = await entriesQuery;
-    
-    const totalIssued = entries.reduce((sum, entry) => 
-      sum + parseFloat(entry.creditIssued), 0);
-    
-    let paymentsQuery = db.select().from(creditPayments);
-    if (startDate && endDate) {
-      paymentsQuery = paymentsQuery.where(
-        and(
-          gte(creditPayments.recordedAt, startDate),
-          lte(creditPayments.recordedAt, endDate)
-        )
-      ) as any;
-    }
-    const payments = await paymentsQuery;
-    
-    const totalRepaid = payments.reduce((sum, payment) => 
-      sum + parseFloat(payment.amount), 0);
-    
-    const topDebtors = allAccounts
-      .filter(account => parseFloat(account.currentBalance) > 0)
-      .sort((a, b) => parseFloat(b.currentBalance) - parseFloat(a.currentBalance))
-      .slice(0, 5)
-      .map(account => ({
-        accountId: account.id,
-        customerName: account.customerName,
-        whatsappNumber: account.whatsappNumber,
-        balance: parseFloat(account.currentBalance)
-      }));
-    
-    return {
-      totalOutstanding,
-      totalIssued,
-      totalRepaid,
-      accountsWithBalance,
-      topDebtors
-    };
-  }
-
-  async createCreditEntry(entry: InsertCreditEntry): Promise<CreditEntry> {
-    const [newEntry] = await db.insert(creditEntries).values(entry).returning();
-    return newEntry;
-  }
-
-  async getCreditEntry(id: string): Promise<CreditEntry | undefined> {
-    const [entry] = await db
-      .select()
-      .from(creditEntries)
-      .where(eq(creditEntries.id, id));
-    return entry || undefined;
-  }
-
-  async getCreditEntriesByAccount(accountId: string): Promise<CreditEntry[]> {
-    return await db
-      .select()
-      .from(creditEntries)
-      .where(eq(creditEntries.creditAccountId, accountId))
-      .orderBy(desc(creditEntries.issuedAt));
-  }
-
-  async getCreditEntriesByBooking(bookingId: string): Promise<CreditEntry[]> {
-    return await db
-      .select()
-      .from(creditEntries)
-      .where(eq(creditEntries.bookingId, bookingId));
-  }
-
-  async updateCreditEntry(id: string, data: Partial<InsertCreditEntry>): Promise<CreditEntry | undefined> {
-    const [updated] = await db
-      .update(creditEntries)
-      .set({ ...data, lastActivityAt: new Date() })
-      .where(eq(creditEntries.id, id))
-      .returning();
-    return updated || undefined;
-  }
-
-  async settleCreditEntry(entryId: string, paymentData: {
-    paymentMethod: string;
-    cashAmount?: string;
-    upiAmount?: string;
-    userId: string;
-    username: string;
-    userRole: string;
-  }): Promise<{ entry: CreditEntry; booking: Booking }> {
-    return await db.transaction(async (tx) => {
-      const [entry] = await tx
-        .select()
-        .from(creditEntries)
-        .where(eq(creditEntries.id, entryId));
-      
-      if (!entry) {
-        throw new Error("Credit entry not found");
-      }
-      
-      if (entry.status === "paid") {
-        throw new Error("Credit entry already marked as paid");
-      }
-      
-      const [booking] = await tx
-        .select()
-        .from(bookings)
-        .where(eq(bookings.id, entry.bookingId));
-      
-      if (!booking) {
-        throw new Error("Associated booking not found");
-      }
-      
-      const [updatedEntry] = await tx
-        .update(creditEntries)
-        .set({ 
-          status: "paid", 
-          remainingCredit: "0.00",
-          lastActivityAt: new Date() 
-        })
-        .where(eq(creditEntries.id, entryId))
-        .returning();
-      
-      const bookingUpdate: any = {
-        paymentMethod: paymentData.paymentMethod,
-        cashAmount: paymentData.cashAmount,
-        upiAmount: paymentData.upiAmount,
-        paymentStatus: "paid"
-      };
-      
-      if (booking.status !== "completed" && booking.status !== "expired" && booking.status !== "running" && booking.status !== "paused") {
-        bookingUpdate.status = "completed";
-      }
-      
-      const [updatedBooking] = await tx
-        .update(bookings)
-        .set(bookingUpdate)
-        .where(eq(bookings.id, entry.bookingId))
-        .returning();
-      
-      const remainingCreditAmount = parseFloat(entry.remainingCredit);
-      const [account] = await tx
-        .select()
-        .from(creditAccounts)
-        .where(eq(creditAccounts.id, entry.creditAccountId));
-      
-      if (account) {
-        const currentBalance = parseFloat(account.currentBalance);
-        const newBalance = Math.max(0, currentBalance - remainingCreditAmount);
-        
-        await tx
-          .update(creditAccounts)
-          .set({ 
-            currentBalance: newBalance.toFixed(2),
-            updatedAt: new Date()
-          })
-          .where(eq(creditAccounts.id, entry.creditAccountId));
-      }
-      
-      await tx.insert(creditPayments).values({
-        creditAccountId: entry.creditAccountId,
-        creditEntryId: entryId,
-        bookingId: entry.bookingId,
-        amount: entry.remainingCredit,
-        paymentMethod: paymentData.paymentMethod,
-        cashAmount: paymentData.cashAmount,
-        upiAmount: paymentData.upiAmount,
-        recordedBy: paymentData.username,
-        notes: `Credit entry settled via mark as paid`
-      });
-      
-      await tx.insert(paymentLogs).values({
-        bookingId: entry.bookingId,
-        seatName: booking.seatName,
-        customerName: booking.customerName,
-        amount: entry.remainingCredit,
-        paymentMethod: paymentData.paymentMethod,
-        paymentStatus: "paid",
-        userId: paymentData.userId,
-        username: paymentData.username,
-        previousStatus: booking.paymentStatus || "unpaid",
-        previousMethod: booking.paymentMethod || null,
-        isCredit: true,
-        appliedCreditAmount: entry.remainingCredit,
-        creditPaymentId: entryId
-      });
-      
-      await tx.insert(activityLogs).values({
-        userId: paymentData.userId,
-        username: paymentData.username,
-        userRole: paymentData.userRole,
-        action: 'update',
-        entityType: 'credit_entry',
-        entityId: entryId,
-        details: `Settled credit entry - Amount: ₹${entry.remainingCredit}, Method: ${paymentData.paymentMethod}`
-      });
-      
-      return { entry: updatedEntry, booking: updatedBooking };
-    });
-  }
-
-  async createCreditPayment(payment: InsertCreditPayment): Promise<CreditPayment> {
-    const [newPayment] = await db.insert(creditPayments).values(payment).returning();
-    return newPayment;
-  }
-
-  async getCreditPaymentsByAccount(accountId: string): Promise<CreditPayment[]> {
-    return await db
-      .select()
-      .from(creditPayments)
-      .where(eq(creditPayments.creditAccountId, accountId))
-      .orderBy(desc(creditPayments.recordedAt));
-  }
-
-  async getCreditPaymentsByEntry(entryId: string): Promise<CreditPayment[]> {
-    return await db
-      .select()
-      .from(creditPayments)
-      .where(eq(creditPayments.creditEntryId, entryId))
-      .orderBy(desc(creditPayments.recordedAt));
-  }
-
-  async getCreditPaymentsByDateRange(startDate: Date, endDate: Date): Promise<CreditPayment[]> {
-    return await db
-      .select()
-      .from(creditPayments)
-      .where(and(
-        gte(creditPayments.recordedAt, startDate),
-        lte(creditPayments.recordedAt, endDate)
-      ))
-      .orderBy(desc(creditPayments.recordedAt));
   }
 
   async moveBookingsToHistory(): Promise<number> {
