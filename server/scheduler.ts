@@ -38,7 +38,12 @@ export class CleanupScheduler {
     
     const msUntilNextRun = next2AM.getTime() - now.getTime();
     
-    console.log(`⏰ Next cleanup scheduled for: ${next2AM.toLocaleString()}`);
+    const istTime = next2AM.toLocaleString('en-IN', {
+      timeZone: 'Asia/Kolkata',
+      dateStyle: 'short',
+      timeStyle: 'medium'
+    });
+    console.log(`⏰ Next cleanup scheduled for: ${istTime} IST`);
     
     this.intervalId = setTimeout(async () => {
       await this.runCleanup();

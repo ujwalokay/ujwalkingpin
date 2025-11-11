@@ -17,7 +17,8 @@ export function LiveClock() {
       hour: '2-digit',
       minute: '2-digit',
       second: '2-digit',
-      hour12: true
+      hour12: true,
+      timeZone: 'Asia/Kolkata'
     });
   };
 
@@ -25,7 +26,8 @@ export function LiveClock() {
     return date.toLocaleDateString('en-IN', {
       weekday: 'short',
       month: 'short',
-      day: 'numeric'
+      day: 'numeric',
+      timeZone: 'Asia/Kolkata'
     });
   };
 

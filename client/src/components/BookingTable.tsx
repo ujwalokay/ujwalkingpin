@@ -458,7 +458,8 @@ export function BookingTable({ bookings, onExtend, onEnd, onComplete, onAddFood,
                                           {booking.startTime.toLocaleDateString('en-GB', { 
                                             day: '2-digit', 
                                             month: 'short', 
-                                            year: 'numeric' 
+                                            year: 'numeric',
+                                            timeZone: 'Asia/Kolkata'
                                           })}
                                         </div>
                                       )}
@@ -844,7 +845,8 @@ export function BookingTable({ bookings, onExtend, onEnd, onComplete, onAddFood,
                               {booking.startTime.toLocaleDateString('en-GB', { 
                                 day: '2-digit', 
                                 month: 'short', 
-                                year: 'numeric' 
+                                year: 'numeric',
+                                timeZone: 'Asia/Kolkata'
                               })}
                             </TableCell>
                           )}

@@ -97,49 +97,43 @@ interface TimeState {
 }
 
 export function FlipClock() {
-  const [currentTime, setCurrentTime] = useState<TimeState>(() => {
+  const getISTTime = (): TimeState => {
     const now = new Date();
-    const hours24 = now.getHours();
+    const istTimeString = now.toLocaleString('en-US', {
+      timeZone: 'Asia/Kolkata',
+      hour12: false,
+      hour: '2-digit',
+      minute: '2-digit'
+    });
+    const [hours24Str, minutesStr] = istTimeString.split(':');
+    const hours24 = parseInt(hours24Str);
     const hours12 = (hours24 % 12 || 12).toString().padStart(2, '0');
-    const minutes = now.getMinutes().toString().padStart(2, '0');
+    const minutes = minutesStr.padStart(2, '0');
     const period = hours24 >= 12 ? 'PM' : 'AM';
     
+    const dateText = now.toLocaleDateString('en-US', {
+      weekday: 'short',
+      month: 'short',
+      day: 'numeric',
+      year: 'numeric',
+      timeZone: 'Asia/Kolkata'
+    });
+    
     return {
-      hours: [hours12[0], hours12[1]],
-      minutes: [minutes[0], minutes[1]],
+      hours: [hours12[0], hours12[1]] as [string, string],
+      minutes: [minutes[0], minutes[1]] as [string, string],
       period,
-      dateText: now.toLocaleDateString('en-US', {
-        weekday: 'short',
-        month: 'short',
-        day: 'numeric',
-        year: 'numeric'
-      })
+      dateText
     };
-  });
+  };
 
+  const [currentTime, setCurrentTime] = useState<TimeState>(getISTTime);
   const [prevTime, setPrevTime] = useState(currentTime);
 
   useEffect(() => {
     const timer = setInterval(() => {
       setPrevTime(currentTime);
-      
-      const now = new Date();
-      const hours24 = now.getHours();
-      const hours12 = (hours24 % 12 || 12).toString().padStart(2, '0');
-      const minutes = now.getMinutes().toString().padStart(2, '0');
-      const period = hours24 >= 12 ? 'PM' : 'AM';
-      
-      setCurrentTime({
-        hours: [hours12[0], hours12[1]],
-        minutes: [minutes[0], minutes[1]],
-        period,
-        dateText: now.toLocaleDateString('en-US', {
-          weekday: 'short',
-          month: 'short',
-          day: 'numeric',
-          year: 'numeric'
-        })
-      });
+      setCurrentTime(getISTTime());
     }, 1000);
 
     return () => clearInterval(timer);

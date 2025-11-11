@@ -134,7 +134,8 @@ export default function Timeline() {
               {selectedDate.toLocaleDateString('en-IN', {
                 weekday: 'long',
                 month: 'long',
-                day: 'numeric'
+                day: 'numeric',
+                timeZone: 'Asia/Kolkata'
               })}
             </h2>
             <p className="text-sm text-muted-foreground">
