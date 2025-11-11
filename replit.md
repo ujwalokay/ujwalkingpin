@@ -10,16 +10,20 @@ Preferred communication style: Simple, everyday language.
 
 ## Recent Changes
 
-### November 9, 2025
-- **Split Payment Option for Credit Balance Mark-as-Paid**: Enhanced credit entry payment method selection with split payment support:
-  - Added "Split Payment (Cash + UPI)" option to payment method dropdown in Mark as Paid dialog
-  - Auto-calculates UPI amount when cash amount is entered (remaining credit = total - cash)
-  - Displays comprehensive payment breakdown showing cash, UPI, and total amounts
-  - Backend validates numeric inputs with Number.isFinite checks to prevent NaN/Infinity values
-  - Validates cash + UPI equals remaining credit amount with 0.01 tolerance
-  - Schema updated: creditPayments table now has optional cashAmount and upiAmount columns
-  - Activity logging includes split payment details (e.g., "Cash: ₹500.00, UPI: ₹300.00")
-  - Split payment data is stored and available for reporting purposes
+### November 11, 2025
+- **Unified Payment Dialog with Split Payment Support**: Streamlined credit balance payment system with comprehensive validation:
+  - **Single Payment Dialog**: Combined "Record Payment" and "Mark as Paid" functionality into one unified form
+  - **Three Payment Methods**: Cash, UPI/Online, and Split Payment (Cash + UPI)
+  - **Smart Auto-Calculation**: When split payment is selected, UPI amount automatically calculates as (payment amount - cash amount)
+  - **Comprehensive Validation**:
+    - Payment amount must be positive and cannot exceed outstanding balance
+    - For split payments: both cash and UPI must be greater than zero
+    - Split payment total (cash + UPI) must equal payment amount (0.01 tolerance)
+    - Split payment total cannot exceed outstanding balance
+  - **Enhanced Payment History**: Split payments display inline breakdown showing "Cash: ₹X • UPI: ₹Y"
+  - **Cleaned Up UI**: Removed duplicate "Mark as Paid" action buttons and dialogs
+  - **Data Structure**: creditPayments table includes optional cashAmount and upiAmount fields for split payment tracking
+  - **Proper State Management**: All form fields reset correctly on dialog close and after successful payment
 
 ### November 7, 2025
 - **Removed Payment Logs Feature**: Completely removed the Payment Reconciliation/Payment Logs functionality from the application, including:
