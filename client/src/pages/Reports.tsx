@@ -150,28 +150,10 @@ export default function Reports() {
   const groupedSessions = useMemo(() => {
     if (!history) return [];
     
+    const bookingRecords = history.filter(record => record.transactionType !== 'credit_payment');
     const sessionMap = new Map<string, GroupedBookingSession>();
     
-    history.forEach((record, index) => {
-      if (record.transactionType === 'credit_payment') {
-        const sessionKey = `payment-${record.id}`;
-        sessionMap.set(sessionKey, {
-          id: record.id,
-          date: record.date,
-          customerName: record.customerName,
-          seats: [record.seatName],
-          duration: record.duration,
-          sessionPrice: 0,
-          foodAmount: 0,
-          cashAmount: record.cashAmount ? parseFloat(record.cashAmount) : 0,
-          upiAmount: record.upiAmount ? parseFloat(record.upiAmount) : 0,
-          totalAmount: record.totalAmount,
-          bookingIds: [record.id],
-          paymentStatus: record.paymentStatus || 'paid',
-        });
-        return;
-      }
-      
+    bookingRecords.forEach((record, index) => {
       const recordDateTime = new Date(record.date);
       let foundSession = false;
       
@@ -258,6 +240,84 @@ export default function Reports() {
     
     return Array.from(sessionMap.values());
   }, [history]);
+
+  const creditPayments = useMemo(() => {
+    if (!history) return [];
+    return history
+      .filter(record => record.transactionType === 'credit_payment')
+      .map(payment => ({
+        id: payment.id,
+        date: payment.date,
+        customerName: payment.customerName,
+        amount: payment.totalAmount,
+        paymentMethod: payment.paymentMethod || 'cash',
+        cashAmount: payment.cashAmount ? parseFloat(payment.cashAmount) : 0,
+        upiAmount: payment.upiAmount ? parseFloat(payment.upiAmount) : 0,
+        notes: payment.notes
+      }));
+  }, [history]);
+
+  const [paymentSearchQuery, setPaymentSearchQuery] = useState<string>("");
+
+  const filteredPayments = useMemo(() => {
+    if (!paymentSearchQuery.trim()) return creditPayments;
+
+    const query = paymentSearchQuery.toLowerCase();
+    return creditPayments.filter(payment => 
+      payment.customerName.toLowerCase().includes(query) ||
+      payment.date.toLowerCase().includes(query) ||
+      payment.paymentMethod.toLowerCase().includes(query)
+    );
+  }, [creditPayments, paymentSearchQuery]);
+
+  const handleExportPaymentsCSV = () => {
+    if (!filteredPayments || filteredPayments.length === 0) {
+      toast({
+        title: "No data to export",
+        description: "There are no credit payments for the selected period.",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    try {
+      const headers = ["Date", "Customer", "Amount (₹)", "Cash (₹)", "UPI (₹)", "Method"];
+      const csvContent = [
+        headers.join(","),
+        ...filteredPayments.map(payment => {
+          return [
+            payment.date,
+            payment.customerName,
+            payment.amount.toFixed(0),
+            payment.cashAmount.toFixed(0),
+            payment.upiAmount.toFixed(0),
+            payment.paymentMethod
+          ].join(",");
+        })
+      ].join("\n");
+
+      const blob = new Blob([csvContent], { type: "text/csv;charset=utf-8;" });
+      const link = document.createElement("a");
+      const url = URL.createObjectURL(blob);
+      link.setAttribute("href", url);
+      link.setAttribute("download", `credit_payments_${selectedPeriod}_${getAdjustedTime().toISOString().split('T')[0]}.csv`);
+      link.style.visibility = "hidden";
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+      
+      toast({
+        title: "Export successful",
+        description: "Credit payments CSV file has been downloaded.",
+      });
+    } catch (error) {
+      toast({
+        title: "Export failed",
+        description: "Failed to export CSV file. Please try again.",
+        variant: "destructive",
+      });
+    }
+  };
 
   const filteredSessions = useMemo(() => {
     if (!searchQuery.trim()) return groupedSessions;
@@ -838,6 +898,97 @@ export default function Reports() {
           </Table>
         </div>
       </div>
+
+      {creditPayments && creditPayments.length > 0 && (
+        <div className="space-y-4 mt-8">
+          <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
+            <h2 className="text-lg sm:text-xl font-semibold">Credit Payments</h2>
+            <div className="flex gap-2 flex-1 max-w-2xl">
+              <div className="relative flex-1">
+                <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                <Input
+                  type="text"
+                  placeholder="Search by customer, date, method..."
+                  value={paymentSearchQuery}
+                  onChange={(e) => setPaymentSearchQuery(e.target.value)}
+                  className="pl-9"
+                  data-testid="input-search-payments"
+                />
+              </div>
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={handleExportPaymentsCSV}
+                disabled={!filteredPayments || filteredPayments.length === 0}
+                data-testid="button-export-payments-csv"
+              >
+                <Download className="mr-2 h-4 w-4" />
+                Export CSV
+              </Button>
+            </div>
+          </div>
+          <div className="rounded-md border overflow-x-auto">
+            <Table>
+              <TableHeader>
+                <TableRow>
+                  <TableHead>Date</TableHead>
+                  <TableHead>Customer</TableHead>
+                  <TableHead className="text-right">Amount</TableHead>
+                  <TableHead className="text-right">Cash</TableHead>
+                  <TableHead className="text-right">UPI</TableHead>
+                  <TableHead>Method</TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {filteredPayments && filteredPayments.length > 0 ? (
+                  filteredPayments.map((payment) => (
+                    <TableRow key={payment.id} data-testid={`row-credit-payment-${payment.id}`}>
+                      <TableCell data-testid={`text-payment-date-${payment.id}`}>{payment.date}</TableCell>
+                      <TableCell className="font-medium" data-testid={`text-payment-customer-${payment.id}`}>
+                        {payment.customerName}
+                      </TableCell>
+                      <TableCell className="text-right font-bold text-green-600 dark:text-green-400" data-testid={`text-payment-amount-${payment.id}`}>
+                        ₹{payment.amount.toFixed(0)}
+                      </TableCell>
+                      <TableCell className="text-right" data-testid={`text-payment-cash-${payment.id}`}>
+                        {payment.cashAmount > 0 ? (
+                          <span className="text-green-600 dark:text-green-400">₹{payment.cashAmount.toFixed(0)}</span>
+                        ) : (
+                          '-'
+                        )}
+                      </TableCell>
+                      <TableCell className="text-right" data-testid={`text-payment-upi-${payment.id}`}>
+                        {payment.upiAmount > 0 ? (
+                          <span className="text-blue-600 dark:text-blue-400">₹{payment.upiAmount.toFixed(0)}</span>
+                        ) : (
+                          '-'
+                        )}
+                      </TableCell>
+                      <TableCell data-testid={`text-payment-method-${payment.id}`}>
+                        <span className={`inline-flex items-center px-2 py-1 rounded-md text-xs font-medium ${
+                          payment.paymentMethod === 'cash' 
+                            ? 'bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-400' 
+                            : payment.paymentMethod === 'upi_online'
+                            ? 'bg-blue-100 dark:bg-blue-900/30 text-blue-700 dark:text-blue-400'
+                            : 'bg-gray-100 dark:bg-gray-800 text-gray-700 dark:text-gray-400'
+                        }`}>
+                          {payment.paymentMethod === 'upi_online' ? 'UPI' : payment.paymentMethod.charAt(0).toUpperCase() + payment.paymentMethod.slice(1)}
+                        </span>
+                      </TableCell>
+                    </TableRow>
+                  ))
+                ) : (
+                  <TableRow>
+                    <TableCell colSpan={6} className="text-center text-muted-foreground">
+                      {paymentSearchQuery.trim() ? 'No credit payments found matching your search' : 'No credit payments for this period'}
+                    </TableCell>
+                  </TableRow>
+                )}
+              </TableBody>
+            </Table>
+          </div>
+        </div>
+      )}
 
       <Dialog open={viewSeatsDialog.open} onOpenChange={(open) => setViewSeatsDialog({ open, seats: [] })}>
         <DialogContent data-testid="dialog-view-seats">
