@@ -825,18 +825,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
           
           if (newStatus === "paid" && targetEntry.bookingId) {
             const bookingUpdate: any = {
-              paymentStatus: "paid",
-              paymentMethod: paymentMethod
+              paymentStatus: "paid"
             };
-            
-            if (paymentMethod === 'split') {
-              bookingUpdate.cashAmount = cashAmount;
-              bookingUpdate.upiAmount = upiAmount;
-            } else if (paymentMethod === 'cash') {
-              bookingUpdate.cashAmount = amount;
-            } else if (paymentMethod === 'upi_online') {
-              bookingUpdate.upiAmount = amount;
-            }
             
             await storage.updateBooking(targetEntry.bookingId, bookingUpdate);
           }
@@ -844,8 +834,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
       }
       
       await storage.createPaymentLog({
-        bookingId: entryId || accountId,
-        seatName: "Credit Payment",
+        bookingId: bookingIdToStore || accountId,
+        seatName: bookingIdToStore ? "Booking" : "Credit Payment",
         customerName: account.customerName,
         amount: amount,
         paymentMethod: paymentMethod,

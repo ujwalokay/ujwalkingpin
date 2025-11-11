@@ -504,7 +504,18 @@ export class DatabaseStorage implements IStorage {
         )
       );
 
-    const cashRevenue = completedBookings
+    // Get credit payments in this period
+    const creditPaymentsInPeriod = await db
+      .select()
+      .from(creditPayments)
+      .where(
+        and(
+          gte(creditPayments.recordedAt, startDate),
+          lte(creditPayments.recordedAt, endDate)
+        )
+      );
+
+    let cashRevenue = completedBookings
       .reduce((sum, booking) => {
         if (booking.paymentMethod === "cash") {
           const sessionPrice = parseFloat(booking.price);
@@ -519,7 +530,7 @@ export class DatabaseStorage implements IStorage {
         return sum;
       }, 0);
 
-    const upiRevenue = completedBookings
+    let upiRevenue = completedBookings
       .reduce((sum, booking) => {
         if (booking.paymentMethod === "upi_online") {
           const sessionPrice = parseFloat(booking.price);
@@ -533,6 +544,23 @@ export class DatabaseStorage implements IStorage {
         }
         return sum;
       }, 0);
+
+    // Add credit payments to cash/UPI revenue based on payment method
+    creditPaymentsInPeriod.forEach(payment => {
+      const amount = parseFloat(payment.amount);
+      if (payment.paymentMethod === 'cash') {
+        cashRevenue += amount;
+      } else if (payment.paymentMethod === 'upi_online') {
+        upiRevenue += amount;
+      } else if (payment.paymentMethod === 'split') {
+        if (payment.cashAmount) {
+          cashRevenue += parseFloat(payment.cashAmount);
+        }
+        if (payment.upiAmount) {
+          upiRevenue += parseFloat(payment.upiAmount);
+        }
+      }
+    });
 
     const paidBookings = completedBookings.filter(b => 
       b.paymentMethod === "cash" || b.paymentMethod === "upi_online" || b.paymentMethod === "split"
