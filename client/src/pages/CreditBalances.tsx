@@ -71,6 +71,21 @@ type CreditEntry = {
   status: string;
   issuedAt: Date;
   lastActivityAt: Date;
+  booking?: {
+    seatName: string;
+    customerName: string;
+    whatsappNumber: string | null;
+    startTime: Date;
+    endTime: Date;
+    price: string;
+    foodTotal: string;
+    discount: string;
+    bonus: string;
+    cashAmount: string;
+    upiAmount: string;
+    paymentMethod: string | null;
+    duration: number;
+  };
 };
 
 type CreditPayment = {
@@ -434,43 +449,73 @@ export default function CreditBalances() {
                               <Receipt className="h-4 w-4" />
                               Credit Entries ({account.entries.length})
                             </h4>
-                            <Table>
-                              <TableHeader>
-                                <TableRow>
-                                  <TableHead>Booking ID</TableHead>
-                                  <TableHead>Issued</TableHead>
-                                  <TableHead>Cash Paid</TableHead>
-                                  <TableHead>Remaining</TableHead>
-                                  <TableHead>Status</TableHead>
-                                  <TableHead>Date</TableHead>
-                                </TableRow>
-                              </TableHeader>
-                              <TableBody>
-                                {account.entries.map((entry) => (
-                                  <TableRow key={entry.id}>
-                                    <TableCell className="font-mono text-xs">
-                                      {entry.bookingId.substring(0, 8)}...
-                                    </TableCell>
-                                    <TableCell>₹{parseFloat(entry.creditIssued).toFixed(2)}</TableCell>
-                                    <TableCell>₹{parseFloat(entry.nonCreditPaid).toFixed(2)}</TableCell>
-                                    <TableCell className="font-semibold">
-                                      ₹{parseFloat(entry.remainingCredit).toFixed(2)}
-                                    </TableCell>
-                                    <TableCell>
-                                      <Badge
-                                        variant={entry.status === "paid" ? "default" : "secondary"}
-                                        className={entry.status === "paid" ? "bg-green-600" : ""}
-                                      >
-                                        {entry.status}
-                                      </Badge>
-                                    </TableCell>
-                                    <TableCell>
-                                      {format(new Date(entry.issuedAt), "MMM d, yyyy")}
-                                    </TableCell>
+                            <div className="overflow-x-auto">
+                              <Table>
+                                <TableHeader>
+                                  <TableRow>
+                                    <TableHead>Date</TableHead>
+                                    <TableHead>Type</TableHead>
+                                    <TableHead>Customer</TableHead>
+                                    <TableHead>Seats</TableHead>
+                                    <TableHead>Duration</TableHead>
+                                    <TableHead className="text-right">Session Price</TableHead>
+                                    <TableHead className="text-right">Food</TableHead>
+                                    <TableHead className="text-right">Discount</TableHead>
+                                    <TableHead className="text-right">Bonus</TableHead>
+                                    <TableHead>Payment Method</TableHead>
+                                    <TableHead className="text-right">Credit</TableHead>
+                                    <TableHead className="text-right">Cash</TableHead>
+                                    <TableHead className="text-right">UPI</TableHead>
+                                    <TableHead className="text-right">Total</TableHead>
+                                    <TableHead>Status/Notes</TableHead>
                                   </TableRow>
-                                ))}
-                              </TableBody>
-                            </Table>
+                                </TableHeader>
+                                <TableBody>
+                                  {account.entries.map((entry: any) => {
+                                    const booking = entry.booking || {};
+                                    const sessionPrice = parseFloat(booking.price || "0");
+                                    const foodTotal = parseFloat(booking.foodTotal || "0");
+                                    const discount = parseFloat(booking.discount || "0");
+                                    const bonus = parseFloat(booking.bonus || "0");
+                                    const creditAmount = parseFloat(entry.creditIssued || "0");
+                                    const cashAmount = parseFloat(booking.cashAmount || "0");
+                                    const upiAmount = parseFloat(booking.upiAmount || "0");
+                                    const total = sessionPrice + foodTotal;
+                                    
+                                    return (
+                                      <TableRow key={entry.id}>
+                                        <TableCell>{format(new Date(entry.issuedAt), "MMM d, yyyy")}</TableCell>
+                                        <TableCell>
+                                          <Badge variant="secondary">Credit Entry</Badge>
+                                        </TableCell>
+                                        <TableCell>{booking.customerName || "-"}</TableCell>
+                                        <TableCell>{booking.seatName || "-"}</TableCell>
+                                        <TableCell>{booking.duration ? `${booking.duration} mins` : "-"}</TableCell>
+                                        <TableCell className="text-right">₹{sessionPrice.toFixed(2)}</TableCell>
+                                        <TableCell className="text-right">{foodTotal > 0 ? `₹${foodTotal.toFixed(2)}` : "-"}</TableCell>
+                                        <TableCell className="text-right">{discount > 0 ? `₹${discount.toFixed(2)}` : "-"}</TableCell>
+                                        <TableCell className="text-right">{bonus > 0 ? `₹${bonus.toFixed(2)}` : "-"}</TableCell>
+                                        <TableCell>{booking.paymentMethod || "-"}</TableCell>
+                                        <TableCell className="text-right text-amber-600 dark:text-amber-400 font-semibold">
+                                          ₹{creditAmount.toFixed(2)}
+                                        </TableCell>
+                                        <TableCell className="text-right">{cashAmount > 0 ? `₹${cashAmount.toFixed(2)}` : "-"}</TableCell>
+                                        <TableCell className="text-right">{upiAmount > 0 ? `₹${upiAmount.toFixed(2)}` : "-"}</TableCell>
+                                        <TableCell className="text-right font-semibold">₹{total.toFixed(2)}</TableCell>
+                                        <TableCell>
+                                          <Badge
+                                            variant={entry.status === "paid" ? "default" : "secondary"}
+                                            className={entry.status === "paid" ? "bg-green-600" : ""}
+                                          >
+                                            {entry.status}
+                                          </Badge>
+                                        </TableCell>
+                                      </TableRow>
+                                    );
+                                  })}
+                                </TableBody>
+                              </Table>
+                            </div>
                           </div>
                         )}
 

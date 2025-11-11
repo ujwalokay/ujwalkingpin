@@ -842,7 +842,39 @@ export async function registerRoutes(app: Express): Promise<Server> {
         accounts.map(async (account) => {
           const entries = await storage.getCreditEntriesByAccount(account.id);
           const payments = await storage.getCreditPaymentsByAccount(account.id);
-          return { ...account, entries, payments };
+          
+          const bookingIds = entries.map((e: any) => e.bookingId);
+          const bookings = bookingIds.length > 0 ? await storage.getBookingsByIds(bookingIds) : [];
+          const bookingMap = new Map(bookings.map((b: any) => [b.id, b]));
+          
+          const enrichedEntries = entries.map((entry: any) => {
+            const booking: any = bookingMap.get(entry.bookingId);
+            if (!booking) return entry;
+            
+            const foodTotal = (booking.foodOrders || []).reduce((sum: number, order: any) => 
+              sum + (parseFloat(order.price) * order.quantity), 0);
+            
+            return {
+              ...entry,
+              booking: {
+                seatName: booking.seatName,
+                customerName: booking.customerName,
+                whatsappNumber: booking.whatsappNumber,
+                startTime: booking.startTime,
+                endTime: booking.endTime,
+                price: booking.price,
+                foodTotal: foodTotal.toFixed(2),
+                discount: booking.discount || "0",
+                bonus: booking.bonus || "0",
+                cashAmount: booking.cashAmount || "0",
+                upiAmount: booking.upiAmount || "0",
+                paymentMethod: booking.paymentMethod,
+                duration: booking.durationMinutes || 0
+              }
+            };
+          });
+          
+          return { ...account, entries: enrichedEntries, payments };
         })
       );
       res.json(accountsWithEntries);

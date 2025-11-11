@@ -167,6 +167,7 @@ export interface RetentionMetrics {
 export interface IStorage {
   getAllBookings(): Promise<Booking[]>;
   getBooking(id: string): Promise<Booking | undefined>;
+  getBookingsByIds(ids: string[]): Promise<Booking[]>;
   getActiveBookings(): Promise<Booking[]>;
   createBooking(booking: InsertBooking): Promise<Booking>;
   updateBooking(id: string, data: Partial<InsertBooking>): Promise<Booking | undefined>;
@@ -450,6 +451,11 @@ export class DatabaseStorage implements IStorage {
   async getBooking(id: string): Promise<Booking | undefined> {
     const [booking] = await db.select().from(bookings).where(eq(bookings.id, id));
     return booking || undefined;
+  }
+
+  async getBookingsByIds(ids: string[]): Promise<Booking[]> {
+    if (ids.length === 0) return [];
+    return await db.select().from(bookings).where(inArray(bookings.id, ids));
   }
 
   async getActiveBookings(): Promise<Booking[]> {
@@ -1518,7 +1524,7 @@ export class DatabaseStorage implements IStorage {
         paymentStatus: "paid"
       };
       
-      if (booking.status !== "completed" && booking.status !== "expired") {
+      if (booking.status !== "completed" && booking.status !== "expired" && booking.status !== "running" && booking.status !== "paused") {
         bookingUpdate.status = "completed";
       }
       
