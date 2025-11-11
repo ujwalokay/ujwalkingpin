@@ -193,7 +193,7 @@ export default function AIMaintenance() {
             <div>
               <strong className="font-semibold text-cyan-900 dark:text-cyan-100">Airavoto AI System:</strong>
               <span className="ml-2 text-cyan-800 dark:text-cyan-200">
-                Using accurate calculations based on your real gaming center data
+                Using calculations based on your real gaming center data
               </span>
             </div>
             <Badge className="ml-2 bg-cyan-600 hover:bg-cyan-700">
@@ -202,7 +202,10 @@ export default function AIMaintenance() {
             </Badge>
           </div>
           <p className="text-xs text-cyan-700 dark:text-cyan-300 mt-2">
-            ✓ No external AI services - 100% accurate predictions using mathematical formulas based on usage hours, sessions, issues, and maintenance history
+            ✓ No external AI services - Predictions using mathematical formulas based on usage hours, sessions, issues, and maintenance history
+          </p>
+          <p className="text-xs text-amber-700 dark:text-amber-300 mt-2 font-medium">
+            ⚠️ Airavoto AI can make mistakes because it is in under development
           </p>
         </AlertDescription>
       </Alert>
