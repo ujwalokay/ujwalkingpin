@@ -782,13 +782,22 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(400).json({ message: "Payment amount exceeds outstanding balance" });
       }
       
-      const userId = (req.user as any)?.id || 'unknown';
-      const username = (req.user as any)?.username || (req.user as any)?.name || 'admin';
+      const userId = (req.session as any)?.userId || 'unknown';
+      const username = (req.session as any)?.username || (req.session as any)?.name || 'admin';
+      
+      let bookingIdToStore = null;
+      if (entryId) {
+        const entries = await storage.getCreditEntriesByAccount(accountId);
+        const targetEntry = entries.find(e => e.id === entryId);
+        if (targetEntry && targetEntry.bookingId) {
+          bookingIdToStore = targetEntry.bookingId;
+        }
+      }
       
       const payment = await storage.createCreditPayment({
         creditAccountId: accountId,
         creditEntryId: entryId || null,
-        bookingId: null,
+        bookingId: bookingIdToStore,
         amount: amount,
         paymentMethod: paymentMethod,
         cashAmount: cashAmount || (paymentMethod === 'cash' ? amount : undefined),
@@ -1096,8 +1105,69 @@ export async function registerRoutes(app: Express): Promise<Server> {
         }
       }
 
-      const history = await storage.getBookingHistory(startDate, endDate);
-      res.json(history);
+      const bookingHistory = await storage.getBookingHistory(startDate, endDate);
+      const creditPaymentsInRange = await storage.getCreditPaymentsByDateRange(startDate, endDate);
+      
+      const bookingIds = creditPaymentsInRange
+        .map(payment => payment.bookingId)
+        .filter((id): id is string => id !== null);
+      
+      const bookings = bookingIds.length > 0 ? await storage.getBookingsByIds(bookingIds) : [];
+      const bookingMap = new Map(bookings.map((b: any) => [b.id, b]));
+      
+      const allAccounts = await storage.getAllCreditAccounts();
+      const accountMap = new Map(allAccounts.map((a: any) => [a.id, a]));
+      
+      const enrichedCreditPayments = creditPaymentsInRange.map((payment: any) => {
+        const booking = payment.bookingId ? bookingMap.get(payment.bookingId) : null;
+        const account = accountMap.get(payment.creditAccountId);
+        
+        if (booking) {
+          const foodTotal = (booking.foodOrders || []).reduce((sum: number, order: any) => 
+            sum + (parseFloat(order.price) * order.quantity), 0);
+          
+          const duration = booking.startTime && booking.endTime 
+            ? Math.max(0, Math.round((new Date(booking.endTime).getTime() - new Date(booking.startTime).getTime()) / 60000))
+            : 0;
+          
+          const durationStr = duration > 0 ? `${Math.floor(duration / 60)}h ${duration % 60}m` : '-';
+          
+          return {
+            id: payment.id,
+            date: payment.recordedAt.toISOString(),
+            transactionType: 'credit_payment' as const,
+            seatName: booking.seatName || '-',
+            customerName: booking.customerName || 'Unknown',
+            duration: durationStr,
+            price: booking.price || '0',
+            foodAmount: foodTotal,
+            totalAmount: parseFloat(payment.amount),
+            paymentMethod: payment.paymentMethod,
+            cashAmount: payment.cashAmount || null,
+            upiAmount: payment.upiAmount || null,
+            notes: payment.notes,
+          };
+        }
+        
+        return {
+          id: payment.id,
+          date: payment.recordedAt.toISOString(),
+          transactionType: 'credit_payment' as const,
+          seatName: '-',
+          customerName: account?.customerName || 'Unknown',
+          duration: '-',
+          price: '0',
+          foodAmount: 0,
+          totalAmount: parseFloat(payment.amount),
+          paymentMethod: payment.paymentMethod,
+          cashAmount: payment.cashAmount || null,
+          upiAmount: payment.upiAmount || null,
+          notes: payment.notes,
+        };
+      });
+      
+      const allHistory = [...bookingHistory, ...enrichedCreditPayments];
+      res.json(allHistory);
     } catch (error: any) {
       res.status(500).json({ message: error.message });
     }

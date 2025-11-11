@@ -317,6 +317,7 @@ export interface IStorage {
   createCreditPayment(payment: InsertCreditPayment): Promise<CreditPayment>;
   getCreditPaymentsByAccount(accountId: string): Promise<CreditPayment[]>;
   getCreditPaymentsByEntry(entryId: string): Promise<CreditPayment[]>;
+  getCreditPaymentsByDateRange(startDate: Date, endDate: Date): Promise<CreditPayment[]>;
   
   createPaymentLog(log: InsertPaymentLog): Promise<PaymentLog>;
   getPaymentLogs(date?: string): Promise<PaymentLog[]>;
@@ -1613,6 +1614,17 @@ export class DatabaseStorage implements IStorage {
       .select()
       .from(creditPayments)
       .where(eq(creditPayments.creditEntryId, entryId))
+      .orderBy(desc(creditPayments.recordedAt));
+  }
+
+  async getCreditPaymentsByDateRange(startDate: Date, endDate: Date): Promise<CreditPayment[]> {
+    return await db
+      .select()
+      .from(creditPayments)
+      .where(and(
+        gte(creditPayments.recordedAt, startDate),
+        lte(creditPayments.recordedAt, endDate)
+      ))
       .orderBy(desc(creditPayments.recordedAt));
   }
 
