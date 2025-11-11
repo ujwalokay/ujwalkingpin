@@ -513,7 +513,7 @@ export default function Reports() {
     <div className="space-y-4 md:space-y-6">
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
         <div>
-          <h1 className="text-2xl sm:text-3xl font-bold text-foreground">Reports & Analytics</h1>
+          <h1 className="text-2xl sm:text-3xl font-bold text-foreground">Reports</h1>
           <p className="text-sm sm:text-base text-muted-foreground">Track revenue, bookings and customer retention</p>
         </div>
       </div>
