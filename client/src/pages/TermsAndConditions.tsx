@@ -278,7 +278,7 @@ export default function TermsAndConditions() {
       <footer className="mt-8 py-6 border-t">
         <div className="flex flex-col items-center gap-4">
           <p className="text-lg font-semibold text-foreground">
-            Made by <span className="text-primary">Ujwal Guru</span>
+            Created by <span className="text-primary">Airavoto Gaming</span>
           </p>
           <div className="flex items-center gap-3">
             <Button
