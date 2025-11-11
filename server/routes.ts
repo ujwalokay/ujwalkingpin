@@ -764,7 +764,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
   app.post("/api/credits/payment", sensitiveOperationLimiter, requireAuth, async (req, res) => {
     try {
-      const { accountId, amount, paymentMethod, entryId, notes } = req.body;
+      const { accountId, amount, paymentMethod, entryId, notes, cashAmount, upiAmount } = req.body;
       
       if (!accountId || !amount || !paymentMethod) {
         return res.status(400).json({ message: "Account ID, amount, and payment method are required" });
@@ -783,7 +783,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       }
       
       const userId = (req.user as any)?.id || 'unknown';
-      const username = (req.user as any)?.username || 'Unknown';
+      const username = (req.user as any)?.username || (req.user as any)?.name || 'admin';
       
       const payment = await storage.createCreditPayment({
         creditAccountId: accountId,
@@ -791,6 +791,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
         bookingId: null,
         amount: amount,
         paymentMethod: paymentMethod,
+        cashAmount: cashAmount || (paymentMethod === 'cash' ? amount : undefined),
+        upiAmount: upiAmount || (paymentMethod === 'upi_online' ? amount : undefined),
         recordedBy: username,
         notes: notes || null
       });
@@ -805,11 +807,30 @@ export async function registerRoutes(app: Express): Promise<Server> {
         if (targetEntry) {
           const remaining = parseFloat(targetEntry.remainingCredit);
           const newRemaining = Math.max(0, remaining - paymentAmount).toFixed(2);
+          const newStatus = parseFloat(newRemaining) === 0 ? "paid" : "pending";
           
           await storage.updateCreditEntry(entryId, {
             remainingCredit: newRemaining,
-            status: parseFloat(newRemaining) === 0 ? "paid" : "pending"
+            status: newStatus
           });
+          
+          if (newStatus === "paid" && targetEntry.bookingId) {
+            const bookingUpdate: any = {
+              paymentStatus: "paid",
+              paymentMethod: paymentMethod
+            };
+            
+            if (paymentMethod === 'split') {
+              bookingUpdate.cashAmount = cashAmount;
+              bookingUpdate.upiAmount = upiAmount;
+            } else if (paymentMethod === 'cash') {
+              bookingUpdate.cashAmount = amount;
+            } else if (paymentMethod === 'upi_online') {
+              bookingUpdate.upiAmount = amount;
+            }
+            
+            await storage.updateBooking(targetEntry.bookingId, bookingUpdate);
+          }
         }
       }
       
@@ -854,6 +875,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
             const foodTotal = (booking.foodOrders || []).reduce((sum: number, order: any) => 
               sum + (parseFloat(order.price) * order.quantity), 0);
             
+            const duration = booking.startTime && booking.endTime 
+              ? Math.max(0, Math.round((new Date(booking.endTime).getTime() - new Date(booking.startTime).getTime()) / 60000))
+              : 0;
+            
             return {
               ...entry,
               booking: {
@@ -869,7 +894,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
                 cashAmount: booking.cashAmount || "0",
                 upiAmount: booking.upiAmount || "0",
                 paymentMethod: booking.paymentMethod,
-                duration: booking.durationMinutes || 0
+                duration
               }
             };
           });
