@@ -700,6 +700,20 @@ export default function Dashboard() {
       return;
     }
 
+    const selectedBookingsList = filteredBookings.filter(b => selectedBookings.has(b.id));
+    
+    if (method === 'credit_later') {
+      const runningBookings = selectedBookingsList.filter(b => b.status === 'running');
+      if (runningBookings.length > 0) {
+        toast({
+          title: "Cannot Mark as Credit",
+          description: "Please wait for the timer to complete before marking as credit. Sessions must be expired or completed first.",
+          variant: "destructive",
+        });
+        return;
+      }
+    }
+
     try {
       const response = await fetch('/api/bookings/payment-status', {
         method: 'POST',

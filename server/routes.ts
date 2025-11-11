@@ -494,6 +494,13 @@ export async function registerRoutes(app: Express): Promise<Server> {
         const bookingsData = await Promise.all(bookingIds.map(id => storage.getBooking(id)));
         const validBookings = bookingsData.filter(b => b !== undefined);
         
+        const runningBookings = validBookings.filter(b => b.status === 'running');
+        if (runningBookings.length > 0) {
+          return res.status(400).json({ 
+            message: "Cannot mark running sessions as credit. Please wait for the timer to complete first." 
+          });
+        }
+        
         for (const booking of validBookings) {
           let creditAccount = await storage.getCreditAccountByCustomer(
             booking.customerName,
