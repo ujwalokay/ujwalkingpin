@@ -43,6 +43,7 @@ interface BookingStats {
 interface BookingHistoryItem {
   id: string;
   date: string;
+  transactionType?: 'booking' | 'credit_payment';
   seatName: string;
   customerName: string;
   duration: string;
@@ -57,6 +58,7 @@ interface BookingHistoryItem {
   bonus?: string | null;
   discountApplied?: string | null;
   bonusHoursApplied?: string | null;
+  notes?: string | null;
 }
 
 interface GroupedBookingSession {
@@ -151,6 +153,25 @@ export default function Reports() {
     const sessionMap = new Map<string, GroupedBookingSession>();
     
     history.forEach((record, index) => {
+      if (record.transactionType === 'credit_payment') {
+        const sessionKey = `payment-${record.id}`;
+        sessionMap.set(sessionKey, {
+          id: record.id,
+          date: record.date,
+          customerName: record.customerName,
+          seats: [record.seatName],
+          duration: record.duration,
+          sessionPrice: 0,
+          foodAmount: 0,
+          cashAmount: record.cashAmount ? parseFloat(record.cashAmount) : 0,
+          upiAmount: record.upiAmount ? parseFloat(record.upiAmount) : 0,
+          totalAmount: record.totalAmount,
+          bookingIds: [record.id],
+          paymentStatus: record.paymentStatus || 'paid',
+        });
+        return;
+      }
+      
       const recordDateTime = new Date(record.date);
       let foundSession = false;
       

@@ -106,6 +106,7 @@ export interface CreditSummary {
 export interface BookingHistoryItem {
   id: string;
   date: string;
+  transactionType?: 'booking' | 'credit_payment';
   seatName: string;
   customerName: string;
   duration: string;
@@ -114,12 +115,14 @@ export interface BookingHistoryItem {
   foodAmount: number;
   totalAmount: number;
   paymentMethod: string | null;
+  paymentStatus?: string;
   cashAmount: string | null;
   upiAmount: string | null;
   discount?: string | null;
   bonus?: string | null;
   discountApplied?: string | null;
   bonusHoursApplied?: string | null;
+  notes?: string | null;
 }
 
 export interface CustomerPromotionSummary {
@@ -594,57 +597,117 @@ export class DatabaseStorage implements IStorage {
         )
       );
 
-    return completedBookings
-      .map(booking => {
-        const durationMs = booking.endTime.getTime() - booking.startTime.getTime();
-        const durationMinutes = Math.round(durationMs / 1000 / 60);
-        const hours = Math.floor(durationMinutes / 60);
-        const mins = durationMinutes % 60;
-        
-        let duration: string;
-        if (hours > 0 && mins > 0) {
-          duration = `${hours} hour${hours > 1 ? 's' : ''} ${mins} mins`;
-        } else if (hours > 0) {
-          duration = `${hours} hour${hours > 1 ? 's' : ''}`;
-        } else {
-          duration = `${mins} mins`;
-        }
+    const creditPaymentsInRange = await db
+      .select()
+      .from(creditPayments)
+      .where(
+        and(
+          gte(creditPayments.recordedAt, startDate),
+          lte(creditPayments.recordedAt, endDate)
+        )
+      );
 
-        const foodAmount = booking.foodOrders && booking.foodOrders.length > 0
-          ? booking.foodOrders.reduce((sum, order) => sum + parseFloat(order.price) * order.quantity, 0)
-          : 0;
+    const bookingItems: BookingHistoryItem[] = completedBookings.map(booking => {
+      const durationMs = booking.endTime.getTime() - booking.startTime.getTime();
+      const durationMinutes = Math.round(durationMs / 1000 / 60);
+      const hours = Math.floor(durationMinutes / 60);
+      const mins = durationMinutes % 60;
+      
+      let duration: string;
+      if (hours > 0 && mins > 0) {
+        duration = `${hours} hour${hours > 1 ? 's' : ''} ${mins} mins`;
+      } else if (hours > 0) {
+        duration = `${hours} hour${hours > 1 ? 's' : ''}`;
+      } else {
+        duration = `${mins} mins`;
+      }
 
-        const sessionPrice = parseFloat(booking.price);
-        const totalAmount = sessionPrice + foodAmount;
+      const foodAmount = booking.foodOrders && booking.foodOrders.length > 0
+        ? booking.foodOrders.reduce((sum, order) => sum + parseFloat(order.price) * order.quantity, 0)
+        : 0;
 
-        const dateObj = new Date(booking.startTime);
-        const formattedDate = dateObj.toLocaleDateString('en-US', { 
-          month: 'short', 
-          day: 'numeric', 
-          year: 'numeric' 
-        });
+      const sessionPrice = parseFloat(booking.price);
+      const totalAmount = sessionPrice + foodAmount;
 
-        return {
-          id: booking.id,
-          date: formattedDate,
-          seatName: booking.seatName,
-          customerName: booking.customerName,
-          duration,
-          durationMinutes,
-          price: booking.price,
-          foodAmount,
-          totalAmount,
-          paymentMethod: booking.paymentMethod,
-          paymentStatus: booking.paymentStatus,
-          cashAmount: booking.cashAmount,
-          upiAmount: booking.upiAmount,
-          discount: booking.discount,
-          bonus: booking.bonus,
-          discountApplied: booking.discountApplied,
-          bonusHoursApplied: booking.bonusHoursApplied
-        };
-      })
-      .sort((a, b) => b.date.localeCompare(a.date));
+      const dateObj = new Date(booking.startTime);
+      const formattedDate = dateObj.toLocaleDateString('en-US', { 
+        month: 'short', 
+        day: 'numeric', 
+        year: 'numeric' 
+      });
+
+      return {
+        id: booking.id,
+        date: formattedDate,
+        transactionType: 'booking' as const,
+        seatName: booking.seatName,
+        customerName: booking.customerName,
+        duration,
+        durationMinutes,
+        price: booking.price,
+        foodAmount,
+        totalAmount,
+        paymentMethod: booking.paymentMethod,
+        paymentStatus: booking.paymentStatus,
+        cashAmount: booking.cashAmount,
+        upiAmount: booking.upiAmount,
+        discount: booking.discount,
+        bonus: booking.bonus,
+        discountApplied: booking.discountApplied,
+        bonusHoursApplied: booking.bonusHoursApplied
+      };
+    });
+
+    const accountIds = Array.from(new Set(creditPaymentsInRange.map(p => p.creditAccountId)));
+    const accounts = accountIds.length > 0
+      ? await db
+          .select()
+          .from(creditAccounts)
+          .where(inArray(creditAccounts.id, accountIds))
+      : [];
+    
+    const accountMap = new Map(accounts.map(acc => [acc.id, acc]));
+
+    const paymentItems: BookingHistoryItem[] = creditPaymentsInRange.map(payment => {
+      const dateObj = new Date(payment.recordedAt);
+      const formattedDate = dateObj.toLocaleDateString('en-US', { 
+        month: 'short', 
+        day: 'numeric', 
+        year: 'numeric' 
+      });
+
+      const amount = parseFloat(payment.amount);
+      const account = accountMap.get(payment.creditAccountId);
+      const customerName = account?.customerName || 'Unknown Customer';
+
+      return {
+        id: payment.id,
+        date: formattedDate,
+        transactionType: 'credit_payment' as const,
+        seatName: 'Credit Payment',
+        customerName: customerName,
+        duration: '-',
+        durationMinutes: 0,
+        price: '0',
+        foodAmount: 0,
+        totalAmount: amount,
+        paymentMethod: payment.paymentMethod,
+        paymentStatus: 'paid',
+        cashAmount: payment.paymentMethod === 'cash' ? payment.amount : null,
+        upiAmount: payment.paymentMethod === 'upi_online' ? payment.amount : null,
+        notes: payment.notes
+      };
+    });
+
+    const allItems = [...bookingItems, ...paymentItems];
+
+    allItems.sort((a, b) => {
+      const dateA = new Date(a.date);
+      const dateB = new Date(b.date);
+      return dateB.getTime() - dateA.getTime();
+    });
+
+    return allItems;
   }
 
   async getRetentionMetrics(startDate: Date, endDate: Date, period: 'daily' | 'weekly' | 'monthly'): Promise<RetentionMetrics> {
