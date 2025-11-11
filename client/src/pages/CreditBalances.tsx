@@ -80,6 +80,8 @@ type CreditPayment = {
   bookingId: string | null;
   amount: string;
   paymentMethod: string;
+  cashAmount: string | null;
+  upiAmount: string | null;
   recordedBy: string;
   recordedAt: Date;
   notes: string | null;
@@ -93,15 +95,11 @@ type CreditAccountWithDetails = CreditAccount & {
 export default function CreditBalances() {
   const [expandedAccounts, setExpandedAccounts] = useState<Set<string>>(new Set());
   const [paymentDialogOpen, setPaymentDialogOpen] = useState(false);
-  const [markAsPaidDialogOpen, setMarkAsPaidDialogOpen] = useState(false);
   const [selectedAccount, setSelectedAccount] = useState<CreditAccountWithDetails | null>(null);
-  const [selectedEntryId, setSelectedEntryId] = useState<string | null>(null);
-  const [selectedEntry, setSelectedEntry] = useState<CreditEntry | null>(null);
   const [paymentAmount, setPaymentAmount] = useState("");
-  const [paymentMethod, setPaymentMethod] = useState<"cash" | "upi_online">("cash");
-  const [markPaidPaymentMethod, setMarkPaidPaymentMethod] = useState<"cash" | "upi_online" | "split">("cash");
-  const [markPaidCashAmount, setMarkPaidCashAmount] = useState("");
-  const [markPaidUpiAmount, setMarkPaidUpiAmount] = useState("");
+  const [paymentMethod, setPaymentMethod] = useState<"cash" | "upi_online" | "split">("cash");
+  const [cashAmount, setCashAmount] = useState("");
+  const [upiAmount, setUpiAmount] = useState("");
   const [paymentNotes, setPaymentNotes] = useState("");
   const [searchQuery, setSearchQuery] = useState("");
   const { toast } = useToast();
@@ -117,18 +115,21 @@ export default function CreditBalances() {
   );
 
   useEffect(() => {
-    if (markPaidPaymentMethod === 'split' && selectedEntry) {
-      const cash = parseFloat(markPaidCashAmount) || 0;
-      const remaining = Math.max(0, parseFloat(selectedEntry.remainingCredit) - cash);
-      setMarkPaidUpiAmount(remaining.toFixed(2));
+    if (paymentMethod === 'split') {
+      const amount = parseFloat(paymentAmount) || 0;
+      const cash = parseFloat(cashAmount) || 0;
+      const remaining = Math.max(0, amount - cash);
+      setUpiAmount(remaining.toFixed(2));
     }
-  }, [markPaidPaymentMethod, markPaidCashAmount, selectedEntry]);
+  }, [paymentMethod, paymentAmount, cashAmount]);
 
   const recordPaymentMutation = useMutation({
     mutationFn: async (data: {
       accountId: string;
       amount: string;
       paymentMethod: string;
+      cashAmount?: string;
+      upiAmount?: string;
       notes?: string;
     }) => {
       return await apiRequest("POST", "/api/credits/payment", data);
@@ -142,6 +143,9 @@ export default function CreditBalances() {
       setPaymentDialogOpen(false);
       setSelectedAccount(null);
       setPaymentAmount("");
+      setPaymentMethod("cash");
+      setCashAmount("");
+      setUpiAmount("");
       setPaymentNotes("");
     },
     onError: (error: Error) => {
@@ -153,35 +157,6 @@ export default function CreditBalances() {
     },
   });
 
-  const markAsPaidMutation = useMutation({
-    mutationFn: async (data: { entryId: string; paymentMethod: string; cashAmount?: string; upiAmount?: string }) => {
-      return await apiRequest("PATCH", `/api/credits/entries/${data.entryId}/mark-paid`, {
-        paymentMethod: data.paymentMethod,
-        cashAmount: data.cashAmount,
-        upiAmount: data.upiAmount,
-      });
-    },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["/api/credits/accounts"] });
-      toast({
-        title: "Marked as Paid",
-        description: "Credit entry has been marked as paid with payment method recorded",
-      });
-      setMarkAsPaidDialogOpen(false);
-      setSelectedEntryId(null);
-      setSelectedEntry(null);
-      setMarkPaidPaymentMethod("cash");
-      setMarkPaidCashAmount("");
-      setMarkPaidUpiAmount("");
-    },
-    onError: (error: Error) => {
-      toast({
-        title: "Failed to Mark as Paid",
-        description: error.message,
-        variant: "destructive",
-      });
-    },
-  });
 
   const toggleAccountExpanded = (accountId: string) => {
     setExpandedAccounts((prev) => {
@@ -225,12 +200,54 @@ export default function CreditBalances() {
       return;
     }
 
-    await recordPaymentMutation.mutateAsync({
-      accountId: selectedAccount.id,
-      amount: amount.toFixed(2),
-      paymentMethod,
-      notes: paymentNotes.trim() || undefined,
-    });
+    if (paymentMethod === 'split') {
+      const cash = parseFloat(cashAmount) || 0;
+      const upi = parseFloat(upiAmount) || 0;
+      const total = cash + upi;
+
+      if (cash <= 0 || upi <= 0) {
+        toast({
+          title: "Invalid Split Payment",
+          description: "Both cash and UPI amounts must be greater than zero for split payments",
+          variant: "destructive",
+        });
+        return;
+      }
+
+      if (Math.abs(total - amount) > 0.01) {
+        toast({
+          title: "Invalid Split Payment",
+          description: "Cash and UPI amounts must equal the total payment amount",
+          variant: "destructive",
+        });
+        return;
+      }
+
+      if (total > balance) {
+        toast({
+          title: "Amount Too Large",
+          description: "Split payment total cannot exceed outstanding balance",
+          variant: "destructive",
+        });
+        return;
+      }
+
+      await recordPaymentMutation.mutateAsync({
+        accountId: selectedAccount.id,
+        amount: total.toFixed(2),
+        paymentMethod,
+        cashAmount: cash.toFixed(2),
+        upiAmount: upi.toFixed(2),
+        notes: paymentNotes.trim() || undefined,
+      });
+    } else {
+      await recordPaymentMutation.mutateAsync({
+        accountId: selectedAccount.id,
+        amount: amount.toFixed(2),
+        paymentMethod,
+        notes: paymentNotes.trim() || undefined,
+      });
+    }
   };
 
   const totalOutstanding = accounts.reduce(
@@ -426,7 +443,6 @@ export default function CreditBalances() {
                                   <TableHead>Remaining</TableHead>
                                   <TableHead>Status</TableHead>
                                   <TableHead>Date</TableHead>
-                                  <TableHead>Actions</TableHead>
                                 </TableRow>
                               </TableHeader>
                               <TableBody>
@@ -450,38 +466,6 @@ export default function CreditBalances() {
                                     </TableCell>
                                     <TableCell>
                                       {format(new Date(entry.issuedAt), "MMM d, yyyy")}
-                                    </TableCell>
-                                    <TableCell>
-                                      {entry.status === "pending" && (
-                                        <TooltipProvider>
-                                          <Tooltip>
-                                            <TooltipTrigger asChild>
-                                              <Button
-                                                size="sm"
-                                                variant="outline"
-                                                onClick={() => {
-                                                  setSelectedEntryId(entry.id);
-                                                  setSelectedEntry(entry);
-                                                  setMarkAsPaidDialogOpen(true);
-                                                }}
-                                                disabled={markAsPaidMutation.isPending}
-                                                data-testid={`button-mark-paid-${entry.id}`}
-                                              >
-                                                <CreditCard className="h-4 w-4 mr-2" />
-                                                Mark as Paid
-                                              </Button>
-                                            </TooltipTrigger>
-                                            <TooltipContent>
-                                              <p>Mark this ₹{parseFloat(entry.remainingCredit).toFixed(2)} credit entry as fully paid</p>
-                                            </TooltipContent>
-                                          </Tooltip>
-                                        </TooltipProvider>
-                                      )}
-                                      {entry.status === "paid" && (
-                                        <span className="text-sm text-green-600 dark:text-green-400 font-medium">
-                                          ✓ Completed
-                                        </span>
-                                      )}
                                     </TableCell>
                                   </TableRow>
                                 ))}
@@ -513,9 +497,26 @@ export default function CreditBalances() {
                                       ₹{parseFloat(payment.amount).toFixed(2)}
                                     </TableCell>
                                     <TableCell>
-                                      <Badge variant="outline">
-                                        {payment.paymentMethod === "cash" ? "Cash" : "UPI/Online"}
-                                      </Badge>
+                                      {payment.paymentMethod === "split" ? (
+                                        <div className="flex flex-col gap-1">
+                                          <Badge variant="outline" data-testid={`badge-payment-method-${payment.id}`}>
+                                            Split Payment
+                                          </Badge>
+                                          <div className="text-xs text-muted-foreground">
+                                            <span className="text-green-600 font-medium" data-testid={`text-cash-${payment.id}`}>
+                                              Cash: ₹{payment.cashAmount ? parseFloat(payment.cashAmount).toFixed(2) : "0.00"}
+                                            </span>
+                                            {" • "}
+                                            <span className="text-blue-600 font-medium" data-testid={`text-upi-${payment.id}`}>
+                                              UPI: ₹{payment.upiAmount ? parseFloat(payment.upiAmount).toFixed(2) : "0.00"}
+                                            </span>
+                                          </div>
+                                        </div>
+                                      ) : (
+                                        <Badge variant="outline" data-testid={`badge-payment-method-${payment.id}`}>
+                                          {payment.paymentMethod === "cash" ? "Cash" : "UPI/Online"}
+                                        </Badge>
+                                      )}
                                     </TableCell>
                                     <TableCell>{payment.recordedBy}</TableCell>
                                     <TableCell>
@@ -592,9 +593,73 @@ export default function CreditBalances() {
                 <SelectContent>
                   <SelectItem value="cash">Cash</SelectItem>
                   <SelectItem value="upi_online">UPI/Online</SelectItem>
+                  <SelectItem value="split">Split Payment (Cash + UPI)</SelectItem>
                 </SelectContent>
               </Select>
             </div>
+
+            {paymentMethod === 'split' && (
+              <>
+                <div className="space-y-2">
+                  <Label htmlFor="cashAmount">
+                    <div className="flex items-center gap-2">
+                      <Wallet className="h-4 w-4 text-green-600" />
+                      Cash Amount
+                    </div>
+                  </Label>
+                  <Input
+                    id="cashAmount"
+                    type="number"
+                    step="0.01"
+                    min="0"
+                    max={paymentAmount}
+                    value={cashAmount}
+                    onChange={(e) => setCashAmount(e.target.value)}
+                    placeholder="Enter cash amount"
+                    data-testid="input-cash-amount"
+                    className="text-lg"
+                  />
+                </div>
+
+                <div className="space-y-2">
+                  <Label htmlFor="upiAmount">
+                    <div className="flex items-center gap-2">
+                      <CreditCard className="h-4 w-4 text-blue-600" />
+                      UPI Amount
+                    </div>
+                  </Label>
+                  <Input
+                    id="upiAmount"
+                    type="number"
+                    step="0.01"
+                    value={upiAmount}
+                    readOnly
+                    className="bg-blue-50 dark:bg-blue-950/20 border-blue-300 dark:border-blue-700 text-lg"
+                    data-testid="input-upi-amount"
+                  />
+                  <p className="text-xs text-muted-foreground">
+                    Auto-calculated as remaining amount
+                  </p>
+                </div>
+
+                <div className="rounded-lg border p-3 bg-muted/30">
+                  <div className="space-y-2 text-sm">
+                    <div className="flex justify-between">
+                      <span className="text-muted-foreground">Cash:</span>
+                      <span className="font-semibold text-green-600">₹{cashAmount || "0.00"}</span>
+                    </div>
+                    <div className="flex justify-between">
+                      <span className="text-muted-foreground">UPI:</span>
+                      <span className="font-semibold text-blue-600">₹{upiAmount || "0.00"}</span>
+                    </div>
+                    <div className="flex justify-between pt-2 border-t">
+                      <span className="font-medium">Total:</span>
+                      <span className="font-bold">₹{((parseFloat(cashAmount) || 0) + (parseFloat(upiAmount) || 0)).toFixed(2)}</span>
+                    </div>
+                  </div>
+                </div>
+              </>
+            )}
 
             <div className="space-y-2">
               <Label htmlFor="paymentNotes">Notes (Optional)</Label>
@@ -616,6 +681,9 @@ export default function CreditBalances() {
                 setPaymentDialogOpen(false);
                 setSelectedAccount(null);
                 setPaymentAmount("");
+                setPaymentMethod("cash");
+                setCashAmount("");
+                setUpiAmount("");
                 setPaymentNotes("");
               }}
               disabled={recordPaymentMutation.isPending}
@@ -629,158 +697,6 @@ export default function CreditBalances() {
               data-testid="button-confirm-payment"
             >
               {recordPaymentMutation.isPending ? "Recording..." : "Record Payment"}
-            </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
-
-      <Dialog open={markAsPaidDialogOpen} onOpenChange={setMarkAsPaidDialogOpen}>
-        <DialogContent data-testid="dialog-mark-as-paid">
-          <DialogHeader>
-            <DialogTitle>Mark Credit Entry as Paid</DialogTitle>
-            <DialogDescription>
-              Select the payment method used for this credit entry
-            </DialogDescription>
-          </DialogHeader>
-
-          <div className="space-y-4 py-4">
-            {selectedEntry && (
-              <div className="rounded-lg border p-4 bg-gradient-to-br from-primary/5 to-primary/10">
-                <div className="flex items-center justify-between mb-2">
-                  <span className="text-sm font-medium flex items-center gap-2">
-                    <IndianRupee className="h-4 w-4" />
-                    Remaining Credit
-                  </span>
-                  <span className="text-2xl font-bold text-primary">
-                    ₹{parseFloat(selectedEntry.remainingCredit).toFixed(2)}
-                  </span>
-                </div>
-              </div>
-            )}
-
-            <div className="space-y-2">
-              <Label htmlFor="markPaidPaymentMethod">Payment Method</Label>
-              <Select
-                value={markPaidPaymentMethod}
-                onValueChange={(value: any) => setMarkPaidPaymentMethod(value)}
-              >
-                <SelectTrigger data-testid="select-mark-paid-payment-method">
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="cash">Cash</SelectItem>
-                  <SelectItem value="upi_online">UPI/Online</SelectItem>
-                  <SelectItem value="split">Split Payment (Cash + UPI)</SelectItem>
-                </SelectContent>
-              </Select>
-            </div>
-
-            {markPaidPaymentMethod === 'split' && selectedEntry && (
-              <>
-                <div className="space-y-2">
-                  <Label htmlFor="markPaidCashAmount">
-                    <div className="flex items-center gap-2">
-                      <Wallet className="h-4 w-4 text-green-600" />
-                      Cash Amount
-                    </div>
-                  </Label>
-                  <Input
-                    id="markPaidCashAmount"
-                    type="number"
-                    step="0.01"
-                    min="0"
-                    max={parseFloat(selectedEntry.remainingCredit)}
-                    value={markPaidCashAmount}
-                    onChange={(e) => setMarkPaidCashAmount(e.target.value)}
-                    placeholder="Enter cash amount"
-                    data-testid="input-mark-paid-cash"
-                    className="text-lg"
-                  />
-                </div>
-
-                <div className="space-y-2">
-                  <Label htmlFor="markPaidUpiAmount">
-                    <div className="flex items-center gap-2">
-                      <CreditCard className="h-4 w-4 text-blue-600" />
-                      UPI Amount
-                    </div>
-                  </Label>
-                  <Input
-                    id="markPaidUpiAmount"
-                    type="number"
-                    step="0.01"
-                    value={markPaidUpiAmount}
-                    readOnly
-                    className="bg-blue-50 dark:bg-blue-950/20 border-blue-300 dark:border-blue-700 text-lg"
-                    data-testid="input-mark-paid-upi"
-                  />
-                  <p className="text-xs text-muted-foreground">
-                    Auto-calculated as remaining amount
-                  </p>
-                </div>
-
-                <div className="rounded-lg border p-3 bg-muted/30">
-                  <div className="space-y-2 text-sm">
-                    <div className="flex justify-between">
-                      <span className="text-muted-foreground">Cash:</span>
-                      <span className="font-semibold text-green-600">₹{markPaidCashAmount || "0.00"}</span>
-                    </div>
-                    <div className="flex justify-between">
-                      <span className="text-muted-foreground">UPI:</span>
-                      <span className="font-semibold text-blue-600">₹{markPaidUpiAmount || "0.00"}</span>
-                    </div>
-                    <div className="flex justify-between pt-2 border-t">
-                      <span className="font-medium">Total:</span>
-                      <span className="font-bold">₹{((parseFloat(markPaidCashAmount) || 0) + (parseFloat(markPaidUpiAmount) || 0)).toFixed(2)}</span>
-                    </div>
-                  </div>
-                </div>
-              </>
-            )}
-
-            {markPaidPaymentMethod !== 'split' && (
-              <div className="rounded-lg border p-4 bg-muted/50">
-                <p className="text-sm text-muted-foreground">
-                  This will mark the credit entry as paid and record the payment method for reporting purposes.
-                </p>
-              </div>
-            )}
-          </div>
-
-          <DialogFooter>
-            <Button
-              variant="outline"
-              onClick={() => {
-                setMarkAsPaidDialogOpen(false);
-                setSelectedEntryId(null);
-                setSelectedEntry(null);
-                setMarkPaidPaymentMethod("cash");
-                setMarkPaidCashAmount("");
-                setMarkPaidUpiAmount("");
-              }}
-              disabled={markAsPaidMutation.isPending}
-              data-testid="button-cancel-mark-paid"
-            >
-              Cancel
-            </Button>
-            <Button
-              onClick={() => {
-                if (selectedEntryId) {
-                  const mutationData: any = {
-                    entryId: selectedEntryId,
-                    paymentMethod: markPaidPaymentMethod,
-                  };
-                  if (markPaidPaymentMethod === 'split') {
-                    mutationData.cashAmount = markPaidCashAmount;
-                    mutationData.upiAmount = markPaidUpiAmount;
-                  }
-                  markAsPaidMutation.mutate(mutationData);
-                }
-              }}
-              disabled={markAsPaidMutation.isPending}
-              data-testid="button-confirm-mark-paid"
-            >
-              {markAsPaidMutation.isPending ? "Marking..." : "Mark as Paid"}
             </Button>
           </DialogFooter>
         </DialogContent>
