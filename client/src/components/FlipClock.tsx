@@ -1,4 +1,5 @@
 import { useState, useEffect, memo } from "react";
+import { useServerTime } from "@/hooks/useServerTime";
 
 interface FlipDigitProps {
   value: string;
@@ -97,8 +98,10 @@ interface TimeState {
 }
 
 export function FlipClock() {
+  const { isReady, getTime } = useServerTime();
+  
   const getISTTime = (): TimeState => {
-    const now = new Date();
+    const now = getTime();
     const istTimeString = now.toLocaleString('en-US', {
       timeZone: 'Asia/Kolkata',
       hour12: false,
@@ -137,7 +140,7 @@ export function FlipClock() {
     }, 1000);
 
     return () => clearInterval(timer);
-  }, [currentTime]);
+  }, [currentTime, getTime]);
 
   return (
     <div 

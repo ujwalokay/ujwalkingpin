@@ -1,16 +1,18 @@
 import { useState, useEffect } from "react";
 import { Clock } from "lucide-react";
+import { useServerTime } from "@/hooks/useServerTime";
 
 export function LiveClock() {
-  const [time, setTime] = useState(new Date());
+  const { isReady, getTime } = useServerTime();
+  const [time, setTime] = useState(getTime());
 
   useEffect(() => {
     const timer = setInterval(() => {
-      setTime(new Date());
+      setTime(getTime());
     }, 1000);
 
     return () => clearInterval(timer);
-  }, []);
+  }, [getTime]);
 
   const formatTime = (date: Date) => {
     return date.toLocaleTimeString('en-US', {
