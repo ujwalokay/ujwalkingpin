@@ -1,4 +1,4 @@
-import { Settings, LayoutDashboard, FileText, UtensilsCrossed, CalendarClock, History, Scale, Wallet, ScrollText, BarChart3, Gamepad2, Sparkles, LogOut, Brain, Package, Receipt, CreditCard } from "lucide-react";
+import { Settings, LayoutDashboard, FileText, UtensilsCrossed, CalendarClock, History, Scale, Wallet, ScrollText, BarChart3, Gamepad2, Sparkles, LogOut, Brain, Package, Receipt } from "lucide-react";
 import { Link, useLocation } from "wouter";
 import { useQuery } from "@tanstack/react-query";
 import { useTheme } from "@/components/ThemeProvider";
@@ -81,12 +81,6 @@ const menuCategories: MenuCategory[] = [
         url: "/expenses",
         icon: Wallet,
         tooltip: "Record and manage operational expenses",
-      },
-      {
-        title: "Credit Balances",
-        url: "/credit-balances",
-        icon: CreditCard,
-        tooltip: "Manage customer credit accounts and track payment history",
       },
     ],
   },

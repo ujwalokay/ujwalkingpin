@@ -185,7 +185,6 @@ export default function Dashboard() {
 
   const bookings: Booking[] = useMemo(() => {
     return dbBookings
-      .filter((dbBooking: DBBooking) => dbBooking.paymentMethod !== "credit_later")
       .map((dbBooking: DBBooking) => ({
         id: dbBooking.id,
         category: dbBooking.category,
@@ -690,7 +689,7 @@ export default function Dashboard() {
     });
   };
 
-  const handlePaymentMethod = async (method: "cash" | "upi_online" | "credit_later") => {
+  const handlePaymentMethod = async (method: "cash" | "upi_online") => {
     if (selectedBookings.size === 0) {
       toast({
         title: "No Bookings Selected",
@@ -700,27 +699,13 @@ export default function Dashboard() {
       return;
     }
 
-    const selectedBookingsList = filteredBookings.filter(b => selectedBookings.has(b.id));
-    
-    if (method === 'credit_later') {
-      const runningBookings = selectedBookingsList.filter(b => b.status === 'running');
-      if (runningBookings.length > 0) {
-        toast({
-          title: "Cannot Mark as Credit",
-          description: "Please wait for the timer to complete before marking as credit. Sessions must be expired or completed first.",
-          variant: "destructive",
-        });
-        return;
-      }
-    }
-
     try {
       const response = await fetch('/api/bookings/payment-status', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           bookingIds: Array.from(selectedBookings),
-          paymentStatus: method === 'credit_later' ? 'unpaid' : 'paid',
+          paymentStatus: 'paid',
           paymentMethod: method
         }),
       });
@@ -735,10 +720,10 @@ export default function Dashboard() {
       setShowPaymentDialog(false);
       setSelectedBookings(new Set());
       
-      const methodName = method === 'cash' ? 'Cash' : method === 'upi_online' ? 'UPI/Online' : 'Credit (Pay Later)';
+      const methodName = method === 'cash' ? 'Cash' : 'UPI/Online';
       toast({
-        title: method === 'credit_later' ? "Credit Recorded" : "Payment Confirmed",
-        description: `${data.count} booking(s) marked as ${method === 'credit_later' ? 'credit (pay later)' : 'paid via ' + methodName}`,
+        title: "Payment Confirmed",
+        description: `${data.count} booking(s) marked as paid via ${methodName}`,
       });
     } catch (error) {
       toast({
@@ -933,7 +918,7 @@ export default function Dashboard() {
                 </TooltipTrigger>
                 <TooltipContent>
                   <p>{selectedBookings.size > 0 
-                    ? `Mark ${selectedBookings.size} selected booking${selectedBookings.size > 1 ? 's' : ''} as paid via Cash, UPI, or Credit` 
+                    ? `Mark ${selectedBookings.size} selected booking${selectedBookings.size > 1 ? 's' : ''} as paid via Cash or UPI` 
                     : 'Select completed sessions to mark payment method and record payment'}</p>
                 </TooltipContent>
               </Tooltip>
@@ -1189,16 +1174,6 @@ export default function Dashboard() {
             >
               <Wallet className="mr-2 h-5 w-5" />
               Full UPI
-            </Button>
-            <Button
-              variant="outline"
-              size="lg"
-              onClick={() => handlePaymentMethod("credit_later")}
-              data-testid="button-payment-credit-later"
-              className="h-16 text-lg border-2 hover:border-orange-500 hover:bg-orange-500/5 border-orange-300 dark:border-orange-700"
-            >
-              <Clock className="mr-2 h-5 w-5" />
-              Credit Later (Pay Later)
             </Button>
             <div className="relative">
               <div className="absolute inset-0 flex items-center">

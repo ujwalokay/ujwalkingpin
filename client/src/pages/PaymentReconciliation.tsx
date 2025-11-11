@@ -25,9 +25,6 @@ type PaymentLog = {
   username: string;
   previousStatus: string | null;
   previousMethod: string | null;
-  isCredit: boolean;
-  appliedCreditAmount: string | null;
-  creditPaymentId: string | null;
   createdAt: Date;
 };
 
@@ -60,13 +57,6 @@ export default function PaymentReconciliation() {
   const upiTotal = filteredLogs
     .filter(log => log.paymentMethod === 'upi_online')
     .reduce((sum, log) => sum + parseFloat(log.amount || '0'), 0);
-  const creditIssued = filteredLogs
-    .filter(log => log.paymentMethod === 'credit')
-    .reduce((sum, log) => sum + parseFloat(log.amount || '0'), 0);
-  const creditRecovered = filteredLogs
-    .filter(log => log.isCredit === true && log.appliedCreditAmount)
-    .reduce((sum, log) => sum + parseFloat(log.appliedCreditAmount || '0'), 0);
-  const creditOutstanding = Math.max(0, creditIssued - creditRecovered);
   const actualCollected = cashTotal + upiTotal;
 
   const getPaymentMethodBadge = (method: string) => {
@@ -75,8 +65,6 @@ export default function PaymentReconciliation() {
         return <Badge variant="outline" className="bg-green-500/10 text-green-700 dark:text-green-400">Cash</Badge>;
       case 'upi_online':
         return <Badge variant="outline" className="bg-blue-500/10 text-blue-700 dark:text-blue-400">UPI/Online</Badge>;
-      case 'credit':
-        return <Badge variant="outline" className="bg-amber-500/10 text-amber-700 dark:text-amber-400">Credit</Badge>;
       default:
         return <Badge variant="outline">{method}</Badge>;
     }
@@ -102,16 +90,16 @@ export default function PaymentReconciliation() {
         <p className="text-muted-foreground">Review all payment actions and transactions</p>
       </div>
 
-      <div className={`grid gap-4 ${isStaff ? 'md:grid-cols-2' : 'md:grid-cols-5'}`}>
+      <div className={`grid gap-4 ${isStaff ? 'md:grid-cols-2' : 'md:grid-cols-3'}`}>
         {!isStaff && (
           <Card>
             <CardHeader className="flex flex-row items-center justify-between gap-2 space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium">Actually Collected</CardTitle>
+              <CardTitle className="text-sm font-medium">Total Collected</CardTitle>
               <TrendingUp className="h-4 w-4 text-muted-foreground" />
             </CardHeader>
             <CardContent>
               <div className="text-2xl font-bold text-green-600 dark:text-green-400">₹{actualCollected.toFixed(2)}</div>
-              <p className="text-xs text-muted-foreground">Cash + UPI (incl. credit repaid)</p>
+              <p className="text-xs text-muted-foreground">Cash + UPI</p>
             </CardContent>
           </Card>
         )}
@@ -145,48 +133,7 @@ export default function PaymentReconciliation() {
             </CardContent>
           </Card>
         )}
-
-        <Card className="border-amber-200 dark:border-amber-800">
-          <CardHeader className="flex flex-row items-center justify-between gap-2 space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Credit Issued</CardTitle>
-            <Wallet className="h-4 w-4 text-amber-600 dark:text-amber-400" />
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold text-amber-600 dark:text-amber-400">₹{creditIssued.toFixed(2)}</div>
-            <p className="text-xs text-muted-foreground">
-              {filteredLogs.filter(l => l.paymentMethod === 'credit').length} new credit
-            </p>
-          </CardContent>
-        </Card>
-
-        <Card className="border-emerald-200 dark:border-emerald-800">
-          <CardHeader className="flex flex-row items-center justify-between gap-2 space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Credit Recovered</CardTitle>
-            <Wallet className="h-4 w-4 text-emerald-600 dark:text-emerald-400" />
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold text-emerald-600 dark:text-emerald-400">₹{creditRecovered.toFixed(2)}</div>
-            <p className="text-xs text-muted-foreground">
-              {filteredLogs.filter(l => l.isCredit === true).length} repayments
-            </p>
-          </CardContent>
-        </Card>
       </div>
-
-      {!isStaff && creditOutstanding > 0 && (
-        <Card className="border-orange-200 dark:border-orange-800 bg-orange-50/50 dark:bg-orange-950/20">
-          <CardHeader className="flex flex-row items-center justify-between gap-2 space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Credit Outstanding (This Date)</CardTitle>
-            <Wallet className="h-4 w-4 text-orange-600 dark:text-orange-400" />
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold text-orange-600 dark:text-orange-400">₹{creditOutstanding.toFixed(2)}</div>
-            <p className="text-xs text-muted-foreground">
-              Issued: ₹{creditIssued.toFixed(2)} - Recovered: ₹{creditRecovered.toFixed(2)}
-            </p>
-          </CardContent>
-        </Card>
-      )}
 
       <Card>
         <CardHeader>
@@ -239,11 +186,6 @@ export default function PaymentReconciliation() {
                     </div>
                     <div className="flex items-center gap-2 flex-wrap">
                       {getPaymentMethodBadge(log.paymentMethod)}
-                      {log.isCredit && (
-                        <Badge variant="outline" className="bg-emerald-500/10 text-emerald-700 dark:text-emerald-400 border-emerald-300 dark:border-emerald-700">
-                          Credit Repaid
-                        </Badge>
-                      )}
                       {getStatusBadge(log.paymentStatus)}
                     </div>
                   </div>

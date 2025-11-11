@@ -44,7 +44,7 @@ export const dashboardTourSteps: Step[] = [
   },
   {
     target: '[data-joyride="payment-button"]',
-    content: 'Use the Payment button to record how customers paid. You can mark payments as Cash, UPI, or Credit. For mixed payments (Cash + UPI), use the Split Payment option.',
+    content: 'Use the Payment button to record how customers paid. You can mark payments as Cash or UPI. For mixed payments (Cash + UPI), use the Split Payment option.',
     placement: 'top',
   },
   {
