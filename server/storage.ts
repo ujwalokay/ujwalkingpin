@@ -668,6 +668,19 @@ export class DatabaseStorage implements IStorage {
     
     const accountMap = new Map(accounts.map(acc => [acc.id, acc]));
 
+    const bookingIds = creditPaymentsInRange
+      .map(p => p.bookingId)
+      .filter((id): id is string => id !== null && id !== undefined);
+    
+    const relatedBookings = bookingIds.length > 0
+      ? await db
+          .select()
+          .from(bookingHistory)
+          .where(inArray(bookingHistory.id, bookingIds))
+      : [];
+    
+    const bookingMap = new Map(relatedBookings.map(booking => [booking.id, booking]));
+
     const paymentItems: BookingHistoryItem[] = creditPaymentsInRange.map(payment => {
       const dateObj = new Date(payment.recordedAt);
       const formattedDate = dateObj.toLocaleDateString('en-US', { 
@@ -679,23 +692,54 @@ export class DatabaseStorage implements IStorage {
       const amount = parseFloat(payment.amount);
       const account = accountMap.get(payment.creditAccountId);
       const customerName = account?.customerName || 'Unknown Customer';
+      
+      const relatedBooking = payment.bookingId ? bookingMap.get(payment.bookingId) : null;
+      
+      let duration = '-';
+      let durationMinutes = 0;
+      let price = '0';
+      let foodAmount = 0;
+      let seatName = 'Credit Payment';
+      
+      if (relatedBooking) {
+        const durationMs = relatedBooking.endTime.getTime() - relatedBooking.startTime.getTime();
+        durationMinutes = Math.round(durationMs / 1000 / 60);
+        const hours = Math.floor(durationMinutes / 60);
+        const mins = durationMinutes % 60;
+        
+        if (hours > 0 && mins > 0) {
+          duration = `${hours} hour${hours > 1 ? 's' : ''} ${mins} mins`;
+        } else if (hours > 0) {
+          duration = `${hours} hour${hours > 1 ? 's' : ''}`;
+        } else {
+          duration = `${mins} mins`;
+        }
+        
+        price = relatedBooking.price;
+        seatName = relatedBooking.seatName;
+        
+        foodAmount = relatedBooking.foodOrders && relatedBooking.foodOrders.length > 0
+          ? relatedBooking.foodOrders.reduce((sum, order) => sum + parseFloat(order.price) * order.quantity, 0)
+          : 0;
+      }
 
       return {
         id: payment.id,
         date: formattedDate,
         transactionType: 'credit_payment' as const,
-        seatName: 'Credit Payment',
+        seatName,
         customerName: customerName,
-        duration: '-',
-        durationMinutes: 0,
-        price: '0',
-        foodAmount: 0,
+        duration,
+        durationMinutes,
+        price,
+        foodAmount,
         totalAmount: amount,
         paymentMethod: payment.paymentMethod,
         paymentStatus: 'paid',
-        cashAmount: payment.paymentMethod === 'cash' ? payment.amount : null,
-        upiAmount: payment.paymentMethod === 'upi_online' ? payment.amount : null,
-        notes: payment.notes
+        cashAmount: payment.cashAmount || null,
+        upiAmount: payment.upiAmount || null,
+        notes: payment.notes,
+        originalBookingId: payment.bookingId,
       };
     });
 

@@ -281,6 +281,10 @@ export default function Reports() {
         id: payment.id,
         date: payment.date,
         customerName: payment.customerName,
+        seatName: payment.seatName,
+        duration: payment.duration,
+        price: payment.price,
+        foodAmount: payment.foodAmount || 0,
         amount: payment.totalAmount,
         paymentMethod: payment.paymentMethod || 'cash',
         cashAmount: payment.cashAmount ? parseFloat(payment.cashAmount) : 0,
@@ -331,6 +335,7 @@ export default function Reports() {
     
     const creditTransactions: UnifiedTransaction[] = creditPayments.map((payment) => {
       const recoveredCredit = payment.cashAmount + payment.upiAmount;
+      const sessionPrice = payment.price && payment.price !== '0' ? parseFloat(payment.price) : undefined;
       
       let paymentMethod = payment.paymentMethod;
       if (paymentMethod === 'upi_online') {
@@ -346,7 +351,10 @@ export default function Reports() {
         date: payment.date,
         transactionType: 'credit_payment' as const,
         customerName: payment.customerName,
-        foodAmount: 0,
+        seats: payment.seatName && payment.seatName !== 'Credit Payment' ? [payment.seatName] : undefined,
+        duration: payment.duration && payment.duration !== '-' ? payment.duration : undefined,
+        sessionPrice,
+        foodAmount: payment.foodAmount,
         cashAmount: payment.cashAmount,
         upiAmount: payment.upiAmount,
         creditAmount: recoveredCredit,
