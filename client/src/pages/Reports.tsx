@@ -34,16 +34,11 @@ interface BookingStats {
   avgSessionMinutes: number;
   cashRevenue: number;
   upiRevenue: number;
-  creditRevenue?: number;
-  creditIssued?: number;
-  creditRecovered?: number;
-  creditOutstanding?: number;
 }
 
 interface BookingHistoryItem {
   id: string;
   date: string;
-  transactionType?: 'booking' | 'credit_payment';
   seatName: string;
   customerName: string;
   duration: string;
@@ -58,7 +53,6 @@ interface BookingHistoryItem {
   bonus?: string | null;
   discountApplied?: string | null;
   bonusHoursApplied?: string | null;
-  notes?: string | null;
 }
 
 interface GroupedBookingSession {
@@ -83,7 +77,6 @@ interface GroupedBookingSession {
 interface UnifiedTransaction {
   id: string;
   date: string;
-  transactionType: 'booking' | 'credit_payment';
   customerName: string;
   seats?: string[];
   duration?: string;
@@ -91,7 +84,6 @@ interface UnifiedTransaction {
   foodAmount: number;
   cashAmount: number;
   upiAmount: number;
-  creditAmount?: number;
   totalAmount: number;
   paymentMethod: string | null;
   paymentStatus?: string;
@@ -99,7 +91,6 @@ interface UnifiedTransaction {
   bonus?: string;
   discountApplied?: string;
   bonusHoursApplied?: string;
-  notes?: string | null;
   bookingIds?: string[];
 }
 
@@ -116,7 +107,6 @@ export default function Reports() {
 
   const reportColumns = useMemo(() => [
     { id: "date", label: "Date", defaultVisible: true },
-    { id: "type", label: "Type", defaultVisible: true },
     { id: "customer", label: "Customer", defaultVisible: true },
     { id: "seats", label: "Seats", defaultVisible: true },
     { id: "duration", label: "Duration", defaultVisible: true },
@@ -125,11 +115,10 @@ export default function Reports() {
     { id: "discount", label: "Discount", defaultVisible: false },
     { id: "bonus", label: "Bonus", defaultVisible: false },
     { id: "paymentMethod", label: "Payment Method", defaultVisible: true },
-    { id: "credit", label: "Credit", defaultVisible: true },
     { id: "cash", label: "Cash", defaultVisible: true },
     { id: "upi", label: "UPI", defaultVisible: true },
     { id: "total", label: "Total", defaultVisible: true },
-    { id: "status", label: "Status/Notes", defaultVisible: true },
+    { id: "status", label: "Status", defaultVisible: true },
   ], []);
 
   const defaultVisibleColumns = useMemo(() => 
@@ -182,10 +171,9 @@ export default function Reports() {
   const groupedSessions = useMemo(() => {
     if (!history) return [];
     
-    const bookingRecords = history.filter(record => record.transactionType !== 'credit_payment');
     const sessionMap = new Map<string, GroupedBookingSession>();
     
-    bookingRecords.forEach((record, index) => {
+    history.forEach((record, index) => {
       const recordDateTime = new Date(record.date);
       let foundSession = false;
       
@@ -273,32 +261,10 @@ export default function Reports() {
     return Array.from(sessionMap.values());
   }, [history]);
 
-  const creditPayments = useMemo(() => {
-    if (!history) return [];
-    return history
-      .filter(record => record.transactionType === 'credit_payment')
-      .map(payment => ({
-        id: payment.id,
-        date: payment.date,
-        customerName: payment.customerName,
-        seatName: payment.seatName,
-        duration: payment.duration,
-        price: payment.price,
-        foodAmount: payment.foodAmount || 0,
-        amount: payment.totalAmount,
-        paymentMethod: payment.paymentMethod || 'cash',
-        cashAmount: payment.cashAmount ? parseFloat(payment.cashAmount) : 0,
-        upiAmount: payment.upiAmount ? parseFloat(payment.upiAmount) : 0,
-        notes: payment.notes
-      }));
-  }, [history]);
-
   const unifiedTransactions = useMemo(() => {
     if (!history) return [];
     
     const bookingTransactions: UnifiedTransaction[] = groupedSessions.map((session) => {
-      const creditAmount = Math.max(session.totalAmount - (session.cashAmount + session.upiAmount), 0);
-      
       let paymentMethod: string | null = null;
       if (session.cashAmount > 0 && session.upiAmount > 0) {
         paymentMethod = "Split";
@@ -306,14 +272,11 @@ export default function Reports() {
         paymentMethod = "Cash";
       } else if (session.upiAmount > 0) {
         paymentMethod = "UPI";
-      } else if (creditAmount > 0) {
-        paymentMethod = "Credit";
       }
       
       return {
         id: session.id,
         date: session.date,
-        transactionType: 'booking' as const,
         customerName: session.customerName,
         seats: session.seats,
         duration: session.duration,
@@ -321,7 +284,6 @@ export default function Reports() {
         foodAmount: session.foodAmount,
         cashAmount: session.cashAmount,
         upiAmount: session.upiAmount,
-        creditAmount,
         totalAmount: session.totalAmount,
         paymentMethod,
         paymentStatus: session.paymentStatus,
@@ -333,62 +295,27 @@ export default function Reports() {
       };
     });
     
-    const creditTransactions: UnifiedTransaction[] = creditPayments.map((payment) => {
-      const recoveredCredit = payment.cashAmount + payment.upiAmount;
-      const sessionPrice = payment.price && payment.price !== '0' ? parseFloat(payment.price) : undefined;
-      
-      let paymentMethod = payment.paymentMethod;
-      if (paymentMethod === 'upi_online') {
-        paymentMethod = 'UPI';
-      } else if (paymentMethod === 'cash') {
-        paymentMethod = 'Cash';
-      } else if (paymentMethod === 'split') {
-        paymentMethod = 'Split';
-      }
-      
-      return {
-        id: payment.id,
-        date: payment.date,
-        transactionType: 'credit_payment' as const,
-        customerName: payment.customerName,
-        seats: payment.seatName && payment.seatName !== 'Credit Payment' ? [payment.seatName] : undefined,
-        duration: payment.duration && payment.duration !== '-' ? payment.duration : undefined,
-        sessionPrice,
-        foodAmount: payment.foodAmount,
-        cashAmount: payment.cashAmount,
-        upiAmount: payment.upiAmount,
-        creditAmount: recoveredCredit,
-        totalAmount: payment.amount,
-        paymentMethod,
-        notes: payment.notes,
-      };
-    });
-    
-    const allTransactions = [...bookingTransactions, ...creditTransactions];
-    
-    allTransactions.sort((a, b) => {
+    bookingTransactions.sort((a, b) => {
       const dateA = new Date(a.date);
       const dateB = new Date(b.date);
       return dateB.getTime() - dateA.getTime();
     });
     
-    return allTransactions;
-  }, [groupedSessions, creditPayments, history]);
+    return bookingTransactions;
+  }, [groupedSessions, history]);
 
   const filteredTransactions = useMemo(() => {
     if (!searchQuery.trim()) return unifiedTransactions;
 
     const query = searchQuery.toLowerCase();
     return unifiedTransactions.filter(transaction => {
-      const matchesType = transaction.transactionType.toLowerCase().includes(query);
       const matchesCustomer = transaction.customerName.toLowerCase().includes(query);
       const matchesDate = transaction.date.toLowerCase().includes(query);
       const matchesSeats = transaction.seats?.some(seat => seat.toLowerCase().includes(query));
       const matchesDuration = transaction.duration?.toLowerCase().includes(query);
       const matchesPaymentMethod = transaction.paymentMethod?.toLowerCase().includes(query);
-      const matchesNotes = transaction.notes?.toLowerCase().includes(query);
       
-      return matchesType || matchesCustomer || matchesDate || matchesSeats || matchesDuration || matchesPaymentMethod || matchesNotes;
+      return matchesCustomer || matchesDate || matchesSeats || matchesDuration || matchesPaymentMethod;
     });
   }, [unifiedTransactions, searchQuery]);
 
@@ -403,24 +330,22 @@ export default function Reports() {
     }
 
     try {
-      const headers = ["Date", "Type", "Customer", "Seats", "Duration", "Session Price (₹)", "Food (₹)", "Payment Method", "Credit (₹)", "Cash (₹)", "UPI (₹)", "Total (₹)", "Status/Notes"];
+      const headers = ["Date", "Customer", "Seats", "Duration", "Session Price (₹)", "Food (₹)", "Payment Method", "Cash (₹)", "UPI (₹)", "Total (₹)", "Status"];
       const csvContent = [
         headers.join(","),
         ...filteredTransactions.map(transaction => {
           return [
             transaction.date,
-            transaction.transactionType === 'booking' ? 'Booking' : 'Credit Payment',
             transaction.customerName,
             transaction.seats?.join(' + ') || '-',
             transaction.duration || '-',
             transaction.sessionPrice?.toFixed(0) || '-',
             transaction.foodAmount.toFixed(0),
             transaction.paymentMethod || '-',
-            transaction.creditAmount?.toFixed(0) || '0',
             transaction.cashAmount.toFixed(0),
             transaction.upiAmount.toFixed(0),
             transaction.totalAmount.toFixed(0),
-            transaction.transactionType === 'credit_payment' ? (transaction.notes || 'Credit Payment') : (transaction.paymentStatus || '-')
+            transaction.paymentStatus || '-'
           ].join(",");
         })
       ].join("\n");
@@ -523,11 +448,9 @@ export default function Reports() {
             <thead>
               <tr>
                 <th>Date</th>
-                <th>Type</th>
                 <th>Customer</th>
-                <th>Seats/Details</th>
+                <th>Seats</th>
                 <th class="text-right">Payment Method</th>
-                <th class="text-right">Credit</th>
                 <th class="text-right">Cash</th>
                 <th class="text-right">UPI</th>
                 <th class="text-right">Total</th>
@@ -535,19 +458,15 @@ export default function Reports() {
             </thead>
             <tbody>
               ${filteredTransactions.map(transaction => {
-                const typeClass = transaction.transactionType === 'booking' ? 'booking' : 'credit-payment';
-                const typeLabel = transaction.transactionType === 'booking' ? 'Booking' : 'Credit Payment';
                 const detailsDisplay = transaction.seats 
                   ? transaction.seats.map(s => `<span class="badge">${s}</span>`).join(' ')
-                  : (transaction.notes || '-');
+                  : '-';
                 return `
                   <tr>
                     <td>${transaction.date}</td>
-                    <td><span class="type-badge ${typeClass}">${typeLabel}</span></td>
                     <td>${transaction.customerName}</td>
                     <td>${detailsDisplay}</td>
                     <td class="text-right">${transaction.paymentMethod || '-'}</td>
-                    <td class="text-right">${transaction.creditAmount && transaction.creditAmount > 0 ? '₹' + transaction.creditAmount.toFixed(0) : '-'}</td>
                     <td class="text-right">${transaction.cashAmount > 0 ? '₹' + transaction.cashAmount.toFixed(0) : '-'}</td>
                     <td class="text-right">${transaction.upiAmount > 0 ? '₹' + transaction.upiAmount.toFixed(0) : '-'}</td>
                     <td class="text-right"><strong>₹${transaction.totalAmount.toFixed(0)}</strong></td>
@@ -777,37 +696,6 @@ export default function Reports() {
               </>
             )}
           </div>
-
-          <div className="grid gap-3 grid-cols-1 sm:grid-cols-3">
-            {statsLoading ? (
-              <>
-                <Skeleton className="h-32" />
-                <Skeleton className="h-32" />
-                <Skeleton className="h-32" />
-              </>
-            ) : (stats && (stats.creditIssued || stats.creditRecovered || stats.creditOutstanding)) ? (
-              <>
-                <RevenueCard
-                  title="Credit Issued"
-                  amount={stats?.creditIssued || 0}
-                  trend={0}
-                  icon={<IndianRupee className="h-4 w-4 text-amber-600 dark:text-amber-400" />}
-                />
-                <RevenueCard
-                  title="Credit Recovered"
-                  amount={stats?.creditRecovered || 0}
-                  trend={0}
-                  icon={<IndianRupee className="h-4 w-4 text-emerald-600 dark:text-emerald-400" />}
-                />
-                <RevenueCard
-                  title="Credit Outstanding"
-                  amount={stats?.creditOutstanding || 0}
-                  trend={0}
-                  icon={<IndianRupee className="h-4 w-4 text-orange-600 dark:text-orange-400" />}
-                />
-              </>
-            ) : null}
-          </div>
         </TabsContent>
       </Tabs>
 
@@ -819,7 +707,7 @@ export default function Reports() {
               <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
               <Input
                 type="text"
-                placeholder="Search by type, customer, seat, payment method..."
+                placeholder="Search by customer, seat, payment method..."
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
                 className="pl-9"
@@ -838,7 +726,6 @@ export default function Reports() {
             <TableHeader>
               <TableRow>
                 {visibleColumns.includes("date") && <TableHead>Date</TableHead>}
-                {visibleColumns.includes("type") && <TableHead>Type</TableHead>}
                 {visibleColumns.includes("customer") && <TableHead>Customer</TableHead>}
                 {visibleColumns.includes("seats") && <TableHead>Seats</TableHead>}
                 {visibleColumns.includes("duration") && <TableHead>Duration</TableHead>}
@@ -847,11 +734,10 @@ export default function Reports() {
                 {visibleColumns.includes("discount") && <TableHead className="text-right">Discount</TableHead>}
                 {visibleColumns.includes("bonus") && <TableHead className="text-right">Bonus</TableHead>}
                 {visibleColumns.includes("paymentMethod") && <TableHead>Payment Method</TableHead>}
-                {visibleColumns.includes("credit") && <TableHead className="text-right">Credit</TableHead>}
                 {visibleColumns.includes("cash") && <TableHead className="text-right">Cash</TableHead>}
                 {visibleColumns.includes("upi") && <TableHead className="text-right">UPI</TableHead>}
                 {visibleColumns.includes("total") && <TableHead className="text-right">Total</TableHead>}
-                {visibleColumns.includes("status") && <TableHead>Status/Notes</TableHead>}
+                {visibleColumns.includes("status") && <TableHead>Status</TableHead>}
               </TableRow>
             </TableHeader>
             <TableBody>
@@ -866,17 +752,6 @@ export default function Reports() {
                   <TableRow key={transaction.id} data-testid={`row-transaction-${transaction.id}`}>
                     {visibleColumns.includes("date") && (
                       <TableCell data-testid={`text-date-${transaction.id}`}>{transaction.date}</TableCell>
-                    )}
-                    {visibleColumns.includes("type") && (
-                      <TableCell data-testid={`text-type-${transaction.id}`}>
-                        <span className={`inline-flex items-center px-2 py-1 rounded-md text-xs font-medium ${
-                          transaction.transactionType === 'booking' 
-                            ? 'bg-blue-100 dark:bg-blue-900/30 text-blue-700 dark:text-blue-400' 
-                            : 'bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-400'
-                        }`}>
-                          {transaction.transactionType === 'booking' ? 'Booking' : 'Credit Payment'}
-                        </span>
-                      </TableCell>
                     )}
                     {visibleColumns.includes("customer") && (
                       <TableCell className="font-medium" data-testid={`text-customer-${transaction.id}`}>
@@ -947,23 +822,9 @@ export default function Reports() {
                               ? 'bg-blue-100 dark:bg-blue-900/30 text-blue-700 dark:text-blue-400'
                               : transaction.paymentMethod === 'Split'
                               ? 'bg-purple-100 dark:bg-purple-900/30 text-purple-700 dark:text-purple-400'
-                              : transaction.paymentMethod === 'Credit'
-                              ? 'bg-amber-100 dark:bg-amber-900/30 text-amber-700 dark:text-amber-400'
                               : 'bg-gray-100 dark:bg-gray-800 text-gray-700 dark:text-gray-400'
                           }`}>
                             {transaction.paymentMethod}
-                          </span>
-                        ) : (
-                          <span className="text-muted-foreground text-xs">-</span>
-                        )}
-                      </TableCell>
-                    )}
-                    {visibleColumns.includes("credit") && (
-                      <TableCell className="text-right" data-testid={`text-credit-${transaction.id}`}>
-                        {transaction.creditAmount && transaction.creditAmount > 0 ? (
-                          <span className={transaction.transactionType === 'credit_payment' ? 'text-emerald-600 dark:text-emerald-400' : 'text-amber-600 dark:text-amber-400'}>
-                            ₹{transaction.creditAmount.toFixed(0)}
-                            {transaction.transactionType === 'credit_payment' && <span className="text-xs ml-1">(Recovered)</span>}
                           </span>
                         ) : (
                           <span className="text-muted-foreground text-xs">-</span>
@@ -990,14 +851,12 @@ export default function Reports() {
                     )}
                     {visibleColumns.includes("total") && (
                       <TableCell className="text-right font-bold" data-testid={`text-total-${transaction.id}`}>
-                        <span className={transaction.transactionType === 'credit_payment' ? 'text-emerald-600 dark:text-emerald-400' : 'text-foreground'}>
-                          ₹{transaction.totalAmount.toFixed(0)}
-                        </span>
+                        ₹{transaction.totalAmount.toFixed(0)}
                       </TableCell>
                     )}
                     {visibleColumns.includes("status") && (
                       <TableCell data-testid={`text-status-${transaction.id}`}>
-                        {transaction.transactionType === 'booking' && transaction.paymentStatus ? (
+                        {transaction.paymentStatus ? (
                           <span className={`inline-flex items-center px-2 py-1 rounded-md text-xs font-medium ${
                             transaction.paymentStatus === 'paid' 
                               ? 'bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-400' 
@@ -1009,8 +868,6 @@ export default function Reports() {
                           }`}>
                             {transaction.paymentStatus.charAt(0).toUpperCase() + transaction.paymentStatus.slice(1)}
                           </span>
-                        ) : transaction.notes ? (
-                          <span className="text-xs text-muted-foreground">{transaction.notes}</span>
                         ) : (
                           <span className="text-muted-foreground text-xs">-</span>
                         )}
