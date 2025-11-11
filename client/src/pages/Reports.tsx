@@ -3,12 +3,13 @@ import { useQuery } from "@tanstack/react-query";
 import { RevenueCard } from "@/components/RevenueCard";
 import { Button } from "@/components/ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Calendar, Download, IndianRupee, Users, Clock, Search, Eye } from "lucide-react";
+import { Calendar, Download, IndianRupee, Users, Clock, Search, Eye, TrendingUp } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { getAdjustedTime } from "@/hooks/useServerTime";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { ColumnVisibilityToggle } from "@/components/ColumnVisibilityToggle";
+import RetentionCharts from "@/components/RetentionCharts";
 import {
   Table,
   TableBody,
@@ -78,6 +79,7 @@ interface GroupedBookingSession {
 }
 
 export default function Reports() {
+  const [mainTab, setMainTab] = useState<string>("reports");
   const [selectedPeriod, setSelectedPeriod] = useState<string>("daily");
   const [startDate, setStartDate] = useState<string>("");
   const [endDate, setEndDate] = useState<string>("");
@@ -439,22 +441,36 @@ export default function Reports() {
     <div className="space-y-4 md:space-y-6">
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
         <div>
-          <h1 className="text-2xl sm:text-3xl font-bold text-foreground">Reports</h1>
-          <p className="text-sm sm:text-base text-muted-foreground">Track revenue and booking history</p>
-        </div>
-        <div className="flex gap-2">
-          <Button variant="outline" onClick={handleExportExcel} data-testid="button-export-excel" size="sm" className="flex-1 sm:flex-none">
-            <Download className="mr-1 sm:mr-2 h-4 w-4" />
-            <span className="hidden sm:inline">Export </span>Excel
-          </Button>
-          <Button variant="outline" onClick={handleExportPDF} data-testid="button-export-pdf" size="sm" className="flex-1 sm:flex-none">
-            <Download className="mr-1 sm:mr-2 h-4 w-4" />
-            <span className="hidden sm:inline">Export </span>PDF
-          </Button>
+          <h1 className="text-2xl sm:text-3xl font-bold text-foreground">Reports & Analytics</h1>
+          <p className="text-sm sm:text-base text-muted-foreground">Track revenue, bookings and customer retention</p>
         </div>
       </div>
 
-      <Tabs defaultValue="daily" value={selectedPeriod} onValueChange={(value) => {
+      <Tabs defaultValue="reports" value={mainTab} onValueChange={setMainTab}>
+        <TabsList data-testid="tabs-main" className="w-full sm:w-auto grid grid-cols-2 sm:inline-flex">
+          <TabsTrigger value="reports" data-testid="tab-reports">
+            <Calendar className="h-4 w-4 mr-2" />
+            Revenue Reports
+          </TabsTrigger>
+          <TabsTrigger value="retention" data-testid="tab-retention">
+            <TrendingUp className="h-4 w-4 mr-2" />
+            Customer Retention
+          </TabsTrigger>
+        </TabsList>
+
+        <TabsContent value="reports" className="space-y-4 mt-4">
+          <div className="flex gap-2">
+            <Button variant="outline" onClick={handleExportExcel} data-testid="button-export-excel" size="sm" className="flex-1 sm:flex-none">
+              <Download className="mr-1 sm:mr-2 h-4 w-4" />
+              <span className="hidden sm:inline">Export </span>Excel
+            </Button>
+            <Button variant="outline" onClick={handleExportPDF} data-testid="button-export-pdf" size="sm" className="flex-1 sm:flex-none">
+              <Download className="mr-1 sm:mr-2 h-4 w-4" />
+              <span className="hidden sm:inline">Export </span>PDF
+            </Button>
+          </div>
+
+          <Tabs defaultValue="daily" value={selectedPeriod} onValueChange={(value) => {
         setSelectedPeriod(value);
         setStartDate("");
         setEndDate("");
@@ -851,6 +867,12 @@ export default function Reports() {
           </div>
         </DialogContent>
       </Dialog>
+        </TabsContent>
+
+        <TabsContent value="retention" className="mt-4">
+          <RetentionCharts />
+        </TabsContent>
+      </Tabs>
     </div>
   );
 }

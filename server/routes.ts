@@ -1055,6 +1055,25 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  app.get("/api/reports/retention-metrics", requireAuth, async (req, res) => {
+    try {
+      const period = (req.query.period as 'daily' | 'weekly' | 'monthly') || "monthly";
+      const months = parseInt(req.query.months as string) || 6;
+      
+      const now = new Date();
+      const endDate = new Date(now.getFullYear(), now.getMonth(), now.getDate(), 23, 59, 59);
+      
+      const startDate = new Date(now);
+      startDate.setMonth(now.getMonth() - months);
+      startDate.setHours(0, 0, 0, 0);
+
+      const metrics = await storage.getRetentionMetrics(startDate, endDate, period);
+      res.json(metrics);
+    } catch (error: any) {
+      res.status(500).json({ message: error.message });
+    }
+  });
+
   app.get("/api/analytics/usage", requireAuth, async (req, res) => {
     try {
       const timeRange = req.query.timeRange as string || "today";

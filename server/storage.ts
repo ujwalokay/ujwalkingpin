@@ -141,6 +141,26 @@ export interface PromotionHistoryItem {
   finalPrice: string;
 }
 
+export interface RetentionMetrics {
+  summary: {
+    totalCustomers: number;
+    newCustomers: number;
+    returningCustomers: number;
+    retentionRate: number;
+    churnRate: number;
+    avgVisitFrequency: number;
+    avgLifetimeValue: number;
+  };
+  series: {
+    period: string;
+    newCustomers: number;
+    returningCustomers: number;
+    totalVisits: number;
+    retentionRate: number;
+    revenue: number;
+  }[];
+}
+
 export interface IStorage {
   getAllBookings(): Promise<Booking[]>;
   getBooking(id: string): Promise<Booking | undefined>;
@@ -153,6 +173,7 @@ export interface IStorage {
   getBookingHistory(startDate: Date, endDate: Date): Promise<BookingHistoryItem[]>;
   getCustomerPromotionSummary(whatsappNumber: string): Promise<CustomerPromotionSummary>;
   getPromotionHistoryByCustomer(whatsappNumber: string): Promise<PromotionHistoryItem[]>;
+  getRetentionMetrics(startDate: Date, endDate: Date, period: 'daily' | 'weekly' | 'monthly'): Promise<RetentionMetrics>;
   
   moveBookingsToHistory(): Promise<number>;
   getAllBookingHistory(): Promise<BookingHistory[]>;
@@ -616,6 +637,133 @@ export class DatabaseStorage implements IStorage {
         };
       })
       .sort((a, b) => b.date.localeCompare(a.date));
+  }
+
+  async getRetentionMetrics(startDate: Date, endDate: Date, period: 'daily' | 'weekly' | 'monthly'): Promise<RetentionMetrics> {
+    const allBookings = await db
+      .select()
+      .from(bookingHistory)
+      .where(
+        and(
+          gte(bookingHistory.startTime, startDate),
+          lte(bookingHistory.startTime, endDate)
+        )
+      );
+
+    const customerVisits = new Map<string, { firstVisit: Date; visits: Array<{ date: Date; revenue: number }>; totalRevenue: number }>();
+    
+    allBookings.forEach(booking => {
+      let customerId: string | null = null;
+      
+      if (booking.whatsappNumber && booking.whatsappNumber.trim()) {
+        customerId = booking.whatsappNumber.trim();
+      } else if (booking.customerName && booking.customerName.trim()) {
+        customerId = `name:${booking.customerName.trim().toLowerCase()}`;
+      }
+      
+      if (!customerId) {
+        return;
+      }
+      const foodRevenue = booking.foodOrders && booking.foodOrders.length > 0
+        ? booking.foodOrders.reduce((sum, order) => sum + parseFloat(order.price) * order.quantity, 0)
+        : 0;
+      const totalRevenue = parseFloat(booking.price) + foodRevenue;
+      
+      if (!customerVisits.has(customerId)) {
+        customerVisits.set(customerId, {
+          firstVisit: booking.startTime,
+          visits: [],
+          totalRevenue: 0
+        });
+      }
+      
+      const customer = customerVisits.get(customerId)!;
+      customer.visits.push({ date: booking.startTime, revenue: totalRevenue });
+      customer.totalRevenue += totalRevenue;
+      
+      if (booking.startTime < customer.firstVisit) {
+        customer.firstVisit = booking.startTime;
+      }
+    });
+
+    const periodBuckets = new Map<string, { newCustomers: Set<string>; returningCustomers: Set<string>; totalVisits: number; revenue: number }>();
+    
+    const getPeriodKey = (date: Date): string => {
+      if (period === 'daily') {
+        return date.toISOString().split('T')[0];
+      } else if (period === 'weekly') {
+        const year = date.getFullYear();
+        const week = Math.floor((date.getTime() - new Date(year, 0, 1).getTime()) / (7 * 24 * 60 * 60 * 1000));
+        return `${year}-W${week}`;
+      } else {
+        return `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}`;
+      }
+    };
+
+    customerVisits.forEach((customerData, customerId) => {
+      customerData.visits.forEach(visit => {
+        const periodKey = getPeriodKey(visit.date);
+        
+        if (!periodBuckets.has(periodKey)) {
+          periodBuckets.set(periodKey, {
+            newCustomers: new Set(),
+            returningCustomers: new Set(),
+            totalVisits: 0,
+            revenue: 0
+          });
+        }
+        
+        const bucket = periodBuckets.get(periodKey)!;
+        bucket.totalVisits++;
+        bucket.revenue += visit.revenue;
+        
+        const isFirstVisitInPeriod = getPeriodKey(customerData.firstVisit) === periodKey;
+        if (isFirstVisitInPeriod) {
+          bucket.newCustomers.add(customerId);
+        } else {
+          bucket.returningCustomers.add(customerId);
+        }
+      });
+    });
+
+    const now = new Date();
+    const thirtyDaysAgo = new Date(now.getTime() - 30 * 24 * 60 * 60 * 1000);
+    const activeCustomers = Array.from(customerVisits.values()).filter(customer => {
+      const lastVisit = customer.visits[customer.visits.length - 1].date;
+      return lastVisit >= thirtyDaysAgo;
+    });
+    const churnedCustomers = customerVisits.size - activeCustomers.length;
+
+    const series = Array.from(periodBuckets.entries())
+      .map(([periodKey, data]) => ({
+        period: periodKey,
+        newCustomers: data.newCustomers.size,
+        returningCustomers: data.returningCustomers.size,
+        totalVisits: data.totalVisits,
+        retentionRate: data.newCustomers.size + data.returningCustomers.size > 0 
+          ? (data.returningCustomers.size / (data.newCustomers.size + data.returningCustomers.size)) * 100
+          : 0,
+        revenue: data.revenue
+      }))
+      .sort((a, b) => a.period.localeCompare(b.period));
+
+    const totalNewCustomers = customerVisits.size;
+    const totalReturningCustomers = Array.from(customerVisits.values()).filter(c => c.visits.length > 1).length;
+    const totalRevenue = Array.from(customerVisits.values()).reduce((sum, c) => sum + c.totalRevenue, 0);
+    const totalVisits = allBookings.length;
+
+    return {
+      summary: {
+        totalCustomers: customerVisits.size,
+        newCustomers: totalNewCustomers,
+        returningCustomers: totalReturningCustomers,
+        retentionRate: totalNewCustomers > 0 ? (totalReturningCustomers / totalNewCustomers) * 100 : 0,
+        churnRate: customerVisits.size > 0 ? (churnedCustomers / customerVisits.size) * 100 : 0,
+        avgVisitFrequency: customerVisits.size > 0 ? totalVisits / customerVisits.size : 0,
+        avgLifetimeValue: customerVisits.size > 0 ? totalRevenue / customerVisits.size : 0
+      },
+      series
+    };
   }
 
   async getAllDeviceConfigs(): Promise<DeviceConfig[]> {
