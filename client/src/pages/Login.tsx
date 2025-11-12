@@ -241,10 +241,29 @@ export default function Login({ onLoginSuccess }: LoginProps) {
   const isLockedOut = !!(lockoutTime && Date.now() < lockoutTime);
 
   return (
-    <div className="min-h-screen flex items-center justify-center p-4 bg-[#2d2937]">
-      <div className="w-full max-w-5xl bg-[#1e1a24] rounded-2xl shadow-2xl overflow-hidden flex flex-col md:flex-row">
+    <div className="min-h-screen flex items-center justify-center p-4 bg-[#2d2937] relative overflow-hidden">
+      {/* Mobile Background Carousel - Full Screen */}
+      <div className="md:hidden absolute inset-0">
+        {carouselImages.map((image, index) => (
+          <div
+            key={index}
+            className={`absolute inset-0 transition-opacity duration-1000 ${
+              index === currentImageIndex ? 'opacity-100' : 'opacity-0'
+            }`}
+          >
+            <img
+              src={image.src}
+              alt={image.caption}
+              className="w-full h-full object-cover"
+            />
+            <div className="absolute inset-0 bg-gradient-to-b from-purple-900/60 via-black/50 to-black/70"></div>
+          </div>
+        ))}
+      </div>
+
+      <div className="w-full max-w-5xl bg-[#1e1a24] md:bg-[#1e1a24] bg-transparent md:rounded-2xl md:shadow-2xl overflow-hidden flex flex-col md:flex-row relative z-10">
         
-        {/* Left Side - Image Carousel */}
+        {/* Left Side - Image Carousel (Desktop Only) */}
         <div className="hidden md:flex md:w-[45%] relative bg-gradient-to-br from-purple-900/50 to-purple-950/50 overflow-hidden">
           <div className="absolute top-6 left-6 z-20">
             <div className="flex items-center gap-3">
@@ -326,21 +345,38 @@ export default function Login({ onLoginSuccess }: LoginProps) {
         </div>
 
         {/* Right Side - Login Form */}
-        <div className="flex-1 p-8 md:p-12 bg-[#1e1a24]">
-          <div className="max-w-md mx-auto space-y-8">
-            <div className="md:hidden flex items-center gap-3 mb-6">
+        <div className="flex-1 p-6 md:p-12 bg-transparent md:bg-[#1e1a24]">
+          <div className="max-w-md mx-auto space-y-6 md:space-y-8 bg-[#1e1a24]/95 md:bg-transparent backdrop-blur-xl md:backdrop-blur-none rounded-2xl md:rounded-none p-8 md:p-0 shadow-2xl md:shadow-none border border-white/10 md:border-0">
+            <div className="md:hidden flex flex-col items-center gap-3 mb-6">
               <img 
                 src={logoDark} 
                 alt="Airavoto Gaming"
-                className="h-12 w-12 object-contain"
+                className="h-16 w-16 object-contain"
               />
-              <div>
-                <h1 className="text-lg font-bold text-white">Airavoto Gaming</h1>
+              <div className="text-center">
+                <h1 className="text-xl font-bold text-white">Airavoto Gaming</h1>
+                <div className="flex items-center justify-center gap-2 mt-2">
+                  {currentImageIndex === 0 && (
+                    <>
+                      <div className="relative">
+                        <div className="absolute -top-1 -right-1 w-2 h-2 bg-orange-500 rounded-full animate-ping"></div>
+                        <div className="w-8 h-6 rounded overflow-hidden shadow-lg border border-white/30 animate-pulse">
+                          <div className="h-1/3 bg-gradient-to-r from-orange-500 to-orange-400"></div>
+                          <div className="h-1/3 bg-white flex items-center justify-center">
+                            <div className="w-2 h-2 rounded-full bg-blue-600 border border-blue-700"></div>
+                          </div>
+                          <div className="h-1/3 bg-gradient-to-r from-green-600 to-green-500"></div>
+                        </div>
+                      </div>
+                      <p className="text-sm font-bold text-white">India's First</p>
+                    </>
+                  )}
+                </div>
               </div>
             </div>
 
-            <div>
-              <h2 className="text-3xl font-bold text-white mb-2">
+            <div className="text-center md:text-left">
+              <h2 className="text-2xl md:text-3xl font-bold text-white mb-2">
                 Welcome back
               </h2>
               <p className="text-gray-400 text-sm">
