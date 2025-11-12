@@ -18,9 +18,9 @@ interface LoginProps {
 }
 
 const carouselImages = [
-  { src: img1, caption: "Premium Gaming Experience" },
-  { src: img2, caption: "Luxury Gaming Lounge" },
-  { src: img3, caption: "Immersive Gaming Environment" }
+  { src: img1, caption: "India's First Gaming Lounge Management POS" },
+  { src: img2, caption: "Complete Software Solution for Gaming Centers" },
+  { src: img3, caption: "Advanced Booking & Billing Management System" }
 ];
 
 function TermsContent() {
@@ -254,7 +254,7 @@ export default function Login({ onLoginSuccess }: LoginProps) {
                 className="h-12 w-12 object-contain"
               />
               <div>
-                <h1 className="text-lg font-bold text-white">AMU</h1>
+                <h1 className="text-lg font-bold text-white">Airavoto Gaming</h1>
               </div>
             </div>
           </div>
@@ -276,11 +276,11 @@ export default function Login({ onLoginSuccess }: LoginProps) {
           ))}
 
           <div className="absolute bottom-8 left-8 right-8 z-20 text-white">
-            <h3 className="text-2xl font-bold mb-1">
+            <h3 className="text-xl font-bold mb-1">
               {carouselImages[currentImageIndex].caption}
             </h3>
             <p className="text-purple-200 text-sm">
-              Experience gaming like never before
+              Streamline your gaming center operations
             </p>
             
             <div className="flex gap-2 mt-4">
@@ -308,7 +308,7 @@ export default function Login({ onLoginSuccess }: LoginProps) {
                 className="h-12 w-12 object-contain"
               />
               <div>
-                <h1 className="text-lg font-bold text-white">AMU</h1>
+                <h1 className="text-lg font-bold text-white">Airavoto Gaming</h1>
               </div>
             </div>
 
