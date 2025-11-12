@@ -241,27 +241,202 @@ export default function Login({ onLoginSuccess }: LoginProps) {
   const isLockedOut = !!(lockoutTime && Date.now() < lockoutTime);
 
   return (
-    <div className="min-h-screen flex items-center justify-center p-4 bg-[#2d2937] relative overflow-hidden">
-      {/* Mobile Background Carousel - Full Screen */}
-      <div className="md:hidden absolute inset-0">
-        {carouselImages.map((image, index) => (
-          <div
-            key={index}
-            className={`absolute inset-0 transition-opacity duration-1000 ${
-              index === currentImageIndex ? 'opacity-100' : 'opacity-0'
-            }`}
-          >
-            <img
-              src={image.src}
-              alt={image.caption}
-              className="w-full h-full object-cover"
+    <div className="min-h-screen flex items-center justify-center md:p-4 bg-[#2d2937] relative overflow-hidden">
+      {/* Mobile Two-Section Layout */}
+      <div className="md:hidden absolute inset-0 flex flex-col">
+        {/* Top Section - Carousel Images with Text */}
+        <div className="flex-1 relative">
+          {carouselImages.map((image, index) => (
+            <div
+              key={index}
+              className={`absolute inset-0 transition-opacity duration-1000 ${
+                index === currentImageIndex ? 'opacity-100' : 'opacity-0'
+              }`}
+            >
+              <img
+                src={image.src}
+                alt={image.caption}
+                className="w-full h-full object-cover"
+              />
+              <div className="absolute inset-0 bg-gradient-to-b from-purple-900/40 via-purple-900/50 to-transparent"></div>
+            </div>
+          ))}
+          
+          {/* Logo and Text Overlay on Carousel */}
+          <div className="absolute inset-0 flex flex-col items-center justify-center px-6 text-center z-10">
+            <img 
+              src={logoDark} 
+              alt="Airavoto Gaming"
+              className="h-20 w-20 object-contain mb-4"
             />
-            <div className="absolute inset-0 bg-gradient-to-b from-purple-900/60 via-black/50 to-black/70"></div>
+            <h1 className="text-2xl font-bold text-white mb-2">Airavoto Gaming</h1>
+            
+            {currentImageIndex === 0 && (
+              <>
+                <div className="flex items-center gap-3 mb-3">
+                  <p className="text-3xl font-bold text-white">India's First</p>
+                  <div className="relative">
+                    <div className="absolute -top-2 -right-2 w-3 h-3 bg-orange-500 rounded-full animate-ping"></div>
+                    <div className="w-12 h-8 rounded-md overflow-hidden shadow-lg border-2 border-white/30 animate-pulse">
+                      <div className="h-1/3 bg-gradient-to-r from-orange-500 to-orange-400"></div>
+                      <div className="h-1/3 bg-white flex items-center justify-center">
+                        <div className="w-3 h-3 rounded-full bg-blue-600 border border-blue-700"></div>
+                      </div>
+                      <div className="h-1/3 bg-gradient-to-r from-green-600 to-green-500"></div>
+                    </div>
+                  </div>
+                </div>
+                <p className="text-lg font-semibold text-purple-200">Gaming Lounge Management POS</p>
+              </>
+            )}
+            {currentImageIndex === 1 && (
+              <>
+                <p className="text-3xl font-bold text-white mb-2">Complete Software</p>
+                <p className="text-lg font-semibold text-purple-200">Solution for Gaming Centers</p>
+              </>
+            )}
+            {currentImageIndex === 2 && (
+              <>
+                <p className="text-3xl font-bold text-white mb-2">Advanced Booking</p>
+                <p className="text-lg font-semibold text-purple-200">& Billing Management System</p>
+              </>
+            )}
+            
+            <p className="text-purple-200 text-sm mt-4">
+              Streamline your gaming center operations
+            </p>
+            
+            <div className="flex gap-2 mt-6">
+              {carouselImages.map((_, index) => (
+                <div
+                  key={index}
+                  className={`h-1 rounded-full transition-all duration-300 ${
+                    index === currentImageIndex 
+                      ? 'w-8 bg-purple-400' 
+                      : 'w-1 bg-purple-400/30'
+                  }`}
+                />
+              ))}
+            </div>
           </div>
-        ))}
+        </div>
+        
+        {/* Curved Wave Separator */}
+        <div className="absolute bottom-0 left-0 right-0 h-20 pointer-events-none">
+          <svg className="absolute bottom-0 w-full h-20" viewBox="0 0 1440 120" preserveAspectRatio="none">
+            <path 
+              d="M0,64 C240,20 480,20 720,64 C960,108 1200,108 1440,64 L1440,120 L0,120 Z" 
+              fill="#1e1a24"
+            />
+          </svg>
+        </div>
+        
+        {/* Bottom Section - Login Form */}
+        <div className="h-auto bg-[#1e1a24] pt-8 pb-8 px-6 relative z-20">
+          <div className="max-w-md mx-auto">
+            <h2 className="text-2xl font-bold text-white mb-1 text-center">
+              Welcome back
+            </h2>
+            <p className="text-gray-400 text-sm text-center mb-6">
+              Please sign in to your account
+            </p>
+            
+            <form onSubmit={handleSubmit} className="space-y-4">
+              <div className="space-y-2">
+                <Label htmlFor="username-mobile" className="text-gray-300 text-sm font-medium">
+                  Username
+                </Label>
+                <Input
+                  id="username-mobile"
+                  data-testid="input-username"
+                  type="text"
+                  placeholder="Enter your username"
+                  value={username}
+                  onChange={(e) => setUsername(e.target.value)}
+                  disabled={isLockedOut}
+                  className="bg-[#2d2937] border-gray-700 text-white placeholder:text-gray-500 h-11 rounded-lg focus:border-purple-500 focus:ring-purple-500/20"
+                />
+              </div>
+
+              <div className="space-y-2">
+                <Label htmlFor="password-mobile" className="text-gray-300 text-sm font-medium">
+                  Password
+                </Label>
+                <div className="relative">
+                  <Input
+                    id="password-mobile"
+                    data-testid="input-password"
+                    type={showPassword ? "text" : "password"}
+                    placeholder="Enter your password"
+                    value={password}
+                    onChange={(e) => setPassword(e.target.value)}
+                    className="bg-[#2d2937] border-gray-700 text-white placeholder:text-gray-500 h-11 pr-12 rounded-lg focus:border-purple-500 focus:ring-purple-500/20"
+                    disabled={isLockedOut}
+                  />
+                  <button
+                    type="button"
+                    onClick={() => setShowPassword(!showPassword)}
+                    className="absolute right-4 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-300 transition-colors"
+                    data-testid="button-toggle-password"
+                    aria-label={showPassword ? "Hide password" : "Show password"}
+                    disabled={isLockedOut}
+                  >
+                    {showPassword ? (
+                      <EyeOff className="h-5 w-5" />
+                    ) : (
+                      <Eye className="h-5 w-5" />
+                    )}
+                  </button>
+                </div>
+              </div>
+
+              <div className="flex items-center gap-2">
+                <Checkbox
+                  id="terms-mobile"
+                  checked={agreedToTerms}
+                  onCheckedChange={(checked) => setAgreedToTerms(checked === true)}
+                  data-testid="checkbox-terms"
+                  className="border-gray-700 data-[state=checked]:bg-purple-600 data-[state=checked]:border-purple-600"
+                />
+                <label htmlFor="terms-mobile" className="text-sm text-gray-400">
+                  I agree to the{" "}
+                  <Dialog>
+                    <DialogTrigger asChild>
+                      <button
+                        type="button"
+                        className="text-purple-400 hover:text-purple-300 underline"
+                        data-testid="button-view-terms"
+                      >
+                        Terms & Conditions
+                      </button>
+                    </DialogTrigger>
+                    <DialogContent className="max-w-4xl max-h-[80vh]">
+                      <DialogHeader>
+                        <DialogTitle className="text-2xl font-bold">Terms and Conditions</DialogTitle>
+                      </DialogHeader>
+                      <ScrollArea className="h-[60vh] pr-4">
+                        <TermsContent />
+                      </ScrollArea>
+                    </DialogContent>
+                  </Dialog>
+                </label>
+              </div>
+
+              <Button
+                type="submit"
+                className="w-full h-11 text-base font-semibold bg-gradient-to-r from-purple-600 to-purple-500 hover:from-purple-700 hover:to-purple-600 text-white rounded-lg shadow-lg transition-all duration-200"
+                data-testid="button-login"
+                disabled={isLoggingIn || isLockedOut || !agreedToTerms}
+              >
+                {isLoggingIn ? "Signing in..." : isLockedOut ? `Wait ${remainingTime}s` : "Login"}
+              </Button>
+            </form>
+          </div>
+        </div>
       </div>
 
-      <div className="w-full max-w-5xl bg-[#1e1a24] md:bg-[#1e1a24] bg-transparent md:rounded-2xl md:shadow-2xl overflow-hidden flex flex-col md:flex-row relative z-10">
+      <div className="hidden md:block w-full max-w-5xl bg-[#1e1a24] md:rounded-2xl md:shadow-2xl overflow-hidden relative z-10">
+        <div className="flex flex-col md:flex-row">
         
         {/* Left Side - Image Carousel (Desktop Only) */}
         <div className="hidden md:flex md:w-[45%] relative bg-gradient-to-br from-purple-900/50 to-purple-950/50 overflow-hidden">
@@ -344,22 +519,11 @@ export default function Login({ onLoginSuccess }: LoginProps) {
           </div>
         </div>
 
-        {/* Right Side - Login Form */}
-        <div className="flex-1 p-6 md:p-12 bg-transparent md:bg-[#1e1a24]">
-          <div className="max-w-md mx-auto space-y-6 md:space-y-8 bg-[#1e1a24]/95 md:bg-transparent backdrop-blur-xl md:backdrop-blur-none rounded-2xl md:rounded-none p-8 md:p-0 shadow-2xl md:shadow-none border border-white/10 md:border-0">
-            <div className="md:hidden flex flex-col items-center gap-3 mb-6">
-              <img 
-                src={logoDark} 
-                alt="Airavoto Gaming"
-                className="h-16 w-16 object-contain"
-              />
-              <div className="text-center">
-                <h1 className="text-xl font-bold text-white">Airavoto Gaming</h1>
-              </div>
-            </div>
-
-            <div className="text-center md:text-left">
-              <h2 className="text-2xl md:text-3xl font-bold text-white mb-2">
+        {/* Right Side - Login Form (Desktop Only) */}
+        <div className="flex-1 p-12 bg-[#1e1a24]">
+          <div className="max-w-md mx-auto space-y-8">
+            <div>
+              <h2 className="text-3xl font-bold text-white mb-2">
                 Welcome back
               </h2>
               <p className="text-gray-400 text-sm">
@@ -458,6 +622,7 @@ export default function Login({ onLoginSuccess }: LoginProps) {
               </Button>
             </form>
           </div>
+        </div>
         </div>
       </div>
     </div>
