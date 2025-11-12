@@ -278,7 +278,19 @@ export default function Login({ onLoginSuccess }: LoginProps) {
           <div className="absolute bottom-8 left-8 right-8 z-20 text-white">
             {currentImageIndex === 0 && (
               <>
-                <p className="text-3xl font-bold mb-1">India's First</p>
+                <div className="flex items-center gap-3 mb-1">
+                  <p className="text-3xl font-bold">India's First</p>
+                  <div className="relative">
+                    <div className="absolute -top-2 -right-2 w-3 h-3 bg-orange-500 rounded-full animate-ping"></div>
+                    <div className="w-12 h-8 rounded-md overflow-hidden shadow-lg border-2 border-white/30 animate-pulse">
+                      <div className="h-1/3 bg-gradient-to-r from-orange-500 to-orange-400"></div>
+                      <div className="h-1/3 bg-white flex items-center justify-center">
+                        <div className="w-3 h-3 rounded-full bg-blue-600 border border-blue-700"></div>
+                      </div>
+                      <div className="h-1/3 bg-gradient-to-r from-green-600 to-green-500"></div>
+                    </div>
+                  </div>
+                </div>
                 <p className="text-lg font-semibold text-purple-200">Gaming Lounge Management POS</p>
               </>
             )}
