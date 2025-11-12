@@ -241,13 +241,205 @@ export default function Login({ onLoginSuccess }: LoginProps) {
   const isLockedOut = !!(lockoutTime && Date.now() < lockoutTime);
 
   return (
-    <div className="min-h-screen flex bg-[#1e1a24]">
-      {/* Left Side - Image Carousel */}
-      <div className="hidden md:flex md:w-1/2 relative overflow-hidden">
-        <div className="absolute top-6 left-6 z-20">
-          <div className="flex items-center gap-3">
+    <>
+      {/* Mobile Layout with Curved Wave */}
+      <div className="md:hidden min-h-screen flex flex-col bg-[#1e1a24] relative overflow-hidden">
+        {/* Top Section - Carousel Images with Gradient */}
+        <div className="flex-1 relative min-h-[45vh]">
+          {carouselImages.map((image, index) => (
+            <div
+              key={index}
+              className={`absolute inset-0 transition-opacity duration-1000 ${
+                index === currentImageIndex ? 'opacity-100' : 'opacity-0'
+              }`}
+            >
+              <img
+                src={image.src}
+                alt={image.caption}
+                className="w-full h-full object-cover"
+              />
+              <div className="absolute inset-0 bg-gradient-to-b from-purple-900/50 via-purple-900/40 to-purple-900/60"></div>
+            </div>
+          ))}
+          
+          {/* Logo and Text Overlay */}
+          <div className="absolute inset-0 flex flex-col items-center justify-center px-6 text-center z-10">
             <img 
               src={logoDark} 
+              alt="Airavoto Gaming"
+              className="h-20 w-20 object-contain mb-4"
+            />
+            <h1 className="text-2xl font-bold text-white mb-2">Airavoto Gaming</h1>
+            
+            {currentImageIndex === 0 && (
+              <>
+                <div className="flex items-center gap-3 mb-3">
+                  <p className="text-2xl font-bold text-white">India's First</p>
+                  <div className="relative">
+                    <div className="absolute -top-2 -right-2 w-3 h-3 bg-orange-500 rounded-full animate-ping"></div>
+                    <div className="w-10 h-7 rounded-md overflow-hidden shadow-lg border-2 border-white/30 animate-pulse">
+                      <div className="h-1/3 bg-gradient-to-r from-orange-500 to-orange-400"></div>
+                      <div className="h-1/3 bg-white flex items-center justify-center">
+                        <div className="w-2.5 h-2.5 rounded-full bg-blue-600 border border-blue-700"></div>
+                      </div>
+                      <div className="h-1/3 bg-gradient-to-r from-green-600 to-green-500"></div>
+                    </div>
+                  </div>
+                </div>
+                <p className="text-base font-semibold text-purple-200">Gaming Lounge Management POS</p>
+              </>
+            )}
+            {currentImageIndex === 1 && (
+              <>
+                <p className="text-2xl font-bold text-white mb-2">Complete Software</p>
+                <p className="text-base font-semibold text-purple-200">Solution for Gaming Centers</p>
+              </>
+            )}
+            {currentImageIndex === 2 && (
+              <>
+                <p className="text-2xl font-bold text-white mb-2">Advanced Booking</p>
+                <p className="text-base font-semibold text-purple-200">& Billing Management System</p>
+              </>
+            )}
+          </div>
+        </div>
+
+        {/* Curved Wave Separator */}
+        <div className="relative -mt-1">
+          <svg className="w-full h-16" viewBox="0 0 1440 120" preserveAspectRatio="none">
+            <path 
+              d="M0,64 C240,20 480,20 720,64 C960,108 1200,108 1440,64 L1440,120 L0,120 Z" 
+              fill="#1e1a24"
+            />
+          </svg>
+        </div>
+        
+        {/* Bottom Section - Login Form */}
+        <div className="bg-[#1e1a24] px-6 pb-8 -mt-1">
+          <div className="max-w-md mx-auto">
+            <h2 className="text-2xl font-bold text-white mb-1 text-center">
+              Welcome back
+            </h2>
+            <p className="text-gray-400 text-sm text-center mb-6">
+              Please sign in to your account
+            </p>
+            
+            <form onSubmit={handleSubmit} className="space-y-4">
+              <div className="space-y-2">
+                <Label htmlFor="username-mobile" className="text-gray-300 text-sm font-medium">
+                  Username
+                </Label>
+                <Input
+                  id="username-mobile"
+                  data-testid="input-username"
+                  type="text"
+                  placeholder="Enter your username"
+                  value={username}
+                  onChange={(e) => setUsername(e.target.value)}
+                  disabled={isLockedOut}
+                  className="bg-[#2d2937] border-gray-700 text-white placeholder:text-gray-500 h-11 rounded-lg focus:border-purple-500 focus:ring-purple-500/20"
+                />
+              </div>
+
+              <div className="space-y-2">
+                <Label htmlFor="password-mobile" className="text-gray-300 text-sm font-medium">
+                  Password
+                </Label>
+                <div className="relative">
+                  <Input
+                    id="password-mobile"
+                    data-testid="input-password"
+                    type={showPassword ? "text" : "password"}
+                    placeholder="Enter your password"
+                    value={password}
+                    onChange={(e) => setPassword(e.target.value)}
+                    className="bg-[#2d2937] border-gray-700 text-white placeholder:text-gray-500 h-11 pr-12 rounded-lg focus:border-purple-500 focus:ring-purple-500/20"
+                    disabled={isLockedOut}
+                  />
+                  <button
+                    type="button"
+                    onClick={() => setShowPassword(!showPassword)}
+                    className="absolute right-4 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-300 transition-colors"
+                    data-testid="button-toggle-password-mobile"
+                    aria-label={showPassword ? "Hide password" : "Show password"}
+                    disabled={isLockedOut}
+                  >
+                    {showPassword ? (
+                      <EyeOff className="h-5 w-5" />
+                    ) : (
+                      <Eye className="h-5 w-5" />
+                    )}
+                  </button>
+                </div>
+              </div>
+
+              <div className="flex items-center gap-2">
+                <Checkbox
+                  id="terms-mobile"
+                  checked={agreedToTerms}
+                  onCheckedChange={(checked) => setAgreedToTerms(checked === true)}
+                  data-testid="checkbox-terms"
+                  className="border-gray-700 data-[state=checked]:bg-purple-600 data-[state=checked]:border-purple-600"
+                />
+                <label htmlFor="terms-mobile" className="text-sm text-gray-400">
+                  I agree to the{" "}
+                  <Dialog>
+                    <DialogTrigger asChild>
+                      <button
+                        type="button"
+                        className="text-purple-400 hover:text-purple-300 underline"
+                        data-testid="button-view-terms"
+                      >
+                        Terms & Conditions
+                      </button>
+                    </DialogTrigger>
+                    <DialogContent className="max-w-4xl max-h-[80vh]">
+                      <DialogHeader>
+                        <DialogTitle className="text-2xl font-bold">Terms and Conditions</DialogTitle>
+                      </DialogHeader>
+                      <ScrollArea className="h-[60vh] pr-4">
+                        <TermsContent />
+                      </ScrollArea>
+                    </DialogContent>
+                  </Dialog>
+                </label>
+              </div>
+
+              <Button
+                type="submit"
+                className="w-full h-11 text-base font-semibold bg-gradient-to-r from-purple-600 to-purple-500 hover:from-purple-700 hover:to-purple-600 text-white rounded-lg shadow-lg transition-all duration-200"
+                data-testid="button-login"
+                disabled={isLoggingIn || isLockedOut || !agreedToTerms}
+              >
+                {isLoggingIn ? "Signing in..." : isLockedOut ? `Wait ${remainingTime}s` : "Login"}
+              </Button>
+            </form>
+
+            {/* Carousel Indicators */}
+            <div className="flex justify-center gap-2 mt-6">
+              {carouselImages.map((_, index) => (
+                <div
+                  key={index}
+                  className={`h-1 rounded-full transition-all duration-300 ${
+                    index === currentImageIndex 
+                      ? 'w-8 bg-purple-400' 
+                      : 'w-1 bg-purple-400/30'
+                  }`}
+                />
+              ))}
+            </div>
+          </div>
+        </div>
+      </div>
+
+      {/* Desktop Layout - Full Page Split */}
+      <div className="hidden md:flex min-h-screen bg-[#1e1a24]">
+        {/* Left Side - Image Carousel */}
+        <div className="md:w-1/2 relative overflow-hidden">
+          <div className="absolute top-6 left-6 z-20">
+            <div className="flex items-center gap-3">
+              <img 
+                src={logoDark} 
               alt="Airavoto Gaming"
               className="h-12 w-12 object-contain"
             />
@@ -451,6 +643,7 @@ export default function Login({ onLoginSuccess }: LoginProps) {
           </div>
         </div>
       </div>
-    </div>
+      </div>
+    </>
   );
 }
