@@ -20,7 +20,7 @@ import {
 } from "@/components/ui/select";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { Checkbox } from "@/components/ui/checkbox";
-import { Plus, Minus, CalendarIcon, Award, Gift, Percent, Clock, IndianRupee } from "lucide-react";
+import { Plus, Minus, CalendarIcon, Award, Percent, Clock, IndianRupee } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent } from "@/components/ui/card";
 import { Calendar } from "@/components/ui/calendar";
@@ -111,8 +111,6 @@ export function AddBookingDialog({ open, onOpenChange, onConfirm, availableSeats
   const [manualDiscountPercentage, setManualDiscountPercentage] = useState<string>("");
   const [manualFreeHoursHr, setManualFreeHoursHr] = useState<string>("");
   const [manualFreeHoursMin, setManualFreeHoursMin] = useState<string>("");
-  const [discount, setDiscount] = useState<string>("");
-  const [bonus, setBonus] = useState<string>("");
   const [showAddons, setShowAddons] = useState<boolean>(false);
 
   const { data: pricingConfig = [] } = useQuery<PricingConfig[]>({
@@ -360,8 +358,6 @@ export function AddBookingDialog({ open, onOpenChange, onConfirm, availableSeats
         usePromotionalBonus,
         manualDiscountPercentage: manualDiscountPercentage ? parseInt(manualDiscountPercentage) : undefined,
         manualFreeHours: manualFreeHours,
-        discount: discount.trim() || undefined,
-        bonus: bonus.trim() || undefined,
       } as any);
       setCategory("");
       setSelectedSeats([]);
@@ -378,8 +374,6 @@ export function AddBookingDialog({ open, onOpenChange, onConfirm, availableSeats
       setManualDiscountPercentage("");
       setManualFreeHoursHr("");
       setManualFreeHoursMin("");
-      setDiscount("");
-      setBonus("");
       setShowAddons(false);
       onOpenChange(false);
     }
@@ -972,7 +966,7 @@ export function AddBookingDialog({ open, onOpenChange, onConfirm, availableSeats
                   />
                   <div className="flex-1">
                     <Label htmlFor="use-promotional-bonus" className="cursor-pointer font-medium text-yellow-900 dark:text-yellow-100 flex items-center gap-2">
-                      <Gift className="h-4 w-4" />
+                      <Award className="h-4 w-4" />
                       Bonus Hours Promotion Available!
                     </Label>
                     <p className="text-sm text-yellow-700 dark:text-yellow-300 mt-1">
@@ -1112,41 +1106,6 @@ export function AddBookingDialog({ open, onOpenChange, onConfirm, availableSeats
                     </p>
                   </div>
 
-                  <div className="space-y-2">
-                    <Label htmlFor="discount" className="flex items-center gap-2">
-                      <IndianRupee className="h-4 w-4" />
-                      Discount Amount (₹)
-                    </Label>
-                    <Input
-                      id="discount"
-                      type="text"
-                      value={discount}
-                      onChange={(e) => setDiscount(e.target.value)}
-                      placeholder="Enter discount amount"
-                      data-testid="input-discount"
-                    />
-                    <p className="text-xs text-muted-foreground">
-                      Optional: Enter any discount amount for this booking
-                    </p>
-                  </div>
-
-                  <div className="space-y-2">
-                    <Label htmlFor="bonus" className="flex items-center gap-2">
-                      <Gift className="h-4 w-4" />
-                      Bonus Details
-                    </Label>
-                    <Input
-                      id="bonus"
-                      type="text"
-                      value={bonus}
-                      onChange={(e) => setBonus(e.target.value)}
-                      placeholder="Enter bonus details"
-                      data-testid="input-bonus"
-                    />
-                    <p className="text-xs text-muted-foreground">
-                      Optional: Enter any bonus information for this booking
-                    </p>
-                  </div>
                 </Card>
               )}
             </div>
