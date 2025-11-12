@@ -355,23 +355,6 @@ export default function Login({ onLoginSuccess }: LoginProps) {
               />
               <div className="text-center">
                 <h1 className="text-xl font-bold text-white">Airavoto Gaming</h1>
-                <div className="flex items-center justify-center gap-2 mt-2">
-                  {currentImageIndex === 0 && (
-                    <>
-                      <div className="relative">
-                        <div className="absolute -top-1 -right-1 w-2 h-2 bg-orange-500 rounded-full animate-ping"></div>
-                        <div className="w-8 h-6 rounded overflow-hidden shadow-lg border border-white/30 animate-pulse">
-                          <div className="h-1/3 bg-gradient-to-r from-orange-500 to-orange-400"></div>
-                          <div className="h-1/3 bg-white flex items-center justify-center">
-                            <div className="w-2 h-2 rounded-full bg-blue-600 border border-blue-700"></div>
-                          </div>
-                          <div className="h-1/3 bg-gradient-to-r from-green-600 to-green-500"></div>
-                        </div>
-                      </div>
-                      <p className="text-sm font-bold text-white">India's First</p>
-                    </>
-                  )}
-                </div>
               </div>
             </div>
 
