@@ -429,88 +429,345 @@ export default function Reports() {
         return;
       }
 
+      const currentDate = new Date().toLocaleString('en-IN', { 
+        dateStyle: 'full', 
+        timeStyle: 'short',
+        timeZone: 'Asia/Kolkata'
+      });
+      
+      const totalCash = filteredTransactions.reduce((sum, t) => sum + t.cashAmount, 0);
+      const totalUPI = filteredTransactions.reduce((sum, t) => sum + t.upiAmount, 0);
+      const totalRevenue = filteredTransactions.reduce((sum, t) => sum + t.totalAmount, 0);
+
       const htmlContent = `
         <!DOCTYPE html>
         <html>
         <head>
-          <title>Transactions Report - ${getPeriodLabel()}</title>
+          <title>Airavoto Gaming - Transactions Report</title>
           <style>
-            body { font-family: Arial, sans-serif; padding: 20px; }
-            h1 { color: #333; }
-            .stats { display: flex; gap: 20px; margin: 20px 0; }
-            .stat-card { flex: 1; padding: 15px; border: 1px solid #ddd; border-radius: 8px; }
-            .stat-card h3 { margin: 0 0 10px 0; font-size: 14px; color: #666; }
-            .stat-card .value { font-size: 24px; font-weight: bold; }
-            table { width: 100%; border-collapse: collapse; margin-top: 20px; font-size: 12px; }
-            th, td { padding: 8px; text-align: left; border-bottom: 1px solid #ddd; }
-            th { background-color: #f5f5f5; font-weight: bold; }
-            .text-right { text-align: right; }
-            .badge { display: inline-block; padding: 2px 6px; background: #f0f0f0; border-radius: 4px; margin: 1px; font-size: 10px; }
-            .type-badge { display: inline-block; padding: 2px 8px; border-radius: 4px; font-size: 10px; }
-            .booking { background: #e3f2fd; color: #1976d2; }
-            .credit-payment { background: #e8f5e9; color: #388e3c; }
+            * { margin: 0; padding: 0; box-sizing: border-box; }
+            body { 
+              font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+              background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+              padding: 30px;
+              color: #333;
+            }
+            .container {
+              background: white;
+              border-radius: 16px;
+              overflow: hidden;
+              box-shadow: 0 20px 60px rgba(0,0,0,0.3);
+            }
+            .header {
+              background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+              padding: 30px 40px;
+              color: white;
+            }
+            .header-top {
+              display: flex;
+              justify-content: space-between;
+              align-items: center;
+              margin-bottom: 20px;
+            }
+            .logo-section {
+              display: flex;
+              align-items: center;
+              gap: 15px;
+            }
+            .logo {
+              width: 50px;
+              height: 50px;
+              background: white;
+              border-radius: 12px;
+              display: flex;
+              align-items: center;
+              justify-content: center;
+              font-size: 24px;
+              font-weight: bold;
+              color: #667eea;
+            }
+            .company-info h1 {
+              font-size: 28px;
+              font-weight: 700;
+              margin-bottom: 4px;
+            }
+            .company-info p {
+              font-size: 14px;
+              opacity: 0.9;
+            }
+            .admin-info {
+              text-align: right;
+              font-size: 13px;
+              opacity: 0.95;
+            }
+            .admin-info .label {
+              font-weight: 600;
+              margin-bottom: 4px;
+            }
+            .report-title {
+              font-size: 22px;
+              font-weight: 600;
+              text-align: center;
+              padding: 15px;
+              background: rgba(255,255,255,0.1);
+              border-radius: 8px;
+            }
+            .stats-grid {
+              display: grid;
+              grid-template-columns: repeat(3, 1fr);
+              gap: 20px;
+              padding: 30px 40px;
+              background: #f8f9fa;
+            }
+            .stat-card {
+              background: white;
+              padding: 20px;
+              border-radius: 12px;
+              box-shadow: 0 2px 8px rgba(0,0,0,0.08);
+              border-left: 4px solid #667eea;
+            }
+            .stat-card h3 {
+              font-size: 13px;
+              color: #6c757d;
+              font-weight: 600;
+              margin-bottom: 10px;
+              text-transform: uppercase;
+              letter-spacing: 0.5px;
+            }
+            .stat-card .value {
+              font-size: 28px;
+              font-weight: 700;
+              color: #667eea;
+            }
+            .content {
+              padding: 30px 40px;
+            }
+            .table-wrapper {
+              overflow-x: auto;
+              border-radius: 12px;
+              box-shadow: 0 2px 8px rgba(0,0,0,0.08);
+            }
+            table {
+              width: 100%;
+              border-collapse: collapse;
+              font-size: 13px;
+              background: white;
+            }
+            thead {
+              background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+              color: white;
+            }
+            th {
+              padding: 14px 12px;
+              text-align: left;
+              font-weight: 600;
+              font-size: 12px;
+              text-transform: uppercase;
+              letter-spacing: 0.5px;
+            }
+            td {
+              padding: 12px;
+              border-bottom: 1px solid #f0f0f0;
+            }
+            tbody tr {
+              transition: background-color 0.2s;
+            }
+            tbody tr:nth-child(even) {
+              background-color: #f8f9fa;
+            }
+            tbody tr:hover {
+              background-color: #e9ecef;
+            }
+            .text-right {
+              text-align: right;
+            }
+            .badge {
+              display: inline-block;
+              padding: 4px 8px;
+              background: #e9ecef;
+              border-radius: 6px;
+              margin: 2px;
+              font-size: 11px;
+              font-weight: 500;
+              color: #495057;
+            }
+            .status-badge {
+              display: inline-block;
+              padding: 4px 10px;
+              border-radius: 12px;
+              font-size: 11px;
+              font-weight: 600;
+              text-transform: uppercase;
+            }
+            .status-paid {
+              background: #d4edda;
+              color: #155724;
+            }
+            .status-pending {
+              background: #fff3cd;
+              color: #856404;
+            }
+            .status-partial {
+              background: #d1ecf1;
+              color: #0c5460;
+            }
+            .summary {
+              margin-top: 30px;
+              padding: 25px;
+              background: linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%);
+              border-radius: 12px;
+              border: 2px solid #667eea;
+            }
+            .summary-grid {
+              display: grid;
+              grid-template-columns: repeat(3, 1fr);
+              gap: 20px;
+            }
+            .summary-item {
+              text-align: center;
+            }
+            .summary-item .label {
+              font-size: 13px;
+              color: #6c757d;
+              font-weight: 600;
+              margin-bottom: 8px;
+              text-transform: uppercase;
+            }
+            .summary-item .amount {
+              font-size: 24px;
+              font-weight: 700;
+              color: #667eea;
+            }
+            .footer {
+              margin-top: 30px;
+              padding-top: 20px;
+              border-top: 2px solid #e9ecef;
+              text-align: center;
+              color: #6c757d;
+              font-size: 12px;
+            }
             @media print {
-              body { padding: 10px; }
+              body { 
+                padding: 0;
+                background: white;
+              }
+              .container {
+                box-shadow: none;
+              }
             }
           </style>
         </head>
         <body>
-          <h1>Transactions Report - ${getPeriodLabel()}</h1>
-          <div class="stats">
-            <div class="stat-card">
-              <h3>${getPeriodLabel()} Revenue</h3>
-              <div class="value">₹${stats?.totalRevenue.toLocaleString() || 0}</div>
+          <div class="container">
+            <div class="header">
+              <div class="header-top">
+                <div class="logo-section">
+                  <div class="logo">A</div>
+                  <div class="company-info">
+                    <h1>Airavoto Gaming</h1>
+                    <p>Staff Panel - Transaction Reports</p>
+                  </div>
+                </div>
+                <div class="admin-info">
+                  <div class="label">Generated By</div>
+                  <div>Admin</div>
+                  <div style="margin-top: 8px; font-size: 12px; opacity: 0.85;">${currentDate}</div>
+                </div>
+              </div>
+              <div class="report-title">
+                📊 ${getPeriodLabel()} Transaction Report
+              </div>
             </div>
-            <div class="stat-card">
-              <h3>Total Sessions</h3>
-              <div class="value">${stats?.totalSessions || 0}</div>
+
+            <div class="stats-grid">
+              <div class="stat-card">
+                <h3>💰 Total Revenue</h3>
+                <div class="value">₹${stats?.totalRevenue.toLocaleString() || 0}</div>
+              </div>
+              <div class="stat-card">
+                <h3>🎮 Total Sessions</h3>
+                <div class="value">${stats?.totalSessions || 0}</div>
+              </div>
+              <div class="stat-card">
+                <h3>⏱️ Avg Session</h3>
+                <div class="value">${stats?.avgSessionMinutes || 0} min</div>
+              </div>
             </div>
-            <div class="stat-card">
-              <h3>Avg Session Time</h3>
-              <div class="value">${stats?.avgSessionMinutes || 0} mins</div>
+
+            <div class="content">
+              <div class="table-wrapper">
+                <table>
+                  <thead>
+                    <tr>
+                      <th>Date</th>
+                      <th>Customer</th>
+                      <th>Seat/Duration</th>
+                      <th class="text-right">Session</th>
+                      <th class="text-right">Food</th>
+                      <th class="text-right">Discount</th>
+                      <th class="text-right">Bonus</th>
+                      <th class="text-right">Payment</th>
+                      <th class="text-right">Cash</th>
+                      <th class="text-right">UPI</th>
+                      <th class="text-right">Total</th>
+                      <th>Status</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    ${filteredTransactions.map(transaction => {
+                      const detailsDisplay = transaction.seatDetails 
+                        ? transaction.seatDetails.map(d => `<span class="badge">${d.seat} (${d.duration})</span>`).join(' ')
+                        : transaction.seats?.map(s => `<span class="badge">${s}</span>`).join(' ') || '-';
+                      
+                      const statusClass = transaction.paymentStatus === 'Paid' ? 'status-paid' 
+                        : transaction.paymentStatus === 'Pending' ? 'status-pending' 
+                        : 'status-partial';
+                      
+                      return `
+                        <tr>
+                          <td>${transaction.date}</td>
+                          <td><strong>${transaction.customerName}</strong></td>
+                          <td>${detailsDisplay}</td>
+                          <td class="text-right">${transaction.sessionPrice ? '₹' + transaction.sessionPrice.toFixed(0) : '-'}</td>
+                          <td class="text-right">${transaction.foodAmount > 0 ? '₹' + transaction.foodAmount.toFixed(0) : '-'}</td>
+                          <td class="text-right">${transaction.discountApplied || '-'}</td>
+                          <td class="text-right">${transaction.bonusHoursApplied || '-'}</td>
+                          <td class="text-right">${transaction.paymentMethod || '-'}</td>
+                          <td class="text-right">${transaction.cashAmount > 0 ? '₹' + transaction.cashAmount.toFixed(0) : '-'}</td>
+                          <td class="text-right">${transaction.upiAmount > 0 ? '₹' + transaction.upiAmount.toFixed(0) : '-'}</td>
+                          <td class="text-right"><strong style="color: #667eea;">₹${transaction.totalAmount.toFixed(0)}</strong></td>
+                          <td><span class="status-badge ${statusClass}">${transaction.paymentStatus || 'N/A'}</span></td>
+                        </tr>
+                      `;
+                    }).join('')}
+                  </tbody>
+                </table>
+              </div>
+
+              <div class="summary">
+                <div class="summary-grid">
+                  <div class="summary-item">
+                    <div class="label">💵 Total Cash</div>
+                    <div class="amount">₹${totalCash.toLocaleString()}</div>
+                  </div>
+                  <div class="summary-item">
+                    <div class="label">📱 Total UPI</div>
+                    <div class="amount">₹${totalUPI.toLocaleString()}</div>
+                  </div>
+                  <div class="summary-item">
+                    <div class="label">💰 Grand Total</div>
+                    <div class="amount">₹${totalRevenue.toLocaleString()}</div>
+                  </div>
+                </div>
+              </div>
+
+              <div class="footer">
+                <strong>Airavoto Gaming Staff Panel</strong> | Confidential Report<br>
+                This report contains ${filteredTransactions.length} transaction(s) for ${getPeriodLabel().toLowerCase()} period
+              </div>
             </div>
           </div>
-          <table>
-            <thead>
-              <tr>
-                <th>Date</th>
-                <th>Customer</th>
-                <th>Seat/Duration</th>
-                <th class="text-right">Session Price</th>
-                <th class="text-right">Food</th>
-                <th class="text-right">Discount</th>
-                <th class="text-right">Bonus</th>
-                <th class="text-right">Payment</th>
-                <th class="text-right">Cash</th>
-                <th class="text-right">UPI</th>
-                <th class="text-right">Total</th>
-                <th>Status</th>
-              </tr>
-            </thead>
-            <tbody>
-              ${filteredTransactions.map(transaction => {
-                const detailsDisplay = transaction.seatDetails 
-                  ? transaction.seatDetails.map(d => `<span class="badge">${d.seat} (${d.duration})</span>`).join(' ')
-                  : transaction.seats?.map(s => `<span class="badge">${s}</span>`).join(' ') || '-';
-                return `
-                  <tr>
-                    <td>${transaction.date}</td>
-                    <td>${transaction.customerName}</td>
-                    <td>${detailsDisplay}</td>
-                    <td class="text-right">${transaction.sessionPrice ? '₹' + transaction.sessionPrice.toFixed(0) : '-'}</td>
-                    <td class="text-right">${transaction.foodAmount > 0 ? '₹' + transaction.foodAmount.toFixed(0) : '-'}</td>
-                    <td class="text-right">${transaction.discountApplied || '-'}</td>
-                    <td class="text-right">${transaction.bonusHoursApplied || '-'}</td>
-                    <td class="text-right">${transaction.paymentMethod || '-'}</td>
-                    <td class="text-right">${transaction.cashAmount > 0 ? '₹' + transaction.cashAmount.toFixed(0) : '-'}</td>
-                    <td class="text-right">${transaction.upiAmount > 0 ? '₹' + transaction.upiAmount.toFixed(0) : '-'}</td>
-                    <td class="text-right"><strong>₹${transaction.totalAmount.toFixed(0)}</strong></td>
-                    <td>${transaction.paymentStatus || '-'}</td>
-                  </tr>
-                `;
-              }).join('')}
-            </tbody>
-          </table>
+
           <script>
             window.onload = () => {
               setTimeout(() => {
