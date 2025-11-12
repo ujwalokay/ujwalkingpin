@@ -306,9 +306,9 @@ export default function Login({ onLoginSuccess }: LoginProps) {
 
         {/* Curved Wave Separator */}
         <div className="relative -mt-1">
-          <svg className="w-full h-16" viewBox="0 0 1440 120" preserveAspectRatio="none">
+          <svg className="w-full h-24" viewBox="0 0 1440 320" preserveAspectRatio="none">
             <path 
-              d="M0,64 C240,20 480,20 720,64 C960,108 1200,108 1440,64 L1440,120 L0,120 Z" 
+              d="M0,224 C240,96 480,96 720,224 C960,352 1200,352 1440,224 L1440,320 L0,320 Z" 
               fill="#1e1a24"
             />
           </svg>
