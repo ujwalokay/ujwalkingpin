@@ -530,13 +530,15 @@ export default function History() {
               <div className="pt-2 border-t">
                 <h3 className="font-semibold mb-3">Payment Methods</h3>
                 <div className="flex flex-wrap gap-2">
+                  {selectedDateBookings.some(b => b.paymentMethod === 'split') && (
+                    <Badge variant="secondary">Split Payment</Badge>
+                  )}
                   {selectedDateBookings.map((booking, idx) => 
-                    booking.paymentMethod && (
+                    booking.paymentMethod && booking.paymentMethod !== 'split' && (
                       <div key={idx} className="flex items-center gap-2 text-sm">
                         <span className="text-muted-foreground">{booking.seatName}:</span>
                         <Badge variant="secondary">
-                          {booking.paymentMethod === 'split' ? 'Split Payment' :
-                           booking.paymentMethod === 'cash' ? 'Cash' : 
+                          {booking.paymentMethod === 'cash' ? 'Cash' : 
                            booking.paymentMethod === 'upi_online' ? 'UPI/Online' :
                            booking.paymentMethod === 'card' ? 'Card' :
                            'UPI/Online'}
