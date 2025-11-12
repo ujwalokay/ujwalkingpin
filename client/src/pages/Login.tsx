@@ -3,13 +3,15 @@ import { Eye, EyeOff } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
+import { Checkbox } from "@/components/ui/checkbox";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
+import { ScrollArea } from "@/components/ui/scroll-area";
 import { useToast } from "@/hooks/use-toast";
-import { SiGoogle } from "react-icons/si";
-import { useLocation } from "wouter";
 import logoDark from "@assets/airavoto_logo.png";
 import img1 from "@assets/generated_images/Modern_gaming_cafe_with_purple_lighting_1a0efc51.png";
 import img2 from "@assets/generated_images/Luxury_gaming_lounge_purple_pink_98c3a8f3.png";
 import img3 from "@assets/generated_images/Gaming_cafe_night_purple_neon_964a4486.png";
+import { Separator } from "@/components/ui/separator";
 
 interface LoginProps {
   onLoginSuccess: (userData: any) => void;
@@ -21,8 +23,105 @@ const carouselImages = [
   { src: img3, caption: "Immersive Gaming Environment" }
 ];
 
+function TermsContent() {
+  return (
+    <div className="space-y-6">
+      <section>
+        <h2 className="text-xl font-semibold mb-3">1. Introduction and Acceptance</h2>
+        <p className="text-muted-foreground leading-relaxed">
+          Welcome to Airavoto Gaming Center. By using our gaming facilities, booking services, or participating in any activities at our center, you agree to comply with and be bound by these Terms and Conditions.
+        </p>
+      </section>
+
+      <Separator />
+
+      <section>
+        <h2 className="text-xl font-semibold mb-3">2. Service Description</h2>
+        <p className="text-muted-foreground leading-relaxed mb-3">
+          Airavoto Gaming Center provides the following services:
+        </p>
+        <ul className="list-disc list-inside space-y-2 text-muted-foreground ml-4">
+          <li><strong>Gaming Stations:</strong> Access to various gaming devices including PCs, PlayStation 5 consoles, VR headsets, and car racing simulators</li>
+          <li><strong>Booking System:</strong> Walk-in and advance booking options with flexible session durations</li>
+          <li><strong>Food & Beverage:</strong> In-house food and drink ordering during gaming sessions</li>
+          <li><strong>Loyalty Program:</strong> Earn 1 point for every ₹1 spent and redeem rewards</li>
+          <li><strong>Tournament Participation:</strong> Organized gaming competitions with prize pools</li>
+        </ul>
+      </section>
+
+      <Separator />
+
+      <section>
+        <h2 className="text-xl font-semibold mb-3">3. Booking and Reservations</h2>
+        <p className="text-muted-foreground leading-relaxed mb-3">
+          <strong>3.1 Walk-in Bookings:</strong> Available on a first-come, first-served basis subject to availability.
+        </p>
+        <p className="text-muted-foreground leading-relaxed mb-3">
+          <strong>3.2 Advance Bookings:</strong> Customers may book gaming sessions in advance. Advanced bookings are confirmed upon availability verification.
+        </p>
+        <p className="text-muted-foreground leading-relaxed">
+          <strong>3.3 No-Shows:</strong> Customers who fail to arrive within 15 minutes of their scheduled booking time may forfeit their reservation without refund.
+        </p>
+      </section>
+
+      <Separator />
+
+      <section>
+        <h2 className="text-xl font-semibold mb-3">4. Pricing and Payment</h2>
+        <p className="text-muted-foreground leading-relaxed mb-3">
+          <strong>4.1 Pricing Structure:</strong> Gaming sessions are priced based on device type, duration, and number of persons. Prices are displayed in Indian Rupees (₹).
+        </p>
+        <p className="text-muted-foreground leading-relaxed mb-3">
+          <strong>4.2 Payment Methods:</strong> We accept Cash, UPI, Card, and Online payment methods.
+        </p>
+        <p className="text-muted-foreground leading-relaxed">
+          <strong>4.3 Refund Policy:</strong> Refunds are not provided for partially used sessions. In case of technical issues, appropriate credits will be issued at management's discretion.
+        </p>
+      </section>
+
+      <Separator />
+
+      <section>
+        <h2 className="text-xl font-semibold mb-3">5. Equipment Usage and Conduct</h2>
+        <p className="text-muted-foreground leading-relaxed mb-3">
+          <strong>5.1 Responsible Use:</strong> Customers must use all gaming equipment with care. Any damage caused by misuse will be charged to the customer.
+        </p>
+        <p className="text-muted-foreground leading-relaxed">
+          <strong>5.2 Code of Conduct:</strong> Customers must maintain respectful behavior. We reserve the right to terminate sessions for misconduct without refund.
+        </p>
+      </section>
+
+      <Separator />
+
+      <section>
+        <h2 className="text-xl font-semibold mb-3">6. Data Privacy</h2>
+        <p className="text-muted-foreground leading-relaxed">
+          We collect customer information for service delivery and implement reasonable security measures to protect customer data.
+        </p>
+      </section>
+
+      <Separator />
+
+      <section>
+        <h2 className="text-xl font-semibold mb-3">7. Liability and Disclaimers</h2>
+        <p className="text-muted-foreground leading-relaxed mb-3">
+          <strong>7.1 Personal Property:</strong> We are not responsible for loss, theft, or damage to personal belongings.
+        </p>
+        <p className="text-muted-foreground leading-relaxed">
+          <strong>7.2 Limitation of Liability:</strong> Our total liability shall not exceed the amount paid by the customer for the specific session.
+        </p>
+      </section>
+
+      <div className="mt-8 p-4 bg-muted rounded-lg">
+        <p className="text-sm text-muted-foreground text-center">
+          By using Airavoto Gaming Center services, you acknowledge that you have read, understood, and agree to be bound by these Terms and Conditions.
+        </p>
+      </div>
+    </div>
+  );
+}
+
 export default function Login({ onLoginSuccess }: LoginProps) {
-  const [location] = useLocation();
   const [username, setUsername] = useState("");
   const [password, setPassword] = useState("");
   const [isLoggingIn, setIsLoggingIn] = useState(false);
@@ -30,10 +129,8 @@ export default function Login({ onLoginSuccess }: LoginProps) {
   const [failedAttempts, setFailedAttempts] = useState(0);
   const [lockoutTime, setLockoutTime] = useState<number | null>(null);
   const [remainingTime, setRemainingTime] = useState(0);
-  const [isAdminLogin, setIsAdminLogin] = useState(false);
-  const [googleVerified, setGoogleVerified] = useState(false);
-  const [googleEmail, setGoogleEmail] = useState("");
   const [currentImageIndex, setCurrentImageIndex] = useState(0);
+  const [agreedToTerms, setAgreedToTerms] = useState(false);
   const { toast } = useToast();
 
   useEffect(() => {
@@ -44,69 +141,6 @@ export default function Login({ onLoginSuccess }: LoginProps) {
     return () => clearInterval(interval);
   }, []);
 
-  const handleGoogleLogin = () => {
-    window.location.href = "/api/auth/google";
-  };
-
-  useEffect(() => {
-    const checkAuthStatus = async () => {
-      try {
-        const response = await fetch("/api/auth/me", {
-          credentials: "include"
-        });
-        if (response.ok) {
-          const data = await response.json();
-          if (data.needsStaffLogin) {
-            setGoogleVerified(true);
-            setGoogleEmail(data.googleEmail || "");
-          } else if (data.twoStepComplete) {
-            onLoginSuccess(data);
-          }
-        }
-      } catch (error) {
-      }
-    };
-
-    checkAuthStatus();
-
-    const urlParams = new URLSearchParams(window.location.search);
-    const error = urlParams.get('error');
-    const googleVerifiedParam = urlParams.get('google_verified');
-    
-    if (googleVerifiedParam === 'true') {
-      setGoogleVerified(true);
-      toast({
-        title: "Google Authentication Successful",
-        description: "Please enter your staff/admin credentials to continue.",
-        duration: 5000,
-      });
-      window.history.replaceState({}, '', window.location.pathname);
-    } else if (error === 'access_denied') {
-      toast({
-        title: "Access Denied",
-        description: "Your email is not authorized to access this application. Please contact the administrator.",
-        variant: "destructive",
-        duration: 8000,
-      });
-      window.history.replaceState({}, '', window.location.pathname);
-    } else if (error === 'google_auth_failed') {
-      toast({
-        title: "Google Authentication Failed",
-        description: "Failed to authenticate with Google. Please try again.",
-        variant: "destructive",
-        duration: 6000,
-      });
-      window.history.replaceState({}, '', window.location.pathname);
-    } else if (error === 'authentication_failed') {
-      toast({
-        title: "Authentication Failed",
-        description: "Authentication failed. Please try again.",
-        variant: "destructive",
-        duration: 6000,
-      });
-      window.history.replaceState({}, '', window.location.pathname);
-    }
-  }, [toast, onLoginSuccess]);
 
   useEffect(() => {
     if (lockoutTime) {
@@ -128,6 +162,15 @@ export default function Login({ onLoginSuccess }: LoginProps) {
   }, [lockoutTime]);
 
   const handleLogin = async () => {
+    if (!agreedToTerms) {
+      toast({
+        title: "Terms Required",
+        description: "Please agree to the Terms & Conditions to continue",
+        variant: "destructive",
+      });
+      return;
+    }
+
     if (lockoutTime && Date.now() < lockoutTime) {
       toast({
         title: "Too many attempts",
@@ -271,59 +314,40 @@ export default function Login({ onLoginSuccess }: LoginProps) {
 
             <div>
               <h2 className="text-3xl font-bold text-white mb-2">
-                Create an account
+                Welcome back
               </h2>
               <p className="text-gray-400 text-sm">
-                Already have an account? <button className="text-purple-400 hover:text-purple-300">Sign In</button>
+                Please sign in to your account
               </p>
-              {googleVerified && googleEmail && (
-                <p className="text-sm text-green-400 mt-2">
-                  ✓ Google account verified: {googleEmail}
-                </p>
-              )}
             </div>
 
             <form onSubmit={handleSubmit} className="space-y-5">
-              <div className="grid grid-cols-2 gap-3">
-                <div className="space-y-2">
-                  <Label htmlFor="username" className="text-gray-300 text-sm font-medium">
-                    Username
-                  </Label>
-                  <Input
-                    id="username"
-                    data-testid="input-username"
-                    type="text"
-                    placeholder="Enter your username"
-                    value={username}
-                    onChange={(e) => setUsername(e.target.value)}
-                    disabled={isLockedOut}
-                    className="bg-[#2d2937] border-gray-700 text-white placeholder:text-gray-500 h-11 rounded-lg focus:border-purple-500 focus:ring-purple-500/20"
-                  />
-                </div>
-
-                <div className="space-y-2">
-                  <Label htmlFor="lastname" className="text-gray-300 text-sm font-medium">
-                    Last name
-                  </Label>
-                  <Input
-                    id="lastname"
-                    type="text"
-                    placeholder="Enter your last name"
-                    className="bg-[#2d2937] border-gray-700 text-white placeholder:text-gray-500 h-11 rounded-lg focus:border-purple-500 focus:ring-purple-500/20"
-                  />
-                </div>
+              <div className="space-y-2">
+                <Label htmlFor="username" className="text-gray-300 text-sm font-medium">
+                  Username
+                </Label>
+                <Input
+                  id="username"
+                  data-testid="input-username"
+                  type="text"
+                  placeholder="Enter your username"
+                  value={username}
+                  onChange={(e) => setUsername(e.target.value)}
+                  disabled={isLockedOut}
+                  className="bg-[#2d2937] border-gray-700 text-white placeholder:text-gray-500 h-11 rounded-lg focus:border-purple-500 focus:ring-purple-500/20"
+                />
               </div>
 
               <div className="space-y-2">
                 <Label htmlFor="password" className="text-gray-300 text-sm font-medium">
-                  Create your password
+                  Password
                 </Label>
                 <div className="relative">
                   <Input
                     id="password"
                     data-testid="input-password"
                     type={showPassword ? "text" : "password"}
-                    placeholder="must be 8 characters"
+                    placeholder="Enter your password"
                     value={password}
                     onChange={(e) => setPassword(e.target.value)}
                     className="bg-[#2d2937] border-gray-700 text-white placeholder:text-gray-500 h-11 pr-12 rounded-lg focus:border-purple-500 focus:ring-purple-500/20"
@@ -347,13 +371,34 @@ export default function Login({ onLoginSuccess }: LoginProps) {
               </div>
 
               <div className="flex items-center gap-2">
-                <input
-                  type="checkbox"
+                <Checkbox
                   id="terms"
-                  className="w-4 h-4 rounded border-gray-700 bg-[#2d2937] text-purple-600 focus:ring-purple-500/20"
+                  checked={agreedToTerms}
+                  onCheckedChange={(checked) => setAgreedToTerms(checked === true)}
+                  data-testid="checkbox-terms"
+                  className="border-gray-700 data-[state=checked]:bg-purple-600 data-[state=checked]:border-purple-600"
                 />
                 <label htmlFor="terms" className="text-sm text-gray-400">
-                  I agree to the Terms & Conditions
+                  I agree to the{" "}
+                  <Dialog>
+                    <DialogTrigger asChild>
+                      <button
+                        type="button"
+                        className="text-purple-400 hover:text-purple-300 underline"
+                        data-testid="button-view-terms"
+                      >
+                        Terms & Conditions
+                      </button>
+                    </DialogTrigger>
+                    <DialogContent className="max-w-4xl max-h-[80vh]">
+                      <DialogHeader>
+                        <DialogTitle className="text-2xl font-bold">Terms and Conditions</DialogTitle>
+                      </DialogHeader>
+                      <ScrollArea className="h-[60vh] pr-4">
+                        <TermsContent />
+                      </ScrollArea>
+                    </DialogContent>
+                  </Dialog>
                 </label>
               </div>
 
@@ -361,57 +406,10 @@ export default function Login({ onLoginSuccess }: LoginProps) {
                 type="submit"
                 className="w-full h-11 text-base font-semibold bg-gradient-to-r from-purple-600 to-purple-500 hover:from-purple-700 hover:to-purple-600 text-white rounded-lg shadow-lg transition-all duration-200"
                 data-testid="button-login"
-                disabled={isLoggingIn || isLockedOut}
+                disabled={isLoggingIn || isLockedOut || !agreedToTerms}
               >
-                {isLoggingIn ? "Signing in..." : isLockedOut ? `Wait ${remainingTime}s` : "Create account"}
+                {isLoggingIn ? "Signing in..." : isLockedOut ? `Wait ${remainingTime}s` : "Login"}
               </Button>
-
-              <div className="relative">
-                <div className="absolute inset-0 flex items-center">
-                  <div className="w-full border-t border-gray-700"></div>
-                </div>
-                <div className="relative flex justify-center text-sm">
-                  <span className="px-2 bg-[#1e1a24] text-gray-400">Or</span>
-                </div>
-              </div>
-
-              <div className="grid grid-cols-2 gap-3">
-                <Button
-                  type="button"
-                  variant="outline"
-                  onClick={handleGoogleLogin}
-                  className="h-11 bg-[#2d2937] border-gray-700 text-white hover:bg-[#353142] rounded-lg"
-                >
-                  <SiGoogle className="w-5 h-5 mr-2" />
-                  Google
-                </Button>
-                <Button
-                  type="button"
-                  variant="outline"
-                  className="h-11 bg-[#2d2937] border-gray-700 text-white hover:bg-[#353142] rounded-lg"
-                >
-                  <svg className="w-5 h-5 mr-2" viewBox="0 0 24 24" fill="currentColor">
-                    <path d="M12 0C5.37 0 0 5.37 0 12c0 5.31 3.435 9.795 8.205 11.385.6.105.825-.255.825-.57 0-.285-.015-1.23-.015-2.235-3.015.555-3.795-.735-4.035-1.41-.135-.345-.72-1.41-1.23-1.695-.42-.225-1.02-.78-.015-.795.945-.015 1.62.87 1.845 1.23 1.08 1.815 2.805 1.305 3.495.99.105-.78.42-1.305.765-1.605-2.67-.3-5.46-1.335-5.46-5.925 0-1.305.465-2.385 1.23-3.225-.12-.3-.54-1.53.12-3.18 0 0 1.005-.315 3.3 1.23.96-.27 1.98-.405 3-.405s2.04.135 3 .405c2.295-1.56 3.3-1.23 3.3-1.23.66 1.65.24 2.88.12 3.18.765.84 1.23 1.905 1.23 3.225 0 4.605-2.805 5.625-5.475 5.925.435.375.81 1.095.81 2.22 0 1.605-.015 2.895-.015 3.3 0 .315.225.69.825.57A12.02 12.02 0 0024 12c0-6.63-5.37-12-12-12z"/>
-                  </svg>
-                  Apple
-                </Button>
-              </div>
-
-              <div className="text-center pt-2">
-                <button
-                  type="button"
-                  onClick={() => {
-                    setIsAdminLogin(!isAdminLogin);
-                    setUsername("");
-                    setPassword("");
-                  }}
-                  className="text-sm text-purple-400 hover:text-purple-300 font-medium transition-colors"
-                  data-testid="button-toggle-login-type"
-                  disabled={isLockedOut}
-                >
-                  Login as {isAdminLogin ? "Staff" : "Admin"}
-                </button>
-              </div>
             </form>
           </div>
         </div>
