@@ -61,9 +61,17 @@ export function securityAuditMiddleware(action: string, resource: string) {
   };
 }
 
+// Validate SESSION_SECRET at module load time
+if (!process.env.SESSION_SECRET) {
+  if (process.env.NODE_ENV === 'production') {
+    throw new Error('SESSION_SECRET environment variable is required in production');
+  }
+  console.warn('⚠️  WARNING: SESSION_SECRET not set - using insecure default. Set SESSION_SECRET for production!');
+}
+
 export const SecurityConfig = {
   session: {
-    secret: process.env.SESSION_SECRET || 'change-this-secret-in-production',
+    secret: process.env.SESSION_SECRET || 'insecure-dev-secret-change-in-production',
     maxAge: 7 * 24 * 60 * 60 * 1000, // 1 week
     secure: process.env.NODE_ENV === 'production',
     httpOnly: true,
@@ -94,12 +102,14 @@ export const SecurityConfig = {
   },
   
   password: {
-    minLength: 8,
-    requireUppercase: false,
-    requireLowercase: false,
-    requireNumbers: false,
-    requireSpecialChars: false,
-    saltRounds: 10,
+    minLength: 12,
+    requireUppercase: true,
+    requireLowercase: true,
+    requireNumbers: true,
+    requireSpecialChars: true,
+    saltRounds: 12,
+    maxLoginAttempts: 5,
+    lockoutDurationMinutes: 15,
   },
   
   cors: {
@@ -114,5 +124,70 @@ export const SecurityConfig = {
     logFailedAttempts: true,
   },
 };
+
+// Password validation function
+export function validatePasswordStrength(password: string): { valid: boolean; errors: string[] } {
+  const errors: string[] = [];
+  const config = SecurityConfig.password;
+  
+  if (password.length < config.minLength) {
+    errors.push(`Password must be at least ${config.minLength} characters long`);
+  }
+  
+  if (config.requireUppercase && !/[A-Z]/.test(password)) {
+    errors.push('Password must contain at least one uppercase letter');
+  }
+  
+  if (config.requireLowercase && !/[a-z]/.test(password)) {
+    errors.push('Password must contain at least one lowercase letter');
+  }
+  
+  if (config.requireNumbers && !/\d/.test(password)) {
+    errors.push('Password must contain at least one number');
+  }
+  
+  if (config.requireSpecialChars && !/[!@#$%^&*()_+\-=\[\]{};':"\\|,.<>\/?]/.test(password)) {
+    errors.push('Password must contain at least one special character');
+  }
+  
+  return {
+    valid: errors.length === 0,
+    errors
+  };
+}
+
+// Input sanitization to prevent XSS
+export function sanitizeInput(input: string): string {
+  if (typeof input !== 'string') return '';
+  
+  return input
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;')
+    .replace(/'/g, '&#x27;')
+    .replace(/\//g, '&#x2F;')
+    .trim();
+}
+
+// Validate email format
+export function isValidEmail(email: string): boolean {
+  const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+  return emailRegex.test(email);
+}
+
+// Sanitize SQL-like inputs (additional layer on top of parameterized queries)
+export function sanitizeSQLInput(input: string): string {
+  if (typeof input !== 'string') return '';
+  
+  // Remove common SQL injection patterns
+  return input
+    .replace(/;/g, '')
+    .replace(/--/g, '')
+    .replace(/\/\*/g, '')
+    .replace(/\*\//g, '')
+    .replace(/xp_/gi, '')
+    .replace(/sp_/gi, '')
+    .trim();
+}
 
 export default SecurityConfig;

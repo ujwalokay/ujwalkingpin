@@ -67,6 +67,7 @@ import {
 import { db } from "./db";
 import { eq, and, gte, lte, lt, desc, inArray, isNotNull } from "drizzle-orm";
 import bcrypt from "bcrypt";
+import { SecurityConfig, validatePasswordStrength } from "./security";
 
 export interface BookingStats {
   totalRevenue: number;
@@ -1244,7 +1245,13 @@ export class DatabaseStorage implements IStorage {
   }
 
   async createUser(user: InsertUser): Promise<User> {
-    const saltRounds = 10;
+    // Validate password strength
+    const passwordValidation = validatePasswordStrength(user.password);
+    if (!passwordValidation.valid) {
+      throw new Error(`Password validation failed: ${passwordValidation.errors.join(', ')}`);
+    }
+    
+    const saltRounds = SecurityConfig.password.saltRounds;
     const passwordHash = await bcrypt.hash(user.password, saltRounds);
     
     const [newUser] = await db.insert(users).values({
@@ -1260,11 +1267,14 @@ export class DatabaseStorage implements IStorage {
   async validatePassword(username: string, password: string): Promise<User | null> {
     const user = await this.getUserByUsername(username);
     
-    if (!user) {
+    if (!user || !user.passwordHash) {
+      // Use constant-time comparison to prevent timing attacks
+      // Even if user doesn't exist, still perform a hash comparison
+      await bcrypt.compare(password, '$2b$12$LQv3c1yqBWVHxkd0LHAkCOYz6TtxMQJqhN8/LewY5jtRu3WjJhvCu');
       return null;
     }
     
-    const isValid = await bcrypt.compare(password, user.passwordHash!);
+    const isValid = await bcrypt.compare(password, user.passwordHash);
     
     if (!isValid) {
       return null;
