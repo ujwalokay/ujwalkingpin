@@ -122,6 +122,7 @@ function TermsContent() {
 }
 
 export default function Login({ onLoginSuccess }: LoginProps) {
+  const [mode, setMode] = useState<'staff' | 'admin'>('staff');
   const [username, setUsername] = useState("");
   const [password, setPassword] = useState("");
   const [isLoggingIn, setIsLoggingIn] = useState(false);
@@ -318,10 +319,12 @@ export default function Login({ onLoginSuccess }: LoginProps) {
         <div className="bg-[#1e1a24] px-6 pb-8 -mt-1">
           <div className="max-w-md mx-auto">
             <h2 className="text-2xl font-bold text-white mb-1 text-center">
-              Welcome back
+              {mode === 'staff' ? 'Staff Login' : 'Admin Login'}
             </h2>
             <p className="text-gray-400 text-sm text-center mb-6">
-              Please sign in to your account
+              {mode === 'staff' 
+                ? 'Please sign in with your staff credentials' 
+                : 'Please sign in with your admin credentials'}
             </p>
             
             <form onSubmit={handleSubmit} className="space-y-4">
@@ -413,6 +416,28 @@ export default function Login({ onLoginSuccess }: LoginProps) {
               >
                 {isLoggingIn ? "Signing in..." : isLockedOut ? `Wait ${remainingTime}s` : "Login"}
               </Button>
+              
+              <div className="text-center mt-4">
+                <p className="text-sm text-gray-400">
+                  {mode === 'staff' ? (
+                    <span 
+                      className="text-purple-400 font-medium cursor-pointer hover:text-purple-300 transition-colors" 
+                      data-testid="link-admin-login"
+                      onClick={() => setMode('admin')}
+                    >
+                      Click here to login as admin
+                    </span>
+                  ) : (
+                    <span 
+                      className="text-purple-400 font-medium cursor-pointer hover:text-purple-300 transition-colors" 
+                      data-testid="link-staff-login"
+                      onClick={() => setMode('staff')}
+                    >
+                      Click here to login as staff
+                    </span>
+                  )}
+                </p>
+              </div>
             </form>
 
             {/* Carousel Indicators */}
@@ -530,10 +555,12 @@ export default function Login({ onLoginSuccess }: LoginProps) {
 
           <div className="mb-8">
             <h2 className="text-3xl font-bold text-white mb-2">
-              Welcome back
+              {mode === 'staff' ? 'Staff Login' : 'Admin Login'}
             </h2>
             <p className="text-gray-400 text-sm">
-              Please sign in to your account
+              {mode === 'staff' 
+                ? 'Please sign in with your staff credentials' 
+                : 'Please sign in with your admin credentials'}
             </p>
           </div>
 
@@ -626,6 +653,28 @@ export default function Login({ onLoginSuccess }: LoginProps) {
             >
               {isLoggingIn ? "Signing in..." : isLockedOut ? `Wait ${remainingTime}s` : "Login"}
             </Button>
+            
+            <div className="text-center mt-4">
+              <p className="text-sm text-gray-400">
+                {mode === 'staff' ? (
+                  <span 
+                    className="text-purple-400 font-medium cursor-pointer hover:text-purple-300 transition-colors" 
+                    data-testid="link-admin-login"
+                    onClick={() => setMode('admin')}
+                  >
+                    Click here to login as admin
+                  </span>
+                ) : (
+                  <span 
+                    className="text-purple-400 font-medium cursor-pointer hover:text-purple-300 transition-colors" 
+                    data-testid="link-staff-login"
+                    onClick={() => setMode('staff')}
+                  >
+                    Click here to login as staff
+                  </span>
+                )}
+              </p>
+            </div>
           </form>
 
           {/* Mobile Carousel Indicators */}
