@@ -258,7 +258,6 @@ export default function Login({ onLoginSuccess }: LoginProps) {
                 alt={image.caption}
                 className="w-full h-full object-cover"
               />
-              <div className="absolute inset-0 bg-gradient-to-b from-purple-900/40 via-purple-900/50 to-transparent"></div>
             </div>
           ))}
           
@@ -465,7 +464,6 @@ export default function Login({ onLoginSuccess }: LoginProps) {
                 alt={image.caption}
                 className="w-full h-full object-cover"
               />
-              <div className="absolute inset-0 bg-gradient-to-b from-purple-900/40 via-transparent to-black/60"></div>
             </div>
           ))}
 
