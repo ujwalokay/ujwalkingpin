@@ -534,27 +534,13 @@ export default function History() {
                     booking.paymentMethod && (
                       <div key={idx} className="flex items-center gap-2 text-sm">
                         <span className="text-muted-foreground">{booking.seatName}:</span>
-                        {booking.paymentMethod === 'split' ? (
-                          <div className="flex gap-1">
-                            {booking.cashAmount && parseFloat(booking.cashAmount) > 0 && (
-                              <Badge variant="secondary">
-                                Cash: ₹{parseFloat(booking.cashAmount).toFixed(0)}
-                              </Badge>
-                            )}
-                            {booking.upiAmount && parseFloat(booking.upiAmount) > 0 && (
-                              <Badge variant="secondary">
-                                UPI: ₹{parseFloat(booking.upiAmount).toFixed(0)}
-                              </Badge>
-                            )}
-                          </div>
-                        ) : (
-                          <Badge variant="secondary">
-                            {booking.paymentMethod === 'cash' ? 'Cash' : 
-                             booking.paymentMethod === 'upi_online' ? 'UPI/Online' :
-                             booking.paymentMethod === 'card' ? 'Card' :
-                             'UPI/Online'}
-                          </Badge>
-                        )}
+                        <Badge variant="secondary">
+                          {booking.paymentMethod === 'split' ? 'Split Payment' :
+                           booking.paymentMethod === 'cash' ? 'Cash' : 
+                           booking.paymentMethod === 'upi_online' ? 'UPI/Online' :
+                           booking.paymentMethod === 'card' ? 'Card' :
+                           'UPI/Online'}
+                        </Badge>
                       </div>
                     )
                   )}
