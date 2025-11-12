@@ -4,7 +4,7 @@ import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { ScrollArea } from "@/components/ui/scroll-area";
-import { Clock, User, Phone, DollarSign, Calendar, Search, FileText, Percent, Gift, UtensilsCrossed } from "lucide-react";
+import { Clock, User, Phone, IndianRupee, Calendar, Search, FileText, Percent, Gift, UtensilsCrossed } from "lucide-react";
 import { useState, useMemo } from "react";
 import { format, isValid, isSameDay } from "date-fns";
 import type { BookingHistory } from "@shared/schema";
@@ -328,7 +328,7 @@ export default function History() {
                               
                               <div className="flex items-center justify-between pt-2 border-t" data-testid={`text-total-${dateGroup.date}`}>
                                 <div className="flex items-center gap-2">
-                                  <DollarSign className="h-4 w-4 text-muted-foreground" />
+                                  <IndianRupee className="h-4 w-4 text-muted-foreground" />
                                   <span className="font-semibold">Total</span>
                                 </div>
                                 <span className="font-bold text-lg">₹{groupTotal}</span>

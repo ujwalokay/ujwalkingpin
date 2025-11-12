@@ -20,7 +20,7 @@ import {
 } from "@/components/ui/select";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { Checkbox } from "@/components/ui/checkbox";
-import { Plus, Minus, CalendarIcon, Award, Gift, Percent, Clock, DollarSign } from "lucide-react";
+import { Plus, Minus, CalendarIcon, Award, Gift, Percent, Clock, IndianRupee } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent } from "@/components/ui/card";
 import { Calendar } from "@/components/ui/calendar";
@@ -998,7 +998,7 @@ export function AddBookingDialog({ open, onOpenChange, onConfirm, availableSeats
                 data-testid="button-toggle-addons"
               >
                 <span className="flex items-center gap-2">
-                  <DollarSign className="h-4 w-4" />
+                  <IndianRupee className="h-4 w-4" />
                   Add-ons (Manual Discount/Free Hours)
                 </span>
                 <Badge variant="secondary">{showAddons ? "Hide" : "Show"}</Badge>
@@ -1114,7 +1114,7 @@ export function AddBookingDialog({ open, onOpenChange, onConfirm, availableSeats
 
                   <div className="space-y-2">
                     <Label htmlFor="discount" className="flex items-center gap-2">
-                      <DollarSign className="h-4 w-4" />
+                      <IndianRupee className="h-4 w-4" />
                       Discount Amount (₹)
                     </Label>
                     <Input

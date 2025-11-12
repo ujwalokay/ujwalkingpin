@@ -20,7 +20,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { StatusBadge } from "./StatusBadge";
 import { SessionTimer } from "./SessionTimer";
-import { Clock, X, Check, UtensilsCrossed, Search, Plus, MoreVertical, Trash2, Play, Pause, Gift, Percent, DollarSign, ArrowRightLeft, Monitor, User, Phone, Users, Calendar, LayoutGrid, Table2 } from "lucide-react";
+import { Clock, X, Check, UtensilsCrossed, Search, Plus, MoreVertical, Trash2, Play, Pause, Gift, Percent, IndianRupee, ArrowRightLeft, Monitor, User, Phone, Users, Calendar, LayoutGrid, Table2 } from "lucide-react";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent } from "@/components/ui/card";
@@ -347,7 +347,7 @@ export function BookingTable({ bookings, onExtend, onEnd, onComplete, onAddFood,
                               className="bg-blue-50 dark:bg-blue-950/30 text-blue-700 dark:text-blue-400 border-blue-200 dark:border-blue-800 text-xs"
                               data-testid={`badge-addons-discount-${customerName}`}
                             >
-                              <DollarSign className="h-3 w-3 mr-1" />
+                              <IndianRupee className="h-3 w-3 mr-1" />
                               Discount
                             </Badge>
                           )}
@@ -763,7 +763,7 @@ export function BookingTable({ bookings, onExtend, onEnd, onComplete, onAddFood,
                                 )}
                                 {hasManualDiscount && (
                                   <Badge variant="outline" className="bg-blue-50 dark:bg-blue-950/30 text-blue-700 dark:text-blue-400 border-blue-200 dark:border-blue-800 text-xs">
-                                    <DollarSign className="h-3 w-3 mr-1" />
+                                    <IndianRupee className="h-3 w-3 mr-1" />
                                     Discount
                                   </Badge>
                                 )}

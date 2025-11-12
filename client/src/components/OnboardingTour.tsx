@@ -14,7 +14,7 @@ import {
   Plus,
   Clock,
   Users,
-  DollarSign,
+  IndianRupee,
   Calendar,
   PlayCircle,
   PauseCircle,
@@ -110,13 +110,13 @@ const tourSteps: TourStep[] = [
   {
     title: "Payment Processing 💳",
     description: "Record payments for completed sessions",
-    icon: <DollarSign className="h-12 w-12 text-green-500" />,
+    icon: <IndianRupee className="h-12 w-12 text-green-500" />,
     content: "Use the Calculate and Payment buttons to process customer payments. Select completed bookings from the table, calculate the total, then record how they paid.",
     features: [
       { icon: <Users className="h-5 w-5 text-blue-500" />, text: "Select Bookings - Check boxes on completed sessions" },
       { icon: <Receipt className="h-5 w-5 text-purple-500" />, text: "Calculate - Get total amount including food orders" },
       { icon: <Wallet className="h-5 w-5 text-green-500" />, text: "Payment - Mark as Cash, UPI, or Credit payment" },
-      { icon: <DollarSign className="h-5 w-5 text-orange-500" />, text: "Split Payment - Combine Cash and UPI if needed" }
+      { icon: <IndianRupee className="h-5 w-5 text-orange-500" />, text: "Split Payment - Combine Cash and UPI if needed" }
     ],
     tips: [
       "💰 Select multiple bookings to process payments together",
@@ -150,7 +150,7 @@ const tourSteps: TourStep[] = [
       { icon: <Plus className="h-5 w-5 text-green-500" />, text: "Food Page - Add snacks, drinks, meals to menu" },
       { icon: <ShoppingCart className="h-5 w-5 text-blue-500" />, text: "Order from Booking - Select items and quantity" },
       { icon: <Receipt className="h-5 w-5 text-purple-500" />, text: "Auto-Calculate - Price updates automatically" },
-      { icon: <DollarSign className="h-5 w-5 text-green-500" />, text: "Track Revenue - See food sales in reports" }
+      { icon: <IndianRupee className="h-5 w-5 text-green-500" />, text: "Track Revenue - See food sales in reports" }
     ],
     tips: [
       "💰 Food orders increase booking total amount",
@@ -165,7 +165,7 @@ const tourSteps: TourStep[] = [
     content: "The Settings page is where you configure everything. Add device categories, set pricing tiers, configure happy hours, and manage your gaming center details.",
     features: [
       { icon: <Laptop className="h-5 w-5 text-blue-500" />, text: "Device Categories - Add PC, PS5, VR, Xbox, etc." },
-      { icon: <DollarSign className="h-5 w-5 text-green-500" />, text: "Pricing Tiers - Set prices for different durations" },
+      { icon: <IndianRupee className="h-5 w-5 text-green-500" />, text: "Pricing Tiers - Set prices for different durations" },
       { icon: <Clock className="h-5 w-5 text-orange-500" />, text: "Happy Hours - Special time-based pricing" },
       { icon: <Users className="h-5 w-5 text-purple-500" />, text: "Person Count - PS5 can have multi-person pricing" }
     ],
@@ -182,7 +182,7 @@ const tourSteps: TourStep[] = [
     content: "Happy Hours let you offer special rates during specific times. Configure time slots (e.g., 2 PM-6 PM) and pricing tiers, then customers can book at discounted rates during those hours.",
     features: [
       { icon: <Clock className="h-5 w-5 text-blue-500" />, text: "Time Slots - Define when happy hours are active" },
-      { icon: <DollarSign className="h-5 w-5 text-green-500" />, text: "Special Pricing - Set discounted rates" },
+      { icon: <IndianRupee className="h-5 w-5 text-green-500" />, text: "Special Pricing - Set discounted rates" },
       { icon: <Calendar className="h-5 w-5 text-purple-500" />, text: "Category-Based - Each device can have different hours" },
       { icon: <PlayCircle className="h-5 w-5 text-orange-500" />, text: "Instant Start - Happy Hours bookings start immediately" }
     ],
@@ -216,7 +216,7 @@ const tourSteps: TourStep[] = [
     content: "Track all your gaming center expenses in one place. Record electricity bills, game purchases, maintenance, salaries, and more. See profit vs expenses to understand your business health.",
     features: [
       { icon: <Plus className="h-5 w-5 text-red-500" />, text: "Add Expenses - Record all costs with categories" },
-      { icon: <DollarSign className="h-5 w-5 text-green-500" />, text: "Profit Calculation - Revenue minus expenses" },
+      { icon: <IndianRupee className="h-5 w-5 text-green-500" />, text: "Profit Calculation - Revenue minus expenses" },
       { icon: <BarChart3 className="h-5 w-5 text-blue-500" />, text: "Category Breakdown - See where money goes" },
       { icon: <Receipt className="h-5 w-5 text-purple-500" />, text: "Export Reports - CSV/PDF for accounting" }
     ],
@@ -251,7 +251,7 @@ const tourSteps: TourStep[] = [
       { icon: <BarChart3 className="h-5 w-5 text-blue-500" />, text: "Booking Reports - See all sessions and revenue" },
       { icon: <Receipt className="h-5 w-5 text-green-500" />, text: "Expense Reports - Track all costs" },
       { icon: <Calendar className="h-5 w-5 text-purple-500" />, text: "Date Filters - Custom report periods" },
-      { icon: <DollarSign className="h-5 w-5 text-orange-500" />, text: "Export Options - CSV and PDF formats" }
+      { icon: <IndianRupee className="h-5 w-5 text-orange-500" />, text: "Export Options - CSV and PDF formats" }
     ],
     tips: [
       "📊 Reports page has export buttons for CSV/PDF",
@@ -267,7 +267,7 @@ const tourSteps: TourStep[] = [
     features: [
       { icon: <Clock className="h-5 w-5 text-red-500" />, text: "Session Expiry - Alerts when time runs out" },
       { icon: <Calendar className="h-5 w-5 text-blue-500" />, text: "Booking Updates - Track booking changes" },
-      { icon: <DollarSign className="h-5 w-5 text-green-500" />, text: "Payment Alerts - Payment confirmations" }
+      { icon: <IndianRupee className="h-5 w-5 text-green-500" />, text: "Payment Alerts - Payment confirmations" }
     ],
     tips: [
       "🔔 Click the bell icon to view notifications",
@@ -298,7 +298,7 @@ const tourSteps: TourStep[] = [
     content: "You now know all the key features! Start by configuring your devices in Settings, set up pricing, then create your first booking. The system will guide you along the way.",
     features: [
       { icon: <Settings className="h-5 w-5 text-blue-500" />, text: "Step 1: Go to Settings → Add your devices" },
-      { icon: <DollarSign className="h-5 w-5 text-green-500" />, text: "Step 2: Configure pricing for each device" },
+      { icon: <IndianRupee className="h-5 w-5 text-green-500" />, text: "Step 2: Configure pricing for each device" },
       { icon: <Plus className="h-5 w-5 text-purple-500" />, text: "Step 3: Create your first booking from Dashboard" },
       { icon: <BarChart3 className="h-5 w-5 text-orange-500" />, text: "Step 4: Watch your revenue grow in Analytics!" }
     ],

@@ -2,7 +2,7 @@ import { useState } from "react";
 import { useQuery, useMutation } from "@tanstack/react-query";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Plus, Pencil, Trash2, DollarSign, Calendar as CalendarIcon, Download, FileSpreadsheet, FileText } from "lucide-react";
+import { Plus, Pencil, Trash2, IndianRupee, Calendar as CalendarIcon, Download, FileSpreadsheet, FileText } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Label } from "@/components/ui/label";
@@ -348,7 +348,7 @@ export default function Expenses() {
       <div className="glass-card rounded-lg p-4 sm:p-6">
         <div className="flex items-center gap-3">
           <div className="h-12 w-12 rounded-full bg-destructive/10 flex items-center justify-center">
-            <DollarSign className="h-6 w-6 text-destructive" />
+            <IndianRupee className="h-6 w-6 text-destructive" />
           </div>
           <div>
             <p className="text-sm text-muted-foreground">Total Expenses</p>

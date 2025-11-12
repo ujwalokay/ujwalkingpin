@@ -2,7 +2,7 @@ import { useState, useMemo } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { AreaChart, Area, BarChart, Bar, PieChart, Pie, Cell, LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer, ComposedChart } from "recharts";
-import { Activity, TrendingUp, Users, DollarSign, Zap, RefreshCw, Calendar, Clock, ShoppingBag, UserCheck, Sparkles, Brain, Download } from "lucide-react";
+import { Activity, TrendingUp, Users, IndianRupee, Zap, RefreshCw, Calendar, Clock, ShoppingBag, UserCheck, Sparkles, Brain, Download } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { saveChartAsImage } from "@/lib/chartUtils";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
@@ -256,7 +256,7 @@ export default function Analytics() {
           <Card className="hover:shadow-lg transition-shadow shape-diagonal-rounded">
             <CardHeader className="flex flex-row items-center justify-between pb-2">
               <CardTitle className="text-sm font-medium">Revenue</CardTitle>
-              <DollarSign className="h-4 w-4 text-emerald-500" />
+              <IndianRupee className="h-4 w-4 text-emerald-500" />
             </CardHeader>
             <CardContent>
               <div className="text-2xl font-bold" data-testid="text-total-revenue">
@@ -321,7 +321,7 @@ export default function Analytics() {
           <Card className="hover:shadow-lg transition-shadow shape-diagonal-rounded">
             <CardHeader className="flex flex-row items-center justify-between pb-2">
               <CardTitle className="text-sm font-medium">Food Revenue</CardTitle>
-              <DollarSign className="h-4 w-4 text-green-500" />
+              <IndianRupee className="h-4 w-4 text-green-500" />
             </CardHeader>
             <CardContent>
               <div className="text-2xl font-bold" data-testid="text-food-revenue">
@@ -530,7 +530,7 @@ export default function Analytics() {
               ) : (
                 <div className="h-[350px] flex items-center justify-center border-2 border-dashed rounded-lg">
                   <div className="text-center p-6">
-                    <DollarSign className="h-12 w-12 mx-auto mb-3 text-muted-foreground" />
+                    <IndianRupee className="h-12 w-12 mx-auto mb-3 text-muted-foreground" />
                     <p className="text-sm">Create bookings to see performance data</p>
                   </div>
                 </div>
