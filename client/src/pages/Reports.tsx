@@ -55,11 +55,18 @@ interface BookingHistoryItem {
   bonusHoursApplied?: string | null;
 }
 
+interface SeatDetail {
+  seat: string;
+  duration: string;
+  bookingId: string;
+}
+
 interface GroupedBookingSession {
   id: string;
   date: string;
   customerName: string;
   seats: string[];
+  seatDetails: SeatDetail[];
   duration: string;
   sessionPrice: number;
   foodAmount: number;
@@ -79,6 +86,7 @@ interface UnifiedTransaction {
   date: string;
   customerName: string;
   seats?: string[];
+  seatDetails?: SeatDetail[];
   duration?: string;
   sessionPrice?: number;
   foodAmount: number;
@@ -101,7 +109,7 @@ export default function Reports() {
   const [endDate, setEndDate] = useState<string>("");
   const [selectedMonth, setSelectedMonth] = useState<string>("");
   const [searchQuery, setSearchQuery] = useState<string>("");
-  const [viewSeatsDialog, setViewSeatsDialog] = useState<{ open: boolean; seats: string[] }>({ open: false, seats: [] });
+  const [viewSeatsDialog, setViewSeatsDialog] = useState<{ open: boolean; seatDetails: SeatDetail[] }>({ open: false, seatDetails: [] });
   const [viewBonusDialog, setViewBonusDialog] = useState<{ open: boolean; bonusHours: string }>({ open: false, bonusHours: '' });
   const { toast } = useToast();
 
@@ -188,6 +196,11 @@ export default function Reports() {
           timeDifferenceMinutes < 5
         ) {
           session.seats.push(record.seatName);
+          session.seatDetails.push({
+            seat: record.seatName,
+            duration: record.duration,
+            bookingId: record.id
+          });
           session.bookingIds.push(record.id);
           session.sessionPrice += parseFloat(record.price);
           session.foodAmount += record.foodAmount || 0;
@@ -234,6 +247,11 @@ export default function Reports() {
           date: record.date,
           customerName: record.customerName,
           seats: [record.seatName],
+          seatDetails: [{
+            seat: record.seatName,
+            duration: record.duration,
+            bookingId: record.id
+          }],
           duration: record.duration,
           sessionPrice: parseFloat(record.price),
           foodAmount: record.foodAmount || 0,
@@ -279,6 +297,7 @@ export default function Reports() {
         date: session.date,
         customerName: session.customerName,
         seats: session.seats,
+        seatDetails: session.seatDetails,
         duration: session.duration,
         sessionPrice: session.sessionPrice,
         foodAmount: session.foodAmount,
@@ -760,15 +779,15 @@ export default function Reports() {
                     )}
                     {visibleColumns.includes("seats") && (
                       <TableCell data-testid={`text-seats-${transaction.id}`}>
-                        {transaction.seats && transaction.seats.length > 0 ? (
+                        {transaction.seatDetails && transaction.seatDetails.length > 0 ? (
                           <Button
                             variant="outline"
                             size="sm"
-                            onClick={() => setViewSeatsDialog({ open: true, seats: transaction.seats! })}
+                            onClick={() => setViewSeatsDialog({ open: true, seatDetails: transaction.seatDetails! })}
                             data-testid={`button-view-seats-${transaction.id}`}
                           >
                             <Eye className="mr-2 h-4 w-4" />
-                            View ({transaction.seats.length})
+                            View ({transaction.seatDetails.length})
                           </Button>
                         ) : (
                           <span className="text-muted-foreground text-xs">-</span>
@@ -887,29 +906,37 @@ export default function Reports() {
         </div>
       </div>
 
-      <Dialog open={viewSeatsDialog.open} onOpenChange={(open) => setViewSeatsDialog({ open, seats: [] })}>
+      <Dialog open={viewSeatsDialog.open} onOpenChange={(open) => setViewSeatsDialog({ open, seatDetails: [] })}>
         <DialogContent data-testid="dialog-view-seats">
           <DialogHeader>
-            <DialogTitle>Seat Information</DialogTitle>
+            <DialogTitle>Seat Duration Details</DialogTitle>
             <DialogDescription>
-              View the PC/seat details for this booking session
+              View the PC/seat duration breakdown for this booking session
             </DialogDescription>
           </DialogHeader>
           <div className="space-y-3">
-            <div className="flex flex-wrap gap-2">
-              {viewSeatsDialog.seats.map((seat, idx) => (
+            <div className="space-y-2">
+              {viewSeatsDialog.seatDetails.map((detail, idx) => (
                 <div 
                   key={idx}
-                  className="px-4 py-2 bg-primary/10 text-primary rounded-md font-semibold"
-                  data-testid={`seat-badge-${idx}`}
+                  className="flex items-center justify-between px-4 py-3 bg-card border rounded-md"
+                  data-testid={`seat-detail-${idx}`}
                 >
-                  {seat}
+                  <div className="flex items-center gap-3">
+                    <div className="px-3 py-1 bg-primary/10 text-primary rounded-md font-semibold text-sm">
+                      {detail.seat}
+                    </div>
+                  </div>
+                  <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                    <Clock className="h-4 w-4" />
+                    <span className="font-medium">{detail.duration}</span>
+                  </div>
                 </div>
               ))}
             </div>
-            {viewSeatsDialog.seats.length > 1 && (
-              <p className="text-sm text-muted-foreground">
-                Total Seats: {viewSeatsDialog.seats.length}
+            {viewSeatsDialog.seatDetails.length > 1 && (
+              <p className="text-sm text-muted-foreground border-t pt-3">
+                Total Seats: {viewSeatsDialog.seatDetails.length}
               </p>
             )}
           </div>
