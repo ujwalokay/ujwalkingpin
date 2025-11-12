@@ -276,10 +276,25 @@ export default function Login({ onLoginSuccess }: LoginProps) {
           ))}
 
           <div className="absolute bottom-8 left-8 right-8 z-20 text-white">
-            <h3 className="text-xl font-bold mb-1">
-              {carouselImages[currentImageIndex].caption}
-            </h3>
-            <p className="text-purple-200 text-sm">
+            {currentImageIndex === 0 && (
+              <>
+                <p className="text-3xl font-bold mb-1">India's First</p>
+                <p className="text-lg font-semibold text-purple-200">Gaming Lounge Management POS</p>
+              </>
+            )}
+            {currentImageIndex === 1 && (
+              <>
+                <p className="text-3xl font-bold mb-1">Complete Software</p>
+                <p className="text-lg font-semibold text-purple-200">Solution for Gaming Centers</p>
+              </>
+            )}
+            {currentImageIndex === 2 && (
+              <>
+                <p className="text-3xl font-bold mb-1">Advanced Booking</p>
+                <p className="text-lg font-semibold text-purple-200">& Billing Management System</p>
+              </>
+            )}
+            <p className="text-purple-200 text-sm mt-2">
               Streamline your gaming center operations
             </p>
             
