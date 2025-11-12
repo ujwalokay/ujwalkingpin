@@ -116,8 +116,8 @@ export default function Reports() {
   const reportColumns = useMemo(() => [
     { id: "date", label: "Date", defaultVisible: true },
     { id: "customer", label: "Customer", defaultVisible: true },
-    { id: "seats", label: "Seats", defaultVisible: true },
-    { id: "duration", label: "Duration", defaultVisible: true },
+    { id: "seats", label: "Seat/Duration", defaultVisible: true },
+    { id: "duration", label: "Duration", defaultVisible: false },
     { id: "sessionPrice", label: "Session Price", defaultVisible: true },
     { id: "foodAmount", label: "Food Amount", defaultVisible: true },
     { id: "discount", label: "Discount", defaultVisible: false },
@@ -192,7 +192,6 @@ export default function Reports() {
         
         if (
           session.customerName === record.customerName &&
-          session.duration === record.duration &&
           timeDifferenceMinutes < 5
         ) {
           session.seats.push(record.seatName);
@@ -201,6 +200,9 @@ export default function Reports() {
             duration: record.duration,
             bookingId: record.id
           });
+          if (session.duration !== record.duration) {
+            session.duration = "Mixed";
+          }
           session.bookingIds.push(record.id);
           session.sessionPrice += parseFloat(record.price);
           session.foodAmount += record.foodAmount || 0;
@@ -349,17 +351,22 @@ export default function Reports() {
     }
 
     try {
-      const headers = ["Date", "Customer", "Seats", "Duration", "Session Price (₹)", "Food (₹)", "Payment Method", "Cash (₹)", "UPI (₹)", "Total (₹)", "Status"];
+      const headers = ["Date", "Customer", "Seat/Duration", "Session Price (₹)", "Food (₹)", "Discount", "Bonus", "Payment Method", "Cash (₹)", "UPI (₹)", "Total (₹)", "Status"];
       const csvContent = [
         headers.join(","),
         ...filteredTransactions.map(transaction => {
+          const seatDurationPairs = transaction.seatDetails
+            ? transaction.seatDetails.map(detail => `${detail.seat} (${detail.duration})`).join(' + ')
+            : transaction.seats?.join(' + ') || '-';
+          
           return [
             transaction.date,
             transaction.customerName,
-            transaction.seats?.join(' + ') || '-',
-            transaction.duration || '-',
+            seatDurationPairs,
             transaction.sessionPrice?.toFixed(0) || '-',
             transaction.foodAmount.toFixed(0),
+            transaction.discountApplied || '-',
+            transaction.bonusHoursApplied || '-',
             transaction.paymentMethod || '-',
             transaction.cashAmount.toFixed(0),
             transaction.upiAmount.toFixed(0),
@@ -468,27 +475,37 @@ export default function Reports() {
               <tr>
                 <th>Date</th>
                 <th>Customer</th>
-                <th>Seats</th>
-                <th class="text-right">Payment Method</th>
+                <th>Seat/Duration</th>
+                <th class="text-right">Session Price</th>
+                <th class="text-right">Food</th>
+                <th class="text-right">Discount</th>
+                <th class="text-right">Bonus</th>
+                <th class="text-right">Payment</th>
                 <th class="text-right">Cash</th>
                 <th class="text-right">UPI</th>
                 <th class="text-right">Total</th>
+                <th>Status</th>
               </tr>
             </thead>
             <tbody>
               ${filteredTransactions.map(transaction => {
-                const detailsDisplay = transaction.seats 
-                  ? transaction.seats.map(s => `<span class="badge">${s}</span>`).join(' ')
-                  : '-';
+                const detailsDisplay = transaction.seatDetails 
+                  ? transaction.seatDetails.map(d => `<span class="badge">${d.seat} (${d.duration})</span>`).join(' ')
+                  : transaction.seats?.map(s => `<span class="badge">${s}</span>`).join(' ') || '-';
                 return `
                   <tr>
                     <td>${transaction.date}</td>
                     <td>${transaction.customerName}</td>
                     <td>${detailsDisplay}</td>
+                    <td class="text-right">${transaction.sessionPrice ? '₹' + transaction.sessionPrice.toFixed(0) : '-'}</td>
+                    <td class="text-right">${transaction.foodAmount > 0 ? '₹' + transaction.foodAmount.toFixed(0) : '-'}</td>
+                    <td class="text-right">${transaction.discountApplied || '-'}</td>
+                    <td class="text-right">${transaction.bonusHoursApplied || '-'}</td>
                     <td class="text-right">${transaction.paymentMethod || '-'}</td>
                     <td class="text-right">${transaction.cashAmount > 0 ? '₹' + transaction.cashAmount.toFixed(0) : '-'}</td>
                     <td class="text-right">${transaction.upiAmount > 0 ? '₹' + transaction.upiAmount.toFixed(0) : '-'}</td>
                     <td class="text-right"><strong>₹${transaction.totalAmount.toFixed(0)}</strong></td>
+                    <td>${transaction.paymentStatus || '-'}</td>
                   </tr>
                 `;
               }).join('')}
@@ -746,7 +763,7 @@ export default function Reports() {
               <TableRow>
                 {visibleColumns.includes("date") && <TableHead>Date</TableHead>}
                 {visibleColumns.includes("customer") && <TableHead>Customer</TableHead>}
-                {visibleColumns.includes("seats") && <TableHead>Seats</TableHead>}
+                {visibleColumns.includes("seats") && <TableHead>Seat/Duration</TableHead>}
                 {visibleColumns.includes("duration") && <TableHead>Duration</TableHead>}
                 {visibleColumns.includes("sessionPrice") && <TableHead className="text-right">Session Price</TableHead>}
                 {visibleColumns.includes("foodAmount") && <TableHead className="text-right">Food</TableHead>}
