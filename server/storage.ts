@@ -337,14 +337,14 @@ export class DatabaseStorage implements IStorage {
       if (adminPassword.length < 8) {
         console.error('❌ WARNING: ADMIN_PASSWORD must be at least 8 characters long. Admin user not created.');
       } else {
-        // Create admin user with email if provided
+        // Create admin user with email if provided (skip strict validation for initial setup)
         const adminEmail = process.env.ADMIN_EMAIL;
         await this.createUser({
           username: adminUsername,
           password: adminPassword,
           email: adminEmail,
           role: "admin"
-        });
+        }, true);
         console.log(`✅ Admin user created with username: ${adminUsername}`);
         if (adminEmail) {
           console.log(`✅ Admin email set to: ${adminEmail}`);
@@ -360,7 +360,7 @@ export class DatabaseStorage implements IStorage {
             username: staffUsername,
             password: staffPassword,
             role: "staff"
-          });
+          }, true);
           console.log(`✅ Staff user created with username: ${staffUsername}`);
         }
       } else {
@@ -382,7 +382,7 @@ export class DatabaseStorage implements IStorage {
               username: staffUsername,
               password: staffPassword,
               role: "staff"
-            });
+            }, true);
             console.log(`✅ Staff user created with username: ${staffUsername}`);
           }
         }
@@ -1244,11 +1244,13 @@ export class DatabaseStorage implements IStorage {
     return true;
   }
 
-  async createUser(user: InsertUser): Promise<User> {
-    // Validate password strength
-    const passwordValidation = validatePasswordStrength(user.password);
-    if (!passwordValidation.valid) {
-      throw new Error(`Password validation failed: ${passwordValidation.errors.join(', ')}`);
+  async createUser(user: InsertUser, skipValidation: boolean = false): Promise<User> {
+    // Validate password strength (unless skipValidation is true for system initialization)
+    if (!skipValidation) {
+      const passwordValidation = validatePasswordStrength(user.password);
+      if (!passwordValidation.valid) {
+        throw new Error(`Password validation failed: ${passwordValidation.errors.join(', ')}`);
+      }
     }
     
     const saltRounds = SecurityConfig.password.saltRounds;
