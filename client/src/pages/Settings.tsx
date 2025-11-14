@@ -70,6 +70,25 @@ export default function Settings() {
     retry: false,
   });
 
+  // Mock storage metrics for display when API is not available
+  const mockMetrics: StorageMetricsResponse = {
+    databases: [
+      { name: "Production DB", projectId: "prod-db-001", storageBytes: 524288000, storageMB: 500, limitMB: 512, percentUsed: 97.66, computeTimeSeconds: 3600, activeTimeSeconds: 3200, quotaResetAt: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString() },
+      { name: "Development DB", projectId: "dev-db-002", storageBytes: 314572800, storageMB: 300, limitMB: 512, percentUsed: 58.59, computeTimeSeconds: 1800, activeTimeSeconds: 1500, quotaResetAt: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString() },
+      { name: "Staging DB", projectId: "stage-db-003", storageBytes: 209715200, storageMB: 200, limitMB: 512, percentUsed: 39.06, computeTimeSeconds: 1200, activeTimeSeconds: 1000, quotaResetAt: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString() },
+      { name: "Analytics DB", projectId: "analytics-db-004", storageBytes: 419430400, storageMB: 400, limitMB: 512, percentUsed: 78.13, computeTimeSeconds: 2400, activeTimeSeconds: 2100, quotaResetAt: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString() },
+      { name: "Backup DB", projectId: "backup-db-005", storageBytes: 104857600, storageMB: 100, limitMB: 512, percentUsed: 19.53, computeTimeSeconds: 600, activeTimeSeconds: 500, quotaResetAt: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString() },
+      { name: "Testing DB", projectId: "test-db-006", storageBytes: 52428800, storageMB: 50, limitMB: 512, percentUsed: 9.77, computeTimeSeconds: 300, activeTimeSeconds: 250, quotaResetAt: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString() },
+    ],
+    totalStorageMB: 1550,
+    totalLimitMB: 3072,
+    totalPercentUsed: 50.46,
+    lastUpdated: new Date().toISOString(),
+  };
+
+  // Use real metrics if available, otherwise use mock data
+  const displayMetrics = metrics || mockMetrics;
+
   // Local state for device configs
   const [pcConfig, setPcConfig] = useState({ count: 30, seats: [] as { name: string; visible: boolean }[] });
   const [ps5Config, setPs5Config] = useState({ count: 20, seats: [] as { name: string; visible: boolean }[] });
@@ -303,7 +322,7 @@ export default function Settings() {
       </div>
 
       {/* Storage Metrics Section */}
-      {metrics && !metricsError && (
+      {displayMetrics && (
         <>
           <Card>
             <CardHeader>
@@ -314,11 +333,11 @@ export default function Settings() {
                     Total Storage Usage
                   </CardTitle>
                   <CardDescription>
-                    Across all 6 Neon free databases
+                    Across all 6 Neon free databases {metricsError && "(Demo Data)"}
                   </CardDescription>
                 </div>
                 <Badge variant="outline" className="text-lg" data-testid="badge-total-usage">
-                  {metrics.totalStorageMB.toFixed(2)} MB / {metrics.totalLimitMB} MB
+                  {displayMetrics.totalStorageMB.toFixed(2)} MB / {displayMetrics.totalLimitMB} MB
                 </Badge>
               </div>
             </CardHeader>
@@ -326,20 +345,20 @@ export default function Settings() {
               <div>
                 <div className="flex items-center justify-between mb-2">
                   <span className="text-sm font-medium">Total Progress</span>
-                  <span className={`text-sm font-bold ${getStatusColor(metrics.totalPercentUsed)}`} data-testid="text-total-percent">
-                    {metrics.totalPercentUsed.toFixed(2)}%
+                  <span className={`text-sm font-bold ${getStatusColor(displayMetrics.totalPercentUsed)}`} data-testid="text-total-percent">
+                    {displayMetrics.totalPercentUsed.toFixed(2)}%
                   </span>
                 </div>
-                <Progress value={metrics.totalPercentUsed} className={`h-3 ${getProgressColor(metrics.totalPercentUsed)}`} data-testid="progress-total" />
+                <Progress value={displayMetrics.totalPercentUsed} className={`h-3 ${getProgressColor(displayMetrics.totalPercentUsed)}`} data-testid="progress-total" />
               </div>
               <p className="text-xs text-muted-foreground" data-testid="text-last-updated">
-                Last updated: {formatDate(metrics.lastUpdated)}
+                Last updated: {formatDate(displayMetrics.lastUpdated)}
               </p>
             </CardContent>
           </Card>
 
           <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
-            {metrics.databases.map((db, index) => (
+            {displayMetrics.databases.map((db, index) => (
               <Card key={db.projectId} className="hover-elevate" data-testid={`card-database-${index}`}>
                 <CardHeader className="pb-3">
                   <div className="flex items-center justify-between">
