@@ -1085,16 +1085,16 @@ export default function Dashboard() {
       <InstallPrompt />
 
       <Dialog open={showPaymentDialog} onOpenChange={setShowPaymentDialog}>
-        <DialogContent className="sm:max-w-2xl">
+        <DialogContent className="w-[95vw] max-w-2xl max-h-[90vh] overflow-y-auto">
           <DialogHeader>
-            <DialogTitle>Payment Confirmation</DialogTitle>
-            <DialogDescription>
+            <DialogTitle className="text-lg sm:text-xl">Payment Confirmation</DialogTitle>
+            <DialogDescription className="text-sm">
               Review selected bookings and choose payment method
             </DialogDescription>
           </DialogHeader>
           
-          <div className="max-h-[400px] overflow-y-auto rounded-md border p-4 bg-muted/30">
-            <h3 className="font-semibold mb-3 text-sm text-muted-foreground uppercase">Selected Bookings Summary</h3>
+          <div className="max-h-[35vh] sm:max-h-[400px] overflow-y-auto rounded-md border p-3 sm:p-4 bg-muted/30">
+            <h3 className="font-semibold mb-3 text-xs sm:text-sm text-muted-foreground uppercase">Selected Bookings Summary</h3>
             {(() => {
               const selectedBookingsList = filteredBookings.filter(b => selectedBookings.has(b.id));
               const groupedByCustomer = selectedBookingsList.reduce((acc, booking) => {
@@ -1107,7 +1107,7 @@ export default function Dashboard() {
               }, {} as Record<string, typeof filteredBookings>);
 
               return (
-                <div className="space-y-4">
+                <div className="space-y-3 sm:space-y-4">
                   {Object.entries(groupedByCustomer).map(([customerName, customerBookings]) => {
                     const customerTotal = customerBookings.reduce((sum, booking) => {
                       const foodTotal = booking.foodOrders 
@@ -1117,13 +1117,13 @@ export default function Dashboard() {
                     }, 0);
 
                     return (
-                      <div key={customerName} className="bg-background rounded-lg p-3 border">
-                        <div className="flex items-center justify-between mb-2">
-                          <h4 className="font-bold text-base">{customerName}</h4>
-                          <span className="text-sm font-semibold text-primary">₹{customerTotal.toFixed(0)}</span>
+                      <div key={customerName} className="bg-background rounded-lg p-2.5 sm:p-3 border">
+                        <div className="flex items-center justify-between mb-1.5 sm:mb-2 gap-2">
+                          <h4 className="font-bold text-sm sm:text-base truncate">{customerName}</h4>
+                          <span className="text-sm sm:text-base font-semibold text-primary whitespace-nowrap">₹{customerTotal.toFixed(0)}</span>
                         </div>
                         <div className="space-y-1">
-                          <p className="text-sm text-muted-foreground">
+                          <p className="text-xs sm:text-sm text-muted-foreground break-words">
                             {customerBookings.length} PC{customerBookings.length > 1 ? 's' : ''}: {' '}
                             {customerBookings.map(b => b.seatName).join(', ')}
                           </p>
@@ -1131,10 +1131,10 @@ export default function Dashboard() {
                       </div>
                     );
                   })}
-                  <div className="pt-3 border-t mt-4">
-                    <div className="flex items-center justify-between">
-                      <span className="font-bold text-base">Grand Total</span>
-                      <span className="font-bold text-xl text-primary">
+                  <div className="pt-2.5 sm:pt-3 border-t mt-3 sm:mt-4">
+                    <div className="flex items-center justify-between gap-2">
+                      <span className="font-bold text-sm sm:text-base">Grand Total</span>
+                      <span className="font-bold text-lg sm:text-xl text-primary whitespace-nowrap">
                         ₹{selectedBookingsList.reduce((sum, booking) => {
                           const foodTotal = booking.foodOrders 
                             ? booking.foodOrders.reduce((fSum, order) => fSum + parseFloat(order.price) * order.quantity, 0)
@@ -1143,7 +1143,7 @@ export default function Dashboard() {
                         }, 0).toFixed(0)}
                       </span>
                     </div>
-                    <p className="text-sm text-muted-foreground mt-1">
+                    <p className="text-xs sm:text-sm text-muted-foreground mt-1">
                       Total: {selectedBookings.size} booking{selectedBookings.size > 1 ? 's' : ''} from {Object.keys(groupedByCustomer).length} customer{Object.keys(groupedByCustomer).length > 1 ? 's' : ''}
                     </p>
                   </div>
@@ -1152,17 +1152,17 @@ export default function Dashboard() {
             })()}
           </div>
 
-          <div className="grid gap-3 pt-4 border-t">
-            <p className="text-base font-bold text-center pt-4">Select Payment Method</p>
-            <p className="text-sm text-center text-muted-foreground -mt-2">Choose how the customer paid</p>
+          <div className="grid gap-2.5 sm:gap-3 pt-3 sm:pt-4 border-t">
+            <p className="text-sm sm:text-base font-bold text-center pt-2 sm:pt-4">Select Payment Method</p>
+            <p className="text-xs sm:text-sm text-center text-muted-foreground -mt-1 sm:-mt-2">Choose how the customer paid</p>
             <Button
               variant="outline"
               size="lg"
               onClick={() => handlePaymentMethod("cash")}
               data-testid="button-payment-cash"
-              className="h-16 text-lg border-2 hover:border-primary hover:bg-primary/5"
+              className="h-12 sm:h-16 text-base sm:text-lg border-2 hover:border-primary hover:bg-primary/5"
             >
-              <Wallet className="mr-2 h-5 w-5" />
+              <Wallet className="mr-1.5 sm:mr-2 h-4 w-4 sm:h-5 sm:w-5" />
               Full Cash
             </Button>
             <Button
@@ -1170,9 +1170,9 @@ export default function Dashboard() {
               size="lg"
               onClick={() => handlePaymentMethod("upi_online")}
               data-testid="button-payment-upi"
-              className="h-16 text-lg border-2 hover:border-primary hover:bg-primary/5"
+              className="h-12 sm:h-16 text-base sm:text-lg border-2 hover:border-primary hover:bg-primary/5"
             >
-              <Wallet className="mr-2 h-5 w-5" />
+              <Wallet className="mr-1.5 sm:mr-2 h-4 w-4 sm:h-5 sm:w-5" />
               Full UPI
             </Button>
             <div className="relative">
@@ -1191,9 +1191,9 @@ export default function Dashboard() {
                 setShowSplitPaymentDialog(true);
               }}
               data-testid="button-payment-split"
-              className="h-16 text-lg border-2 hover:border-blue-500 hover:bg-blue-500/5 border-blue-300 dark:border-blue-700"
+              className="h-12 sm:h-16 text-base sm:text-lg border-2 hover:border-blue-500 hover:bg-blue-500/5 border-blue-300 dark:border-blue-700"
             >
-              <Calculator className="mr-2 h-5 w-5" />
+              <Calculator className="mr-1.5 sm:mr-2 h-4 w-4 sm:h-5 sm:w-5" />
               Split Payment (Cash + UPI)
             </Button>
           </div>
