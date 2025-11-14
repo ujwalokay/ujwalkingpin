@@ -1,621 +1,226 @@
-import { useState, useEffect, useMemo } from "react";
-import { useQuery, useMutation } from "@tanstack/react-query";
-import { DeviceConfigCard } from "@/components/DeviceConfigCard";
-import { PricingTable } from "@/components/PricingTable";
-import { HappyHoursTable } from "@/components/HappyHoursTable";
-import { HappyHoursPricing } from "@/components/HappyHoursPricing";
-import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
-import { Save, Plus, Trash2, Award, AlertTriangle } from "lucide-react";
-import { useToast } from "@/hooks/use-toast";
-import { apiRequest, queryClient } from "@/lib/queryClient";
-import { Skeleton } from "@/components/ui/skeleton";
-import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogFooter,
-  DialogHeader,
-  DialogTitle,
-} from "@/components/ui/dialog";
-import {
-  AlertDialog,
-  AlertDialogAction,
-  AlertDialogCancel,
-  AlertDialogContent,
-  AlertDialogDescription,
-  AlertDialogFooter,
-  AlertDialogHeader,
-  AlertDialogTitle,
-} from "@/components/ui/alert-dialog";
+import { useQuery } from "@tanstack/react-query";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
-import type { Booking } from "@shared/schema";
-import { useAuth } from "@/contexts/AuthContext";
-import { useUnsavedChanges } from "@/hooks/useUnsavedChanges";
+import { Progress } from "@/components/ui/progress";
+import { Badge } from "@/components/ui/badge";
+import { Database, HardDrive, RefreshCw, AlertTriangle, CheckCircle2 } from "lucide-react";
+import { Button } from "@/components/ui/button";
+import { queryClient } from "@/lib/queryClient";
 
-interface DeviceConfig {
-  id: string;
-  category: string;
-  count: number;
-  seats: string[];
+interface DatabaseMetrics {
+  name: string;
+  projectId: string;
+  storageBytes: number;
+  storageMB: number;
+  limitMB: number;
+  percentUsed: number;
+  computeTimeSeconds: number;
+  activeTimeSeconds: number;
+  quotaResetAt: string | null;
 }
 
-interface PricingConfig {
-  id: string;
-  category: string;
-  duration: string;
-  price: string;
-  personCount?: number;
-}
-
-interface PricingSlot {
-  duration: string;
-  price: number;
-  personCount?: number;
-}
-
-interface HappyHoursConfig {
-  id: string;
-  category: string;
-  startTime: string;
-  endTime: string;
-  enabled: number;
-}
-
-interface HappyHoursSlot {
-  startTime: string;
-  endTime: string;
-}
-
-interface HappyHoursData {
-  enabled: boolean;
-  slots: HappyHoursSlot[];
-}
-
-interface CategoryState {
-  category: string;
-  count: number;
-  seats: { name: string; visible: boolean }[];
-  pricing: PricingSlot[];
-  happyHours: HappyHoursData;
-  happyHoursPricing: PricingSlot[];
+interface StorageMetricsResponse {
+  databases: DatabaseMetrics[];
+  totalStorageMB: number;
+  totalLimitMB: number;
+  totalPercentUsed: number;
+  lastUpdated: string;
 }
 
 export default function Settings() {
-  const { toast } = useToast();
-  const { isAdmin, canMakeChanges, deviceRestricted, user } = useAuth();
-
-  const { data: deviceConfigs, isLoading: deviceLoading } = useQuery<DeviceConfig[]>({
-    queryKey: ["/api/device-config"],
+  const { data: metrics, isLoading, error, refetch } = useQuery<StorageMetricsResponse>({
+    queryKey: ["/api/storage/metrics"],
+    refetchInterval: 60000,
   });
 
-  const { data: pricingConfigs, isLoading: pricingLoading } = useQuery<PricingConfig[]>({
-    queryKey: ["/api/pricing-config"],
-  });
-
-  const { data: happyHoursConfigs, isLoading: happyHoursLoading } = useQuery<HappyHoursConfig[]>({
-    queryKey: ["/api/happy-hours-config"],
-  });
-
-  const { data: happyHoursPricingConfigs, isLoading: happyHoursPricingLoading } = useQuery<PricingConfig[]>({
-    queryKey: ["/api/happy-hours-pricing"],
-  });
-
-  const { data: bookings = [] } = useQuery<Booking[]>({
-    queryKey: ["/api/bookings"],
-  });
-
-  const [categories, setCategories] = useState<CategoryState[]>([]);
-  const [originalCategories, setOriginalCategories] = useState<CategoryState[]>([]);
-  const [showAddDialog, setShowAddDialog] = useState(false);
-  const [newCategoryName, setNewCategoryName] = useState("");
-
-  useEffect(() => {
-    if (deviceConfigs && pricingConfigs && happyHoursConfigs && happyHoursPricingConfigs) {
-      const categoryMap = new Map<string, CategoryState>();
-
-      deviceConfigs.forEach(config => {
-        const pricing = pricingConfigs
-          .filter(p => p.category === config.category)
-          .map(p => ({ duration: p.duration, price: parseFloat(p.price), personCount: p.personCount || 1 }));
-
-        const happyHoursSlots = happyHoursConfigs
-          .filter(h => h.category === config.category)
-          .map(h => ({ startTime: h.startTime, endTime: h.endTime }));
-
-        const happyHoursEnabled = happyHoursConfigs.find(h => h.category === config.category)?.enabled === 1;
-
-        const happyHoursPricing = happyHoursPricingConfigs
-          .filter(p => p.category === config.category)
-          .map(p => ({ duration: p.duration, price: parseFloat(p.price), personCount: p.personCount || 1 }));
-
-        categoryMap.set(config.category, {
-          category: config.category,
-          count: config.count,
-          seats: config.seats.map(seat => ({ name: seat, visible: true })),
-          pricing: pricing.length > 0 ? pricing : [{ duration: "30 mins", price: 0, personCount: 1 }],
-          happyHours: {
-            enabled: happyHoursEnabled,
-            slots: happyHoursSlots.length > 0 ? happyHoursSlots : [{ startTime: "10:00", endTime: "12:00" }],
-          },
-          happyHoursPricing: happyHoursPricing.length > 0 ? happyHoursPricing : [{ duration: "30 mins", price: 0, personCount: 1 }],
-        });
-      });
-
-      pricingConfigs.forEach(config => {
-        if (!categoryMap.has(config.category)) {
-          categoryMap.set(config.category, {
-            category: config.category,
-            count: 0,
-            seats: [],
-            pricing: [{ duration: config.duration, price: parseFloat(config.price), personCount: config.personCount || 1 }],
-            happyHours: { enabled: false, slots: [{ startTime: "10:00", endTime: "12:00" }] },
-            happyHoursPricing: [{ duration: "30 mins", price: 0, personCount: 1 }],
-          });
-        }
-      });
-
-      const categoriesArray = Array.from(categoryMap.values());
-      setCategories(categoriesArray);
-      setOriginalCategories(JSON.parse(JSON.stringify(categoriesArray)));
-    }
-  }, [deviceConfigs, pricingConfigs, happyHoursConfigs, happyHoursPricingConfigs]);
-
-  const saveDeviceConfigMutation = useMutation({
-    mutationFn: async (config: { category: string; count: number; seats: string[] }) => {
-      return await apiRequest("POST", "/api/device-config", config);
-    },
-  });
-
-  const savePricingConfigMutation = useMutation({
-    mutationFn: async (data: { category: string; configs: { duration: string; price: string | number; personCount?: number }[] }) => {
-      return await apiRequest("POST", "/api/pricing-config", data);
-    },
-  });
-
-  const saveHappyHoursConfigMutation = useMutation({
-    mutationFn: async (data: { category: string; configs: { startTime: string; endTime: string; enabled: number }[] }) => {
-      return await apiRequest("POST", "/api/happy-hours-config", data);
-    },
-  });
-
-  const saveHappyHoursPricingMutation = useMutation({
-    mutationFn: async (data: { category: string; configs: { duration: string; price: string | number; personCount?: number }[] }) => {
-      return await apiRequest("POST", "/api/happy-hours-pricing", data);
-    },
-  });
-
-  const deleteCategoryMutation = useMutation({
-    mutationFn: async (category: string) => {
-      await apiRequest("DELETE", `/api/device-config/${category}`);
-      await apiRequest("DELETE", `/api/pricing-config/${category}`);
-      await apiRequest("DELETE", `/api/happy-hours-config/${category}`);
-      await apiRequest("DELETE", `/api/happy-hours-pricing/${category}`);
-      return { success: true };
-    },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["/api/device-config"] });
-      queryClient.invalidateQueries({ queryKey: ["/api/pricing-config"] });
-      queryClient.invalidateQueries({ queryKey: ["/api/happy-hours-config"] });
-      queryClient.invalidateQueries({ queryKey: ["/api/happy-hours-pricing"] });
-      queryClient.invalidateQueries({ queryKey: ["/api/happy-hours-active"] });
-    },
-  });
-
-  const updateCategoryCount = (category: string, newCount: number) => {
-    setCategories(prev => prev.map(cat => {
-      if (cat.category !== category) return cat;
-
-      const currentSeats = cat.seats.length;
-      let newSeats = cat.seats;
-
-      if (newCount > currentSeats) {
-        const additional = Array.from({ length: newCount - currentSeats }, (_, i) => ({
-          name: `${category}-${currentSeats + i + 1}`,
-          visible: true,
-        }));
-        newSeats = [...cat.seats, ...additional];
-      } else if (newCount < currentSeats) {
-        newSeats = cat.seats.slice(0, newCount);
-      }
-
-      return { ...cat, count: newCount, seats: newSeats };
-    }));
+  const handleRefresh = () => {
+    queryClient.invalidateQueries({ queryKey: ["/api/storage/metrics"] });
   };
 
-  const toggleSeatVisibility = (category: string, seatName: string) => {
-    setCategories(prev => prev.map(cat => 
-      cat.category === category
-        ? {
-            ...cat,
-            seats: cat.seats.map(seat =>
-              seat.name === seatName ? { ...seat, visible: !seat.visible } : seat
-            )
-          }
-        : cat
-    ));
+  const getStatusColor = (percentUsed: number) => {
+    if (percentUsed >= 90) return "text-red-500";
+    if (percentUsed >= 75) return "text-yellow-500";
+    return "text-green-500";
   };
 
-  const updateCategoryPricing = (category: string, pricing: PricingSlot[]) => {
-    setCategories(prev => prev.map(cat =>
-      cat.category === category ? { ...cat, pricing } : cat
-    ));
+  const getStatusIcon = (percentUsed: number) => {
+    if (percentUsed >= 90) return <AlertTriangle className="h-4 w-4 text-red-500" />;
+    if (percentUsed >= 75) return <AlertTriangle className="h-4 w-4 text-yellow-500" />;
+    return <CheckCircle2 className="h-4 w-4 text-green-500" />;
   };
 
-  const updateCategoryHappyHours = (category: string, happyHours: HappyHoursData) => {
-    setCategories(prev => prev.map(cat =>
-      cat.category === category ? { ...cat, happyHours } : cat
-    ));
+  const getProgressColor = (percentUsed: number) => {
+    if (percentUsed >= 90) return "[&>*]:bg-red-500";
+    if (percentUsed >= 75) return "[&>*]:bg-yellow-500";
+    return "[&>*]:bg-green-500";
   };
 
-  const updateCategoryHappyHoursPricing = (category: string, happyHoursPricing: PricingSlot[]) => {
-    setCategories(prev => prev.map(cat =>
-      cat.category === category ? { ...cat, happyHoursPricing } : cat
-    ));
-  };
-
-  const addCategory = async () => {
-    if (!newCategoryName.trim()) return;
-    
-    const exists = categories.some(c => c.category.toLowerCase() === newCategoryName.trim().toLowerCase());
-    if (exists) {
-      toast({
-        title: "Category exists",
-        description: "A category with this name already exists",
-        variant: "destructive",
-      });
-      return;
-    }
-
-    const newCategory = {
-      category: newCategoryName.trim(),
-      count: 0,
-      seats: [],
-      pricing: [{ duration: "30 mins", price: 0, personCount: 1 }],
-    };
-
-    try {
-      await saveDeviceConfigMutation.mutateAsync({
-        category: newCategory.category,
-        count: 0,
-        seats: [],
-      });
-
-      await savePricingConfigMutation.mutateAsync({
-        category: newCategory.category,
-        configs: [{ duration: "30 mins", price: "0", personCount: 1 }],
-      });
-
-      queryClient.invalidateQueries({ queryKey: ["/api/device-config"] });
-      queryClient.invalidateQueries({ queryKey: ["/api/pricing-config"] });
-      queryClient.invalidateQueries({ queryKey: ["/api/happy-hours-active"] });
-
-      toast({
-        title: "Category added",
-        description: `${newCategory.category} has been created successfully`,
-      });
-
-      setNewCategoryName("");
-      setShowAddDialog(false);
-    } catch (error: any) {
-      toast({
-        title: "Error",
-        description: error.message || "Failed to add category",
-        variant: "destructive",
-      });
-    }
-  };
-
-  const deleteCategory = async (category: string) => {
-    const hasBookings = bookings.some(b => b.category === category && b.status === "running");
-    if (hasBookings) {
-      toast({
-        title: "Cannot delete",
-        description: "This category has active bookings",
-        variant: "destructive",
-      });
-      return;
-    }
-
-    try {
-      await deleteCategoryMutation.mutateAsync(category);
-      setCategories(prev => prev.filter(c => c.category !== category));
-      toast({
-        title: "Category deleted",
-        description: `${category} has been removed successfully`,
-      });
-    } catch (error: any) {
-      toast({
-        title: "Error",
-        description: error.message || "Failed to delete category",
-        variant: "destructive",
-      });
-    }
-  };
-
-  const handleSave = async () => {
-    try {
-      const savePromises = categories.flatMap(cat => [
-        saveDeviceConfigMutation.mutateAsync({
-          category: cat.category,
-          count: cat.count,
-          seats: cat.seats.filter(s => s.visible).map(s => s.name),
-        }),
-        savePricingConfigMutation.mutateAsync({
-          category: cat.category,
-          configs: cat.pricing.map(p => ({ ...p, price: p.price.toString() })),
-        }),
-        saveHappyHoursConfigMutation.mutateAsync({
-          category: cat.category,
-          configs: cat.happyHours.slots.map(slot => ({
-            ...slot,
-            enabled: cat.happyHours.enabled ? 1 : 0,
-          })),
-        }),
-        saveHappyHoursPricingMutation.mutateAsync({
-          category: cat.category,
-          configs: cat.happyHoursPricing.map(p => ({ ...p, price: p.price.toString() })),
-        }),
-      ]);
-
-      await Promise.all(savePromises);
-
-      queryClient.invalidateQueries({ queryKey: ["/api/device-config"] });
-      queryClient.invalidateQueries({ queryKey: ["/api/pricing-config"] });
-      queryClient.invalidateQueries({ queryKey: ["/api/happy-hours-config"] });
-      queryClient.invalidateQueries({ queryKey: ["/api/happy-hours-pricing"] });
-      queryClient.invalidateQueries({ queryKey: ["/api/happy-hours-active"] });
-
-      setOriginalCategories(JSON.parse(JSON.stringify(categories)));
-
-      toast({
-        title: "Settings Saved",
-        description: "Your configuration has been updated successfully.",
-      });
-    } catch (error: any) {
-      toast({
-        title: "Error",
-        description: error.message || "Failed to save settings",
-        variant: "destructive",
-      });
-    }
-  };
-
-  const getAvailableCount = (category: string, totalCount: number): number => {
-    const occupied = bookings.filter(
-      b => b.category === category && b.status === "running"
-    ).length;
-    return totalCount - occupied;
-  };
-
-  const hasUnsavedChanges = useMemo(() => {
-    return JSON.stringify(categories) !== JSON.stringify(originalCategories);
-  }, [categories, originalCategories]);
-
-  const { showConfirmDialog, confirmNavigation, cancelNavigation } = useUnsavedChanges({
-    hasUnsavedChanges,
-    message: "You have unsaved changes in Settings. Do you want to leave without saving?",
-  });
-
-  if (deviceLoading || pricingLoading || happyHoursLoading || happyHoursPricingLoading) {
+  if (isLoading) {
     return (
-      <div className="space-y-6">
-        <Skeleton className="h-20 w-full" />
-        <Skeleton className="h-96 w-full" />
+      <div className="flex items-center justify-center min-h-screen">
+        <div className="text-center">
+          <RefreshCw className="h-8 w-8 animate-spin mx-auto mb-2" />
+          <p className="text-muted-foreground">Loading storage metrics...</p>
+        </div>
       </div>
     );
   }
 
+  if (error) {
+    return (
+      <div className="container mx-auto p-6">
+        <Card>
+          <CardHeader>
+            <CardTitle className="text-red-500">Error Loading Metrics</CardTitle>
+            <CardDescription>Failed to fetch storage metrics. Please ensure NEON_API_KEY is configured correctly.</CardDescription>
+          </CardHeader>
+          <CardContent>
+            <p className="text-sm text-muted-foreground">{error instanceof Error ? error.message : 'Unknown error'}</p>
+            <Button onClick={handleRefresh} className="mt-4" data-testid="button-retry">
+              <RefreshCw className="h-4 w-4 mr-2" />
+              Retry
+            </Button>
+          </CardContent>
+        </Card>
+      </div>
+    );
+  }
+
+  if (!metrics) {
+    return null;
+  }
+
+  const formatDate = (dateString: string | null) => {
+    if (!dateString) return "N/A";
+    return new Date(dateString).toLocaleString();
+  };
+
   return (
-    <div className="space-y-6 p-4 sm:p-6">
-      <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+    <div className="container mx-auto p-6 space-y-6">
+      <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-2xl font-bold text-foreground sm:text-3xl">Settings</h1>
-          <p className="text-sm text-muted-foreground sm:text-base">Configure devices and pricing{!isAdmin && " (View Only)"}</p>
+          <h1 className="text-3xl font-bold" data-testid="text-settings-title">Settings</h1>
+          <p className="text-muted-foreground">Manage your application settings and monitor storage</p>
         </div>
-        {isAdmin && (
-          <TooltipProvider>
-            <Tooltip>
-              <TooltipTrigger asChild>
-                <Button 
-                  onClick={handleSave} 
-                  data-testid="button-save-settings"
-                  disabled={saveDeviceConfigMutation.isPending || savePricingConfigMutation.isPending}
-                  className="w-full sm:w-auto"
-                >
-                  <Save className="mr-2 h-4 w-4" />
-                  Save Changes
-                </Button>
-              </TooltipTrigger>
-              <TooltipContent>
-                <p>Save all device, pricing, and happy hours configuration changes</p>
-              </TooltipContent>
-            </Tooltip>
-          </TooltipProvider>
-        )}
+        <Button onClick={handleRefresh} variant="outline" data-testid="button-refresh">
+          <RefreshCw className="h-4 w-4 mr-2" />
+          Refresh
+        </Button>
       </div>
 
-      <div>
-        <div className="flex flex-col gap-3 mb-4 sm:flex-row sm:items-center sm:justify-between">
-          <h2 className="text-lg font-semibold sm:text-xl">Device Configuration</h2>
-          {isAdmin && (
-            <TooltipProvider>
-              <Tooltip>
-                <TooltipTrigger asChild>
-                  <Button 
-                    variant="outline" 
-                    onClick={() => setShowAddDialog(true)}
-                    data-testid="button-add-category"
-                    className="w-full sm:w-auto"
-                  >
-                    <Plus className="mr-2 h-4 w-4" />
-                    Add Category
-                  </Button>
-                </TooltipTrigger>
-                <TooltipContent>
-                  <p>Add a new device category (e.g., PC, PS5, VR) to your gaming center</p>
-                </TooltipContent>
-              </Tooltip>
-            </TooltipProvider>
-          )}
-        </div>
-        <div className="grid gap-4 sm:grid-cols-1 lg:grid-cols-2 xl:grid-cols-3">
-          {categories.map(cat => (
-            <div key={cat.category} className="relative">
-              <DeviceConfigCard
-                title={cat.category}
-                description={`Configure ${cat.category} (${getAvailableCount(cat.category, cat.count)}/${cat.count} available)`}
-                count={cat.count}
-                onCountChange={isAdmin ? (newCount) => updateCategoryCount(cat.category, newCount) : () => {}}
-                seats={cat.seats}
-                onToggleVisibility={isAdmin ? (seatName) => toggleSeatVisibility(cat.category, seatName) : () => {}}
-              />
-              {isAdmin && (
-                <TooltipProvider>
-                  <Tooltip>
-                    <TooltipTrigger asChild>
-                      <Button
-                        variant="ghost"
-                        size="icon"
-                        className="absolute top-2 right-2"
-                        onClick={() => deleteCategory(cat.category)}
-                        data-testid={`button-delete-${cat.category.toLowerCase()}`}
-                      >
-                        <Trash2 className="h-4 w-4" />
-                      </Button>
-                    </TooltipTrigger>
-                    <TooltipContent>
-                      <p>Delete {cat.category} category and all its settings</p>
-                    </TooltipContent>
-                  </Tooltip>
-                </TooltipProvider>
-              )}
+      <Card>
+        <CardHeader>
+          <div className="flex items-center justify-between">
+            <div>
+              <CardTitle className="flex items-center gap-2">
+                <HardDrive className="h-5 w-5" />
+                Total Storage Usage
+              </CardTitle>
+              <CardDescription>
+                Across all 6 Neon free databases
+              </CardDescription>
             </div>
-          ))}
-        </div>
-      </div>
-
-      <div>
-        <h2 className="text-lg font-semibold mb-4 sm:text-xl">Pricing Configuration</h2>
-        <div className="grid gap-4 lg:gap-6 sm:grid-cols-1 lg:grid-cols-2 xl:grid-cols-3 2xl:grid-cols-4">
-          {categories.map(cat => (
-            <PricingTable
-              key={cat.category}
-              category={cat.category}
-              slots={cat.pricing}
-              onUpdateSlots={isAdmin ? (pricing) => updateCategoryPricing(cat.category, pricing) : () => {}}
-            />
-          ))}
-        </div>
-      </div>
-
-      <div>
-        <h2 className="text-lg font-semibold mb-4 sm:text-xl">Happy Hours Time Slots</h2>
-        <p className="text-sm text-muted-foreground mb-4">
-          Define when happy hours are active. Enable/disable and set time periods for special pricing.
-        </p>
-        <div className="grid gap-4 sm:grid-cols-1 lg:grid-cols-2 xl:grid-cols-3">
-          {categories.map(cat => (
-            <HappyHoursTable
-              key={cat.category}
-              category={cat.category}
-              enabled={cat.happyHours.enabled}
-              slots={cat.happyHours.slots}
-              onUpdate={(data) => updateCategoryHappyHours(cat.category, data)}
-            />
-          ))}
-        </div>
-      </div>
-
-      <div>
-        <h2 className="text-lg font-semibold mb-4 sm:text-xl">Happy Hours Pricing</h2>
-        <p className="text-sm text-muted-foreground mb-4">
-          Set pricing tiers that apply during happy hours time slots. These prices are active only when happy hours are enabled and within the configured time periods.
-        </p>
-        <div className="grid gap-4 lg:gap-6 sm:grid-cols-1 lg:grid-cols-2 xl:grid-cols-3 2xl:grid-cols-4">
-          {categories.map(cat => (
-            <HappyHoursPricing
-              key={cat.category}
-              category={cat.category}
-              slots={cat.happyHoursPricing}
-              onUpdateSlots={isAdmin ? (happyHoursPricing) => updateCategoryHappyHoursPricing(cat.category, happyHoursPricing) : () => {}}
-            />
-          ))}
-        </div>
-      </div>
-
-      <Dialog open={showAddDialog} onOpenChange={setShowAddDialog}>
-        <DialogContent data-testid="dialog-add-category">
-          <DialogHeader>
-            <DialogTitle>Add New Category</DialogTitle>
-            <DialogDescription>
-              Create a new device category for your gaming center
-            </DialogDescription>
-          </DialogHeader>
-          <div className="space-y-4">
-            <div className="space-y-2">
-              <Label htmlFor="category-name">Category Name</Label>
-              <Input
-                id="category-name"
-                value={newCategoryName}
-                onChange={(e) => setNewCategoryName(e.target.value)}
-                onKeyDown={(e) => {
-                  if (e.key === "Enter" && newCategoryName.trim()) {
-                    addCategory();
-                  }
-                }}
-                placeholder="e.g., Xbox, Nintendo Switch"
-                data-testid="input-category-name"
-              />
-            </div>
+            <Badge variant="outline" className="text-lg" data-testid="badge-total-usage">
+              {metrics.totalStorageMB.toFixed(2)} MB / {metrics.totalLimitMB} MB
+            </Badge>
           </div>
-          <DialogFooter>
-            <Button variant="outline" onClick={() => setShowAddDialog(false)}>
-              Cancel
-            </Button>
-            <Button onClick={addCategory} data-testid="button-confirm-add-category">
-              Add Category
-            </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
+        </CardHeader>
+        <CardContent className="space-y-4">
+          <div>
+            <div className="flex items-center justify-between mb-2">
+              <span className="text-sm font-medium">Total Progress</span>
+              <span className={`text-sm font-bold ${getStatusColor(metrics.totalPercentUsed)}`} data-testid="text-total-percent">
+                {metrics.totalPercentUsed.toFixed(2)}%
+              </span>
+            </div>
+            <Progress value={metrics.totalPercentUsed} className={`h-3 ${getProgressColor(metrics.totalPercentUsed)}`} data-testid="progress-total" />
+          </div>
+          <p className="text-xs text-muted-foreground" data-testid="text-last-updated">
+            Last updated: {formatDate(metrics.lastUpdated)}
+          </p>
+        </CardContent>
+      </Card>
 
-      <AlertDialog open={showConfirmDialog} onOpenChange={cancelNavigation}>
-        <AlertDialogContent data-testid="dialog-unsaved-changes">
-          <AlertDialogHeader>
-            <AlertDialogTitle className="flex items-center gap-2">
-              <AlertTriangle className="h-5 w-5 text-yellow-500" />
-              Unsaved Changes
-            </AlertDialogTitle>
-            <AlertDialogDescription>
-              You have unsaved changes in your settings. If you leave now, your changes will be lost. Do you want to save before leaving?
-            </AlertDialogDescription>
-          </AlertDialogHeader>
-          <AlertDialogFooter>
-            <AlertDialogCancel onClick={cancelNavigation} data-testid="button-cancel-navigation">
-              Stay on Page
-            </AlertDialogCancel>
-            <Button 
-              variant="outline" 
-              onClick={confirmNavigation}
-              data-testid="button-leave-without-saving"
-            >
-              Leave Without Saving
-            </Button>
-            <AlertDialogAction 
-              onClick={async () => {
-                await handleSave();
-                confirmNavigation();
-              }}
-              data-testid="button-save-and-leave"
-            >
-              Save and Leave
-            </AlertDialogAction>
-          </AlertDialogFooter>
-        </AlertDialogContent>
-      </AlertDialog>
+      <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
+        {metrics.databases.map((db, index) => (
+          <Card key={db.projectId} className="hover-elevate" data-testid={`card-database-${index}`}>
+            <CardHeader className="pb-3">
+              <div className="flex items-center justify-between">
+                <CardTitle className="text-lg flex items-center gap-2">
+                  <Database className="h-4 w-4" />
+                  {db.name}
+                </CardTitle>
+                {getStatusIcon(db.percentUsed)}
+              </div>
+              <CardDescription className="text-xs truncate" data-testid={`text-project-id-${index}`}>
+                {db.projectId}
+              </CardDescription>
+            </CardHeader>
+            <CardContent className="space-y-3">
+              <div>
+                <div className="flex items-center justify-between mb-1">
+                  <span className="text-sm text-muted-foreground">Storage</span>
+                  <span className={`text-sm font-medium ${getStatusColor(db.percentUsed)}`} data-testid={`text-storage-${index}`}>
+                    {db.storageMB.toFixed(2)} / {db.limitMB} MB
+                  </span>
+                </div>
+                <Progress value={db.percentUsed} className={`h-2 ${getProgressColor(db.percentUsed)}`} data-testid={`progress-storage-${index}`} />
+                <p className={`text-xs text-right mt-1 ${getStatusColor(db.percentUsed)}`} data-testid={`text-percent-${index}`}>
+                  {db.percentUsed.toFixed(2)}% used
+                </p>
+              </div>
+
+              <div className="grid grid-cols-2 gap-2 pt-2 border-t text-xs">
+                <div>
+                  <p className="text-muted-foreground">Compute</p>
+                  <p className="font-medium" data-testid={`text-compute-${index}`}>
+                    {(db.computeTimeSeconds / 3600).toFixed(2)}h
+                  </p>
+                </div>
+                <div>
+                  <p className="text-muted-foreground">Active</p>
+                  <p className="font-medium" data-testid={`text-active-${index}`}>
+                    {(db.activeTimeSeconds / 3600).toFixed(2)}h
+                  </p>
+                </div>
+              </div>
+
+              {db.quotaResetAt && (
+                <div className="pt-2 border-t">
+                  <p className="text-xs text-muted-foreground">Quota resets</p>
+                  <p className="text-xs font-medium" data-testid={`text-quota-reset-${index}`}>
+                    {formatDate(db.quotaResetAt)}
+                  </p>
+                </div>
+              )}
+            </CardContent>
+          </Card>
+        ))}
+      </div>
+
+      {metrics.totalPercentUsed >= 75 && (
+        <Card className="border-yellow-500">
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2 text-yellow-600 dark:text-yellow-500">
+              <AlertTriangle className="h-5 w-5" />
+              Storage Warning
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            <p className="text-sm">
+              You're using {metrics.totalPercentUsed.toFixed(2)}% of your total storage across all databases.
+              {metrics.totalPercentUsed >= 90 ? (
+                <span className="block mt-2 text-red-600 dark:text-red-500 font-medium">
+                  ⚠️ Critical: Consider upgrading to a paid plan or optimizing your data.
+                </span>
+              ) : (
+                <span className="block mt-2">
+                  Consider monitoring your usage more closely and planning for future needs.
+                </span>
+              )}
+            </p>
+          </CardContent>
+        </Card>
+      )}
     </div>
   );
 }

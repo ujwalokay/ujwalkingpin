@@ -4,6 +4,7 @@ import { storage } from "./storage";
 import { requireAuth, requireAdmin, requireAdminOrStaff, webhookLimiter, publicApiLimiter, sensitiveOperationLimiter, dataExportLimiter } from "./auth";
 import { retentionService } from "./retention";
 import { cleanupScheduler } from "./scheduler";
+import { fetchNeonStorageMetrics } from "./neon-metrics";
 import { db } from "./db";
 import { eq } from "drizzle-orm";
 import * as schema from "@shared/schema";
@@ -1722,6 +1723,19 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(400).json({ message: "Invalid retention config", errors: error.errors });
       }
       res.status(500).json({ message: error.message });
+    }
+  });
+
+  // Neon Storage Metrics Endpoint
+  app.get("/api/storage/metrics", requireAdmin, async (req, res) => {
+    try {
+      const metrics = await fetchNeonStorageMetrics();
+      res.json(metrics);
+    } catch (error: any) {
+      res.status(500).json({ 
+        message: error.message || "Failed to fetch storage metrics",
+        error: process.env.NODE_ENV === 'development' ? error.stack : undefined
+      });
     }
   });
 
