@@ -773,11 +773,15 @@ export default function Reports() {
             window.onload = () => {
               setTimeout(() => {
                 window.print();
+                setTimeout(() => {
+                  window.close();
+                }, 1000);
               }, 500);
             };
             window.onafterprint = () => {
               window.close();
             };
+            window.onbeforeunload = null;
           </script>
         </body>
         </html>
