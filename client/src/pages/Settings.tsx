@@ -64,30 +64,11 @@ export default function Settings() {
   });
 
   // Fetch storage metrics (optional - won't block page if NEON_API_KEY not set)
-  const { data: metrics, error: metricsError } = useQuery<StorageMetricsResponse>({
+  const { data: metrics, isLoading: metricsLoading, error: metricsError } = useQuery<StorageMetricsResponse>({
     queryKey: ["/api/storage/metrics"],
     refetchInterval: 60000,
     retry: false,
   });
-
-  // Mock storage metrics for display when API is not available
-  const mockMetrics: StorageMetricsResponse = {
-    databases: [
-      { name: "Production DB", projectId: "prod-db-001", storageBytes: 524288000, storageMB: 500, limitMB: 512, percentUsed: 97.66, computeTimeSeconds: 3600, activeTimeSeconds: 3200, quotaResetAt: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString() },
-      { name: "Development DB", projectId: "dev-db-002", storageBytes: 314572800, storageMB: 300, limitMB: 512, percentUsed: 58.59, computeTimeSeconds: 1800, activeTimeSeconds: 1500, quotaResetAt: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString() },
-      { name: "Staging DB", projectId: "stage-db-003", storageBytes: 209715200, storageMB: 200, limitMB: 512, percentUsed: 39.06, computeTimeSeconds: 1200, activeTimeSeconds: 1000, quotaResetAt: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString() },
-      { name: "Analytics DB", projectId: "analytics-db-004", storageBytes: 419430400, storageMB: 400, limitMB: 512, percentUsed: 78.13, computeTimeSeconds: 2400, activeTimeSeconds: 2100, quotaResetAt: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString() },
-      { name: "Backup DB", projectId: "backup-db-005", storageBytes: 104857600, storageMB: 100, limitMB: 512, percentUsed: 19.53, computeTimeSeconds: 600, activeTimeSeconds: 500, quotaResetAt: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString() },
-      { name: "Testing DB", projectId: "test-db-006", storageBytes: 52428800, storageMB: 50, limitMB: 512, percentUsed: 9.77, computeTimeSeconds: 300, activeTimeSeconds: 250, quotaResetAt: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString() },
-    ],
-    totalStorageMB: 1550,
-    totalLimitMB: 3072,
-    totalPercentUsed: 50.46,
-    lastUpdated: new Date().toISOString(),
-  };
-
-  // Use real metrics if available, otherwise use mock data
-  const displayMetrics = metrics || mockMetrics;
 
   // Local state for device configs
   const [pcConfig, setPcConfig] = useState({ count: 30, seats: [] as { name: string; visible: boolean }[] });
@@ -322,98 +303,81 @@ export default function Settings() {
       </div>
 
       {/* Storage Metrics Section */}
-      {displayMetrics && (
-        <>
-          <Card>
-            <CardHeader>
-              <div className="flex items-center justify-between flex-wrap gap-4">
-                <div>
-                  <CardTitle className="flex items-center gap-2">
-                    <HardDrive className="h-5 w-5" />
-                    Total Storage Usage
-                  </CardTitle>
-                  <CardDescription>
-                    Across all 6 Neon free databases {metricsError && "(Demo Data)"}
-                  </CardDescription>
-                </div>
-                <Badge variant="outline" className="text-lg" data-testid="badge-total-usage">
-                  {displayMetrics.totalStorageMB.toFixed(2)} MB / {displayMetrics.totalLimitMB} MB
-                </Badge>
-              </div>
-            </CardHeader>
-            <CardContent className="space-y-4">
+      {metrics && (
+        <Card>
+          <CardHeader>
+            <div className="flex items-center justify-between flex-wrap gap-4">
               <div>
-                <div className="flex items-center justify-between mb-2">
-                  <span className="text-sm font-medium">Total Progress</span>
-                  <span className={`text-sm font-bold ${getStatusColor(displayMetrics.totalPercentUsed)}`} data-testid="text-total-percent">
-                    {displayMetrics.totalPercentUsed.toFixed(2)}%
-                  </span>
-                </div>
-                <Progress value={displayMetrics.totalPercentUsed} className={`h-3 ${getProgressColor(displayMetrics.totalPercentUsed)}`} data-testid="progress-total" />
+                <CardTitle className="flex items-center gap-2">
+                  <HardDrive className="h-5 w-5" />
+                  Storage Usage
+                </CardTitle>
+                <CardDescription>
+                  Total available storage across all databases
+                </CardDescription>
               </div>
-              <p className="text-xs text-muted-foreground" data-testid="text-last-updated">
-                Last updated: {formatDate(displayMetrics.lastUpdated)}
+              <Badge variant="outline" className="text-lg" data-testid="badge-total-usage">
+                {(metrics.totalStorageMB / 1024).toFixed(2)} GB / 3 GB
+              </Badge>
+            </div>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            <div>
+              <div className="flex items-center justify-between mb-2">
+                <span className="text-sm font-medium">Storage Used</span>
+                <span className={`text-sm font-bold ${getStatusColor(metrics.totalPercentUsed)}`} data-testid="text-total-percent">
+                  {metrics.totalPercentUsed.toFixed(2)}%
+                </span>
+              </div>
+              <Progress value={metrics.totalPercentUsed} className={`h-3 ${getProgressColor(metrics.totalPercentUsed)}`} data-testid="progress-total" />
+              <div className="flex items-center justify-between mt-2">
+                <span className="text-xs text-muted-foreground">
+                  {metrics.totalStorageMB.toFixed(2)} MB used
+                </span>
+                <span className="text-xs text-muted-foreground">
+                  {(3072 - metrics.totalStorageMB).toFixed(2)} MB available
+                </span>
+              </div>
+            </div>
+            <div className="flex items-center justify-between pt-3 border-t">
+              <p className="text-xs text-muted-foreground">Last updated</p>
+              <p className="text-xs font-medium" data-testid="text-last-updated">
+                {formatDate(metrics.lastUpdated)}
               </p>
-            </CardContent>
-          </Card>
+            </div>
+          </CardContent>
+        </Card>
+      )}
 
-          <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
-            {displayMetrics.databases.map((db, index) => (
-              <Card key={db.projectId} className="hover-elevate" data-testid={`card-database-${index}`}>
-                <CardHeader className="pb-3">
-                  <div className="flex items-center justify-between">
-                    <CardTitle className="text-lg flex items-center gap-2">
-                      <Database className="h-4 w-4" />
-                      {db.name}
-                    </CardTitle>
-                    {getStatusIcon(db.percentUsed)}
-                  </div>
-                  <CardDescription className="text-xs truncate" data-testid={`text-project-id-${index}`}>
-                    {db.projectId}
-                  </CardDescription>
-                </CardHeader>
-                <CardContent className="space-y-3">
-                  <div>
-                    <div className="flex items-center justify-between mb-1">
-                      <span className="text-sm text-muted-foreground">Storage</span>
-                      <span className={`text-sm font-medium ${getStatusColor(db.percentUsed)}`} data-testid={`text-storage-${index}`}>
-                        {db.storageMB.toFixed(2)} / {db.limitMB} MB
-                      </span>
-                    </div>
-                    <Progress value={db.percentUsed} className={`h-2 ${getProgressColor(db.percentUsed)}`} data-testid={`progress-storage-${index}`} />
-                    <p className={`text-xs text-right mt-1 ${getStatusColor(db.percentUsed)}`} data-testid={`text-percent-${index}`}>
-                      {db.percentUsed.toFixed(2)}% used
-                    </p>
-                  </div>
+      {metricsLoading && (
+        <Card>
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2">
+              <HardDrive className="h-5 w-5" />
+              Storage Usage
+            </CardTitle>
+            <CardDescription>Loading storage metrics...</CardDescription>
+          </CardHeader>
+          <CardContent>
+            <div className="flex items-center justify-center py-8">
+              <RefreshCw className="h-8 w-8 animate-spin text-muted-foreground" />
+            </div>
+          </CardContent>
+        </Card>
+      )}
 
-                  <div className="grid grid-cols-2 gap-2 pt-2 border-t text-xs">
-                    <div>
-                      <p className="text-muted-foreground">Compute</p>
-                      <p className="font-medium" data-testid={`text-compute-${index}`}>
-                        {(db.computeTimeSeconds / 3600).toFixed(2)}h
-                      </p>
-                    </div>
-                    <div>
-                      <p className="text-muted-foreground">Active</p>
-                      <p className="font-medium" data-testid={`text-active-${index}`}>
-                        {(db.activeTimeSeconds / 3600).toFixed(2)}h
-                      </p>
-                    </div>
-                  </div>
-
-                  {db.quotaResetAt && (
-                    <div className="pt-2 border-t">
-                      <p className="text-xs text-muted-foreground">Quota resets</p>
-                      <p className="text-xs font-medium" data-testid={`text-quota-reset-${index}`}>
-                        {formatDate(db.quotaResetAt)}
-                      </p>
-                    </div>
-                  )}
-                </CardContent>
-              </Card>
-            ))}
-          </div>
-        </>
+      {metricsError && !metrics && (
+        <Card>
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2">
+              <AlertTriangle className="h-5 w-5 text-yellow-500" />
+              Storage Metrics Unavailable
+            </CardTitle>
+            <CardDescription>
+              Unable to fetch storage metrics. Please check your NEON_API_KEY configuration.
+            </CardDescription>
+          </CardHeader>
+        </Card>
       )}
 
       {/* Device Configuration */}

@@ -102,13 +102,13 @@ export async function fetchNeonStorageMetrics(): Promise<StorageMetricsResponse>
   }
 
   const totalStorageMB = metrics.reduce((sum, m) => sum + m.storageMB, 0);
-  const totalLimitMB = metrics.length * FREE_TIER_LIMIT_MB;
-  const totalPercentUsed = (totalStorageMB / totalLimitMB) * 100;
+  const TOTAL_LIMIT_MB = 3072; // 6 databases × 512 MB = 3 GB
+  const totalPercentUsed = totalStorageMB > 0 ? (totalStorageMB / TOTAL_LIMIT_MB) * 100 : 0;
 
   return {
     databases: metrics,
     totalStorageMB: Math.round(totalStorageMB * 100) / 100,
-    totalLimitMB,
+    totalLimitMB: TOTAL_LIMIT_MB,
     totalPercentUsed: Math.round(totalPercentUsed * 100) / 100,
     lastUpdated: new Date().toISOString(),
   };
