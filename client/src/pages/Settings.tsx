@@ -193,42 +193,81 @@ export default function Settings() {
     },
   });
 
-  const handleSaveAll = () => {
-    // Save device configs
-    saveDeviceConfigMutation.mutate({
-      category: "PC",
-      count: pcConfig.count,
-      seats: pcConfig.seats.map((s) => s.name),
-    });
+  const handleSaveAll = async () => {
+    try {
+      // Save all configurations in parallel
+      const savePromises = [
+        // Device configs
+        apiRequest("PUT", "/api/device-config", {
+          category: "PC",
+          count: pcConfig.count,
+          seats: pcConfig.seats.map((s) => s.name),
+        }),
+        apiRequest("PUT", "/api/device-config", {
+          category: "PS5",
+          count: ps5Config.count,
+          seats: ps5Config.seats.map((s) => s.name),
+        }),
+        // Pricing
+        apiRequest("PUT", "/api/pricing-config", {
+          category: "PC",
+          configs: pcPricing.map((c) => ({ duration: c.duration, price: c.price.toString(), personCount: c.personCount || 1 })),
+        }),
+        apiRequest("PUT", "/api/pricing-config", {
+          category: "PS5",
+          configs: ps5Pricing.map((c) => ({ duration: c.duration, price: c.price.toString(), personCount: c.personCount || 1 })),
+        }),
+        // Happy hours config
+        apiRequest("PUT", "/api/happy-hours-config", {
+          category: "PC",
+          configs: (pcTimeSlots.length > 0 ? pcTimeSlots : [{ startTime: "11:00", endTime: "14:00" }])
+            .map((slot) => ({ startTime: slot.startTime, endTime: slot.endTime, enabled: pcHappyHoursEnabled ? 1 : 0 })),
+        }),
+        apiRequest("PUT", "/api/happy-hours-config", {
+          category: "PS5",
+          configs: (ps5TimeSlots.length > 0 ? ps5TimeSlots : [{ startTime: "11:00", endTime: "14:00" }])
+            .map((slot) => ({ startTime: slot.startTime, endTime: slot.endTime, enabled: ps5HappyHoursEnabled ? 1 : 0 })),
+        }),
+      ];
 
-    saveDeviceConfigMutation.mutate({
-      category: "PS5",
-      count: ps5Config.count,
-      seats: ps5Config.seats.map((s) => s.name),
-    });
+      // Add happy hours pricing if exists
+      if (pcHappyHoursPricing.length > 0) {
+        savePromises.push(
+          apiRequest("PUT", "/api/happy-hours-pricing", {
+            category: "PC",
+            configs: pcHappyHoursPricing.map((c) => ({ duration: c.duration, price: c.price.toString(), personCount: c.personCount || 1 })),
+          })
+        );
+      }
+      if (ps5HappyHoursPricing.length > 0) {
+        savePromises.push(
+          apiRequest("PUT", "/api/happy-hours-pricing", {
+            category: "PS5",
+            configs: ps5HappyHoursPricing.map((c) => ({ duration: c.duration, price: c.price.toString(), personCount: c.personCount || 1 })),
+          })
+        );
+      }
 
-    // Save pricing
-    savePricingMutation.mutate({ category: "PC", configs: pcPricing });
-    savePricingMutation.mutate({ category: "PS5", configs: ps5Pricing });
+      // Wait for all saves to complete
+      await Promise.all(savePromises);
 
-    // Save happy hours config (save even if empty to persist enabled/disabled state)
-    saveHappyHoursConfigMutation.mutate({ 
-      category: "PC", 
-      enabled: pcHappyHoursEnabled, 
-      timeSlots: pcTimeSlots.length > 0 ? pcTimeSlots : [{ startTime: "11:00", endTime: "14:00" }]
-    });
-    saveHappyHoursConfigMutation.mutate({ 
-      category: "PS5", 
-      enabled: ps5HappyHoursEnabled, 
-      timeSlots: ps5TimeSlots.length > 0 ? ps5TimeSlots : [{ startTime: "11:00", endTime: "14:00" }]
-    });
+      // Invalidate all queries to refresh data
+      queryClient.invalidateQueries({ queryKey: ["/api/device-config"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/pricing-config"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/happy-hours-config"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/happy-hours-pricing"] });
 
-    // Save happy hours pricing
-    if (pcHappyHoursPricing.length > 0) {
-      saveHappyHoursPricingMutation.mutate({ category: "PC", configs: pcHappyHoursPricing });
-    }
-    if (ps5HappyHoursPricing.length > 0) {
-      saveHappyHoursPricingMutation.mutate({ category: "PS5", configs: ps5HappyHoursPricing });
+      // Show single success toast
+      toast({
+        title: "✅ Settings Saved",
+        description: "All configurations have been saved successfully!",
+      });
+    } catch (error) {
+      toast({
+        title: "❌ Error",
+        description: "Failed to save some settings. Please try again.",
+        variant: "destructive",
+      });
     }
   };
 
