@@ -1,329 +1,554 @@
 import { useQuery, useMutation } from "@tanstack/react-query";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { Progress } from "@/components/ui/progress";
 import { Badge } from "@/components/ui/badge";
-import { Settings as SettingsIcon, Users, Bell, Clock, Trash2, Database, Info } from "lucide-react";
+import { Database, HardDrive, RefreshCw, AlertTriangle, CheckCircle2, Save } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { queryClient, apiRequest } from "@/lib/queryClient";
+import { DeviceConfigCard } from "@/components/DeviceConfigCard";
+import { PricingTable } from "@/components/PricingTable";
+import { HappyHoursPricing } from "@/components/HappyHoursPricing";
+import { useState, useEffect } from "react";
 import { useToast } from "@/hooks/use-toast";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
-import { Textarea } from "@/components/ui/textarea";
 import { Switch } from "@/components/ui/switch";
-import { useState } from "react";
-import type { GamingCenterInfo } from "@shared/schema";
+import { Label } from "@/components/ui/label";
+import { Input } from "@/components/ui/input";
+import type { DeviceConfig, PricingConfig, HappyHoursConfig, HappyHoursPricing as HappyHoursPricingType } from "@shared/schema";
+
+interface DatabaseMetrics {
+  name: string;
+  projectId: string;
+  storageBytes: number;
+  storageMB: number;
+  limitMB: number;
+  percentUsed: number;
+  computeTimeSeconds: number;
+  activeTimeSeconds: number;
+  quotaResetAt: string | null;
+}
+
+interface StorageMetricsResponse {
+  databases: DatabaseMetrics[];
+  totalStorageMB: number;
+  totalLimitMB: number;
+  totalPercentUsed: number;
+  lastUpdated: string;
+}
+
+interface TimeSlot {
+  startTime: string;
+  endTime: string;
+}
 
 export default function Settings() {
   const { toast } = useToast();
-  const [notificationsEnabled, setNotificationsEnabled] = useState(true);
-
-  const { data: centerInfo, isLoading } = useQuery<GamingCenterInfo>({
-    queryKey: ["/api/gaming-center-info"],
+  
+  // Fetch device configs
+  const { data: deviceConfigs } = useQuery<DeviceConfig[]>({
+    queryKey: ["/api/device-config"],
   });
 
-  const updateCenterInfoMutation = useMutation({
-    mutationFn: async (data: Partial<GamingCenterInfo>) => {
-      return apiRequest("PATCH", "/api/gaming-center-info", data);
+  // Fetch pricing configs
+  const { data: pricingConfigs } = useQuery<PricingConfig[]>({
+    queryKey: ["/api/pricing-config"],
+  });
+
+  // Fetch happy hours configs
+  const { data: happyHoursConfigs } = useQuery<HappyHoursConfig[]>({
+    queryKey: ["/api/happy-hours-config"],
+  });
+
+  // Fetch happy hours pricing
+  const { data: happyHoursPricing } = useQuery<HappyHoursPricingType[]>({
+    queryKey: ["/api/happy-hours-pricing"],
+  });
+
+  // Fetch storage metrics (optional - won't block page if NEON_API_KEY not set)
+  const { data: metrics, error: metricsError } = useQuery<StorageMetricsResponse>({
+    queryKey: ["/api/storage/metrics"],
+    refetchInterval: 60000,
+    retry: false,
+  });
+
+  // Local state for device configs
+  const [pcConfig, setPcConfig] = useState({ count: 30, seats: [] as { name: string; visible: boolean }[] });
+  const [ps5Config, setPs5Config] = useState({ count: 20, seats: [] as { name: string; visible: boolean }[] });
+
+  // Local state for pricing
+  const [pcPricing, setPcPricing] = useState<{ duration: string; price: number; personCount?: number }[]>([]);
+  const [ps5Pricing, setPs5Pricing] = useState<{ duration: string; price: number; personCount?: number }[]>([]);
+
+  // Local state for happy hours time slots
+  const [pcHappyHoursEnabled, setPcHappyHoursEnabled] = useState(true);
+  const [ps5HappyHoursEnabled, setPs5HappyHoursEnabled] = useState(true);
+  const [pcTimeSlots, setPcTimeSlots] = useState<TimeSlot[]>([]);
+  const [ps5TimeSlots, setPs5TimeSlots] = useState<TimeSlot[]>([]);
+
+  // Local state for happy hours pricing
+  const [pcHappyHoursPricing, setPcHappyHoursPricing] = useState<{ duration: string; price: number; personCount?: number }[]>([]);
+  const [ps5HappyHoursPricing, setPs5HappyHoursPricing] = useState<{ duration: string; price: number; personCount?: number }[]>([]);
+
+  // Initialize local state from API data
+  useEffect(() => {
+    if (deviceConfigs) {
+      const pc = deviceConfigs.find((c) => c.category === "PC");
+      const ps5 = deviceConfigs.find((c) => c.category === "PS5");
+
+      if (pc) {
+        setPcConfig({
+          count: pc.count,
+          seats: pc.seats.map((name) => ({ name, visible: true })),
+        });
+      }
+
+      if (ps5) {
+        setPs5Config({
+          count: ps5.count,
+          seats: ps5.seats.map((name) => ({ name, visible: true })),
+        });
+      }
+    }
+  }, [deviceConfigs]);
+
+  useEffect(() => {
+    if (pricingConfigs) {
+      const pcConfigs = pricingConfigs.filter((c) => c.category === "PC");
+      const ps5Configs = pricingConfigs.filter((c) => c.category === "PS5");
+
+      setPcPricing(pcConfigs.map((c) => ({ duration: c.duration, price: parseFloat(c.price), personCount: c.personCount })));
+      setPs5Pricing(ps5Configs.map((c) => ({ duration: c.duration, price: parseFloat(c.price), personCount: c.personCount })));
+    }
+  }, [pricingConfigs]);
+
+  useEffect(() => {
+    if (happyHoursConfigs) {
+      const pcConfigs = happyHoursConfigs.filter((c) => c.category === "PC");
+      const ps5Configs = happyHoursConfigs.filter((c) => c.category === "PS5");
+
+      setPcHappyHoursEnabled(pcConfigs.length > 0 && pcConfigs[0].enabled === 1);
+      setPs5HappyHoursEnabled(ps5Configs.length > 0 && ps5Configs[0].enabled === 1);
+
+      setPcTimeSlots(pcConfigs.map((c) => ({ startTime: c.startTime, endTime: c.endTime })));
+      setPs5TimeSlots(ps5Configs.map((c) => ({ startTime: c.startTime, endTime: c.endTime })));
+    }
+  }, [happyHoursConfigs]);
+
+  useEffect(() => {
+    if (happyHoursPricing) {
+      const pcPricing = happyHoursPricing.filter((c) => c.category === "PC");
+      const ps5Pricing = happyHoursPricing.filter((c) => c.category === "PS5");
+
+      setPcHappyHoursPricing(pcPricing.map((c) => ({ duration: c.duration, price: parseFloat(c.price), personCount: c.personCount })));
+      setPs5HappyHoursPricing(ps5Pricing.map((c) => ({ duration: c.duration, price: parseFloat(c.price), personCount: c.personCount })));
+    }
+  }, [happyHoursPricing]);
+
+  // Save mutations
+  const saveDeviceConfigMutation = useMutation({
+    mutationFn: async ({ category, count, seats }: { category: string; count: number; seats: string[] }) => {
+      return apiRequest("PUT", "/api/device-config", { category, count, seats });
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["/api/gaming-center-info"] });
-      toast({
-        title: "Success",
-        description: "Gaming center information updated successfully",
-      });
-    },
-    onError: (error: Error) => {
-      toast({
-        title: "Error",
-        description: error.message,
-        variant: "destructive",
-      });
+      queryClient.invalidateQueries({ queryKey: ["/api/device-config"] });
+      toast({ title: "Success", description: "Device configuration saved" });
     },
   });
 
-  const handleSaveCenterInfo = (e: React.FormEvent<HTMLFormElement>) => {
-    e.preventDefault();
-    const formData = new FormData(e.currentTarget);
-    updateCenterInfoMutation.mutate({
-      name: formData.get("name") as string,
-      address: formData.get("address") as string,
-      phone: formData.get("phone") as string,
-      email: formData.get("email") as string,
-      description: formData.get("description") as string,
+  const savePricingMutation = useMutation({
+    mutationFn: async ({ category, configs }: { category: string; configs: { duration: string; price: number; personCount?: number }[] }) => {
+      return apiRequest("PUT", "/api/pricing-config", {
+        category,
+        configs: configs.map((c) => ({ duration: c.duration, price: c.price.toString(), personCount: c.personCount || 1 })),
+      });
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/pricing-config"] });
+      toast({ title: "Success", description: "Pricing configuration saved" });
+    },
+  });
+
+  const saveHappyHoursConfigMutation = useMutation({
+    mutationFn: async ({ category, enabled, timeSlots }: { category: string; enabled: boolean; timeSlots: TimeSlot[] }) => {
+      return apiRequest("PUT", "/api/happy-hours-config", {
+        category,
+        configs: timeSlots.map((slot) => ({ startTime: slot.startTime, endTime: slot.endTime, enabled: enabled ? 1 : 0 })),
+      });
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/happy-hours-config"] });
+      toast({ title: "Success", description: "Happy hours configuration saved" });
+    },
+  });
+
+  const saveHappyHoursPricingMutation = useMutation({
+    mutationFn: async ({ category, configs }: { category: string; configs: { duration: string; price: number; personCount?: number }[] }) => {
+      return apiRequest("PUT", "/api/happy-hours-pricing", {
+        category,
+        configs: configs.map((c) => ({ duration: c.duration, price: c.price.toString(), personCount: c.personCount || 1 })),
+      });
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/happy-hours-pricing"] });
+      toast({ title: "Success", description: "Happy hours pricing saved" });
+    },
+  });
+
+  const handleSaveAll = () => {
+    // Save device configs
+    saveDeviceConfigMutation.mutate({
+      category: "PC",
+      count: pcConfig.count,
+      seats: pcConfig.seats.map((s) => s.name),
     });
+
+    saveDeviceConfigMutation.mutate({
+      category: "PS5",
+      count: ps5Config.count,
+      seats: ps5Config.seats.map((s) => s.name),
+    });
+
+    // Save pricing
+    savePricingMutation.mutate({ category: "PC", configs: pcPricing });
+    savePricingMutation.mutate({ category: "PS5", configs: ps5Pricing });
+
+    // Save happy hours config
+    if (pcTimeSlots.length > 0) {
+      saveHappyHoursConfigMutation.mutate({ category: "PC", enabled: pcHappyHoursEnabled, timeSlots: pcTimeSlots });
+    }
+    if (ps5TimeSlots.length > 0) {
+      saveHappyHoursConfigMutation.mutate({ category: "PS5", enabled: ps5HappyHoursEnabled, timeSlots: ps5TimeSlots });
+    }
+
+    // Save happy hours pricing
+    if (pcHappyHoursPricing.length > 0) {
+      saveHappyHoursPricingMutation.mutate({ category: "PC", configs: pcHappyHoursPricing });
+    }
+    if (ps5HappyHoursPricing.length > 0) {
+      saveHappyHoursPricingMutation.mutate({ category: "PS5", configs: ps5HappyHoursPricing });
+    }
   };
 
-  if (isLoading) {
-    return (
-      <div className="flex items-center justify-center min-h-screen">
-        <div className="text-center">
-          <SettingsIcon className="h-8 w-8 animate-pulse mx-auto mb-2" />
-          <p className="text-muted-foreground">Loading settings...</p>
-        </div>
-      </div>
-    );
-  }
+  const handlePcCountChange = (newCount: number) => {
+    const newSeats = Array.from({ length: newCount }, (_, i) => ({
+      name: `PC-${i + 1}`,
+      visible: i < pcConfig.seats.length ? pcConfig.seats[i].visible : true,
+    }));
+    setPcConfig({ count: newCount, seats: newSeats });
+  };
+
+  const handlePs5CountChange = (newCount: number) => {
+    const newSeats = Array.from({ length: newCount }, (_, i) => ({
+      name: `PS5-${i + 1}`,
+      visible: i < ps5Config.seats.length ? ps5Config.seats[i].visible : true,
+    }));
+    setPs5Config({ count: newCount, seats: newSeats });
+  };
+
+  const handlePcToggleVisibility = (seatName: string) => {
+    setPcConfig((prev) => ({
+      ...prev,
+      seats: prev.seats.map((s) => (s.name === seatName ? { ...s, visible: !s.visible } : s)),
+    }));
+  };
+
+  const handlePs5ToggleVisibility = (seatName: string) => {
+    setPs5Config((prev) => ({
+      ...prev,
+      seats: prev.seats.map((s) => (s.name === seatName ? { ...s, visible: !s.visible } : s)),
+    }));
+  };
+
+  const addPcTimeSlot = () => {
+    setPcTimeSlots([...pcTimeSlots, { startTime: "11:55 AM", endTime: "01:59 PM" }]);
+  };
+
+  const addPs5TimeSlot = () => {
+    setPs5TimeSlots([...ps5TimeSlots, { startTime: "01:00 AM", endTime: "11:00 AM" }]);
+  };
+
+  const formatDate = (dateString: string | null) => {
+    if (!dateString) return "N/A";
+    return new Date(dateString).toLocaleString();
+  };
+
+  const getStatusColor = (percentUsed: number) => {
+    if (percentUsed >= 90) return "text-red-500";
+    if (percentUsed >= 75) return "text-yellow-500";
+    return "text-green-500";
+  };
+
+  const getStatusIcon = (percentUsed: number) => {
+    if (percentUsed >= 90) return <AlertTriangle className="h-4 w-4 text-red-500" />;
+    if (percentUsed >= 75) return <AlertTriangle className="h-4 w-4 text-yellow-500" />;
+    return <CheckCircle2 className="h-4 w-4 text-green-500" />;
+  };
+
+  const getProgressColor = (percentUsed: number) => {
+    if (percentUsed >= 90) return "[&>*]:bg-red-500";
+    if (percentUsed >= 75) return "[&>*]:bg-yellow-500";
+    return "[&>*]:bg-green-500";
+  };
 
   return (
     <div className="container mx-auto p-6 space-y-6">
-      <div className="flex items-center justify-between">
+      <div className="flex items-center justify-between flex-wrap gap-4">
         <div>
-          <h1 className="text-3xl font-bold flex items-center gap-2" data-testid="text-settings-title">
-            <SettingsIcon className="h-8 w-8" />
-            Settings
-          </h1>
-          <p className="text-muted-foreground">Manage your gaming lounge configuration</p>
+          <h1 className="text-3xl font-bold" data-testid="text-settings-title">Settings</h1>
+          <p className="text-muted-foreground">Configure devices and pricing</p>
+        </div>
+        <Button onClick={handleSaveAll} data-testid="button-save-changes">
+          <Save className="h-4 w-4 mr-2" />
+          Save Changes
+        </Button>
+      </div>
+
+      {/* Storage Metrics Section */}
+      {metrics && !metricsError && (
+        <>
+          <Card>
+            <CardHeader>
+              <div className="flex items-center justify-between flex-wrap gap-4">
+                <div>
+                  <CardTitle className="flex items-center gap-2">
+                    <HardDrive className="h-5 w-5" />
+                    Total Storage Usage
+                  </CardTitle>
+                  <CardDescription>
+                    Across all 6 Neon free databases
+                  </CardDescription>
+                </div>
+                <Badge variant="outline" className="text-lg" data-testid="badge-total-usage">
+                  {metrics.totalStorageMB.toFixed(2)} MB / {metrics.totalLimitMB} MB
+                </Badge>
+              </div>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              <div>
+                <div className="flex items-center justify-between mb-2">
+                  <span className="text-sm font-medium">Total Progress</span>
+                  <span className={`text-sm font-bold ${getStatusColor(metrics.totalPercentUsed)}`} data-testid="text-total-percent">
+                    {metrics.totalPercentUsed.toFixed(2)}%
+                  </span>
+                </div>
+                <Progress value={metrics.totalPercentUsed} className={`h-3 ${getProgressColor(metrics.totalPercentUsed)}`} data-testid="progress-total" />
+              </div>
+              <p className="text-xs text-muted-foreground" data-testid="text-last-updated">
+                Last updated: {formatDate(metrics.lastUpdated)}
+              </p>
+            </CardContent>
+          </Card>
+
+          <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
+            {metrics.databases.map((db, index) => (
+              <Card key={db.projectId} className="hover-elevate" data-testid={`card-database-${index}`}>
+                <CardHeader className="pb-3">
+                  <div className="flex items-center justify-between">
+                    <CardTitle className="text-lg flex items-center gap-2">
+                      <Database className="h-4 w-4" />
+                      {db.name}
+                    </CardTitle>
+                    {getStatusIcon(db.percentUsed)}
+                  </div>
+                  <CardDescription className="text-xs truncate" data-testid={`text-project-id-${index}`}>
+                    {db.projectId}
+                  </CardDescription>
+                </CardHeader>
+                <CardContent className="space-y-3">
+                  <div>
+                    <div className="flex items-center justify-between mb-1">
+                      <span className="text-sm text-muted-foreground">Storage</span>
+                      <span className={`text-sm font-medium ${getStatusColor(db.percentUsed)}`} data-testid={`text-storage-${index}`}>
+                        {db.storageMB.toFixed(2)} / {db.limitMB} MB
+                      </span>
+                    </div>
+                    <Progress value={db.percentUsed} className={`h-2 ${getProgressColor(db.percentUsed)}`} data-testid={`progress-storage-${index}`} />
+                    <p className={`text-xs text-right mt-1 ${getStatusColor(db.percentUsed)}`} data-testid={`text-percent-${index}`}>
+                      {db.percentUsed.toFixed(2)}% used
+                    </p>
+                  </div>
+
+                  <div className="grid grid-cols-2 gap-2 pt-2 border-t text-xs">
+                    <div>
+                      <p className="text-muted-foreground">Compute</p>
+                      <p className="font-medium" data-testid={`text-compute-${index}`}>
+                        {(db.computeTimeSeconds / 3600).toFixed(2)}h
+                      </p>
+                    </div>
+                    <div>
+                      <p className="text-muted-foreground">Active</p>
+                      <p className="font-medium" data-testid={`text-active-${index}`}>
+                        {(db.activeTimeSeconds / 3600).toFixed(2)}h
+                      </p>
+                    </div>
+                  </div>
+
+                  {db.quotaResetAt && (
+                    <div className="pt-2 border-t">
+                      <p className="text-xs text-muted-foreground">Quota resets</p>
+                      <p className="text-xs font-medium" data-testid={`text-quota-reset-${index}`}>
+                        {formatDate(db.quotaResetAt)}
+                      </p>
+                    </div>
+                  )}
+                </CardContent>
+              </Card>
+            ))}
+          </div>
+        </>
+      )}
+
+      {/* Device Configuration */}
+      <div>
+        <h2 className="text-2xl font-bold mb-4">Device Configuration</h2>
+        <div className="grid gap-4 md:grid-cols-2">
+          <DeviceConfigCard
+            title="PC"
+            description={`Configure PC (30/30 available)`}
+            count={pcConfig.count}
+            onCountChange={handlePcCountChange}
+            seats={pcConfig.seats}
+            onToggleVisibility={handlePcToggleVisibility}
+          />
+          <DeviceConfigCard
+            title="PS5"
+            description={`Configure PS5 (20/20 available)`}
+            count={ps5Config.count}
+            onCountChange={handlePs5CountChange}
+            seats={ps5Config.seats}
+            onToggleVisibility={handlePs5ToggleVisibility}
+          />
         </div>
       </div>
 
-      {/* Gaming Center Information */}
-      <Card>
-        <CardHeader>
-          <CardTitle className="flex items-center gap-2">
-            <Info className="h-5 w-5" />
-            Gaming Center Information
-          </CardTitle>
-          <CardDescription>
-            Update your gaming lounge details and contact information
-          </CardDescription>
-        </CardHeader>
-        <CardContent>
-          <form onSubmit={handleSaveCenterInfo} className="space-y-4">
-            <div className="grid gap-4 md:grid-cols-2">
-              <div className="space-y-2">
-                <Label htmlFor="name">Center Name</Label>
-                <Input
-                  id="name"
-                  name="name"
-                  defaultValue={centerInfo?.name || ""}
-                  placeholder="Airavoto Gaming"
-                  data-testid="input-center-name"
-                />
+      {/* Pricing Configuration */}
+      <div>
+        <h2 className="text-2xl font-bold mb-4">Pricing Configuration</h2>
+        <div className="grid gap-4 md:grid-cols-2">
+          <PricingTable category="PC" slots={pcPricing} onUpdateSlots={setPcPricing} />
+          <PricingTable category="PS5" slots={ps5Pricing} onUpdateSlots={setPs5Pricing} />
+        </div>
+      </div>
+
+      {/* Happy Hours Time Slots */}
+      <div>
+        <h2 className="text-2xl font-bold mb-4">Happy Hours Time Slots</h2>
+        <p className="text-sm text-muted-foreground mb-4">
+          Define when happy hours are active. Enable/disable and set time periods for special pricing.
+        </p>
+        <div className="grid gap-4 md:grid-cols-2">
+          <Card>
+            <CardHeader>
+              <div className="flex items-center justify-between">
+                <div>
+                  <CardTitle>PC</CardTitle>
+                  <CardDescription>Configure happy hours time slots and pricing</CardDescription>
+                </div>
+                <div className="flex items-center gap-2">
+                  <Label htmlFor="pc-enabled">Enabled</Label>
+                  <Switch id="pc-enabled" checked={pcHappyHoursEnabled} onCheckedChange={setPcHappyHoursEnabled} />
+                </div>
               </div>
-              <div className="space-y-2">
-                <Label htmlFor="phone">Phone Number</Label>
-                <Input
-                  id="phone"
-                  name="phone"
-                  defaultValue={centerInfo?.phone || ""}
-                  placeholder="+91 1234567890"
-                  data-testid="input-phone"
-                />
+            </CardHeader>
+            <CardContent className="space-y-4">
+              {pcTimeSlots.map((slot, index) => (
+                <div key={index} className="space-y-2 p-3 rounded-md border">
+                  <div className="grid grid-cols-2 gap-2">
+                    <div>
+                      <Label className="text-xs">Start Time</Label>
+                      <Input
+                        type="time"
+                        value={slot.startTime}
+                        onChange={(e) => {
+                          const newSlots = [...pcTimeSlots];
+                          newSlots[index].startTime = e.target.value;
+                          setPcTimeSlots(newSlots);
+                        }}
+                      />
+                    </div>
+                    <div>
+                      <Label className="text-xs">End Time</Label>
+                      <Input
+                        type="time"
+                        value={slot.endTime}
+                        onChange={(e) => {
+                          const newSlots = [...pcTimeSlots];
+                          newSlots[index].endTime = e.target.value;
+                          setPcTimeSlots(newSlots);
+                        }}
+                      />
+                    </div>
+                  </div>
+                </div>
+              ))}
+              <Button variant="outline" className="w-full" onClick={addPcTimeSlot}>
+                + Add Time Slot
+              </Button>
+            </CardContent>
+          </Card>
+
+          <Card>
+            <CardHeader>
+              <div className="flex items-center justify-between">
+                <div>
+                  <CardTitle>PS5</CardTitle>
+                  <CardDescription>Configure happy hours time slots and pricing</CardDescription>
+                </div>
+                <div className="flex items-center gap-2">
+                  <Label htmlFor="ps5-enabled">Enabled</Label>
+                  <Switch id="ps5-enabled" checked={ps5HappyHoursEnabled} onCheckedChange={setPs5HappyHoursEnabled} />
+                </div>
               </div>
-            </div>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              {ps5TimeSlots.map((slot, index) => (
+                <div key={index} className="space-y-2 p-3 rounded-md border">
+                  <div className="grid grid-cols-2 gap-2">
+                    <div>
+                      <Label className="text-xs">Start Time</Label>
+                      <Input
+                        type="time"
+                        value={slot.startTime}
+                        onChange={(e) => {
+                          const newSlots = [...ps5TimeSlots];
+                          newSlots[index].startTime = e.target.value;
+                          setPs5TimeSlots(newSlots);
+                        }}
+                      />
+                    </div>
+                    <div>
+                      <Label className="text-xs">End Time</Label>
+                      <Input
+                        type="time"
+                        value={slot.endTime}
+                        onChange={(e) => {
+                          const newSlots = [...ps5TimeSlots];
+                          newSlots[index].endTime = e.target.value;
+                          setPs5TimeSlots(newSlots);
+                        }}
+                      />
+                    </div>
+                  </div>
+                </div>
+              ))}
+              <Button variant="outline" className="w-full" onClick={addPs5TimeSlot}>
+                + Add Time Slot
+              </Button>
+            </CardContent>
+          </Card>
+        </div>
+      </div>
 
-            <div className="space-y-2">
-              <Label htmlFor="email">Email Address</Label>
-              <Input
-                id="email"
-                name="email"
-                type="email"
-                defaultValue={centerInfo?.email || ""}
-                placeholder="contact@airavotogaming.com"
-                data-testid="input-email"
-              />
-            </div>
-
-            <div className="space-y-2">
-              <Label htmlFor="address">Address</Label>
-              <Textarea
-                id="address"
-                name="address"
-                defaultValue={centerInfo?.address || ""}
-                placeholder="Enter your gaming center address"
-                rows={2}
-                data-testid="input-address"
-              />
-            </div>
-
-            <div className="space-y-2">
-              <Label htmlFor="description">Description</Label>
-              <Textarea
-                id="description"
-                name="description"
-                defaultValue={centerInfo?.description || ""}
-                placeholder="Describe your gaming lounge"
-                rows={3}
-                data-testid="input-description"
-              />
-            </div>
-
-            <Button
-              type="submit"
-              disabled={updateCenterInfoMutation.isPending}
-              data-testid="button-save-center-info"
-            >
-              {updateCenterInfoMutation.isPending ? "Saving..." : "Save Changes"}
-            </Button>
-          </form>
-        </CardContent>
-      </Card>
-
-      {/* Notification Settings */}
-      <Card>
-        <CardHeader>
-          <CardTitle className="flex items-center gap-2">
-            <Bell className="h-5 w-5" />
-            Notification Preferences
-          </CardTitle>
-          <CardDescription>
-            Configure how you receive notifications
-          </CardDescription>
-        </CardHeader>
-        <CardContent className="space-y-4">
-          <div className="flex items-center justify-between">
-            <div className="space-y-0.5">
-              <Label htmlFor="notifications-enabled">Enable Notifications</Label>
-              <p className="text-sm text-muted-foreground">
-                Receive real-time updates about bookings, payments, and inventory
-              </p>
-            </div>
-            <Switch
-              id="notifications-enabled"
-              checked={notificationsEnabled}
-              onCheckedChange={setNotificationsEnabled}
-              data-testid="switch-notifications"
-            />
-          </div>
-
-          <div className="flex items-center justify-between">
-            <div className="space-y-0.5">
-              <Label htmlFor="low-inventory-alerts">Low Inventory Alerts</Label>
-              <p className="text-sm text-muted-foreground">
-                Get notified when food items are running low
-              </p>
-            </div>
-            <Switch
-              id="low-inventory-alerts"
-              defaultChecked={true}
-              data-testid="switch-inventory-alerts"
-            />
-          </div>
-
-          <div className="flex items-center justify-between">
-            <div className="space-y-0.5">
-              <Label htmlFor="payment-notifications">Payment Notifications</Label>
-              <p className="text-sm text-muted-foreground">
-                Receive alerts for completed payments
-              </p>
-            </div>
-            <Switch
-              id="payment-notifications"
-              defaultChecked={true}
-              data-testid="switch-payment-notifications"
-            />
-          </div>
-        </CardContent>
-      </Card>
-
-      {/* System Settings */}
-      <Card>
-        <CardHeader>
-          <CardTitle className="flex items-center gap-2">
-            <Database className="h-5 w-5" />
-            System Settings
-          </CardTitle>
-          <CardDescription>
-            Configure system-wide settings and preferences
-          </CardDescription>
-        </CardHeader>
-        <CardContent className="space-y-4">
-          <div className="grid gap-4 md:grid-cols-2">
-            <div className="space-y-2">
-              <Label htmlFor="session-timeout">Session Timeout (minutes)</Label>
-              <Input
-                id="session-timeout"
-                name="session-timeout"
-                type="number"
-                defaultValue="30"
-                min="5"
-                max="120"
-                data-testid="input-session-timeout"
-              />
-              <p className="text-xs text-muted-foreground">
-                Auto-logout inactive users after this duration
-              </p>
-            </div>
-
-            <div className="space-y-2">
-              <Label htmlFor="data-retention">Data Retention (days)</Label>
-              <Input
-                id="data-retention"
-                name="data-retention"
-                type="number"
-                defaultValue="90"
-                min="30"
-                max="365"
-                data-testid="input-data-retention"
-              />
-              <p className="text-xs text-muted-foreground">
-                Keep activity logs and analytics for this duration
-              </p>
-            </div>
-          </div>
-
-          <div className="pt-4 border-t">
-            <Button variant="outline" data-testid="button-save-system-settings">
-              Save System Settings
-            </Button>
-          </div>
-        </CardContent>
-      </Card>
-
-      {/* User Management */}
-      <Card>
-        <CardHeader>
-          <CardTitle className="flex items-center gap-2">
-            <Users className="h-5 w-5" />
-            User Management
-          </CardTitle>
-          <CardDescription>
-            Manage staff accounts and permissions
-          </CardDescription>
-        </CardHeader>
-        <CardContent>
-          <div className="flex items-center justify-between">
-            <div>
-              <p className="font-medium">Active Users</p>
-              <p className="text-sm text-muted-foreground">
-                Manage staff members with access to the system
-              </p>
-            </div>
-            <Badge variant="outline" className="text-lg" data-testid="badge-active-users">
-              2 Active
-            </Badge>
-          </div>
-          <div className="mt-4">
-            <Button variant="secondary" data-testid="button-manage-users">
-              Manage Users
-            </Button>
-          </div>
-        </CardContent>
-      </Card>
-
-      {/* Data Management */}
-      <Card className="border-red-200 dark:border-red-900">
-        <CardHeader>
-          <CardTitle className="flex items-center gap-2 text-red-600 dark:text-red-500">
-            <Trash2 className="h-5 w-5" />
-            Data Management
-          </CardTitle>
-          <CardDescription>
-            Manage your data and perform cleanup operations
-          </CardDescription>
-        </CardHeader>
-        <CardContent className="space-y-4">
-          <div className="space-y-2">
-            <p className="text-sm text-muted-foreground">
-              Delete old activity logs and analytics data to free up storage space.
-              This action cannot be undone.
-            </p>
-            <Button variant="destructive" data-testid="button-cleanup-data">
-              <Trash2 className="h-4 w-4 mr-2" />
-              Clean Up Old Data
-            </Button>
-          </div>
-        </CardContent>
-      </Card>
+      {/* Happy Hours Pricing */}
+      <div>
+        <h2 className="text-2xl font-bold mb-4">Happy Hours Pricing</h2>
+        <p className="text-sm text-muted-foreground mb-4">
+          Set pricing tiers that apply during happy hours time slots. These prices are active only when happy hours are enabled and within the configured time periods.
+        </p>
+        <div className="grid gap-4 md:grid-cols-2">
+          <HappyHoursPricing category="PC" slots={pcHappyHoursPricing} onUpdateSlots={setPcHappyHoursPricing} />
+          <HappyHoursPricing category="PS5" slots={ps5HappyHoursPricing} onUpdateSlots={setPs5HappyHoursPricing} />
+        </div>
+      </div>
     </div>
   );
 }
