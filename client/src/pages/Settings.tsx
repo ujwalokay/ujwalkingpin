@@ -45,22 +45,22 @@ export default function Settings() {
   
   // Fetch device configs
   const { data: deviceConfigs } = useQuery<DeviceConfig[]>({
-    queryKey: ["/api/device-config"],
+    queryKey: ['device-configs'],
   });
 
   // Fetch pricing configs
   const { data: pricingConfigs } = useQuery<PricingConfig[]>({
-    queryKey: ["/api/pricing-config"],
+    queryKey: ['pricing-configs'],
   });
 
   // Fetch happy hours configs
   const { data: happyHoursConfigs } = useQuery<HappyHoursConfig[]>({
-    queryKey: ["/api/happy-hours-config"],
+    queryKey: ['happy-hours-configs'],
   });
 
   // Fetch happy hours pricing
   const { data: happyHoursPricing } = useQuery<HappyHoursPricingType[]>({
-    queryKey: ["/api/happy-hours-pricing"],
+    queryKey: ['happy-hours-pricing'],
   });
 
   // Fetch storage metrics (optional - won't block page if NEON_API_KEY not set)
@@ -146,50 +146,78 @@ export default function Settings() {
   // Save mutations
   const saveDeviceConfigMutation = useMutation({
     mutationFn: async ({ category, count, seats }: { category: string; count: number; seats: string[] }) => {
-      return apiRequest("PUT", "/api/device-config", { category, count, seats });
+      return apiRequest("POST", "/api/device-config", { category, count, seats });
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["/api/device-config"] });
+      queryClient.invalidateQueries({ queryKey: ['device-configs'] });
       toast({ title: "Success", description: "Device configuration saved" });
+    },
+    onError: (error: any) => {
+      toast({ 
+        title: "Error", 
+        description: error.message || "Failed to save device configuration",
+        variant: "destructive" 
+      });
     },
   });
 
   const savePricingMutation = useMutation({
     mutationFn: async ({ category, configs }: { category: string; configs: { duration: string; price: number; personCount?: number }[] }) => {
-      return apiRequest("PUT", "/api/pricing-config", {
+      return apiRequest("POST", "/api/pricing-config", {
         category,
         configs: configs.map((c) => ({ duration: c.duration, price: c.price.toString(), personCount: c.personCount || 1 })),
       });
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["/api/pricing-config"] });
+      queryClient.invalidateQueries({ queryKey: ['pricing-configs'] });
       toast({ title: "Success", description: "Pricing configuration saved" });
+    },
+    onError: (error: any) => {
+      toast({ 
+        title: "Error", 
+        description: error.message || "Failed to save pricing configuration",
+        variant: "destructive" 
+      });
     },
   });
 
   const saveHappyHoursConfigMutation = useMutation({
     mutationFn: async ({ category, enabled, timeSlots }: { category: string; enabled: boolean; timeSlots: TimeSlot[] }) => {
-      return apiRequest("PUT", "/api/happy-hours-config", {
+      return apiRequest("POST", "/api/happy-hours-config", {
         category,
         configs: timeSlots.map((slot) => ({ startTime: slot.startTime, endTime: slot.endTime, enabled: enabled ? 1 : 0 })),
       });
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["/api/happy-hours-config"] });
+      queryClient.invalidateQueries({ queryKey: ['happy-hours-configs'] });
       toast({ title: "Success", description: "Happy hours configuration saved" });
+    },
+    onError: (error: any) => {
+      toast({ 
+        title: "Error", 
+        description: error.message || "Failed to save happy hours configuration",
+        variant: "destructive" 
+      });
     },
   });
 
   const saveHappyHoursPricingMutation = useMutation({
     mutationFn: async ({ category, configs }: { category: string; configs: { duration: string; price: number; personCount?: number }[] }) => {
-      return apiRequest("PUT", "/api/happy-hours-pricing", {
+      return apiRequest("POST", "/api/happy-hours-pricing", {
         category,
         configs: configs.map((c) => ({ duration: c.duration, price: c.price.toString(), personCount: c.personCount || 1 })),
       });
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["/api/happy-hours-pricing"] });
+      queryClient.invalidateQueries({ queryKey: ['happy-hours-pricing'] });
       toast({ title: "Success", description: "Happy hours pricing saved" });
+    },
+    onError: (error: any) => {
+      toast({ 
+        title: "Error", 
+        description: error.message || "Failed to save happy hours pricing",
+        variant: "destructive" 
+      });
     },
   });
 
@@ -198,32 +226,32 @@ export default function Settings() {
       // Save all configurations in parallel
       const savePromises = [
         // Device configs
-        apiRequest("PUT", "/api/device-config", {
+        apiRequest("POST", "/api/device-config", {
           category: "PC",
           count: pcConfig.count,
           seats: pcConfig.seats.map((s) => s.name),
         }),
-        apiRequest("PUT", "/api/device-config", {
+        apiRequest("POST", "/api/device-config", {
           category: "PS5",
           count: ps5Config.count,
           seats: ps5Config.seats.map((s) => s.name),
         }),
         // Pricing
-        apiRequest("PUT", "/api/pricing-config", {
+        apiRequest("POST", "/api/pricing-config", {
           category: "PC",
           configs: pcPricing.map((c) => ({ duration: c.duration, price: c.price.toString(), personCount: c.personCount || 1 })),
         }),
-        apiRequest("PUT", "/api/pricing-config", {
+        apiRequest("POST", "/api/pricing-config", {
           category: "PS5",
           configs: ps5Pricing.map((c) => ({ duration: c.duration, price: c.price.toString(), personCount: c.personCount || 1 })),
         }),
         // Happy hours config
-        apiRequest("PUT", "/api/happy-hours-config", {
+        apiRequest("POST", "/api/happy-hours-config", {
           category: "PC",
           configs: (pcTimeSlots.length > 0 ? pcTimeSlots : [{ startTime: "11:00", endTime: "14:00" }])
             .map((slot) => ({ startTime: slot.startTime, endTime: slot.endTime, enabled: pcHappyHoursEnabled ? 1 : 0 })),
         }),
-        apiRequest("PUT", "/api/happy-hours-config", {
+        apiRequest("POST", "/api/happy-hours-config", {
           category: "PS5",
           configs: (ps5TimeSlots.length > 0 ? ps5TimeSlots : [{ startTime: "11:00", endTime: "14:00" }])
             .map((slot) => ({ startTime: slot.startTime, endTime: slot.endTime, enabled: ps5HappyHoursEnabled ? 1 : 0 })),
@@ -233,7 +261,7 @@ export default function Settings() {
       // Add happy hours pricing if exists
       if (pcHappyHoursPricing.length > 0) {
         savePromises.push(
-          apiRequest("PUT", "/api/happy-hours-pricing", {
+          apiRequest("POST", "/api/happy-hours-pricing", {
             category: "PC",
             configs: pcHappyHoursPricing.map((c) => ({ duration: c.duration, price: c.price.toString(), personCount: c.personCount || 1 })),
           })
@@ -241,7 +269,7 @@ export default function Settings() {
       }
       if (ps5HappyHoursPricing.length > 0) {
         savePromises.push(
-          apiRequest("PUT", "/api/happy-hours-pricing", {
+          apiRequest("POST", "/api/happy-hours-pricing", {
             category: "PS5",
             configs: ps5HappyHoursPricing.map((c) => ({ duration: c.duration, price: c.price.toString(), personCount: c.personCount || 1 })),
           })
@@ -252,20 +280,21 @@ export default function Settings() {
       await Promise.all(savePromises);
 
       // Invalidate all queries to refresh data
-      queryClient.invalidateQueries({ queryKey: ["/api/device-config"] });
-      queryClient.invalidateQueries({ queryKey: ["/api/pricing-config"] });
-      queryClient.invalidateQueries({ queryKey: ["/api/happy-hours-config"] });
-      queryClient.invalidateQueries({ queryKey: ["/api/happy-hours-pricing"] });
+      queryClient.invalidateQueries({ queryKey: ['device-configs'] });
+      queryClient.invalidateQueries({ queryKey: ['pricing-configs'] });
+      queryClient.invalidateQueries({ queryKey: ['happy-hours-configs'] });
+      queryClient.invalidateQueries({ queryKey: ['happy-hours-pricing'] });
 
       // Show single success toast
       toast({
-        title: "✅ Settings Saved",
+        title: "Settings Saved",
         description: "All configurations have been saved successfully!",
       });
-    } catch (error) {
+    } catch (error: any) {
+      console.error("Save error:", error);
       toast({
-        title: "❌ Error",
-        description: "Failed to save some settings. Please try again.",
+        title: "Error",
+        description: error.message || "Failed to save some settings. Please try again.",
         variant: "destructive",
       });
     }
