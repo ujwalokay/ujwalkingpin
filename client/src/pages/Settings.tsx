@@ -437,7 +437,7 @@ export default function Settings() {
         <div className="grid gap-4 md:grid-cols-2">
           <DeviceConfigCard
             title="PC"
-            description={`Configure PC (30/30 available)`}
+            description={`Configure PC devices`}
             count={pcConfig.count}
             onCountChange={handlePcCountChange}
             seats={pcConfig.seats}
@@ -445,7 +445,7 @@ export default function Settings() {
           />
           <DeviceConfigCard
             title="PS5"
-            description={`Configure PS5 (20/20 available)`}
+            description={`Configure PS5 devices`}
             count={ps5Config.count}
             onCountChange={handlePs5CountChange}
             seats={ps5Config.seats}
