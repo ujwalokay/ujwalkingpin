@@ -2,7 +2,7 @@ import { useQuery, useMutation } from "@tanstack/react-query";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Progress } from "@/components/ui/progress";
 import { Badge } from "@/components/ui/badge";
-import { Database, HardDrive, RefreshCw, AlertTriangle, CheckCircle2, Save } from "lucide-react";
+import { Database, HardDrive, RefreshCw, AlertTriangle, CheckCircle2, Save, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { queryClient, apiRequest } from "@/lib/queryClient";
 import { DeviceConfigCard } from "@/components/DeviceConfigCard";
@@ -211,13 +211,17 @@ export default function Settings() {
     savePricingMutation.mutate({ category: "PC", configs: pcPricing });
     savePricingMutation.mutate({ category: "PS5", configs: ps5Pricing });
 
-    // Save happy hours config
-    if (pcTimeSlots.length > 0) {
-      saveHappyHoursConfigMutation.mutate({ category: "PC", enabled: pcHappyHoursEnabled, timeSlots: pcTimeSlots });
-    }
-    if (ps5TimeSlots.length > 0) {
-      saveHappyHoursConfigMutation.mutate({ category: "PS5", enabled: ps5HappyHoursEnabled, timeSlots: ps5TimeSlots });
-    }
+    // Save happy hours config (save even if empty to persist enabled/disabled state)
+    saveHappyHoursConfigMutation.mutate({ 
+      category: "PC", 
+      enabled: pcHappyHoursEnabled, 
+      timeSlots: pcTimeSlots.length > 0 ? pcTimeSlots : [{ startTime: "11:00", endTime: "14:00" }]
+    });
+    saveHappyHoursConfigMutation.mutate({ 
+      category: "PS5", 
+      enabled: ps5HappyHoursEnabled, 
+      timeSlots: ps5TimeSlots.length > 0 ? ps5TimeSlots : [{ startTime: "11:00", endTime: "14:00" }]
+    });
 
     // Save happy hours pricing
     if (pcHappyHoursPricing.length > 0) {
@@ -259,11 +263,19 @@ export default function Settings() {
   };
 
   const addPcTimeSlot = () => {
-    setPcTimeSlots([...pcTimeSlots, { startTime: "11:55 AM", endTime: "01:59 PM" }]);
+    setPcTimeSlots([...pcTimeSlots, { startTime: "11:00", endTime: "14:00" }]);
   };
 
   const addPs5TimeSlot = () => {
-    setPs5TimeSlots([...ps5TimeSlots, { startTime: "01:00 AM", endTime: "11:00 AM" }]);
+    setPs5TimeSlots([...ps5TimeSlots, { startTime: "11:00", endTime: "14:00" }]);
+  };
+
+  const removePcTimeSlot = (index: number) => {
+    setPcTimeSlots(pcTimeSlots.filter((_, i) => i !== index));
+  };
+
+  const removePs5TimeSlot = (index: number) => {
+    setPs5TimeSlots(ps5TimeSlots.filter((_, i) => i !== index));
   };
 
   const formatDate = (dateString: string | null) => {
@@ -435,35 +447,48 @@ export default function Settings() {
             <CardContent className="space-y-4">
               {pcTimeSlots.map((slot, index) => (
                 <div key={index} className="space-y-2 p-3 rounded-md border">
-                  <div className="grid grid-cols-2 gap-2">
-                    <div>
-                      <Label className="text-xs">Start Time</Label>
-                      <Input
-                        type="time"
-                        value={slot.startTime}
-                        onChange={(e) => {
-                          const newSlots = [...pcTimeSlots];
-                          newSlots[index].startTime = e.target.value;
-                          setPcTimeSlots(newSlots);
-                        }}
-                      />
+                  <div className="flex items-start justify-between gap-2">
+                    <div className="grid grid-cols-2 gap-2 flex-1">
+                      <div>
+                        <Label className="text-xs">Start Time</Label>
+                        <Input
+                          type="time"
+                          value={slot.startTime}
+                          onChange={(e) => {
+                            const newSlots = [...pcTimeSlots];
+                            newSlots[index].startTime = e.target.value;
+                            setPcTimeSlots(newSlots);
+                          }}
+                          data-testid={`input-pc-start-${index}`}
+                        />
+                      </div>
+                      <div>
+                        <Label className="text-xs">End Time</Label>
+                        <Input
+                          type="time"
+                          value={slot.endTime}
+                          onChange={(e) => {
+                            const newSlots = [...pcTimeSlots];
+                            newSlots[index].endTime = e.target.value;
+                            setPcTimeSlots(newSlots);
+                          }}
+                          data-testid={`input-pc-end-${index}`}
+                        />
+                      </div>
                     </div>
-                    <div>
-                      <Label className="text-xs">End Time</Label>
-                      <Input
-                        type="time"
-                        value={slot.endTime}
-                        onChange={(e) => {
-                          const newSlots = [...pcTimeSlots];
-                          newSlots[index].endTime = e.target.value;
-                          setPcTimeSlots(newSlots);
-                        }}
-                      />
-                    </div>
+                    <Button
+                      size="icon"
+                      variant="ghost"
+                      onClick={() => removePcTimeSlot(index)}
+                      className="mt-5"
+                      data-testid={`button-remove-pc-timeslot-${index}`}
+                    >
+                      <X className="h-4 w-4" />
+                    </Button>
                   </div>
                 </div>
               ))}
-              <Button variant="outline" className="w-full" onClick={addPcTimeSlot}>
+              <Button variant="outline" className="w-full" onClick={addPcTimeSlot} data-testid="button-add-pc-timeslot">
                 + Add Time Slot
               </Button>
             </CardContent>
@@ -485,35 +510,48 @@ export default function Settings() {
             <CardContent className="space-y-4">
               {ps5TimeSlots.map((slot, index) => (
                 <div key={index} className="space-y-2 p-3 rounded-md border">
-                  <div className="grid grid-cols-2 gap-2">
-                    <div>
-                      <Label className="text-xs">Start Time</Label>
-                      <Input
-                        type="time"
-                        value={slot.startTime}
-                        onChange={(e) => {
-                          const newSlots = [...ps5TimeSlots];
-                          newSlots[index].startTime = e.target.value;
-                          setPs5TimeSlots(newSlots);
-                        }}
-                      />
+                  <div className="flex items-start justify-between gap-2">
+                    <div className="grid grid-cols-2 gap-2 flex-1">
+                      <div>
+                        <Label className="text-xs">Start Time</Label>
+                        <Input
+                          type="time"
+                          value={slot.startTime}
+                          onChange={(e) => {
+                            const newSlots = [...ps5TimeSlots];
+                            newSlots[index].startTime = e.target.value;
+                            setPs5TimeSlots(newSlots);
+                          }}
+                          data-testid={`input-ps5-start-${index}`}
+                        />
+                      </div>
+                      <div>
+                        <Label className="text-xs">End Time</Label>
+                        <Input
+                          type="time"
+                          value={slot.endTime}
+                          onChange={(e) => {
+                            const newSlots = [...ps5TimeSlots];
+                            newSlots[index].endTime = e.target.value;
+                            setPs5TimeSlots(newSlots);
+                          }}
+                          data-testid={`input-ps5-end-${index}`}
+                        />
+                      </div>
                     </div>
-                    <div>
-                      <Label className="text-xs">End Time</Label>
-                      <Input
-                        type="time"
-                        value={slot.endTime}
-                        onChange={(e) => {
-                          const newSlots = [...ps5TimeSlots];
-                          newSlots[index].endTime = e.target.value;
-                          setPs5TimeSlots(newSlots);
-                        }}
-                      />
-                    </div>
+                    <Button
+                      size="icon"
+                      variant="ghost"
+                      onClick={() => removePs5TimeSlot(index)}
+                      className="mt-5"
+                      data-testid={`button-remove-ps5-timeslot-${index}`}
+                    >
+                      <X className="h-4 w-4" />
+                    </Button>
                   </div>
                 </div>
               ))}
-              <Button variant="outline" className="w-full" onClick={addPs5TimeSlot}>
+              <Button variant="outline" className="w-full" onClick={addPs5TimeSlot} data-testid="button-add-ps5-timeslot">
                 + Add Time Slot
               </Button>
             </CardContent>
