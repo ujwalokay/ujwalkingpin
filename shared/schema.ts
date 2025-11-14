@@ -428,11 +428,13 @@ export type LoadPrediction = typeof loadPredictions.$inferSelect;
 
 export const retentionConfig = pgTable("retention_config", {
   id: varchar("id").primaryKey().$defaultFn(() => crypto.randomUUID()),
-  bookingHistoryDays: integer("booking_history_days").notNull().default(730),
-  activityLogsDays: integer("activity_logs_days").notNull().default(180),
-  loadMetricsDays: integer("load_metrics_days").notNull().default(90),
-  loadPredictionsDays: integer("load_predictions_days").notNull().default(90),
-  expensesDays: integer("expenses_days").notNull().default(2555),
+  // ALL DATA KEPT FOREVER - Owner requirement for business records
+  // 36500 days = 100 years (effectively permanent storage)
+  bookingHistoryDays: integer("booking_history_days").notNull().default(36500),
+  activityLogsDays: integer("activity_logs_days").notNull().default(36500),
+  loadMetricsDays: integer("load_metrics_days").notNull().default(36500),
+  loadPredictionsDays: integer("load_predictions_days").notNull().default(36500),
+  expensesDays: integer("expenses_days").notNull().default(36500),
   updatedAt: timestamp("updated_at").notNull().defaultNow(),
 });
 

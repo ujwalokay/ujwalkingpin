@@ -150,8 +150,10 @@ app.use((req, res, next) => {
   // Initialize database with defaults
   await storage.initializeDefaults();
   
-  // Start automatic data cleanup scheduler
-  cleanupScheduler.start();
+  // AUTOMATIC CLEANUP DISABLED - Owner wants to keep ALL data forever
+  // Data is valuable for tax records, customer history, and business analytics
+  // Using multiple Neon free projects (6 × 512 MB = 3 GB) to store all data
+  // cleanupScheduler.start();
   
   // Setup session middleware
   app.set("trust proxy", 1);
