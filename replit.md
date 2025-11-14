@@ -37,9 +37,14 @@ Preferred communication style: Simple, everyday language.
 - RESTful API design with JSON communication.
 
 **Database Layer:**
-- PostgreSQL via Neon serverless provider.
+- PostgreSQL via Neon serverless provider (Free tier: 512 MB).
 - Drizzle ORM for type-safe database interactions.
 - Schema-first approach with Zod validation.
+- **Data Retention Strategy:** ALL data kept permanently (100 years) - no automatic cleanup.
+  - Owner requirement: Preserve all business records for tax, analytics, and compliance.
+  - Current storage: ~103 MB/year at 70 customers/day.
+  - Free tier sufficient for 6-7 years with no cleanup.
+  - Future scaling option: 6 free Neon projects = 3 GB for 41+ years (see NEON_6_DATABASE_SETUP.md).
 
 **Data Models:**
 - `Bookings`: Manages active sessions, status, timing, and pricing.
