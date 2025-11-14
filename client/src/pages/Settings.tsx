@@ -45,22 +45,22 @@ export default function Settings() {
   
   // Fetch device configs
   const { data: deviceConfigs } = useQuery<DeviceConfig[]>({
-    queryKey: ['device-configs'],
+    queryKey: ['/api/device-config'],
   });
 
   // Fetch pricing configs
   const { data: pricingConfigs } = useQuery<PricingConfig[]>({
-    queryKey: ['pricing-configs'],
+    queryKey: ['/api/pricing-config'],
   });
 
   // Fetch happy hours configs
   const { data: happyHoursConfigs } = useQuery<HappyHoursConfig[]>({
-    queryKey: ['happy-hours-configs'],
+    queryKey: ['/api/happy-hours-config'],
   });
 
   // Fetch happy hours pricing
   const { data: happyHoursPricing } = useQuery<HappyHoursPricingType[]>({
-    queryKey: ['happy-hours-pricing'],
+    queryKey: ['/api/happy-hours-pricing'],
   });
 
   // Fetch storage metrics (optional - won't block page if NEON_API_KEY not set)
@@ -149,6 +149,7 @@ export default function Settings() {
       return apiRequest("POST", "/api/device-config", { category, count, seats });
     },
     onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['/api/device-config'] });
       queryClient.invalidateQueries({ queryKey: ['device-configs'] });
       toast({ title: "Success", description: "Device configuration saved" });
     },
@@ -169,7 +170,7 @@ export default function Settings() {
       });
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['pricing-configs'] });
+      queryClient.invalidateQueries({ queryKey: ['/api/pricing-config'] });
       toast({ title: "Success", description: "Pricing configuration saved" });
     },
     onError: (error: any) => {
@@ -189,7 +190,7 @@ export default function Settings() {
       });
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['happy-hours-configs'] });
+      queryClient.invalidateQueries({ queryKey: ['/api/happy-hours-config'] });
       toast({ title: "Success", description: "Happy hours configuration saved" });
     },
     onError: (error: any) => {
@@ -209,7 +210,7 @@ export default function Settings() {
       });
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['happy-hours-pricing'] });
+      queryClient.invalidateQueries({ queryKey: ['/api/happy-hours-pricing'] });
       toast({ title: "Success", description: "Happy hours pricing saved" });
     },
     onError: (error: any) => {
@@ -280,10 +281,11 @@ export default function Settings() {
       await Promise.all(savePromises);
 
       // Invalidate all queries to refresh data
+      queryClient.invalidateQueries({ queryKey: ['/api/device-config'] });
       queryClient.invalidateQueries({ queryKey: ['device-configs'] });
-      queryClient.invalidateQueries({ queryKey: ['pricing-configs'] });
-      queryClient.invalidateQueries({ queryKey: ['happy-hours-configs'] });
-      queryClient.invalidateQueries({ queryKey: ['happy-hours-pricing'] });
+      queryClient.invalidateQueries({ queryKey: ['/api/pricing-config'] });
+      queryClient.invalidateQueries({ queryKey: ['/api/happy-hours-config'] });
+      queryClient.invalidateQueries({ queryKey: ['/api/happy-hours-pricing'] });
 
       // Show single success toast
       toast({
