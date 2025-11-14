@@ -1,0 +1,76 @@
+2025-11-14T12:59:15.188637416Z ⏰ Next cleanup scheduled for: 15/11/25, 7:30:00 am IST
+2025-11-14T12:59:15.1900399Z ✅ Setting up Google OAuth authentication...
+2025-11-14T12:59:15.190053471Z 📍 Callback URL: https://ujwalkingpin.onrender.com/api/auth/google/callback
+2025-11-14T12:59:15.195828158Z 12:59:15 PM [express] serving on port 10000
+2025-11-14T14:39:18.676443335Z ==> Deploying...
+2025-11-14T14:39:46.863678998Z 
+2025-11-14T14:39:46.86370789Z > rest-express@1.0.0 start
+2025-11-14T14:39:46.86371532Z > npx drizzle-kit push --force && NODE_ENV=production node dist/index.js
+2025-11-14T14:39:46.863719471Z 
+2025-11-14T14:39:51.761973823Z No config path provided, using default 'drizzle.config.ts'
+2025-11-14T14:39:51.762217467Z Reading config file '/opt/render/project/src/drizzle.config.ts'
+2025-11-14T14:39:52.361530264Z DATABASE_URL, ensure the database is provisioned
+2025-11-14T14:39:57.28677293Z ==> Exited with status 1
+2025-11-14T14:39:57.303902037Z ==> Common ways to troubleshoot your deploy: https://render.com/docs/troubleshooting-deploys
+2025-11-14T14:40:02.881100419Z ==> Running 'npm run start'
+2025-11-14T14:40:04.108616759Z 
+2025-11-14T14:40:04.10863649Z > rest-express@1.0.0 start
+2025-11-14T14:40:04.10864235Z > npx drizzle-kit push --force && NODE_ENV=production node dist/index.js
+2025-11-14T14:40:04.10864471Z 
+2025-11-14T14:40:09.086118505Z No config path provided, using default 'drizzle.config.ts'
+2025-11-14T14:40:09.086337297Z Reading config file '/opt/render/project/src/drizzle.config.ts'
+2025-11-14T14:40:09.782917639Z DATABASE_URL, ensure the database is provisioned
+2025-11-14T14:40:27.731599526Z ==> Running 'npm run start'
+2025-11-14T14:40:28.82721641Z 
+2025-11-14T14:40:28.827244411Z > rest-express@1.0.0 start
+2025-11-14T14:40:28.827251341Z > npx drizzle-kit push --force && NODE_ENV=production node dist/index.js
+2025-11-14T14:40:28.827253831Z 
+2025-11-14T14:40:34.129635592Z No config path provided, using default 'drizzle.config.ts'
+2025-11-14T14:40:34.129965208Z Reading config file '/opt/render/project/src/drizzle.config.ts'
+2025-11-14T14:40:38.981510261Z ==> Running 'npm run start'
+2025-11-14T14:40:39.886159278Z 
+2025-11-14T14:40:39.886178979Z > rest-express@1.0.0 start
+2025-11-14T14:40:39.886183099Z > npx drizzle-kit push --force && NODE_ENV=production node dist/index.js
+2025-11-14T14:40:39.88618483Z 
+2025-11-14T14:40:41.526983673Z Using 'pg' driver for database querying
+2025-11-14T14:40:43.993168827Z No config path provided, using default 'drizzle.config.ts'
+2025-11-14T14:40:43.99339807Z Reading config file '/opt/render/project/src/drizzle.config.ts'
+2025-11-14T14:40:44.587008245Z DATABASE_URL, ensure the database is provisioned
+2025-11-14T14:40:44.826244415Z [⣷] Pulling schema from database...
+2025-11-14T14:40:45.032510913Z [⣯] Pulling schema from database...
+2025-11-14T14:40:45.160795032Z [⣟] Pulling schema from database...
+2025-11-14T14:40:45.288433397Z [⡿] Pulling schema from database...
+2025-11-14T14:40:45.416494021Z [⢿] Pulling schema from database...
+2025-11-14T14:40:45.621244679Z [⣻] Pulling schema from database...
+2025-11-14T14:40:45.748687911Z [⣽] Pulling schema from database...
+2025-11-14T14:40:45.876601432Z [⣷] Pulling schema from database...
+2025-11-14T14:40:46.005514343Z [⣯] Pulling schema from database...
+2025-11-14T14:40:46.13425814Z [⣟] Pulling schema from database...
+2025-11-14T14:40:46.206277521Z [✓] Pulling schema from database...
+2025-11-14T14:40:46.548105102Z [✓] Changes applied
+2025-11-14T14:40:58.225479532Z Database initialized with default data
+2025-11-14T14:40:58.225592264Z ⏰ Starting automatic data cleanup scheduler...
+2025-11-14T14:40:58.225620935Z 📅 Cleanup will run daily at 2:00 AM
+2025-11-14T14:40:58.323973079Z ⏰ Next cleanup scheduled for: 15/11/25, 7:30:00 am IST
+2025-11-14T14:40:58.325633402Z ✅ Setting up Google OAuth authentication...
+2025-11-14T14:40:58.325647712Z 📍 Callback URL: https://ujwalkingpin.onrender.com/api/auth/google/callback
+2025-11-14T14:40:58.333213722Z 2:40:58 PM [express] serving on port 10000
+2025-11-14T14:43:07.119426407Z ==> Deploying...
+2025-11-14T14:43:33.93069055Z ==> Running 'npm run start'
+2025-11-14T14:43:35.027886634Z 
+2025-11-14T14:43:35.027917485Z > rest-express@1.0.0 start
+2025-11-14T14:43:35.027922645Z > npx drizzle-kit push --force && NODE_ENV=production node dist/index.js
+2025-11-14T14:43:35.027924835Z 
+2025-11-14T14:43:39.728991745Z No config path provided, using default 'drizzle.config.ts'
+2025-11-14T14:43:39.729284211Z Reading config file '/opt/render/project/src/drizzle.config.ts'
+2025-11-14T14:43:40.331699181Z DATABASE_URL, ensure the database is provisioned
+2025-11-14T14:43:42.107319043Z ==> Exited with status 1
+2025-11-14T14:43:42.123810111Z ==> Common ways to troubleshoot your deploy: https://render.com/docs/troubleshooting-deploys
+2025-11-14T14:43:48.163819818Z ==> Running 'npm run start'
+2025-11-14T14:43:49.161589409Z 
+2025-11-14T14:43:49.161609439Z > rest-express@1.0.0 start
+2025-11-14T14:43:49.161614459Z > npx drizzle-kit push --force && NODE_ENV=production node dist/index.js
+2025-11-14T14:43:49.161617029Z 
+2025-11-14T14:43:53.67549204Z No config path provided, using default 'drizzle.config.ts'
+2025-11-14T14:43:53.757548035Z Reading config file '/opt/render/project/src/drizzle.config.ts'
+2025-11-14T14:43:54.263828942Z DATABASE_URL, ensure the database is provisioned
