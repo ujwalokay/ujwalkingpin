@@ -25,6 +25,7 @@ import { Badge } from "@/components/ui/badge";
 import { Card, CardContent } from "@/components/ui/card";
 import { Calendar } from "@/components/ui/calendar";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { format, isSameDay } from "date-fns";
 
 interface AddBookingDialogProps {
@@ -96,9 +97,8 @@ interface Booking {
 export function AddBookingDialog({ open, onOpenChange, onConfirm, availableSeats }: AddBookingDialogProps) {
   const [category, setCategory] = useState<string>("");
   const [selectedSeats, setSelectedSeats] = useState<number[]>([]);
-  const [customerName, setCustomerName] = useState<string>("");
-  const [whatsappNumber, setWhatsappNumber] = useState<string>("");
-  const [isWhatsappFocused, setIsWhatsappFocused] = useState<boolean>(false);
+  const [deviceCustomers, setDeviceCustomers] = useState<Record<number, { name: string; phone: string; isPhoneFocused: boolean }>>({});
+  const [activeTab, setActiveTab] = useState<string>("");
   const [durationMinutes, setDurationMinutes] = useState<number>(30);
   const [personCount, setPersonCount] = useState<number>(1);
   const [bookingType, setBookingType] = useState<"walk-in" | "upcoming">("walk-in");
@@ -291,41 +291,89 @@ export function AddBookingDialog({ open, onOpenChange, onConfirm, availableSeats
     : false;
 
   const toggleSeat = (seatNumber: number) => {
-    setSelectedSeats(prev =>
-      prev.includes(seatNumber)
+    setSelectedSeats(prev => {
+      const newSeats = prev.includes(seatNumber)
         ? prev.filter(s => s !== seatNumber)
-        : [...prev, seatNumber]
-    );
+        : [...prev, seatNumber];
+      
+      if (!prev.includes(seatNumber)) {
+        setDeviceCustomers(prevCustomers => ({
+          ...prevCustomers,
+          [seatNumber]: { name: "", phone: "", isPhoneFocused: false }
+        }));
+        
+        if (!activeTab || activeTab === "") {
+          setActiveTab(seatNumber.toString());
+        }
+      } else {
+        setDeviceCustomers(prevCustomers => {
+          const { [seatNumber]: _, ...rest } = prevCustomers;
+          return rest;
+        });
+        
+        if (activeTab === seatNumber.toString() && newSeats.length > 0) {
+          setActiveTab(newSeats[0].toString());
+        }
+      }
+      
+      return newSeats;
+    });
+  };
+  
+  const updateDeviceCustomer = (seatNumber: number, field: 'name' | 'phone' | 'isPhoneFocused', value: string | boolean) => {
+    setDeviceCustomers(prev => ({
+      ...prev,
+      [seatNumber]: {
+        ...prev[seatNumber],
+        [field]: value
+      }
+    }));
   };
 
   const handleConfirm = () => {
-    const isWhatsappRequired = bookingType === "upcoming" && !whatsappNumber.trim();
-    const isWhatsappInvalid = whatsappNumber.trim() && whatsappNumber.length !== 10;
     const isDateRequired = bookingType === "upcoming" && !bookingDate;
     const isTimeSlotRequired = bookingType === "upcoming" && !timeSlot;
+    
+    let allDevicesHaveCustomers = true;
+    let invalidPhones: number[] = [];
+    
+    for (const seatNumber of selectedSeats) {
+      const customer = deviceCustomers[seatNumber];
+      if (!customer || !customer.name.trim()) {
+        allDevicesHaveCustomers = false;
+        break;
+      }
+      
+      if (bookingType === "upcoming") {
+        if (!customer.phone.trim()) {
+          allDevicesHaveCustomers = false;
+          break;
+        }
+        if (customer.phone.trim() && customer.phone.length !== 10) {
+          invalidPhones.push(seatNumber);
+        }
+      } else if (customer.phone.trim() && customer.phone.length !== 10) {
+        invalidPhones.push(seatNumber);
+      }
+    }
     
     // Determine which pricing to use
     const shouldUseHappyHoursPricing = (bookingType === "walk-in" && useHappyHoursPricing) || (bookingType === "upcoming" && useHappyHoursPricing);
     const hasValidPrice = shouldUseHappyHoursPricing ? selectedHappyHoursSlot : selectedSlot;
     
-    if (category && selectedSeats.length > 0 && customerName && duration && hasValidPrice && !isWhatsappRequired && !isWhatsappInvalid && !isDateRequired && !isTimeSlotRequired) {
+    if (category && selectedSeats.length > 0 && allDevicesHaveCustomers && invalidPhones.length === 0 && duration && hasValidPrice && !isDateRequired && !isTimeSlotRequired) {
       let finalPersonCount: number;
       
       if (shouldUseHappyHoursPricing) {
-        // Happy Hours pricing
         finalPersonCount = category === "PS5" ? personCount : 1;
       } else if (category === "PS5") {
-        // PS5 pricing
         finalPersonCount = personCount;
       } else {
-        // Other categories
         finalPersonCount = 1;
       }
       
-      // Calculate final price with any rewards applied
       const finalPrice = calculateFinalPrice() || hasValidPrice.price.toString();
       
-      // Determine booking types array
       let bookingTypes: string[];
       if (bookingType === "upcoming" && useHappyHoursPricing) {
         bookingTypes = ["upcoming", "happy-hours"];
@@ -335,7 +383,6 @@ export function AddBookingDialog({ open, onOpenChange, onConfirm, availableSeats
         bookingTypes = [bookingType];
       }
       
-      // Combine hours and minutes into H:MM format
       let manualFreeHours: string | undefined = undefined;
       if (manualFreeHoursHr || manualFreeHoursMin) {
         const hours = parseInt(manualFreeHoursHr) || 0;
@@ -343,26 +390,30 @@ export function AddBookingDialog({ open, onOpenChange, onConfirm, availableSeats
         manualFreeHours = `${hours}:${minutes.toString().padStart(2, '0')}`;
       }
       
-      onConfirm?.({
-        category,
-        seatNumbers: selectedSeats,
-        customerName,
-        whatsappNumber: whatsappNumber.trim() || undefined,
-        duration,
-        price: finalPrice,
-        personCount: finalPersonCount,
-        bookingType: bookingTypes,
-        bookingDate: bookingType === "upcoming" ? bookingDate : undefined,
-        timeSlot: bookingType === "upcoming" ? timeSlot : undefined,
-        usePromotionalDiscount,
-        usePromotionalBonus,
-        manualDiscountPercentage: manualDiscountPercentage ? parseInt(manualDiscountPercentage) : undefined,
-        manualFreeHours: manualFreeHours,
-      } as any);
+      for (const seatNumber of selectedSeats) {
+        const customer = deviceCustomers[seatNumber];
+        onConfirm?.({
+          category,
+          seatNumbers: [seatNumber],
+          customerName: customer.name,
+          whatsappNumber: customer.phone.trim() || undefined,
+          duration,
+          price: finalPrice,
+          personCount: finalPersonCount,
+          bookingType: bookingTypes,
+          bookingDate: bookingType === "upcoming" ? bookingDate : undefined,
+          timeSlot: bookingType === "upcoming" ? timeSlot : undefined,
+          usePromotionalDiscount,
+          usePromotionalBonus,
+          manualDiscountPercentage: manualDiscountPercentage ? parseInt(manualDiscountPercentage) : undefined,
+          manualFreeHours: manualFreeHours,
+        } as any);
+      }
+      
       setCategory("");
       setSelectedSeats([]);
-      setCustomerName("");
-      setWhatsappNumber("");
+      setDeviceCustomers({});
+      setActiveTab("");
       setDurationMinutes(30);
       setPersonCount(1);
       setBookingType("walk-in");
@@ -684,7 +735,7 @@ export function AddBookingDialog({ open, onOpenChange, onConfirm, availableSeats
           {category && selectedCategory && selectedCategory.seats.length > 0 && (
             <div className="space-y-2">
               <Label>
-                Select Seats ({selectedSeats.length} selected)
+                Select Devices ({selectedSeats.length} selected)
               </Label>
               <div className="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-5 lg:grid-cols-6 gap-2 max-h-48 overflow-y-auto p-3 border rounded-md bg-muted/30">
                 {selectedCategory.seats.map((seat) => (
@@ -710,16 +761,101 @@ export function AddBookingDialog({ open, onOpenChange, onConfirm, availableSeats
             </div>
           )}
 
-          <div className="space-y-2">
-            <Label htmlFor="customer">Customer Name</Label>
-            <Input
-              id="customer"
-              value={customerName}
-              onChange={(e) => setCustomerName(e.target.value)}
-              placeholder="Enter customer name"
-              data-testid="input-customer-name"
-            />
-          </div>
+          {selectedSeats.length > 0 && (
+            <div className="space-y-2">
+              <Label>Customer Details for Each Device</Label>
+              <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
+                <TabsList className="w-full flex-wrap h-auto gap-1">
+                  {selectedSeats.map((seat) => (
+                    <TabsTrigger 
+                      key={seat} 
+                      value={seat.toString()}
+                      data-testid={`tab-device-${seat}`}
+                      className="flex-1 min-w-[80px]"
+                    >
+                      {category}-{seat}
+                    </TabsTrigger>
+                  ))}
+                </TabsList>
+                {selectedSeats.map((seat) => {
+                  const customer = deviceCustomers[seat] || { name: "", phone: "", isPhoneFocused: false };
+                  return (
+                    <TabsContent key={seat} value={seat.toString()} className="space-y-3 mt-3">
+                      <div className="space-y-2">
+                        <Label htmlFor={`customer-name-${seat}`}>
+                          Customer Name <span className="text-destructive">*</span>
+                        </Label>
+                        <Input
+                          id={`customer-name-${seat}`}
+                          value={customer.name}
+                          onChange={(e) => updateDeviceCustomer(seat, 'name', e.target.value)}
+                          placeholder="Enter customer name"
+                          data-testid={`input-customer-name-${seat}`}
+                        />
+                      </div>
+                      
+                      <div className="space-y-2">
+                        <Label htmlFor={`whatsapp-${seat}`}>
+                          WhatsApp Number {bookingType === "upcoming" && <span className="text-destructive">*</span>}
+                        </Label>
+                        <div className="relative">
+                          <Input
+                            id={`whatsapp-${seat}`}
+                            value={
+                              customer.isPhoneFocused
+                                ? customer.phone.replace(/(\d{5})(\d{1,5})/, '$1 $2')
+                                : customer.phone.length > 0
+                                ? 'xxxxx xxxxx'
+                                : ''
+                            }
+                            onChange={(e) => {
+                              const value = e.target.value.replace(/\D/g, '');
+                              if (value.length <= 10) {
+                                updateDeviceCustomer(seat, 'phone', value);
+                              }
+                            }}
+                            onFocus={() => updateDeviceCustomer(seat, 'isPhoneFocused', true)}
+                            onBlur={() => updateDeviceCustomer(seat, 'isPhoneFocused', false)}
+                            placeholder="xxxxx xxxxx"
+                            data-testid={`input-whatsapp-${seat}`}
+                            className={`pr-16 ${
+                              customer.phone.length > 0 && customer.phone.length < 10
+                                ? 'border-destructive focus-visible:ring-destructive'
+                                : customer.phone.length === 10
+                                ? 'border-green-500 focus-visible:ring-green-500'
+                                : ''
+                            }`}
+                          />
+                          <div className={`absolute right-3 top-1/2 -translate-y-1/2 text-xs font-medium ${
+                            customer.phone.length === 0
+                              ? 'text-muted-foreground'
+                              : customer.phone.length < 10
+                              ? 'text-destructive'
+                              : 'text-green-600'
+                          }`}>
+                            {customer.phone.length}/10
+                          </div>
+                        </div>
+                        {customer.phone.length > 0 && customer.phone.length < 10 && (
+                          <p className="text-xs text-destructive flex items-center gap-1">
+                            ⚠️ Please enter all 10 digits ({10 - customer.phone.length} more needed)
+                          </p>
+                        )}
+                        {customer.phone.length === 10 && (
+                          <p className="text-xs text-green-600 flex items-center gap-1">
+                            ✓ Valid Indian mobile number
+                          </p>
+                        )}
+                        {bookingType === "upcoming" && customer.phone.length === 0 && (
+                          <p className="text-xs text-muted-foreground">Required for upcoming bookings</p>
+                        )}
+                      </div>
+                    </TabsContent>
+                  );
+                })}
+              </Tabs>
+            </div>
+          )}
 
           {category === "PS5" && (
             <div className="space-y-2">
@@ -768,63 +904,6 @@ export function AddBookingDialog({ open, onOpenChange, onConfirm, availableSeats
               )}
             </div>
           )}
-
-          <div className="space-y-2">
-            <Label htmlFor="whatsapp">
-              WhatsApp Number {bookingType === "upcoming" && <span className="text-destructive">*</span>}
-            </Label>
-            <div className="relative">
-              <Input
-                id="whatsapp"
-                value={
-                  isWhatsappFocused
-                    ? whatsappNumber.replace(/(\d{5})(\d{1,5})/, '$1 $2')
-                    : whatsappNumber.length > 0
-                    ? 'xxxxx xxxxx'
-                    : ''
-                }
-                onChange={(e) => {
-                  const value = e.target.value.replace(/\D/g, '');
-                  if (value.length <= 10) {
-                    setWhatsappNumber(value);
-                  }
-                }}
-                onFocus={() => setIsWhatsappFocused(true)}
-                onBlur={() => setIsWhatsappFocused(false)}
-                placeholder="xxxxx xxxxx"
-                data-testid="input-whatsapp-number"
-                className={`pr-16 ${
-                  whatsappNumber.length > 0 && whatsappNumber.length < 10
-                    ? 'border-destructive focus-visible:ring-destructive'
-                    : whatsappNumber.length === 10
-                    ? 'border-green-500 focus-visible:ring-green-500'
-                    : ''
-                }`}
-              />
-              <div className={`absolute right-3 top-1/2 -translate-y-1/2 text-xs font-medium ${
-                whatsappNumber.length === 0
-                  ? 'text-muted-foreground'
-                  : whatsappNumber.length < 10
-                  ? 'text-destructive'
-                  : 'text-green-600'
-              }`}>
-                {whatsappNumber.length}/10
-              </div>
-            </div>
-            {whatsappNumber.length > 0 && whatsappNumber.length < 10 && (
-              <p className="text-xs text-destructive flex items-center gap-1">
-                ⚠️ Please enter all 10 digits ({10 - whatsappNumber.length} more needed)
-              </p>
-            )}
-            {whatsappNumber.length === 10 && (
-              <p className="text-xs text-green-600 flex items-center gap-1">
-                ✓ Valid Indian mobile number
-              </p>
-            )}
-            {bookingType === "upcoming" && whatsappNumber.length === 0 && (
-              <p className="text-xs text-muted-foreground">Required for upcoming bookings</p>
-            )}
-          </div>
 
           {bookingType === "walk-in" && category && (
             <div className="space-y-2">
@@ -1180,14 +1259,20 @@ export function AddBookingDialog({ open, onOpenChange, onConfirm, availableSeats
             disabled={
               !category || 
               selectedSeats.length === 0 || 
-              !customerName || 
               !duration || 
-              (bookingType === "upcoming" && (!whatsappNumber.trim() || !bookingDate || !timeSlot))
+              (bookingType === "upcoming" && (!bookingDate || !timeSlot)) ||
+              selectedSeats.some(seat => {
+                const customer = deviceCustomers[seat];
+                if (!customer || !customer.name.trim()) return true;
+                if (bookingType === "upcoming" && (!customer.phone.trim() || customer.phone.length !== 10)) return true;
+                if (customer.phone.trim() && customer.phone.length !== 10) return true;
+                return false;
+              })
             }
             data-testid="button-confirm-booking"
             className="w-full sm:w-auto"
           >
-            Add Booking {selectedSeats.length > 0 && `(${selectedSeats.length} seats)`}
+            Add Booking {selectedSeats.length > 0 && `(${selectedSeats.length} devices)`}
           </Button>
         </DialogFooter>
       </DialogContent>
