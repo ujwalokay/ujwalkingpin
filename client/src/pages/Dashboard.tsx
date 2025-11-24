@@ -314,6 +314,7 @@ export default function Dashboard() {
     usePromotionalBonus?: boolean;
     manualDiscountPercentage?: number;
     manualFreeHours?: string;
+    groupId?: string;
   }) => {
     const currentSessions = bookings.filter(b => 
       (b.status === "running" || b.status === "paused") &&
@@ -397,6 +398,7 @@ export default function Dashboard() {
           isPromotionalBonus: newBooking.usePromotionalBonus ? 1 : 0,
           manualDiscountPercentage: newBooking.manualDiscountPercentage,
           manualFreeHours: newBooking.manualFreeHours,
+          groupId: newBooking.groupId,
         } as any);
       }
       

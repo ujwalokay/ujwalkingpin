@@ -11,6 +11,7 @@ import * as schema from "@shared/schema";
 import { notifyActivityLog, notifyLowInventory, notifyExpenseAdded, notifyPaymentReceived, notifySessionExpired, notifySessionCompleted } from "./notifications";
 import { 
   insertBookingSchema, 
+  insertSessionGroupSchema,
   insertDeviceConfigSchema, 
   insertPricingConfigSchema, 
   insertHappyHoursConfigSchema,
@@ -106,6 +107,35 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Session Groups API
+  app.post("/api/session-groups", requireAuth, async (req, res) => {
+    try {
+      const sessionGroup = insertSessionGroupSchema.parse(req.body);
+      const created = await db.insert(schema.sessionGroups).values(sessionGroup).returning();
+      res.json(created[0]);
+    } catch (error: any) {
+      res.status(500).json({ message: error.message });
+    }
+  });
+
+  app.get("/api/session-groups", requireAuth, async (req, res) => {
+    try {
+      const groups = await db.select().from(schema.sessionGroups);
+      res.json(groups);
+    } catch (error: any) {
+      res.status(500).json({ message: error.message });
+    }
+  });
+
+  app.get("/api/session-groups/:id/bookings", requireAuth, async (req, res) => {
+    try {
+      const { id } = req.params;
+      const bookings = await db.select().from(schema.bookings).where(eq(schema.bookings.groupId, id));
+      res.json(bookings);
+    } catch (error: any) {
+      res.status(500).json({ message: error.message });
+    }
+  });
 
   app.post("/api/bookings", requireAuth, async (req, res) => {
     try {

@@ -78,6 +78,7 @@ export const bookings = pgTable("bookings", {
 });
 
 export const insertBookingSchema = createInsertSchema(bookings).omit({ id: true, createdAt: true }).extend({
+  groupId: z.string().optional().nullable(),
   startTime: z.union([z.string(), z.date()]).transform(val => typeof val === 'string' ? new Date(val) : val),
   endTime: z.union([z.string(), z.date()]).transform(val => typeof val === 'string' ? new Date(val) : val),
   pausedRemainingTime: z.number().nullable().optional(),
