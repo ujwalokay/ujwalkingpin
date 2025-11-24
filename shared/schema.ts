@@ -15,10 +15,23 @@ export const sessions = pgTable(
   (table) => [index("IDX_session_expire").on(table.expire)],
 );
 
+// Session groups table - for grouping multiple devices into one booking session
+export const sessionGroups = pgTable("session_groups", {
+  id: varchar("id").primaryKey().$defaultFn(() => crypto.randomUUID()),
+  groupName: varchar("group_name").notNull(), // e.g., "Group 1", "Rajesh's Party", etc.
+  category: varchar("category").notNull(),
+  bookingType: text("booking_type").array().notNull(),
+  createdAt: timestamp("created_at").notNull().defaultNow(),
+});
+
+export const insertSessionGroupSchema = createInsertSchema(sessionGroups).omit({ id: true, createdAt: true });
+export type InsertSessionGroup = z.infer<typeof insertSessionGroupSchema>;
+export type SessionGroup = typeof sessionGroups.$inferSelect;
 
 // Drizzle table definitions
 export const bookings = pgTable("bookings", {
   id: varchar("id").primaryKey().$defaultFn(() => crypto.randomUUID()),
+  groupId: varchar("group_id"), // Links this booking to a session group (null for single device bookings)
   category: varchar("category").notNull(),
   seatNumber: integer("seat_number").notNull(),
   seatName: varchar("seat_name").notNull(),
