@@ -47,8 +47,8 @@ Preferred communication style: Simple, everyday language.
   - Future scaling option: 6 free Neon projects = 3 GB for 41+ years (see NEON_6_DATABASE_SETUP.md).
 
 **Data Models:**
-- `Bookings`: Manages active sessions, status, timing, and pricing.
-- `Booking History`: Archives completed/expired bookings.
+- `Bookings`: Manages active sessions, status, timing, and pricing. Includes unique booking codes (BK-XXXXX) and group codes (GRP-XXXXX) for tracking related sessions.
+- `Booking History`: Archives completed/expired bookings with preserved booking and group codes.
 - `Device Configs`: Stores dynamic device categories and seat configurations.
 - `Pricing Configs`: Defines pricing rules per category and duration.
 - `Food Items`: Stores available food and beverage options with inventory tracking.
@@ -99,6 +99,7 @@ Preferred communication style: Simple, everyday language.
 - **Unified Payment Dialog**: Streamlined credit balance payment system supporting Cash, UPI/Online, and Split Payment with comprehensive validation and enhanced payment history.
 - **Running Session Bug Fix**: Ensures running/paused sessions remain on the Dashboard after credit payment, preventing premature archiving.
 - **Enhanced Credit Balances Display**: Credit Balances table now shows comprehensive booking details for better context.
+- **Booking & Group Code System**: Unique booking codes (BK-XXXXX) for each booking and group codes (GRP-XXXXX) for linking multiple related bookings (e.g., PC 1, 2, 3 for the same table/session). Codes persist through booking creation to history archival.
 
 ## External Dependencies
 

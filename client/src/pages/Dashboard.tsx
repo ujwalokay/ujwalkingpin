@@ -38,6 +38,9 @@ interface FoodOrder {
 
 interface Booking {
   id: string;
+  bookingCode?: string;
+  groupId?: string;
+  groupCode?: string;
   category: string;
   seatNumber: number;
   seatName: string;

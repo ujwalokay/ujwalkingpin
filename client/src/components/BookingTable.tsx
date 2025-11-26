@@ -57,6 +57,9 @@ interface FoodOrder {
 
 interface Booking {
   id: string;
+  bookingCode?: string;
+  groupId?: string;
+  groupCode?: string;
   seatName: string;
   customerName: string;
   whatsappNumber?: string;
@@ -326,6 +329,12 @@ export function BookingTable({ bookings, onExtend, onEnd, onComplete, onAddFood,
                       <Badge variant="secondary" className="text-xs">
                         {customerBookings.length} PC{customerBookings.length > 1 ? 's' : ''}
                       </Badge>
+                      {customerBookings[0]?.groupCode && (
+                        <Badge variant="outline" className="text-xs font-mono" data-testid={`badge-group-code-header-${customerName}`}>
+                          <Users className="h-3 w-3 mr-1" />
+                          {customerBookings[0].groupCode}
+                        </Badge>
+                      )}
                       <span className="text-base font-bold text-primary">
                         ₹{customerTotal.toFixed(0)}
                       </span>
@@ -440,6 +449,17 @@ export function BookingTable({ bookings, onExtend, onEnd, onComplete, onAddFood,
                                         {booking.seatName}
                                       </span>
                                       <StatusBadge status={booking.status} />
+                                      {booking.bookingCode && (
+                                        <Badge variant="outline" className="text-xs font-mono" data-testid={`badge-booking-code-${booking.id}`}>
+                                          {booking.bookingCode}
+                                        </Badge>
+                                      )}
+                                      {booking.groupCode && (
+                                        <Badge variant="secondary" className="text-xs font-mono" data-testid={`badge-group-code-${booking.id}`}>
+                                          <Users className="h-3 w-3 mr-1" />
+                                          {booking.groupCode}
+                                        </Badge>
+                                      )}
                                     </div>
                                     <div className="flex items-center gap-4 text-sm text-muted-foreground flex-wrap">
                                       {booking.whatsappNumber && (
@@ -829,7 +849,20 @@ export function BookingTable({ bookings, onExtend, onEnd, onComplete, onAddFood,
                             />
                           </TableCell>
                           <TableCell className="font-medium" data-testid={`text-seat-${booking.id}`}>
-                            {booking.seatName}
+                            <div className="flex items-center gap-2 flex-wrap">
+                              <span>{booking.seatName}</span>
+                              {booking.bookingCode && (
+                                <Badge variant="outline" className="text-xs font-mono" data-testid={`badge-booking-code-${booking.id}`}>
+                                  {booking.bookingCode}
+                                </Badge>
+                              )}
+                              {booking.groupCode && (
+                                <Badge variant="secondary" className="text-xs font-mono" data-testid={`badge-group-code-${booking.id}`}>
+                                  <Users className="h-3 w-3 mr-1" />
+                                  {booking.groupCode}
+                                </Badge>
+                              )}
+                            </div>
                           </TableCell>
                           <TableCell data-testid={`text-customer-${booking.id}`}>
                             {booking.customerName}

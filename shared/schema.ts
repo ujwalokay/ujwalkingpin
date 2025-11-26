@@ -18,6 +18,7 @@ export const sessions = pgTable(
 // Session groups table - for grouping multiple devices into one booking session
 export const sessionGroups = pgTable("session_groups", {
   id: varchar("id").primaryKey().$defaultFn(() => crypto.randomUUID()),
+  groupCode: varchar("group_code").unique(), // Human-readable group code like "GRP-1234" (nullable for legacy groups)
   groupName: varchar("group_name").notNull(), // e.g., "Group 1", "Rajesh's Party", etc.
   category: varchar("category").notNull(),
   bookingType: text("booking_type").array().notNull(),
@@ -31,7 +32,9 @@ export type SessionGroup = typeof sessionGroups.$inferSelect;
 // Drizzle table definitions
 export const bookings = pgTable("bookings", {
   id: varchar("id").primaryKey().$defaultFn(() => crypto.randomUUID()),
+  bookingCode: varchar("booking_code").unique(), // Human-readable booking code like "BK-1234" (nullable for legacy bookings)
   groupId: varchar("group_id"), // Links this booking to a session group (null for single device bookings)
+  groupCode: varchar("group_code"), // Human-readable group code for display (null for single device bookings)
   category: varchar("category").notNull(),
   seatNumber: integer("seat_number").notNull(),
   seatName: varchar("seat_name").notNull(),
@@ -78,7 +81,9 @@ export const bookings = pgTable("bookings", {
 });
 
 export const insertBookingSchema = createInsertSchema(bookings).omit({ id: true, createdAt: true }).extend({
+  bookingCode: z.string().optional().nullable(),
   groupId: z.string().optional().nullable(),
+  groupCode: z.string().optional().nullable(),
   startTime: z.union([z.string(), z.date()]).transform(val => typeof val === 'string' ? new Date(val) : val),
   endTime: z.union([z.string(), z.date()]).transform(val => typeof val === 'string' ? new Date(val) : val),
   pausedRemainingTime: z.number().nullable().optional(),
@@ -218,6 +223,9 @@ export type HappyHoursPricing = typeof happyHoursPricing.$inferSelect;
 export const bookingHistory = pgTable("booking_history", {
   id: varchar("id").primaryKey().$defaultFn(() => crypto.randomUUID()),
   bookingId: varchar("booking_id").notNull(),
+  bookingCode: varchar("booking_code"), // Human-readable booking code
+  groupId: varchar("group_id"), // Group reference
+  groupCode: varchar("group_code"), // Human-readable group code
   category: varchar("category").notNull(),
   seatNumber: integer("seat_number").notNull(),
   seatName: varchar("seat_name").notNull(),

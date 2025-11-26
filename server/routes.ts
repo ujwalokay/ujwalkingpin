@@ -107,11 +107,22 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Helper function to generate unique codes with high entropy
+  const generateUniqueCode = (prefix: string): string => {
+    const timestamp = Date.now().toString(36).toUpperCase();
+    const randomPart = Math.floor(Math.random() * 0xFFFFFF).toString(16).toUpperCase().padStart(6, '0');
+    return `${prefix}-${timestamp.slice(-5)}${randomPart.slice(0, 4)}`;
+  };
+
   // Session Groups API
   app.post("/api/session-groups", requireAuth, async (req, res) => {
     try {
       const sessionGroup = insertSessionGroupSchema.parse(req.body);
-      const created = await db.insert(schema.sessionGroups).values(sessionGroup).returning();
+      const groupCode = generateUniqueCode('GRP');
+      const created = await db.insert(schema.sessionGroups).values({
+        ...sessionGroup,
+        groupCode,
+      }).returning();
       res.json(created[0]);
     } catch (error: any) {
       res.status(500).json({ message: error.message });
@@ -174,7 +185,12 @@ export async function registerRoutes(app: Express): Promise<Server> {
         });
       }
       
-      let bookingData = { ...booking };
+      // Generate unique booking code and preserve groupId/groupCode from request
+      const bookingCode = generateUniqueCode('BK');
+      const groupId = req.body.groupId || null;
+      const groupCode = req.body.groupCode || null;
+      
+      let bookingData = { ...booking, bookingCode, groupId, groupCode };
       let appliedPromotion: { type: 'manual_discount' | 'manual_bonus', description: string, savingsAmount?: string, hoursGiven?: string } | null = null;
       
       // Add discount and bonus fields if provided

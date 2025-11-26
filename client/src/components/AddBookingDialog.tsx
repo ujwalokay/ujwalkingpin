@@ -394,6 +394,7 @@ export function AddBookingDialog({ open, onOpenChange, onConfirm, availableSeats
       
       // Create session group if multiple devices are selected
       let groupId: string | undefined = undefined;
+      let groupCode: string | undefined = undefined;
       if (selectedSeats.length > 1) {
         try {
           const response = await fetch("/api/session-groups", {
@@ -409,6 +410,7 @@ export function AddBookingDialog({ open, onOpenChange, onConfirm, availableSeats
           if (response.ok) {
             const sessionGroup = await response.json();
             groupId = sessionGroup.id;
+            groupCode = sessionGroup.groupCode;
           }
         } catch (error) {
           console.error("Failed to create session group:", error);
@@ -433,6 +435,7 @@ export function AddBookingDialog({ open, onOpenChange, onConfirm, availableSeats
           manualDiscountPercentage: manualDiscountPercentage ? parseInt(manualDiscountPercentage) : undefined,
           manualFreeHours: manualFreeHours,
           groupId: groupId,
+          groupCode: groupCode,
         } as any);
       }
       
