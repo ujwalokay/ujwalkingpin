@@ -104,6 +104,7 @@ export function BookingTable({ bookings, onExtend, onEnd, onComplete, onAddFood,
   const { isAdmin, canMakeChanges } = useAuth();
   const { toast } = useToast();
   const [seatChangeDialog, setSeatChangeDialog] = useState<{open: boolean, bookingId: string, currentSeat: string, category: string}>({open: false, bookingId: "", currentSeat: "", category: ""});
+  const [selectedNewSeat, setSelectedNewSeat] = useState("");
   const [showRefreshDialog, setShowRefreshDialog] = useState(false);
 
   // View mode state with localStorage persistence and responsive defaults
