@@ -190,6 +190,9 @@ export default function Dashboard() {
     return dbBookings
       .map((dbBooking: DBBooking) => ({
         id: dbBooking.id,
+        bookingCode: dbBooking.bookingCode || undefined,
+        groupId: dbBooking.groupId || undefined,
+        groupCode: dbBooking.groupCode || undefined,
         category: dbBooking.category,
         seatNumber: dbBooking.seatNumber,
         seatName: dbBooking.seatName,
