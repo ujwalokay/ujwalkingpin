@@ -646,6 +646,7 @@ export function BookingTable({ bookings, onExtend, onEnd, onComplete, onAddFood,
                         <TableHead className="whitespace-nowrap">End</TableHead>
                         <TableHead className="whitespace-nowrap">Time Left</TableHead>
                         <TableHead className="whitespace-nowrap">Status</TableHead>
+                        <TableHead className="whitespace-nowrap">Food</TableHead>
                         <TableHead className="whitespace-nowrap">Price</TableHead>
                         <TableHead className="text-right whitespace-nowrap">Actions</TableHead>
                       </TableRow>
@@ -713,6 +714,76 @@ export function BookingTable({ bookings, onExtend, onEnd, onComplete, onAddFood,
                               )}
                             </TableCell>
                             <TableCell><StatusBadge status={booking.status} /></TableCell>
+                            <TableCell>
+                              {booking.foodOrders && booking.foodOrders.length > 0 ? (
+                                <Popover>
+                                  <PopoverTrigger asChild>
+                                    <Button 
+                                      variant="ghost" 
+                                      size="icon" 
+                                      className="h-8 w-8 relative"
+                                      data-testid={`button-food-${booking.id}`}
+                                    >
+                                      <UtensilsCrossed className="h-4 w-4 text-orange-500" />
+                                      <span className="absolute -top-1 -right-1 bg-orange-500 text-white text-xs rounded-full h-4 w-4 flex items-center justify-center font-bold">
+                                        {booking.foodOrders.length}
+                                      </span>
+                                    </Button>
+                                  </PopoverTrigger>
+                                  <PopoverContent className="w-80" align="start">
+                                    <div className="space-y-3">
+                                      <div className="flex items-center gap-2 border-b pb-2">
+                                        <UtensilsCrossed className="h-5 w-5 text-orange-500" />
+                                        <h4 className="font-semibold">Food Orders</h4>
+                                        <Badge variant="secondary" className="ml-auto">
+                                          {booking.foodOrders.length} {booking.foodOrders.length === 1 ? 'item' : 'items'}
+                                        </Badge>
+                                      </div>
+                                      <div className="space-y-2 max-h-60 overflow-y-auto">
+                                        {booking.foodOrders.map((order, idx) => (
+                                          <div 
+                                            key={idx} 
+                                            className="flex items-center justify-between p-2 bg-muted/50 rounded-lg"
+                                            data-testid={`food-item-${booking.id}-${idx}`}
+                                          >
+                                            <div className="flex-1">
+                                              <p className="font-medium text-sm">{order.foodName}</p>
+                                              <p className="text-xs text-muted-foreground">
+                                                ₹{order.price} x {order.quantity}
+                                              </p>
+                                            </div>
+                                            <div className="flex items-center gap-2">
+                                              <span className="font-bold text-sm">
+                                                ₹{(parseFloat(order.price) * order.quantity).toFixed(0)}
+                                              </span>
+                                              {onDeleteFood && canMakeChanges && (
+                                                <Button
+                                                  variant="ghost"
+                                                  size="icon"
+                                                  className="h-6 w-6"
+                                                  onClick={() => onDeleteFood(booking.id, idx)}
+                                                  data-testid={`button-delete-food-${booking.id}-${idx}`}
+                                                >
+                                                  <Trash2 className="h-3 w-3 text-destructive" />
+                                                </Button>
+                                              )}
+                                            </div>
+                                          </div>
+                                        ))}
+                                      </div>
+                                      <div className="flex items-center justify-between border-t pt-2">
+                                        <span className="font-medium">Total Food</span>
+                                        <span className="font-bold text-orange-600">
+                                          ₹{bookingFoodTotal.toFixed(0)}
+                                        </span>
+                                      </div>
+                                    </div>
+                                  </PopoverContent>
+                                </Popover>
+                              ) : (
+                                <span className="text-muted-foreground text-xs">-</span>
+                              )}
+                            </TableCell>
                             <TableCell className="font-medium">₹{bookingTotal.toFixed(0)}</TableCell>
                             <TableCell className="text-right">
                               <DropdownMenu>
