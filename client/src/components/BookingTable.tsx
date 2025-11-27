@@ -341,42 +341,15 @@ export function BookingTable({ bookings, onExtend, onEnd, onComplete, onAddFood,
                         />
                         <div className="space-y-1">
                           <div className="flex items-center gap-2 flex-wrap">
-                            <User className="h-5 w-5 text-primary" />
-                            <span className="text-lg font-bold text-foreground" data-testid={`text-customer-${session.key}`}>
+                            <Monitor className="h-5 w-5 text-primary" />
+                            <span className="text-lg font-bold text-foreground" data-testid={`text-device-${session.key}`}>
+                              {deviceNames}
+                            </span>
+                            <User className="h-4 w-4 text-muted-foreground ml-2" />
+                            <span className="text-base text-foreground" data-testid={`text-customer-${session.key}`}>
                               {firstBooking.customerName}
                             </span>
                             <StatusBadge status={firstBooking.status} />
-                          </div>
-                          {/* Devices List */}
-                          <div className="flex items-center gap-2 flex-wrap">
-                            <Monitor className="h-4 w-4 text-muted-foreground" />
-                            {session.isGrouped ? (
-                              <div className="flex flex-col gap-1">
-                                {sessionBookings.map((booking, idx) => (
-                                  <div key={booking.id} className="flex items-center gap-2">
-                                    <Badge variant="outline" className="text-sm font-bold" data-testid={`badge-device-${booking.id}`}>
-                                      {booking.seatName}
-                                    </Badge>
-                                    {booking.bookingCode && (
-                                      <Badge variant="secondary" className="text-xs font-mono">
-                                        {booking.bookingCode}
-                                      </Badge>
-                                    )}
-                                  </div>
-                                ))}
-                              </div>
-                            ) : (
-                              <div className="flex items-center gap-2">
-                                <Badge variant="outline" className="text-sm font-bold" data-testid={`badge-device-${firstBooking.id}`}>
-                                  {firstBooking.seatName}
-                                </Badge>
-                                {firstBooking.bookingCode && (
-                                  <Badge variant="secondary" className="text-xs font-mono">
-                                    {firstBooking.bookingCode}
-                                  </Badge>
-                                )}
-                              </div>
-                            )}
                           </div>
                           {/* Group ID Badge */}
                           {session.isGrouped && firstBooking.groupCode && (
@@ -385,33 +358,10 @@ export function BookingTable({ bookings, onExtend, onEnd, onComplete, onAddFood,
                               Group: {firstBooking.groupCode}
                             </Badge>
                           )}
-                          <div className="flex items-center gap-4 text-sm text-muted-foreground flex-wrap">
-                            {firstBooking.whatsappNumber && (
-                              <div className="flex items-center gap-1">
-                                <Phone className="h-3.5 w-3.5" />
-                                {firstBooking.whatsappNumber}
-                              </div>
-                            )}
-                            <div className="flex items-center gap-1">
-                              <Users className="h-3.5 w-3.5" />
-                              {firstBooking.personCount || 1} {(firstBooking.personCount || 1) === 1 ? 'Person' : 'Persons'}
-                            </div>
-                            {showDateColumn && (
-                              <div className="flex items-center gap-1">
-                                <Calendar className="h-3.5 w-3.5" />
-                                {firstBooking.startTime.toLocaleDateString('en-GB', { 
-                                  day: '2-digit', 
-                                  month: 'short', 
-                                  year: 'numeric',
-                                  timeZone: 'Asia/Kolkata'
-                                })}
-                              </div>
-                            )}
-                          </div>
                         </div>
                       </div>
                       <div className="flex flex-col items-end gap-2">
-                        <span className="text-lg font-bold text-primary">₹{sessionTotal.toFixed(0)}</span>
+                        <span className="text-lg font-bold text-primary" data-testid={`text-total-${session.key}`}>Total: ₹{sessionTotal.toFixed(0)}</span>
                         <DropdownMenu>
                           <DropdownMenuTrigger asChild>
                             <Button variant="ghost" size="icon" data-testid={`button-actions-${session.key}`}>
@@ -446,6 +396,51 @@ export function BookingTable({ bookings, onExtend, onEnd, onComplete, onAddFood,
                           </DropdownMenuContent>
                         </DropdownMenu>
                       </div>
+                    </div>
+
+                    {/* Devices Table - Shows each PC with its own details */}
+                    <div className="rounded-lg border overflow-hidden">
+                      <Table>
+                        <TableHeader>
+                          <TableRow className="bg-muted/50">
+                            <TableHead className="font-semibold">Device</TableHead>
+                            <TableHead className="font-semibold">Customer</TableHead>
+                            <TableHead className="font-semibold">Persons</TableHead>
+                            <TableHead className="font-semibold">WhatsApp</TableHead>
+                            <TableHead className="font-semibold">Date</TableHead>
+                            <TableHead className="font-semibold">Type</TableHead>
+                          </TableRow>
+                        </TableHeader>
+                        <TableBody>
+                          {sessionBookings.map((booking) => (
+                            <TableRow key={booking.id} data-testid={`row-booking-${booking.id}`}>
+                              <TableCell>
+                                <Badge variant="outline" className="text-sm font-bold" data-testid={`badge-device-${booking.id}`}>
+                                  {booking.seatName}
+                                </Badge>
+                              </TableCell>
+                              <TableCell className="font-medium">{booking.customerName}</TableCell>
+                              <TableCell>{booking.personCount || 1}</TableCell>
+                              <TableCell>{booking.whatsappNumber || '-'}</TableCell>
+                              <TableCell>
+                                {booking.startTime.toLocaleDateString('en-GB', { 
+                                  day: '2-digit', 
+                                  month: 'short', 
+                                  year: 'numeric',
+                                  timeZone: 'Asia/Kolkata'
+                                })}
+                              </TableCell>
+                              <TableCell>
+                                {booking.bookingType && booking.bookingType.length > 0 ? (
+                                  <Badge variant="secondary" className="text-xs">
+                                    {booking.bookingType[0]}
+                                  </Badge>
+                                ) : '-'}
+                              </TableCell>
+                            </TableRow>
+                          ))}
+                        </TableBody>
+                      </Table>
                     </div>
 
                     {/* Timer */}
