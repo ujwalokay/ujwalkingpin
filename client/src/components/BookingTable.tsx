@@ -358,6 +358,36 @@ export function BookingTable({ bookings, onExtend, onEnd, onComplete, onAddFood,
                               Group: {firstBooking.groupCode}
                             </Badge>
                           )}
+                          {/* Promotional Discount Tag */}
+                          {firstBooking.discountApplied && (
+                            <Badge className="text-xs bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-400 border-green-200 dark:border-green-800">
+                              <Percent className="h-3 w-3 mr-1" />
+                              {firstBooking.discountApplied}
+                              {firstBooking.promotionDetails?.discountPercentage && ` (${firstBooking.promotionDetails.discountPercentage}%)`}
+                            </Badge>
+                          )}
+                          {/* Promotional Bonus Hours Tag */}
+                          {firstBooking.bonusHoursApplied && (
+                            <Badge className="text-xs bg-blue-100 text-blue-800 dark:bg-blue-900/30 dark:text-blue-400 border-blue-200 dark:border-blue-800">
+                              <Gift className="h-3 w-3 mr-1" />
+                              {firstBooking.bonusHoursApplied}
+                              {firstBooking.promotionDetails?.bonusHours && ` (+${firstBooking.promotionDetails.bonusHours})`}
+                            </Badge>
+                          )}
+                          {/* Manual Discount Tag */}
+                          {firstBooking.manualDiscountPercentage && firstBooking.manualDiscountPercentage > 0 && (
+                            <Badge className="text-xs bg-amber-100 text-amber-800 dark:bg-amber-900/30 dark:text-amber-400 border-amber-200 dark:border-amber-800">
+                              <Percent className="h-3 w-3 mr-1" />
+                              Manual {firstBooking.manualDiscountPercentage}% Off
+                            </Badge>
+                          )}
+                          {/* Manual Free Hours Tag */}
+                          {firstBooking.manualFreeHours && (
+                            <Badge className="text-xs bg-pink-100 text-pink-800 dark:bg-pink-900/30 dark:text-pink-400 border-pink-200 dark:border-pink-800">
+                              <Gift className="h-3 w-3 mr-1" />
+                              +{firstBooking.manualFreeHours} Free
+                            </Badge>
+                          )}
                         </div>
                       </div>
                       <div className="flex flex-col items-end gap-2">
@@ -589,6 +619,36 @@ export function BookingTable({ bookings, onExtend, onEnd, onComplete, onAddFood,
                         {firstBooking.customerName}
                       </Badge>
                       <StatusBadge status={firstBooking.status} />
+                      {/* Promotional Discount Tag */}
+                      {firstBooking.discountApplied && (
+                        <Badge className="text-xs bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-400 border-green-200 dark:border-green-800">
+                          <Percent className="h-3 w-3 mr-1" />
+                          {firstBooking.discountApplied}
+                          {firstBooking.promotionDetails?.discountPercentage && ` (${firstBooking.promotionDetails.discountPercentage}%)`}
+                        </Badge>
+                      )}
+                      {/* Promotional Bonus Hours Tag */}
+                      {firstBooking.bonusHoursApplied && (
+                        <Badge className="text-xs bg-blue-100 text-blue-800 dark:bg-blue-900/30 dark:text-blue-400 border-blue-200 dark:border-blue-800">
+                          <Gift className="h-3 w-3 mr-1" />
+                          {firstBooking.bonusHoursApplied}
+                          {firstBooking.promotionDetails?.bonusHours && ` (+${firstBooking.promotionDetails.bonusHours})`}
+                        </Badge>
+                      )}
+                      {/* Manual Discount Tag */}
+                      {firstBooking.manualDiscountPercentage && firstBooking.manualDiscountPercentage > 0 && (
+                        <Badge className="text-xs bg-amber-100 text-amber-800 dark:bg-amber-900/30 dark:text-amber-400 border-amber-200 dark:border-amber-800">
+                          <Percent className="h-3 w-3 mr-1" />
+                          Manual {firstBooking.manualDiscountPercentage}% Off
+                        </Badge>
+                      )}
+                      {/* Manual Free Hours Tag */}
+                      {firstBooking.manualFreeHours && (
+                        <Badge className="text-xs bg-pink-100 text-pink-800 dark:bg-pink-900/30 dark:text-pink-400 border-pink-200 dark:border-pink-800">
+                          <Gift className="h-3 w-3 mr-1" />
+                          +{firstBooking.manualFreeHours} Free
+                        </Badge>
+                      )}
                     </div>
                   </div>
                   <div className="flex items-center gap-4">
