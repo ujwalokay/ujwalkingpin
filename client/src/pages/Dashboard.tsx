@@ -318,6 +318,7 @@ export default function Dashboard() {
     manualDiscountPercentage?: number;
     manualFreeHours?: string;
     groupId?: string;
+    groupCode?: string;
   }) => {
     const currentSessions = bookings.filter(b => 
       (b.status === "running" || b.status === "paused") &&
@@ -402,6 +403,7 @@ export default function Dashboard() {
           manualDiscountPercentage: newBooking.manualDiscountPercentage,
           manualFreeHours: newBooking.manualFreeHours,
           groupId: newBooking.groupId,
+          groupCode: newBooking.groupCode,
         } as any);
       }
       
