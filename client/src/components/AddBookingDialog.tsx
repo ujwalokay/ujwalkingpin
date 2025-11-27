@@ -97,7 +97,7 @@ interface Booking {
 export function AddBookingDialog({ open, onOpenChange, onConfirm, availableSeats }: AddBookingDialogProps) {
   const [category, setCategory] = useState<string>("");
   const [selectedSeats, setSelectedSeats] = useState<number[]>([]);
-  const [groupName, setGroupName] = useState<string>("");
+  const [generatedGroupId, setGeneratedGroupId] = useState<string>("");
   const [deviceCustomers, setDeviceCustomers] = useState<Record<number, { name: string; phone: string; isPhoneFocused: boolean }>>({});
   const [activeTab, setActiveTab] = useState<string>("");
   const [durationMinutes, setDurationMinutes] = useState<number>(30);
@@ -291,6 +291,12 @@ export function AddBookingDialog({ open, onOpenChange, onConfirm, availableSeats
     ? happyHoursSlots.some(s => s.duration === duration && s.personCount === personCount + 1)
     : false;
 
+  const generateGroupId = () => {
+    const timestamp = Date.now().toString(36).toUpperCase();
+    const random = Math.random().toString(36).substring(2, 8).toUpperCase();
+    return `GRP-${timestamp}-${random}`;
+  };
+
   const toggleSeat = (seatNumber: number) => {
     setSelectedSeats(prev => {
       const newSeats = prev.includes(seatNumber)
@@ -317,6 +323,12 @@ export function AddBookingDialog({ open, onOpenChange, onConfirm, availableSeats
         }
       }
       
+      if (newSeats.length > 1 && !generatedGroupId) {
+        setGeneratedGroupId(generateGroupId());
+      } else if (newSeats.length <= 1) {
+        setGeneratedGroupId("");
+      }
+      
       return newSeats;
     });
   };
@@ -334,7 +346,6 @@ export function AddBookingDialog({ open, onOpenChange, onConfirm, availableSeats
   const handleConfirm = async () => {
     const isDateRequired = bookingType === "upcoming" && !bookingDate;
     const isTimeSlotRequired = bookingType === "upcoming" && !timeSlot;
-    const isGroupNameRequired = selectedSeats.length > 1 && !groupName.trim();
     
     let allDevicesHaveCustomers = true;
     let invalidPhones: number[] = [];
@@ -363,7 +374,7 @@ export function AddBookingDialog({ open, onOpenChange, onConfirm, availableSeats
     const shouldUseHappyHoursPricing = (bookingType === "walk-in" && useHappyHoursPricing) || (bookingType === "upcoming" && useHappyHoursPricing);
     const hasValidPrice = shouldUseHappyHoursPricing ? selectedHappyHoursSlot : selectedSlot;
     
-    if (category && selectedSeats.length > 0 && allDevicesHaveCustomers && invalidPhones.length === 0 && duration && hasValidPrice && !isDateRequired && !isTimeSlotRequired && !isGroupNameRequired) {
+    if (category && selectedSeats.length > 0 && allDevicesHaveCustomers && invalidPhones.length === 0 && duration && hasValidPrice && !isDateRequired && !isTimeSlotRequired) {
       let finalPersonCount: number;
       
       if (shouldUseHappyHoursPricing) {
@@ -395,13 +406,13 @@ export function AddBookingDialog({ open, onOpenChange, onConfirm, availableSeats
       // Create session group if multiple devices are selected
       let groupId: string | undefined = undefined;
       let groupCode: string | undefined = undefined;
-      if (selectedSeats.length > 1) {
+      if (selectedSeats.length > 1 && generatedGroupId) {
         try {
           const response = await fetch("/api/session-groups", {
             method: "POST",
             headers: { "Content-Type": "application/json" },
             body: JSON.stringify({
-              groupName: groupName.trim(),
+              groupName: generatedGroupId,
               category,
               bookingType: bookingTypes,
             }),
@@ -441,7 +452,7 @@ export function AddBookingDialog({ open, onOpenChange, onConfirm, availableSeats
       
       setCategory("");
       setSelectedSeats([]);
-      setGroupName("");
+      setGeneratedGroupId("");
       setDeviceCustomers({});
       setActiveTab("");
       setDurationMinutes(30);
@@ -791,18 +802,14 @@ export function AddBookingDialog({ open, onOpenChange, onConfirm, availableSeats
             </div>
           )}
 
-          {selectedSeats.length > 1 && (
+          {selectedSeats.length > 1 && generatedGroupId && (
             <div className="space-y-2">
-              <Label htmlFor="group-name">
-                Group Name <span className="text-destructive">*</span>
-              </Label>
-              <Input
-                id="group-name"
-                value={groupName}
-                onChange={(e) => setGroupName(e.target.value)}
-                placeholder="e.g., Group 1, Rajesh's Party, etc."
-                data-testid="input-group-name"
-              />
+              <Label>Group ID (Auto-generated)</Label>
+              <div className="flex items-center gap-2 p-3 bg-muted/50 rounded-md border">
+                <span className="font-mono text-sm font-medium" data-testid="text-group-id">
+                  {generatedGroupId}
+                </span>
+              </div>
               <p className="text-xs text-muted-foreground">
                 This will group {selectedSeats.length} devices into one booking session
               </p>
@@ -1309,7 +1316,7 @@ export function AddBookingDialog({ open, onOpenChange, onConfirm, availableSeats
               selectedSeats.length === 0 || 
               !duration || 
               (bookingType === "upcoming" && (!bookingDate || !timeSlot)) ||
-              (selectedSeats.length > 1 && !groupName.trim()) ||
+              (selectedSeats.length > 1 && !generatedGroupId) ||
               selectedSeats.some(seat => {
                 const customer = deviceCustomers[seat];
                 if (!customer || !customer.name.trim()) return true;
