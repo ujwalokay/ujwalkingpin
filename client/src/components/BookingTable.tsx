@@ -220,36 +220,6 @@ export function BookingTable({ bookings, onExtend, onEnd, onComplete, onAddFood,
     return sessions;
   }, [filteredBookings]);
 
-  const groupedByCustomer = useMemo(() => {
-    const groups = new Map<string, Booking[]>();
-    filteredBookings.forEach(booking => {
-      const customerName = booking.customerName;
-      if (!groups.has(customerName)) {
-        groups.set(customerName, []);
-      }
-      groups.get(customerName)!.push(booking);
-    });
-    return groups;
-  }, [filteredBookings]);
-
-  const handleSelectAllForCustomer = (customerName: string) => {
-    if (!onToggleSelection) return;
-    const customerBookings = groupedByCustomer.get(customerName) || [];
-    const customerBookingIds = customerBookings.map(b => b.id);
-    const allSelected = customerBookingIds.every(id => selectedBookings?.has(id));
-    
-    customerBookingIds.forEach(id => {
-      if (allSelected) {
-        if (selectedBookings?.has(id)) {
-          onToggleSelection(id);
-        }
-      } else {
-        if (!selectedBookings?.has(id)) {
-          onToggleSelection(id);
-        }
-      }
-    });
-  };
 
   const formatTime = (date: Date) => {
     const hours = date.getHours();
@@ -560,70 +530,97 @@ export function BookingTable({ bookings, onExtend, onEnd, onComplete, onAddFood,
         </div>
       ) : (
         <div className="space-y-3">
-          {Array.from(groupedByCustomer.entries()).map(([customerName, customerBookings]) => {
-            const customerBookingIds = customerBookings.map(b => b.id);
-            const allSelected = customerBookingIds.every(id => selectedBookings?.has(id));
-            const pcCount = customerBookings.length;
+          {groupedSessions.map((session) => {
+            const sessionBookings = session.bookings;
+            const sessionBookingIds = sessionBookings.map(b => b.id);
+            const allSelected = sessionBookingIds.every(id => selectedBookings?.has(id));
+            const pcCount = sessionBookings.length;
+            const firstBooking = sessionBookings[0];
             
-            const baseTotal = customerBookings.reduce((sum, booking) => 
+            const baseTotal = sessionBookings.reduce((sum, booking) => 
               sum + parseFloat(booking.price), 0);
             
-            const foodTotal = customerBookings.reduce((sum, booking) => {
+            const foodTotal = sessionBookings.reduce((sum, booking) => {
               return sum + (booking.foodOrders?.reduce((fSum, order) => 
                 fSum + parseFloat(order.price) * order.quantity, 0) || 0);
             }, 0);
             
             const grandTotal = baseTotal + foodTotal;
-            const firstBooking = customerBookings[0];
+            const deviceNames = sessionBookings.map(b => b.seatName).join(", ");
+
+            const headerLabel = session.isGrouped && firstBooking.groupCode 
+              ? `Group: ${firstBooking.groupCode}` 
+              : session.isGrouped 
+                ? `Group Session` 
+                : firstBooking.seatName;
 
             return (
               <div 
-                key={customerName} 
+                key={session.key} 
                 className={`rounded-lg border glass-card overflow-hidden ${allSelected ? "border-blue-400 dark:border-blue-600" : ""}`}
-                data-testid={`customer-group-${customerName}`}
+                data-testid={`session-group-${session.key}`}
               >
                 <div className={`flex items-center justify-between gap-4 px-4 py-3 bg-muted/50 border-b ${allSelected ? "bg-blue-50 dark:bg-blue-950/30" : ""}`}>
                   <div className="flex items-center gap-3">
                     <Checkbox
                       checked={allSelected}
-                      onCheckedChange={() => handleSelectAllForCustomer(customerName)}
-                      data-testid={`checkbox-customer-${customerName}`}
+                      onCheckedChange={() => {
+                        sessionBookingIds.forEach(id => {
+                          if (allSelected) {
+                            if (selectedBookings?.has(id)) onToggleSelection?.(id);
+                          } else {
+                            if (!selectedBookings?.has(id)) onToggleSelection?.(id);
+                          }
+                        });
+                      }}
+                      data-testid={`checkbox-session-${session.key}`}
                     />
-                    <div className="flex items-center gap-3">
-                      <User className="h-5 w-5 text-primary" />
-                      <span className="text-lg font-bold text-foreground" data-testid={`text-customer-name-${customerName}`}>
-                        {customerName}
+                    <div className="flex items-center gap-3 flex-wrap">
+                      {session.isGrouped ? (
+                        <Users className="h-5 w-5 text-purple-600 dark:text-purple-400" />
+                      ) : (
+                        <Monitor className="h-5 w-5 text-primary" />
+                      )}
+                      <span className="text-lg font-bold text-foreground" data-testid={`text-header-${session.key}`}>
+                        {headerLabel}
                       </span>
+                      {session.isGrouped && (
+                        <Badge variant="outline" className="text-xs bg-purple-50 dark:bg-purple-950/30 text-purple-700 dark:text-purple-400 border-purple-200 dark:border-purple-800">
+                          {pcCount} {pcCount === 1 ? 'Device' : 'Devices'}: {deviceNames}
+                        </Badge>
+                      )}
                       <Badge variant="secondary" className="text-xs">
-                        {pcCount} {pcCount === 1 ? 'PC' : 'PCs'}
+                        <User className="h-3 w-3 mr-1" />
+                        {firstBooking.customerName}
                       </Badge>
+                      <StatusBadge status={firstBooking.status} />
                     </div>
                   </div>
                   <div className="flex items-center gap-4">
-                    <span className="text-lg font-bold text-primary" data-testid={`text-total-${customerName}`}>
+                    <span className="text-lg font-bold text-primary" data-testid={`text-total-${session.key}`}>
                       Total: ₹{grandTotal.toFixed(0)}
                     </span>
                     <DropdownMenu>
                       <DropdownMenuTrigger asChild>
-                        <Button variant="ghost" size="icon" data-testid={`button-actions-customer-${customerName}`}>
+                        <Button variant="ghost" size="icon" data-testid={`button-actions-session-${session.key}`}>
                           <MoreVertical className="h-4 w-4" />
                         </Button>
                       </DropdownMenuTrigger>
                       <DropdownMenuContent align="end">
                         {firstBooking.status === "running" && onExtend && (
-                          <DropdownMenuItem onClick={() => customerBookingIds.forEach(id => onExtend(id))}>
+                          <DropdownMenuItem onClick={() => sessionBookingIds.forEach(id => onExtend(id))}>
                             <Clock className="mr-2 h-4 w-4" />
                             Extend All
                           </DropdownMenuItem>
                         )}
                         {firstBooking.status === "running" && onStopTimer && (
-                          <DropdownMenuItem onClick={() => customerBookingIds.forEach(id => onStopTimer(id))}>
+                          <DropdownMenuItem onClick={() => sessionBookingIds.forEach(id => onStopTimer(id))}>
                             <Pause className="mr-2 h-4 w-4" />
                             Pause All
                           </DropdownMenuItem>
                         )}
                         {firstBooking.status === "running" && onEnd && (
-                          <DropdownMenuItem onClick={() => customerBookingIds.forEach(id => onEnd(id))} className="text-destructive">
+                          <DropdownMenuItem onClick={() => sessionBookingIds.forEach(id => onEnd(id))} className="text-destructive">
                             <X className="mr-2 h-4 w-4" />
                             End All
                           </DropdownMenuItem>
@@ -645,6 +642,7 @@ export function BookingTable({ bookings, onExtend, onEnd, onComplete, onAddFood,
                       <TableRow className="bg-muted/20">
                         <TableHead className="w-8"></TableHead>
                         <TableHead className="whitespace-nowrap">Device</TableHead>
+                        <TableHead className="whitespace-nowrap">Customer</TableHead>
                         <TableHead className="whitespace-nowrap">Persons</TableHead>
                         <TableHead className="whitespace-nowrap">WhatsApp</TableHead>
                         {showDateColumn && <TableHead className="whitespace-nowrap">Date</TableHead>}
@@ -658,7 +656,7 @@ export function BookingTable({ bookings, onExtend, onEnd, onComplete, onAddFood,
                       </TableRow>
                     </TableHeader>
                     <TableBody>
-                      {customerBookings.map((booking) => {
+                      {sessionBookings.map((booking) => {
                         const bookingFoodTotal = booking.foodOrders?.reduce((sum, order) => 
                           sum + parseFloat(order.price) * order.quantity, 0) || 0;
                         const bookingTotal = parseFloat(booking.price) + bookingFoodTotal;
@@ -681,14 +679,14 @@ export function BookingTable({ bookings, onExtend, onEnd, onComplete, onAddFood,
                                 <Badge variant="outline" className="text-sm font-bold" data-testid={`badge-device-${booking.id}`}>
                                   {booking.seatName}
                                 </Badge>
-                                {booking.groupCode && (
-                                  <Badge variant="secondary" className="text-xs font-mono bg-purple-100 dark:bg-purple-950/30">
-                                    <Users className="h-3 w-3 mr-1" />
-                                    {booking.groupCode}
+                                {booking.bookingCode && (
+                                  <Badge variant="secondary" className="text-xs font-mono">
+                                    {booking.bookingCode}
                                   </Badge>
                                 )}
                               </div>
                             </TableCell>
+                            <TableCell className="font-medium">{booking.customerName}</TableCell>
                             <TableCell>{booking.personCount || 1}</TableCell>
                             <TableCell>{booking.whatsappNumber || '-'}</TableCell>
                             {showDateColumn && (
