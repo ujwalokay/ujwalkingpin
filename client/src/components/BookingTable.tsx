@@ -789,17 +789,15 @@ export function BookingTable({ bookings, onExtend, onEnd, onComplete, onAddFood,
             </Button>
             <Button
               onClick={() => {
-                if (selectedNewSeat && seatChangeDialog.bookingId && onChangeSeat) {
-                  onChangeSeat(seatChangeDialog.bookingId, selectedNewSeat);
-                  setSeatChangeDialog({ open: false, bookingId: "", currentSeat: "", category: "" });
-                  setSelectedNewSeat("");
+                if (selectedNewSeat && seatChangeDialog.bookingId) {
+                  changeSeatMutation.mutate({ bookingId: seatChangeDialog.bookingId, newSeatName: selectedNewSeat });
                 }
               }}
-              disabled={!selectedNewSeat || seatChangeMutation?.isPending}
+              disabled={!selectedNewSeat || changeSeatMutation?.isPending}
               className="bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 text-white px-8 shadow-lg"
               data-testid="button-confirm-seat-change"
             >
-              {seatChangeMutation?.isPending ? (
+              {changeSeatMutation?.isPending ? (
                 <span className="flex items-center gap-2">
                   <div className="h-4 w-4 border-2 border-white/30 border-t-white rounded-full animate-spin"></div>
                   Changing...
