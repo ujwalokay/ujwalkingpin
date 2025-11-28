@@ -50,9 +50,6 @@ export async function registerRoutes(app: Express): Promise<Server> {
       res.json({
         id: user.id,
         username: user.username,
-        email: user.email,
-        firstName: user.firstName,
-        lastName: user.lastName,
         role: user.role,
         createdAt: user.createdAt,
       });
@@ -97,9 +94,6 @@ export async function registerRoutes(app: Express): Promise<Server> {
       res.json({
         id: updatedUser.id,
         username: updatedUser.username,
-        email: updatedUser.email,
-        firstName: updatedUser.firstName,
-        lastName: updatedUser.lastName,
         role: updatedUser.role,
       });
     } catch (error: any) {
@@ -157,9 +151,6 @@ export async function registerRoutes(app: Express): Promise<Server> {
       res.json(staffUsers.map(user => ({
         id: user.id,
         username: user.username,
-        email: user.email,
-        firstName: user.firstName,
-        lastName: user.lastName,
         role: user.role,
         createdAt: user.createdAt,
       })));
@@ -186,9 +177,6 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const newUser = await storage.createStaffUser({
         username: staffData.username,
         passwordHash,
-        email: staffData.email,
-        firstName: staffData.firstName,
-        lastName: staffData.lastName,
       });
 
       // Log activity
@@ -205,9 +193,6 @@ export async function registerRoutes(app: Express): Promise<Server> {
       res.status(201).json({
         id: newUser.id,
         username: newUser.username,
-        email: newUser.email,
-        firstName: newUser.firstName,
-        lastName: newUser.lastName,
         role: newUser.role,
         createdAt: newUser.createdAt,
       });
@@ -257,9 +242,6 @@ export async function registerRoutes(app: Express): Promise<Server> {
       res.json({
         id: updatedUser.id,
         username: updatedUser.username,
-        email: updatedUser.email,
-        firstName: updatedUser.firstName,
-        lastName: updatedUser.lastName,
         role: updatedUser.role,
       });
     } catch (error: any) {

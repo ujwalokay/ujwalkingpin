@@ -276,22 +276,17 @@ export const insertBookingHistorySchema = createInsertSchema(bookingHistory).omi
 export type InsertBookingHistory = z.infer<typeof insertBookingHistorySchema>;
 export type BookingHistory = typeof bookingHistory.$inferSelect;
 
-// User storage table - supports both Replit Auth and staff/admin authentication
+// User storage table - supports staff/admin authentication
 export const users = pgTable("users", {
   // IMPORTANT: Keep default() for existing ID compatibility
   id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
   
-  // Replit Auth fields
-  email: varchar("email").unique(),
-  firstName: varchar("first_name"),
-  lastName: varchar("last_name"),
-  profileImageUrl: varchar("profile_image_url"),
-  
-  // Staff/Admin auth fields (nullable for Replit Auth users)
+  // Staff/Admin auth fields
   username: varchar("username").unique(),
   passwordHash: varchar("password_hash"),
   role: varchar("role"),
   onboardingCompleted: integer("onboarding_completed").default(0),
+  profileImageUrl: varchar("profile_image_url"),
   
   // Timestamps
   createdAt: timestamp("created_at").defaultNow(),
@@ -308,7 +303,6 @@ export const insertUserSchema = createInsertSchema(users).omit({ id: true, creat
     .min(3, "Username must be at least 3 characters")
     .max(50, "Username must be at most 50 characters")
     .regex(/^[a-zA-Z0-9_-]+$/, "Username can only contain letters, numbers, underscores, and hyphens"),
-  email: z.string().email("Invalid email address").optional(),
 });
 export type InsertUser = z.infer<typeof insertUserSchema>;
 export type User = typeof users.$inferSelect;
@@ -327,9 +321,6 @@ export const updateProfileSchema = z.object({
     .max(50, "Username must be at most 50 characters")
     .regex(/^[a-zA-Z0-9_-]+$/, "Username can only contain letters, numbers, underscores, and hyphens")
     .optional(),
-  email: z.string().email("Invalid email address").optional().nullable(),
-  firstName: z.string().optional().nullable(),
-  lastName: z.string().optional().nullable(),
 });
 
 export const updatePasswordSchema = z.object({
@@ -353,9 +344,6 @@ export const createStaffSchema = z.object({
     .min(8, "Password must be at least 8 characters")
     .regex(/[A-Za-z]/, "Password must contain at least one letter")
     .regex(/[0-9]/, "Password must contain at least one number"),
-  email: z.string().email("Invalid email address").optional().nullable(),
-  firstName: z.string().optional().nullable(),
-  lastName: z.string().optional().nullable(),
 });
 
 export type UpdateProfile = z.infer<typeof updateProfileSchema>;

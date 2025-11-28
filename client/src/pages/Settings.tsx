@@ -21,9 +21,6 @@ import type { DeviceConfig, PricingConfig, HappyHoursConfig, HappyHoursPricing a
 interface UserProfile {
   id: string;
   username: string;
-  email: string | null;
-  firstName: string | null;
-  lastName: string | null;
   role: string;
   createdAt: string;
 }
@@ -31,9 +28,6 @@ interface UserProfile {
 interface StaffMember {
   id: string;
   username: string;
-  email: string | null;
-  firstName: string | null;
-  lastName: string | null;
   role: string;
   createdAt: string;
 }
@@ -103,9 +97,6 @@ export default function Settings() {
   // Profile management state
   const [profileForm, setProfileForm] = useState({
     username: '',
-    email: '',
-    firstName: '',
-    lastName: '',
   });
   const [passwordForm, setPasswordForm] = useState({
     currentPassword: '',
@@ -120,16 +111,10 @@ export default function Settings() {
   const [newStaffForm, setNewStaffForm] = useState({
     username: '',
     password: '',
-    email: '',
-    firstName: '',
-    lastName: '',
   });
   const [editStaffForm, setEditStaffForm] = useState({
     id: '',
     username: '',
-    email: '',
-    firstName: '',
-    lastName: '',
   });
   const [resetPasswordForm, setResetPasswordForm] = useState({
     staffId: '',
@@ -148,16 +133,13 @@ export default function Settings() {
     if (profile) {
       setProfileForm({
         username: profile.username || '',
-        email: profile.email || '',
-        firstName: profile.firstName || '',
-        lastName: profile.lastName || '',
       });
     }
   }, [profile]);
 
   // Profile update mutation
   const updateProfileMutation = useMutation({
-    mutationFn: async (data: { username?: string; email?: string | null; firstName?: string | null; lastName?: string | null }) => {
+    mutationFn: async (data: { username?: string }) => {
       return apiRequest("PATCH", "/api/profile", data);
     },
     onSuccess: () => {
@@ -193,12 +175,12 @@ export default function Settings() {
 
   // Create staff mutation
   const createStaffMutation = useMutation({
-    mutationFn: async (data: { username: string; password: string; email?: string; firstName?: string; lastName?: string }) => {
+    mutationFn: async (data: { username: string; password: string }) => {
       return apiRequest("POST", "/api/staff", data);
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['/api/staff'] });
-      setNewStaffForm({ username: '', password: '', email: '', firstName: '', lastName: '' });
+      setNewStaffForm({ username: '', password: '' });
       setIsAddStaffDialogOpen(false);
       toast({ title: "Success", description: "Staff member created successfully" });
     },
@@ -213,7 +195,7 @@ export default function Settings() {
 
   // Update staff mutation
   const updateStaffMutation = useMutation({
-    mutationFn: async ({ id, data }: { id: string; data: { username?: string; email?: string | null; firstName?: string | null; lastName?: string | null } }) => {
+    mutationFn: async ({ id, data }: { id: string; data: { username?: string } }) => {
       return apiRequest("PATCH", `/api/staff/${id}`, data);
     },
     onSuccess: () => {
@@ -290,13 +272,6 @@ export default function Settings() {
     return null;
   };
 
-  const validateEmail = (email: string): string | null => {
-    if (email && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
-      return "Please enter a valid email address";
-    }
-    return null;
-  };
-
   // Profile handlers
   const handleUpdateProfile = () => {
     // Validate username if changed
@@ -308,27 +283,9 @@ export default function Settings() {
       }
     }
 
-    // Validate email if provided
-    if (profileForm.email) {
-      const emailError = validateEmail(profileForm.email);
-      if (emailError) {
-        toast({ title: "Error", description: emailError, variant: "destructive" });
-        return;
-      }
-    }
-
     const updates: any = {};
     if (profileForm.username && profileForm.username !== profile?.username) {
       updates.username = profileForm.username;
-    }
-    if (profileForm.email !== (profile?.email || '')) {
-      updates.email = profileForm.email || null;
-    }
-    if (profileForm.firstName !== (profile?.firstName || '')) {
-      updates.firstName = profileForm.firstName || null;
-    }
-    if (profileForm.lastName !== (profile?.lastName || '')) {
-      updates.lastName = profileForm.lastName || null;
     }
 
     if (Object.keys(updates).length === 0) {
@@ -374,15 +331,6 @@ export default function Settings() {
       return;
     }
 
-    // Validate email if provided
-    if (newStaffForm.email) {
-      const emailError = validateEmail(newStaffForm.email);
-      if (emailError) {
-        toast({ title: "Error", description: emailError, variant: "destructive" });
-        return;
-      }
-    }
-
     createStaffMutation.mutate(newStaffForm);
   };
 
@@ -390,9 +338,6 @@ export default function Settings() {
     setEditStaffForm({
       id: staff.id,
       username: staff.username,
-      email: staff.email || '',
-      firstName: staff.firstName || '',
-      lastName: staff.lastName || '',
     });
     setIsEditStaffDialogOpen(true);
   };
@@ -409,27 +354,9 @@ export default function Settings() {
       }
     }
 
-    // Validate email if provided
-    if (editStaffForm.email) {
-      const emailError = validateEmail(editStaffForm.email);
-      if (emailError) {
-        toast({ title: "Error", description: emailError, variant: "destructive" });
-        return;
-      }
-    }
-
     const updates: any = {};
     if (editStaffForm.username && editStaffForm.username !== originalStaff?.username) {
       updates.username = editStaffForm.username;
-    }
-    if (editStaffForm.email !== (originalStaff?.email || '')) {
-      updates.email = editStaffForm.email || null;
-    }
-    if (editStaffForm.firstName !== (originalStaff?.firstName || '')) {
-      updates.firstName = editStaffForm.firstName || null;
-    }
-    if (editStaffForm.lastName !== (originalStaff?.lastName || '')) {
-      updates.lastName = editStaffForm.lastName || null;
     }
 
     if (Object.keys(updates).length === 0) {
@@ -956,39 +883,6 @@ export default function Settings() {
                   data-testid="input-profile-username"
                 />
               </div>
-              <div className="space-y-2">
-                <Label htmlFor="profile-email">Email</Label>
-                <Input
-                  id="profile-email"
-                  type="email"
-                  value={profileForm.email}
-                  onChange={(e) => setProfileForm({ ...profileForm, email: e.target.value })}
-                  placeholder="Enter email"
-                  data-testid="input-profile-email"
-                />
-              </div>
-              <div className="grid grid-cols-2 gap-4">
-                <div className="space-y-2">
-                  <Label htmlFor="profile-firstName">First Name</Label>
-                  <Input
-                    id="profile-firstName"
-                    value={profileForm.firstName}
-                    onChange={(e) => setProfileForm({ ...profileForm, firstName: e.target.value })}
-                    placeholder="First name"
-                    data-testid="input-profile-firstName"
-                  />
-                </div>
-                <div className="space-y-2">
-                  <Label htmlFor="profile-lastName">Last Name</Label>
-                  <Input
-                    id="profile-lastName"
-                    value={profileForm.lastName}
-                    onChange={(e) => setProfileForm({ ...profileForm, lastName: e.target.value })}
-                    placeholder="Last name"
-                    data-testid="input-profile-lastName"
-                  />
-                </div>
-              </div>
             </CardContent>
             <CardFooter>
               <Button 
@@ -1156,39 +1050,6 @@ export default function Settings() {
                         </Button>
                       </div>
                     </div>
-                    <div className="space-y-2">
-                      <Label htmlFor="new-staff-email">Email</Label>
-                      <Input
-                        id="new-staff-email"
-                        type="email"
-                        value={newStaffForm.email}
-                        onChange={(e) => setNewStaffForm({ ...newStaffForm, email: e.target.value })}
-                        placeholder="Enter email (optional)"
-                        data-testid="input-new-staff-email"
-                      />
-                    </div>
-                    <div className="grid grid-cols-2 gap-4">
-                      <div className="space-y-2">
-                        <Label htmlFor="new-staff-firstName">First Name</Label>
-                        <Input
-                          id="new-staff-firstName"
-                          value={newStaffForm.firstName}
-                          onChange={(e) => setNewStaffForm({ ...newStaffForm, firstName: e.target.value })}
-                          placeholder="First name"
-                          data-testid="input-new-staff-firstName"
-                        />
-                      </div>
-                      <div className="space-y-2">
-                        <Label htmlFor="new-staff-lastName">Last Name</Label>
-                        <Input
-                          id="new-staff-lastName"
-                          value={newStaffForm.lastName}
-                          onChange={(e) => setNewStaffForm({ ...newStaffForm, lastName: e.target.value })}
-                          placeholder="Last name"
-                          data-testid="input-new-staff-lastName"
-                        />
-                      </div>
-                    </div>
                   </div>
                   <DialogFooter>
                     <Button variant="outline" onClick={() => setIsAddStaffDialogOpen(false)}>
@@ -1231,8 +1092,7 @@ export default function Settings() {
                               <Badge variant="outline" className="text-xs">Staff</Badge>
                             </div>
                             <p className="text-sm text-muted-foreground">
-                              {staff.email || "No email"}
-                              {staff.firstName || staff.lastName ? ` - ${[staff.firstName, staff.lastName].filter(Boolean).join(' ')}` : ''}
+                              Staff member
                             </p>
                           </div>
                         </div>
@@ -1298,39 +1158,6 @@ export default function Settings() {
                     placeholder="Enter username"
                     data-testid="input-edit-staff-username"
                   />
-                </div>
-                <div className="space-y-2">
-                  <Label htmlFor="edit-staff-email">Email</Label>
-                  <Input
-                    id="edit-staff-email"
-                    type="email"
-                    value={editStaffForm.email}
-                    onChange={(e) => setEditStaffForm({ ...editStaffForm, email: e.target.value })}
-                    placeholder="Enter email"
-                    data-testid="input-edit-staff-email"
-                  />
-                </div>
-                <div className="grid grid-cols-2 gap-4">
-                  <div className="space-y-2">
-                    <Label htmlFor="edit-staff-firstName">First Name</Label>
-                    <Input
-                      id="edit-staff-firstName"
-                      value={editStaffForm.firstName}
-                      onChange={(e) => setEditStaffForm({ ...editStaffForm, firstName: e.target.value })}
-                      placeholder="First name"
-                      data-testid="input-edit-staff-firstName"
-                    />
-                  </div>
-                  <div className="space-y-2">
-                    <Label htmlFor="edit-staff-lastName">Last Name</Label>
-                    <Input
-                      id="edit-staff-lastName"
-                      value={editStaffForm.lastName}
-                      onChange={(e) => setEditStaffForm({ ...editStaffForm, lastName: e.target.value })}
-                      placeholder="Last name"
-                      data-testid="input-edit-staff-lastName"
-                    />
-                  </div>
                 </div>
               </div>
               <DialogFooter>

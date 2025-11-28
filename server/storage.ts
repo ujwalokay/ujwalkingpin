@@ -202,10 +202,10 @@ export interface IStorage {
   updateUserOnboarding(userId: string, completed: boolean): Promise<boolean>;
   getAllUsers(): Promise<User[]>;
   getAllStaffUsers(): Promise<User[]>;
-  updateUserProfile(userId: string, profile: { username?: string; email?: string | null; firstName?: string | null; lastName?: string | null }): Promise<User | undefined>;
+  updateUserProfile(userId: string, profile: { username?: string }): Promise<User | undefined>;
   updateUserPassword(userId: string, newPasswordHash: string): Promise<boolean>;
   deleteUser(userId: string): Promise<boolean>;
-  createStaffUser(staff: { username: string; passwordHash: string; email?: string | null; firstName?: string | null; lastName?: string | null }): Promise<User>;
+  createStaffUser(staff: { username: string; passwordHash: string }): Promise<User>;
   
   getAllExpenses(): Promise<Expense[]>;
   getExpense(id: string): Promise<Expense | undefined>;
@@ -343,18 +343,13 @@ export class DatabaseStorage implements IStorage {
       if (adminPassword.length < 8) {
         console.error('❌ WARNING: ADMIN_PASSWORD must be at least 8 characters long. Admin user not created.');
       } else {
-        // Create admin user with email if provided (skip strict validation for initial setup)
-        const adminEmail = process.env.ADMIN_EMAIL;
+        // Create admin user (skip strict validation for initial setup)
         await this.createUser({
           username: adminUsername,
           password: adminPassword,
-          email: adminEmail,
           role: "admin"
         }, true);
         console.log(`✅ Admin user created with username: ${adminUsername}`);
-        if (adminEmail) {
-          console.log(`✅ Admin email set to: ${adminEmail}`);
-        }
       }
       
       // Create staff user if credentials provided
@@ -1093,7 +1088,7 @@ export class DatabaseStorage implements IStorage {
       .where(eq(users.id, userId))
       .limit(1);
     
-    const username = user.length > 0 ? (user[0].username || user[0].email || 'Unknown') : 'Unknown';
+    const username = user.length > 0 ? (user[0].username || 'Unknown') : 'Unknown';
     
     const updatedBookings = [];
     for (const booking of existingBookings) {
@@ -1273,7 +1268,6 @@ export class DatabaseStorage implements IStorage {
     const [newUser] = await db.insert(users).values({
       username: user.username,
       passwordHash,
-      email: user.email,
       role: user.role || "admin",
     }).returning();
     
@@ -1327,22 +1321,13 @@ export class DatabaseStorage implements IStorage {
     return await db.select().from(users).where(eq(users.role, 'staff')).orderBy(users.createdAt);
   }
 
-  async updateUserProfile(userId: string, profile: { username?: string; email?: string | null; firstName?: string | null; lastName?: string | null }): Promise<User | undefined> {
+  async updateUserProfile(userId: string, profile: { username?: string }): Promise<User | undefined> {
     const updateData: any = {
       updatedAt: new Date(),
     };
     
     if (profile.username !== undefined) {
       updateData.username = profile.username;
-    }
-    if (profile.email !== undefined) {
-      updateData.email = profile.email;
-    }
-    if (profile.firstName !== undefined) {
-      updateData.firstName = profile.firstName;
-    }
-    if (profile.lastName !== undefined) {
-      updateData.lastName = profile.lastName;
     }
 
     const [updatedUser] = await db
@@ -1371,13 +1356,10 @@ export class DatabaseStorage implements IStorage {
     return result.rowCount ? result.rowCount > 0 : false;
   }
 
-  async createStaffUser(staff: { username: string; passwordHash: string; email?: string | null; firstName?: string | null; lastName?: string | null }): Promise<User> {
+  async createStaffUser(staff: { username: string; passwordHash: string }): Promise<User> {
     const [newUser] = await db.insert(users).values({
       username: staff.username,
       passwordHash: staff.passwordHash,
-      email: staff.email || null,
-      firstName: staff.firstName || null,
-      lastName: staff.lastName || null,
       role: 'staff',
     }).returning();
     
