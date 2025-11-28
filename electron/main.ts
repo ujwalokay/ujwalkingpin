@@ -7,16 +7,19 @@ const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
 let mainWindow: BrowserWindow | null = null;
-let expressServer: any = null;
 
 const SERVER_PORT = 5000;
 
 async function startServer() {
+  process.env.PORT = String(SERVER_PORT);
+  
   try {
-    const serverModule = await import('../dist-electron/server/index.js');
+    const serverPath = path.join(__dirname, '../server/index-electron.js');
+    await import(serverPath);
     console.log('Express server started on port', SERVER_PORT);
   } catch (error) {
     console.error('Failed to start server:', error);
+    throw error;
   }
 }
 

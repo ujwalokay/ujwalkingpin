@@ -1,14 +1,31 @@
 {
-  "name": "rest-express",
+  "name": "airavoto-gaming-pos",
   "version": "1.0.0",
   "type": "module",
   "license": "MIT",
+  "main": "dist-electron/electron/main.js",
+  "author": {
+    "name": "Airavoto Gaming",
+    "email": "support@airavotogaming.com"
+  },
+  "description": "Gaming Lounge Management POS - Offline Desktop Application",
   "scripts": {
     "dev": "NODE_ENV=development npx tsx server/index.ts",
     "build": "npx vite build && npx esbuild server/index.ts --platform=node --packages=external --bundle --format=esm --outdir=dist",
     "db:push": "npx drizzle-kit push",
     "start": "npx drizzle-kit push --force && NODE_ENV=production node dist/index.js",
-    "check": "tsc"
+    "check": "tsc",
+    "electron:build-main": "npx esbuild electron/main.ts electron/preload.ts --platform=node --packages=external --bundle --format=esm --outdir=dist-electron/electron",
+    "electron:build-server": "npx esbuild server/index-electron.ts --platform=node --packages=external --bundle --format=esm --outdir=dist-electron/server",
+    "electron:build-frontend": "npx vite build --outDir dist-electron/dist",
+    "electron:build": "npm run electron:build-frontend && npm run electron:build-main && npm run electron:build-server",
+    "electron:dev": "npm run electron:build && cross-env NODE_ENV=development electron .",
+    "electron:start": "electron .",
+    "electron:pack": "npm run electron:build && electron-builder --dir",
+    "electron:dist": "npm run electron:build && electron-builder",
+    "electron:dist-win": "npm run electron:build && electron-builder --win",
+    "electron:dist-linux": "npm run electron:build && electron-builder --linux",
+    "electron:dist-all": "npm run electron:build && electron-builder --win --linux"
   },
   "dependencies": {
     "@babel/traverse": "^7.28.5",
@@ -45,6 +62,7 @@
     "@radix-ui/react-tooltip": "^1.2.0",
     "@tanstack/react-query": "^5.60.5",
     "@types/bcrypt": "^6.0.0",
+    "@types/better-sqlite3": "^7.6.13",
     "@types/cookie-parser": "^1.4.10",
     "@types/cors": "^2.8.19",
     "@types/csurf": "^1.11.5",

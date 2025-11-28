@@ -102,10 +102,47 @@ Preferred communication style: Simple, everyday language.
 - **Booking & Group Code System**: Unique booking codes (BK-XXXXX) for each booking and group codes (GRP-XXXXX) for linking multiple related bookings (e.g., PC 1, 2, 3 for the same table/session). Codes persist through booking creation to history archival.
 - **Simplified User Authentication**: Users authenticate with username and password only (no email, firstName, lastName fields).
 
+## Electron Desktop Application (Offline Mode)
+
+The application has been converted to an Electron desktop app for one-time purchase sale to gaming cafes. It operates completely offline with local SQLite storage.
+
+### Desktop App Architecture
+- **Frontend**: Built React app served from local files
+- **Backend**: Express.js server running within Electron process
+- **Database**: SQLite via better-sqlite3 (offline local storage)
+- **Authentication**: Local Passport.js with bcrypt password hashing
+
+### Key Files
+- `electron/main.ts` - Electron main process with window management
+- `electron/preload.ts` - Secure IPC API exposure
+- `server/index-electron.ts` - Offline Express server entry point
+- `server/db-sqlite.ts` - SQLite database connection
+- `shared/schema-sqlite.ts` - SQLite schema (converted from PostgreSQL)
+- `electron-builder.json` - Desktop packaging configuration
+
+### Build Commands
+- `npm run electron:build` - Build all Electron assets
+- `npm run electron:dev` - Development mode with built assets
+- `npm run electron:dist-win` - Package for Windows
+- `npm run electron:dist-linux` - Package for Linux
+- `npm run electron:dist-all` - Package for Windows and Linux
+
+### Database Location
+SQLite database is stored at: `<userDataPath>/airavoto-gaming.db`
+- Windows: `%APPDATA%/Airavoto Gaming POS/airavoto-gaming.db`
+- Linux: `~/.config/Airavoto Gaming POS/airavoto-gaming.db`
+
+### Removed Cloud Features
+For offline operation, the following cloud-dependent features are disabled:
+- Google OAuth (uses local username/password only)
+- Twilio SMS notifications
+- Neon database metrics
+
 ## External Dependencies
 
 ### Database
-- **Neon PostgreSQL**: Serverless PostgreSQL database.
+- **Neon PostgreSQL**: Serverless PostgreSQL database (web version).
+- **SQLite via better-sqlite3**: Local database (Electron desktop version).
 
 ### UI Component Libraries
 - **Radix UI**: Accessible React primitives.

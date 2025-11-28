@@ -2,13 +2,16 @@ import Database from 'better-sqlite3';
 import { drizzle } from 'drizzle-orm/better-sqlite3';
 import * as schema from "../shared/schema-sqlite";
 import path from 'path';
-import { app } from 'electron';
 import fs from 'fs';
 
 function getDbPath(): string {
-  if (typeof app !== 'undefined' && app.isPackaged) {
-    const userDataPath = app.getPath('userData');
-    return path.join(userDataPath, 'airavoto-gaming.db');
+  try {
+    const electron = require('electron');
+    if (electron.app && electron.app.isPackaged) {
+      const userDataPath = electron.app.getPath('userData');
+      return path.join(userDataPath, 'airavoto-gaming.db');
+    }
+  } catch {
   }
   return path.join(process.cwd(), 'data', 'airavoto-gaming.db');
 }
