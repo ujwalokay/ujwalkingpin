@@ -42,6 +42,9 @@ import {
   type InsertDeviceMaintenance,
   type PaymentLog,
   type InsertPaymentLog,
+  type StaffVisibilitySettings,
+  type VisibilityPages,
+  type VisibilityElements,
   bookings,
   deviceConfigs,
   pricingConfigs,
@@ -62,7 +65,8 @@ import {
   loadPredictions,
   retentionConfig,
   deviceMaintenance,
-  paymentLogs
+  paymentLogs,
+  staffVisibilitySettings
 } from "@shared/schema";
 import { db } from "./db";
 import { eq, and, gte, lte, lt, desc, inArray, isNotNull } from "drizzle-orm";
@@ -276,6 +280,9 @@ export interface IStorage {
   getPaymentLogs(date?: string): Promise<PaymentLog[]>;
   
   updatePaymentStatus(bookingIds: string[], paymentStatus: string, paymentMethod: string | null, userId: string): Promise<{ bookings: Booking[], count: number }>;
+  
+  getStaffVisibilitySettings(): Promise<StaffVisibilitySettings>;
+  updateStaffVisibilitySettings(pages: VisibilityPages, elements: VisibilityElements): Promise<StaffVisibilitySettings>;
   
   initializeDefaults(): Promise<void>;
 }
@@ -1886,6 +1893,67 @@ export class DatabaseStorage implements IStorage {
     });
     
     return promotionHistory.sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
+  }
+
+  // Staff Visibility Settings
+  async getStaffVisibilitySettings(): Promise<StaffVisibilitySettings> {
+    const settings = await db.select().from(staffVisibilitySettings).limit(1);
+    
+    if (settings.length === 0) {
+      // Create default settings if none exist
+      const defaultPages = {
+        dashboard: true,
+        bookings: true,
+        history: true,
+        food: true,
+        inventory: false,
+        expenses: false,
+        ledger: false,
+        analytics: false,
+        maintenance: false,
+        settings: false,
+      };
+      const defaultElements = {
+        customerPhone: true,
+        paymentDetails: true,
+        revenueNumbers: false,
+        expenseAmounts: false,
+        profitLoss: false,
+        costPrices: false,
+      };
+      
+      const [newSettings] = await db.insert(staffVisibilitySettings).values({
+        pages: defaultPages,
+        elements: defaultElements,
+      }).returning();
+      
+      return newSettings;
+    }
+    
+    return settings[0];
+  }
+
+  async updateStaffVisibilitySettings(pages: VisibilityPages, elements: VisibilityElements): Promise<StaffVisibilitySettings> {
+    const existingSettings = await db.select().from(staffVisibilitySettings).limit(1);
+    
+    if (existingSettings.length === 0) {
+      const [newSettings] = await db.insert(staffVisibilitySettings).values({
+        pages,
+        elements,
+      }).returning();
+      return newSettings;
+    }
+    
+    const [updated] = await db.update(staffVisibilitySettings)
+      .set({ 
+        pages, 
+        elements,
+        updatedAt: new Date()
+      })
+      .where(eq(staffVisibilitySettings.id, existingSettings[0].id))
+      .returning();
+    
+    return updated;
   }
 
 }
