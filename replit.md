@@ -89,7 +89,7 @@ Preferred communication style: Simple, everyday language.
 - **Public Status Board**: Customer-facing real-time availability display at `/status`.
 - **Data Retention Policies**: Automatic cleanup of old data with configurable retention periods.
 - **Analytics Chart Export**: Save as Image functionality for all analytics charts.
-- **Ankylo AI System**: Custom calculation-based predictive maintenance and traffic forecasting using deterministic algorithms.
+- **Prediction System**: Custom calculation-based predictive maintenance and traffic forecasting using deterministic algorithms.
 - **Sound Alert System**: Comprehensive audio notification system for user feedback.
 - **Unsaved Changes Protection**: Confirmation dialogs for preventing accidental data loss in settings.
 - **Notification System**: Comprehensive notification center with real-time notifications for key events, bell icon, grouped notifications, and actions.

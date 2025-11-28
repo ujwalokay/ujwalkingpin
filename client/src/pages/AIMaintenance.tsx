@@ -26,7 +26,7 @@ interface MaintenancePrediction {
   };
 }
 
-interface AIMaintenanceInsights {
+interface MaintenanceInsights {
   predictions: MaintenancePrediction[];
   summary: {
     highRiskDevices: number;
@@ -44,7 +44,7 @@ export default function AIMaintenance() {
   const [activeTab, setActiveTab] = useState("overview");
   const [loadingProgress, setLoadingProgress] = useState(0);
 
-  const { data: insights, isLoading, refetch } = useQuery<AIMaintenanceInsights>({
+  const { data: insights, isLoading, refetch } = useQuery<MaintenanceInsights>({
     queryKey: ["/api/ai/maintenance/predictions"],
   });
 
@@ -104,7 +104,7 @@ export default function AIMaintenance() {
       queryClient.invalidateQueries({ queryKey: ["/api/ai/maintenance/predictions"] });
       toast({
         title: "Issue Reported",
-        description: data.aiSuggestion || "Issue has been recorded and AI will analyze the device.",
+        description: data.aiSuggestion || "Issue has been recorded for analysis.",
       });
       refetch();
     },
@@ -149,7 +149,7 @@ export default function AIMaintenance() {
         <div>
           <h1 className="text-2xl md:text-3xl font-bold tracking-tight flex items-center gap-2">
             <Brain className="h-8 w-8 text-purple-600" />
-            AI Predictive Maintenance
+            Predictive Maintenance
           </h1>
           <p className="text-muted-foreground mb-4">Analyzing device usage and generating predictions...</p>
           <div className="space-y-2">
@@ -167,7 +167,7 @@ export default function AIMaintenance() {
         <div>
           <h1 className="text-2xl md:text-3xl font-bold tracking-tight flex items-center gap-2" data-testid="text-page-title">
             <Brain className="h-8 w-8 text-purple-600" />
-            Airavoto AI - Predictive Maintenance
+            Predictive Maintenance
           </h1>
           <p className="text-sm md:text-base text-muted-foreground flex items-center gap-2 mt-1">
             <Sparkles className="h-4 w-4 text-purple-500" />
@@ -185,13 +185,13 @@ export default function AIMaintenance() {
         </Button>
       </div>
 
-      {/* Airavoto AI Info */}
+      {/* Prediction System Info */}
       <Alert className="border-cyan-500/50 bg-cyan-50 dark:bg-cyan-950/20">
         <Zap className="h-4 w-4 text-cyan-600" />
         <AlertDescription className="text-sm">
           <div className="flex items-center justify-between">
             <div>
-              <strong className="font-semibold text-cyan-900 dark:text-cyan-100">Airavoto AI System:</strong>
+              <strong className="font-semibold text-cyan-900 dark:text-cyan-100">Prediction System:</strong>
               <span className="ml-2 text-cyan-800 dark:text-cyan-200">
                 Using calculations based on your real gaming center data
               </span>
@@ -202,10 +202,7 @@ export default function AIMaintenance() {
             </Badge>
           </div>
           <p className="text-xs text-cyan-700 dark:text-cyan-300 mt-2">
-            ✓ No external AI services - Predictions using mathematical formulas based on usage hours, sessions, issues, and maintenance history
-          </p>
-          <p className="text-xs text-amber-700 dark:text-amber-300 mt-2 font-medium">
-            ⚠️ Airavoto AI can make mistakes because it is in under development
+            Predictions using mathematical formulas based on usage hours, sessions, issues, and maintenance history
           </p>
         </AlertDescription>
       </Alert>
@@ -264,12 +261,12 @@ export default function AIMaintenance() {
         </Card>
       </div>
 
-      {/* AI Recommendations */}
+      {/* Recommendations */}
       {insights && insights.summary.recommendedActions.length > 0 && (
         <Alert className="border-purple-500/50 bg-purple-50 dark:bg-purple-950/20">
           <TrendingUp className="h-4 w-4 text-purple-600" />
           <AlertDescription className="text-sm">
-            <strong className="font-semibold text-purple-900 dark:text-purple-100">Airavoto AI Recommendations:</strong>
+            <strong className="font-semibold text-purple-900 dark:text-purple-100">Recommendations:</strong>
             <ul className="mt-2 space-y-1 list-disc list-inside">
               {insights.summary.recommendedActions.map((action, idx) => (
                 <li key={idx} className="text-purple-800 dark:text-purple-200">{action}</li>
@@ -435,7 +432,7 @@ function DevicePredictionCard({
         </div>
 
         <div className="bg-background/50 dark:bg-background/30 p-3 rounded-lg">
-          <p className="text-sm font-medium mb-1">Airavoto AI Analysis:</p>
+          <p className="text-sm font-medium mb-1">Analysis:</p>
           <p className="text-sm text-muted-foreground">{prediction.reasoning}</p>
         </div>
 
@@ -457,7 +454,7 @@ function DevicePredictionCard({
                   category: prediction.category,
                   seatName: prediction.seatName,
                   status: "healthy",
-                  notes: "Maintenance completed via AI predictions",
+                  notes: "Maintenance completed via predictions",
                 })
               }
               data-testid={`button-mark-maintained-${prediction.category}-${prediction.seatName}`}

@@ -2091,7 +2091,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  // AI Maintenance Prediction Routes
+  // Maintenance Prediction Routes
   app.get("/api/ai/maintenance/predictions", requireAuth, async (req, res) => {
     try {
       const { generateMaintenancePredictions } = await import('./ai-maintenance');
@@ -2102,7 +2102,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  // AI Traffic Prediction Routes
+  // Traffic Prediction Routes
   app.get("/api/ai/traffic/predictions", requireAuth, async (req, res) => {
     try {
       const { generateTrafficPredictions } = await import('./ai-traffic');
@@ -2209,15 +2209,15 @@ export async function registerRoutes(app: Express): Promise<Server> {
         lastMaintenanceDate: existing?.lastMaintenanceDate || null,
       });
 
-      let aiSuggestion = `Issue reported successfully. Device now has ${updatedIssues} issue(s) on record.`;
+      let suggestion = `Issue reported successfully. Device now has ${updatedIssues} issue(s) on record.`;
 
       try {
-        const { getAIMaintenanceRecommendation } = await import('./ai-maintenance');
+        const { getMaintenanceRecommendation } = await import('./ai-maintenance');
         const daysSince = existing?.lastMaintenanceDate 
           ? Math.floor((Date.now() - new Date(existing.lastMaintenanceDate).getTime()) / (1000 * 60 * 60 * 24))
           : null;
 
-        const recommendation = await getAIMaintenanceRecommendation({
+        const recommendation = await getMaintenanceRecommendation({
           category,
           seatName: decodedSeatName,
           usageHours: existing?.totalUsageHours || 0,
@@ -2226,10 +2226,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
           daysSinceMaintenance: daysSince,
         });
 
-        aiSuggestion = `${issueType === "repair" ? "Repair needed" : "Glitch detected"}: ${recommendation}`;
-      } catch (aiError) {
-        console.error("AI recommendation failed:", aiError);
-        aiSuggestion = `${issueType === "repair" ? "Repair needed" : "Glitch detected"}. Please check the AI Maintenance predictions for detailed analysis.`;
+        suggestion = `${issueType === "repair" ? "Repair needed" : "Glitch detected"}: ${recommendation}`;
+      } catch (recError) {
+        console.error("Recommendation failed:", recError);
+        suggestion = `${issueType === "repair" ? "Repair needed" : "Glitch detected"}. Please check the Maintenance predictions for detailed analysis.`;
       }
 
       const { invalidateMaintenanceCache } = await import('./ai-maintenance');
@@ -2238,7 +2238,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       res.json({ 
         success: true, 
         issuesReported: updatedIssues,
-        aiSuggestion 
+        aiSuggestion: suggestion 
       });
     } catch (error: any) {
       res.status(500).json({ message: error.message });

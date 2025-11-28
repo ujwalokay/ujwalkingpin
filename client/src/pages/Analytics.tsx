@@ -601,14 +601,14 @@ export default function Analytics() {
             </CardContent>
           </Card>
 
-          {/* AI Traffic Prediction Card */}
+          {/* Traffic Prediction Card */}
           {timeRange === "today" && (
             <Card id="ai-traffic-prediction-chart" className="shape-diagonal-rounded border-blue-500/20">
               <CardHeader className="flex flex-row items-center justify-between">
                 <div>
                   <div className="flex items-center gap-2">
                     <Brain className="h-5 w-5 text-blue-500" />
-                    <CardTitle>AI Visitor Traffic Prediction</CardTitle>
+                    <CardTitle>Visitor Traffic Prediction</CardTitle>
                   </div>
                   <CardDescription>Predicted visitor count by hour for today</CardDescription>
                 </div>
@@ -627,7 +627,7 @@ export default function Analytics() {
                   <div className="h-[400px] flex items-center justify-center">
                     <div className="text-center space-y-4">
                       <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary mx-auto"></div>
-                      <p className="text-sm text-muted-foreground">Generating AI predictions...</p>
+                      <p className="text-sm text-muted-foreground">Generating predictions...</p>
                     </div>
                   </div>
                 ) : trafficPrediction?.predictions && trafficPrediction.predictions.length > 0 ? (
@@ -748,12 +748,12 @@ export default function Analytics() {
                       </ComposedChart>
                     </ResponsiveContainer>
 
-                    {/* AI Insights */}
+                    {/* Insights */}
                     {trafficPrediction.summary.insights && trafficPrediction.summary.insights.length > 0 && (
                       <div className="p-4 bg-gradient-to-r from-blue-50 to-purple-50 dark:from-blue-950/20 dark:to-purple-950/20 rounded-lg">
                         <div className="flex items-center gap-2 mb-3">
                           <Sparkles className="h-5 w-5 text-blue-500" />
-                          <span className="font-semibold text-foreground">AI Insights</span>
+                          <span className="font-semibold text-foreground">Insights</span>
                         </div>
                         <ul className="space-y-2">
                           {trafficPrediction.summary.insights.map((insight, index) => (
@@ -775,7 +775,7 @@ export default function Analytics() {
                       <Brain className="h-12 w-12 mx-auto mb-3 text-muted-foreground" />
                       <p className="font-semibold">No Prediction Available</p>
                       <p className="text-sm text-muted-foreground mt-1">
-                        AI needs historical data to make predictions
+                        Historical data is needed to make predictions
                       </p>
                     </div>
                   </div>

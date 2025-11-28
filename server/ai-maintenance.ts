@@ -16,7 +16,7 @@ export interface MaintenancePrediction {
   };
 }
 
-export interface AIMaintenanceInsights {
+export interface MaintenanceInsights {
   predictions: MaintenancePrediction[];
   summary: {
     highRiskDevices: number;
@@ -28,7 +28,7 @@ export interface AIMaintenanceInsights {
   generatedAt: Date;
 }
 
-let cachedPredictions: { data: AIMaintenanceInsights; timestamp: number } | null = null;
+let cachedPredictions: { data: MaintenanceInsights; timestamp: number } | null = null;
 let cacheGeneration = 0;
 const CACHE_DURATION = 5 * 60 * 1000;
 
@@ -37,7 +37,7 @@ export function invalidateMaintenanceCache() {
   cacheGeneration++;
 }
 
-export async function generateMaintenancePredictions(): Promise<AIMaintenanceInsights> {
+export async function generateMaintenancePredictions(): Promise<MaintenanceInsights> {
   if (cachedPredictions && Date.now() - cachedPredictions.timestamp < CACHE_DURATION) {
     return cachedPredictions.data;
   }
@@ -198,7 +198,7 @@ function calculateMaintenancePrediction(
   return { riskLevel, estimatedDays, recommendedAction, reasoning };
 }
 
-export async function getAIMaintenanceRecommendation(
+export async function getMaintenanceRecommendation(
   deviceData: {
     category: string;
     seatName: string;

@@ -1,4 +1,4 @@
-import { Settings, LayoutDashboard, FileText, UtensilsCrossed, CalendarClock, History, Scale, Wallet, ScrollText, BarChart3, Gamepad2, Sparkles, LogOut, Brain, Package, Receipt } from "lucide-react";
+import { Settings, LayoutDashboard, FileText, UtensilsCrossed, CalendarClock, History, Scale, Wallet, ScrollText, BarChart3, Gamepad2, LogOut, Brain, Package, Receipt } from "lucide-react";
 import { Link, useLocation } from "wouter";
 import { useQuery } from "@tanstack/react-query";
 import { useTheme } from "@/components/ThemeProvider";
@@ -26,7 +26,6 @@ interface MenuItem {
   url: string;
   icon: any;
   countKey?: string;
-  hasAI?: boolean;
   adminOnly?: boolean;
   tooltip: string;
 }
@@ -91,8 +90,7 @@ const menuCategories: MenuCategory[] = [
         title: "Analytics",
         url: "/analytics",
         icon: BarChart3,
-        hasAI: true,
-        tooltip: "View detailed analytics with AI-powered traffic predictions",
+        tooltip: "View detailed analytics with traffic predictions",
       },
       {
         title: "Reports",
@@ -107,11 +105,10 @@ const menuCategories: MenuCategory[] = [
     label: "Tools",
     items: [
       {
-        title: "AI Maintenance",
+        title: "Maintenance",
         url: "/ai-maintenance",
         icon: Brain,
-        hasAI: true,
-        tooltip: "AI-powered predictive maintenance insights for devices",
+        tooltip: "Predictive maintenance insights for devices",
       },
       {
         title: "Activity Logs",
@@ -220,9 +217,6 @@ export function AppSidebar() {
                                   <item.icon className={isActive ? 'text-purple-600 dark:text-purple-400' : ''} />
                                   <span className="flex items-center gap-1.5 flex-1">
                                     {item.title}
-                                    {item.hasAI && (
-                                      <Sparkles className="h-3 w-3 text-purple-500 animate-pulse" />
-                                    )}
                                   </span>
                                   {count > 0 && (
                                     <Badge 
