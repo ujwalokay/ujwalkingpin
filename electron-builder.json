@@ -30,16 +30,13 @@
         "arch": ["x64"]
       }
     ],
-    "icon": "build/icon.ico",
+    "icon": "build/icon.png",
     "artifactName": "${productName}-${version}-Setup.${ext}"
   },
   "nsis": {
     "oneClick": false,
     "perMachine": true,
     "allowToChangeInstallationDirectory": true,
-    "installerIcon": "build/icon.ico",
-    "uninstallerIcon": "build/icon.ico",
-    "installerHeaderIcon": "build/icon.ico",
     "createDesktopShortcut": true,
     "createStartMenuShortcut": true,
     "shortcutName": "Airavoto Gaming POS"
@@ -55,7 +52,7 @@
         "arch": ["x64"]
       }
     ],
-    "icon": "build/icons",
+    "icon": "build/icon.png",
     "category": "Office",
     "maintainer": "Airavoto Gaming",
     "artifactName": "${productName}-${version}.${ext}"
@@ -67,7 +64,7 @@
         "arch": ["x64", "arm64"]
       }
     ],
-    "icon": "build/icon.icns",
+    "icon": "build/icon.png",
     "category": "public.app-category.business",
     "artifactName": "${productName}-${version}.${ext}"
   },
