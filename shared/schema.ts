@@ -511,6 +511,60 @@ export const insertDeviceMaintenanceSchema = createInsertSchema(deviceMaintenanc
 export type InsertDeviceMaintenance = z.infer<typeof insertDeviceMaintenanceSchema>;
 export type DeviceMaintenance = typeof deviceMaintenance.$inferSelect;
 
+// Staff visibility settings - controls what staff members can see
+export const staffVisibilitySettings = pgTable("staff_visibility_settings", {
+  id: varchar("id").primaryKey().$defaultFn(() => crypto.randomUUID()),
+  // Page visibility - which pages staff can access
+  pages: jsonb("pages").$type<{
+    dashboard: boolean;
+    bookings: boolean;
+    history: boolean;
+    food: boolean;
+    inventory: boolean;
+    expenses: boolean;
+    ledger: boolean;
+    analytics: boolean;
+    maintenance: boolean;
+    settings: boolean;
+  }>().notNull().default({
+    dashboard: true,
+    bookings: true,
+    history: true,
+    food: true,
+    inventory: false,
+    expenses: false,
+    ledger: false,
+    analytics: false,
+    maintenance: false,
+    settings: false,
+  }),
+  // Element visibility - which UI elements staff can see
+  elements: jsonb("elements").$type<{
+    customerPhone: boolean;
+    paymentDetails: boolean;
+    revenueNumbers: boolean;
+    expenseAmounts: boolean;
+    profitLoss: boolean;
+    costPrices: boolean;
+  }>().notNull().default({
+    customerPhone: true,
+    paymentDetails: true,
+    revenueNumbers: false,
+    expenseAmounts: false,
+    profitLoss: false,
+    costPrices: false,
+  }),
+  updatedAt: timestamp("updated_at").notNull().defaultNow(),
+});
+
+export const insertStaffVisibilitySettingsSchema = createInsertSchema(staffVisibilitySettings).omit({ id: true, updatedAt: true });
+export type InsertStaffVisibilitySettings = z.infer<typeof insertStaffVisibilitySettingsSchema>;
+export type StaffVisibilitySettings = typeof staffVisibilitySettings.$inferSelect;
+
+// Type for the visibility pages
+export type VisibilityPages = NonNullable<StaffVisibilitySettings['pages']>;
+export type VisibilityElements = NonNullable<StaffVisibilitySettings['elements']>;
+
 export const paymentLogs = pgTable("payment_logs", {
   id: varchar("id").primaryKey().$defaultFn(() => crypto.randomUUID()),
   bookingId: varchar("booking_id").notNull(),
