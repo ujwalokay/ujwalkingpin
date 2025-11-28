@@ -200,6 +200,12 @@ export interface IStorage {
   upsertUser(user: UpsertUser): Promise<User>;
   validatePassword(username: string, password: string): Promise<User | null>;
   updateUserOnboarding(userId: string, completed: boolean): Promise<boolean>;
+  getAllUsers(): Promise<User[]>;
+  getAllStaffUsers(): Promise<User[]>;
+  updateUserProfile(userId: string, profile: { username?: string; email?: string | null; firstName?: string | null; lastName?: string | null }): Promise<User | undefined>;
+  updateUserPassword(userId: string, newPasswordHash: string): Promise<boolean>;
+  deleteUser(userId: string): Promise<boolean>;
+  createStaffUser(staff: { username: string; passwordHash: string; email?: string | null; firstName?: string | null; lastName?: string | null }): Promise<User>;
   
   getAllExpenses(): Promise<Expense[]>;
   getExpense(id: string): Promise<Expense | undefined>;
@@ -1311,6 +1317,71 @@ export class DatabaseStorage implements IStorage {
       })
       .returning();
     return user;
+  }
+
+  async getAllUsers(): Promise<User[]> {
+    return await db.select().from(users).orderBy(users.createdAt);
+  }
+
+  async getAllStaffUsers(): Promise<User[]> {
+    return await db.select().from(users).where(eq(users.role, 'staff')).orderBy(users.createdAt);
+  }
+
+  async updateUserProfile(userId: string, profile: { username?: string; email?: string | null; firstName?: string | null; lastName?: string | null }): Promise<User | undefined> {
+    const updateData: any = {
+      updatedAt: new Date(),
+    };
+    
+    if (profile.username !== undefined) {
+      updateData.username = profile.username;
+    }
+    if (profile.email !== undefined) {
+      updateData.email = profile.email;
+    }
+    if (profile.firstName !== undefined) {
+      updateData.firstName = profile.firstName;
+    }
+    if (profile.lastName !== undefined) {
+      updateData.lastName = profile.lastName;
+    }
+
+    const [updatedUser] = await db
+      .update(users)
+      .set(updateData)
+      .where(eq(users.id, userId))
+      .returning();
+    
+    return updatedUser || undefined;
+  }
+
+  async updateUserPassword(userId: string, newPasswordHash: string): Promise<boolean> {
+    const result = await db
+      .update(users)
+      .set({ 
+        passwordHash: newPasswordHash,
+        updatedAt: new Date(),
+      })
+      .where(eq(users.id, userId));
+    
+    return result.rowCount ? result.rowCount > 0 : false;
+  }
+
+  async deleteUser(userId: string): Promise<boolean> {
+    const result = await db.delete(users).where(eq(users.id, userId));
+    return result.rowCount ? result.rowCount > 0 : false;
+  }
+
+  async createStaffUser(staff: { username: string; passwordHash: string; email?: string | null; firstName?: string | null; lastName?: string | null }): Promise<User> {
+    const [newUser] = await db.insert(users).values({
+      username: staff.username,
+      passwordHash: staff.passwordHash,
+      email: staff.email || null,
+      firstName: staff.firstName || null,
+      lastName: staff.lastName || null,
+      role: 'staff',
+    }).returning();
+    
+    return newUser;
   }
 
   async getAllExpenses(): Promise<Expense[]> {

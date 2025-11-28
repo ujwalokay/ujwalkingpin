@@ -22,9 +22,14 @@ import {
   insertGamingCenterInfoSchema,
   insertGalleryImageSchema,
   insertFacilitySchema,
-  insertGameSchema
+  insertGameSchema,
+  updateProfileSchema,
+  updatePasswordSchema,
+  createStaffSchema
 } from "@shared/schema";
 import { z } from "zod";
+import bcrypt from "bcrypt";
+import { SecurityConfig } from "./security";
 
 export async function registerRoutes(app: Express): Promise<Server> {
   app.get("/api/server-time", publicApiLimiter, async (req, res) => {
@@ -33,6 +38,315 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
   app.get("/api/health", publicApiLimiter, async (req, res) => {
     res.json({ status: "ok", timestamp: new Date().toISOString() });
+  });
+
+  // Profile Management Routes
+  app.get("/api/profile", requireAuth, async (req, res) => {
+    try {
+      const user = await storage.getUserById(req.session.userId!);
+      if (!user) {
+        return res.status(404).json({ message: "User not found" });
+      }
+      res.json({
+        id: user.id,
+        username: user.username,
+        email: user.email,
+        firstName: user.firstName,
+        lastName: user.lastName,
+        role: user.role,
+        createdAt: user.createdAt,
+      });
+    } catch (error: any) {
+      res.status(500).json({ message: error.message });
+    }
+  });
+
+  app.patch("/api/profile", requireAuth, sensitiveOperationLimiter, async (req, res) => {
+    try {
+      const profile = updateProfileSchema.parse(req.body);
+      
+      // Check if username is being changed and if it's already taken
+      if (profile.username) {
+        const existingUser = await storage.getUserByUsername(profile.username);
+        if (existingUser && existingUser.id !== req.session.userId) {
+          return res.status(400).json({ message: "Username already taken" });
+        }
+      }
+
+      const updatedUser = await storage.updateUserProfile(req.session.userId!, profile);
+      if (!updatedUser) {
+        return res.status(404).json({ message: "User not found" });
+      }
+
+      // Update session username if it was changed
+      if (profile.username) {
+        req.session.username = profile.username;
+      }
+
+      // Log activity
+      await storage.createActivityLog({
+        userId: req.session.userId!,
+        username: req.session.username,
+        userRole: req.session.role!,
+        action: 'update',
+        entityType: 'profile',
+        entityId: req.session.userId!,
+        details: 'Profile updated',
+      });
+
+      res.json({
+        id: updatedUser.id,
+        username: updatedUser.username,
+        email: updatedUser.email,
+        firstName: updatedUser.firstName,
+        lastName: updatedUser.lastName,
+        role: updatedUser.role,
+      });
+    } catch (error: any) {
+      if (error.name === 'ZodError') {
+        return res.status(400).json({ message: error.errors[0]?.message || 'Invalid input' });
+      }
+      res.status(500).json({ message: error.message });
+    }
+  });
+
+  app.post("/api/profile/change-password", requireAuth, sensitiveOperationLimiter, async (req, res) => {
+    try {
+      const { currentPassword, newPassword, confirmPassword } = updatePasswordSchema.parse(req.body);
+      
+      // Verify current password
+      const user = await storage.validatePassword(req.session.username, currentPassword);
+      if (!user) {
+        return res.status(400).json({ message: "Current password is incorrect" });
+      }
+
+      // Hash new password
+      const saltRounds = SecurityConfig.password.saltRounds;
+      const newPasswordHash = await bcrypt.hash(newPassword, saltRounds);
+      
+      // Update password
+      const success = await storage.updateUserPassword(req.session.userId!, newPasswordHash);
+      if (!success) {
+        return res.status(500).json({ message: "Failed to update password" });
+      }
+
+      // Log activity
+      await storage.createActivityLog({
+        userId: req.session.userId!,
+        username: req.session.username,
+        userRole: req.session.role!,
+        action: 'update',
+        entityType: 'password',
+        entityId: req.session.userId!,
+        details: 'Password changed',
+      });
+
+      res.json({ message: "Password updated successfully" });
+    } catch (error: any) {
+      if (error.name === 'ZodError') {
+        return res.status(400).json({ message: error.errors[0]?.message || 'Invalid input' });
+      }
+      res.status(500).json({ message: error.message });
+    }
+  });
+
+  // Staff Management Routes (Admin only)
+  app.get("/api/staff", requireAdmin, async (req, res) => {
+    try {
+      const staffUsers = await storage.getAllStaffUsers();
+      res.json(staffUsers.map(user => ({
+        id: user.id,
+        username: user.username,
+        email: user.email,
+        firstName: user.firstName,
+        lastName: user.lastName,
+        role: user.role,
+        createdAt: user.createdAt,
+      })));
+    } catch (error: any) {
+      res.status(500).json({ message: error.message });
+    }
+  });
+
+  app.post("/api/staff", requireAdmin, sensitiveOperationLimiter, async (req, res) => {
+    try {
+      const staffData = createStaffSchema.parse(req.body);
+      
+      // Check if username is already taken
+      const existingUser = await storage.getUserByUsername(staffData.username);
+      if (existingUser) {
+        return res.status(400).json({ message: "Username already taken" });
+      }
+
+      // Hash password
+      const saltRounds = SecurityConfig.password.saltRounds;
+      const passwordHash = await bcrypt.hash(staffData.password, saltRounds);
+      
+      // Create staff user
+      const newUser = await storage.createStaffUser({
+        username: staffData.username,
+        passwordHash,
+        email: staffData.email,
+        firstName: staffData.firstName,
+        lastName: staffData.lastName,
+      });
+
+      // Log activity
+      await storage.createActivityLog({
+        userId: req.session.userId!,
+        username: req.session.username,
+        userRole: req.session.role!,
+        action: 'create',
+        entityType: 'staff',
+        entityId: newUser.id,
+        details: `Staff member "${staffData.username}" created`,
+      });
+
+      res.status(201).json({
+        id: newUser.id,
+        username: newUser.username,
+        email: newUser.email,
+        firstName: newUser.firstName,
+        lastName: newUser.lastName,
+        role: newUser.role,
+        createdAt: newUser.createdAt,
+      });
+    } catch (error: any) {
+      if (error.name === 'ZodError') {
+        return res.status(400).json({ message: error.errors[0]?.message || 'Invalid input' });
+      }
+      res.status(500).json({ message: error.message });
+    }
+  });
+
+  app.patch("/api/staff/:id", requireAdmin, sensitiveOperationLimiter, async (req, res) => {
+    try {
+      const { id } = req.params;
+      const profile = updateProfileSchema.parse(req.body);
+      
+      // Get the staff user to verify it exists and is a staff member
+      const staffUser = await storage.getUserById(id);
+      if (!staffUser || staffUser.role !== 'staff') {
+        return res.status(404).json({ message: "Staff member not found" });
+      }
+
+      // Check if username is being changed and if it's already taken
+      if (profile.username) {
+        const existingUser = await storage.getUserByUsername(profile.username);
+        if (existingUser && existingUser.id !== id) {
+          return res.status(400).json({ message: "Username already taken" });
+        }
+      }
+
+      const updatedUser = await storage.updateUserProfile(id, profile);
+      if (!updatedUser) {
+        return res.status(404).json({ message: "Staff member not found" });
+      }
+
+      // Log activity
+      await storage.createActivityLog({
+        userId: req.session.userId!,
+        username: req.session.username,
+        userRole: req.session.role!,
+        action: 'update',
+        entityType: 'staff',
+        entityId: id,
+        details: `Staff member "${updatedUser.username}" updated`,
+      });
+
+      res.json({
+        id: updatedUser.id,
+        username: updatedUser.username,
+        email: updatedUser.email,
+        firstName: updatedUser.firstName,
+        lastName: updatedUser.lastName,
+        role: updatedUser.role,
+      });
+    } catch (error: any) {
+      if (error.name === 'ZodError') {
+        return res.status(400).json({ message: error.errors[0]?.message || 'Invalid input' });
+      }
+      res.status(500).json({ message: error.message });
+    }
+  });
+
+  app.post("/api/staff/:id/reset-password", requireAdmin, sensitiveOperationLimiter, async (req, res) => {
+    try {
+      const { id } = req.params;
+      const { newPassword } = req.body;
+      
+      if (!newPassword || newPassword.length < 8) {
+        return res.status(400).json({ message: "Password must be at least 8 characters" });
+      }
+
+      // Get the staff user to verify it exists and is a staff member
+      const staffUser = await storage.getUserById(id);
+      if (!staffUser || staffUser.role !== 'staff') {
+        return res.status(404).json({ message: "Staff member not found" });
+      }
+
+      // Hash new password
+      const saltRounds = SecurityConfig.password.saltRounds;
+      const newPasswordHash = await bcrypt.hash(newPassword, saltRounds);
+      
+      // Update password
+      const success = await storage.updateUserPassword(id, newPasswordHash);
+      if (!success) {
+        return res.status(500).json({ message: "Failed to reset password" });
+      }
+
+      // Log activity
+      await storage.createActivityLog({
+        userId: req.session.userId!,
+        username: req.session.username,
+        userRole: req.session.role!,
+        action: 'update',
+        entityType: 'staff',
+        entityId: id,
+        details: `Password reset for staff member "${staffUser.username}"`,
+      });
+
+      res.json({ message: "Password reset successfully" });
+    } catch (error: any) {
+      res.status(500).json({ message: error.message });
+    }
+  });
+
+  app.delete("/api/staff/:id", requireAdmin, sensitiveOperationLimiter, async (req, res) => {
+    try {
+      const { id } = req.params;
+      
+      // Get the staff user to verify it exists and is a staff member
+      const staffUser = await storage.getUserById(id);
+      if (!staffUser || staffUser.role !== 'staff') {
+        return res.status(404).json({ message: "Staff member not found" });
+      }
+
+      // Prevent deleting yourself
+      if (id === req.session.userId) {
+        return res.status(400).json({ message: "Cannot delete your own account" });
+      }
+
+      const success = await storage.deleteUser(id);
+      if (!success) {
+        return res.status(500).json({ message: "Failed to delete staff member" });
+      }
+
+      // Log activity
+      await storage.createActivityLog({
+        userId: req.session.userId!,
+        username: req.session.username,
+        userRole: req.session.role!,
+        action: 'delete',
+        entityType: 'staff',
+        entityId: id,
+        details: `Staff member "${staffUser.username}" deleted`,
+      });
+
+      res.json({ message: "Staff member deleted successfully" });
+    } catch (error: any) {
+      res.status(500).json({ message: error.message });
+    }
   });
 
   app.get("/api/bookings", requireAuth, async (req, res) => {
