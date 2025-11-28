@@ -70,7 +70,7 @@ import {
 } from "@shared/schema";
 import { db } from "./db";
 import { eq, and, gte, lte, lt, desc, inArray, isNotNull } from "drizzle-orm";
-import bcrypt from "bcrypt";
+import bcrypt from "bcryptjs";
 import { SecurityConfig, validatePasswordStrength } from "./security";
 
 export interface BookingStats {

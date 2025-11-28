@@ -7,7 +7,7 @@ import path from "path";
 import { fileURLToPath } from "url";
 import passport from "passport";
 import { Strategy as LocalStrategy } from "passport-local";
-import bcrypt from "bcrypt";
+import bcrypt from "bcryptjs";
 import { db, initializeSqliteDatabase, sqlite } from "./db-sqlite";
 import * as schema from "../shared/schema-sqlite";
 import { eq } from "drizzle-orm";

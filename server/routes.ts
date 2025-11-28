@@ -28,7 +28,7 @@ import {
   createStaffSchema
 } from "@shared/schema";
 import { z } from "zod";
-import bcrypt from "bcrypt";
+import bcrypt from "bcryptjs";
 import { SecurityConfig } from "./security";
 
 export async function registerRoutes(app: Express): Promise<Server> {
