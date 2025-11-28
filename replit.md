@@ -100,6 +100,7 @@ Preferred communication style: Simple, everyday language.
 - **Running Session Bug Fix**: Ensures running/paused sessions remain on the Dashboard after credit payment, preventing premature archiving.
 - **Enhanced Credit Balances Display**: Credit Balances table now shows comprehensive booking details for better context.
 - **Booking & Group Code System**: Unique booking codes (BK-XXXXX) for each booking and group codes (GRP-XXXXX) for linking multiple related bookings (e.g., PC 1, 2, 3 for the same table/session). Codes persist through booking creation to history archival.
+- **Simplified User Authentication**: Users authenticate with username and password only (no email, firstName, lastName fields).
 
 ## External Dependencies
 
