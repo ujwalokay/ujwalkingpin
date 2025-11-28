@@ -1,6 +1,6 @@
 import { useMutation } from "@tanstack/react-query";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { Save, X } from "lucide-react";
+import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter } from "@/components/ui/card";
+import { Save, X, User, Users, Lock, Edit, Trash2, Plus, Eye, EyeOff } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { queryClient, apiRequest } from "@/lib/queryClient";
 import { DeviceConfigCard } from "@/components/DeviceConfigCard";
@@ -12,7 +12,31 @@ import { Switch } from "@/components/ui/switch";
 import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
 import { useQuery } from "@tanstack/react-query";
+import { useAuth } from "@/contexts/AuthContext";
+import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
+import { Badge } from "@/components/ui/badge";
+import { Separator } from "@/components/ui/separator";
 import type { DeviceConfig, PricingConfig, HappyHoursConfig, HappyHoursPricing as HappyHoursPricingType } from "@shared/schema";
+
+interface UserProfile {
+  id: string;
+  username: string;
+  email: string | null;
+  firstName: string | null;
+  lastName: string | null;
+  role: string;
+  createdAt: string;
+}
+
+interface StaffMember {
+  id: string;
+  username: string;
+  email: string | null;
+  firstName: string | null;
+  lastName: string | null;
+  role: string;
+  createdAt: string;
+}
 
 interface TimeSlot {
   startTime: string;
@@ -59,6 +83,387 @@ export default function Settings() {
   // Local state for happy hours pricing
   const [pcHappyHoursPricing, setPcHappyHoursPricing] = useState<{ duration: string; price: number; personCount?: number }[]>([]);
   const [ps5HappyHoursPricing, setPs5HappyHoursPricing] = useState<{ duration: string; price: number; personCount?: number }[]>([]);
+
+  // Auth and user state
+  const { user: authUser } = useAuth();
+  const isAdmin = authUser?.role === 'admin';
+  const isAuthLoaded = authUser !== null && authUser !== undefined;
+
+  // Fetch user profile
+  const { data: profile, isLoading: profileLoading } = useQuery<UserProfile>({
+    queryKey: ['/api/profile'],
+  });
+
+  // Fetch staff members (admin only - only enabled when auth is loaded AND user is admin)
+  const { data: staffMembers, isLoading: staffLoading } = useQuery<StaffMember[]>({
+    queryKey: ['/api/staff'],
+    enabled: isAuthLoaded && isAdmin === true,
+  });
+
+  // Profile management state
+  const [profileForm, setProfileForm] = useState({
+    username: '',
+    email: '',
+    firstName: '',
+    lastName: '',
+  });
+  const [passwordForm, setPasswordForm] = useState({
+    currentPassword: '',
+    newPassword: '',
+    confirmPassword: '',
+  });
+  const [showCurrentPassword, setShowCurrentPassword] = useState(false);
+  const [showNewPassword, setShowNewPassword] = useState(false);
+  const [showConfirmPassword, setShowConfirmPassword] = useState(false);
+
+  // Staff management state
+  const [newStaffForm, setNewStaffForm] = useState({
+    username: '',
+    password: '',
+    email: '',
+    firstName: '',
+    lastName: '',
+  });
+  const [editStaffForm, setEditStaffForm] = useState({
+    id: '',
+    username: '',
+    email: '',
+    firstName: '',
+    lastName: '',
+  });
+  const [resetPasswordForm, setResetPasswordForm] = useState({
+    staffId: '',
+    newPassword: '',
+  });
+  const [isAddStaffDialogOpen, setIsAddStaffDialogOpen] = useState(false);
+  const [isEditStaffDialogOpen, setIsEditStaffDialogOpen] = useState(false);
+  const [isResetPasswordDialogOpen, setIsResetPasswordDialogOpen] = useState(false);
+  const [staffToDelete, setStaffToDelete] = useState<StaffMember | null>(null);
+  const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
+  const [showNewStaffPassword, setShowNewStaffPassword] = useState(false);
+  const [showResetStaffPassword, setShowResetStaffPassword] = useState(false);
+
+  // Initialize profile form when profile data loads
+  useEffect(() => {
+    if (profile) {
+      setProfileForm({
+        username: profile.username || '',
+        email: profile.email || '',
+        firstName: profile.firstName || '',
+        lastName: profile.lastName || '',
+      });
+    }
+  }, [profile]);
+
+  // Profile update mutation
+  const updateProfileMutation = useMutation({
+    mutationFn: async (data: { username?: string; email?: string | null; firstName?: string | null; lastName?: string | null }) => {
+      return apiRequest("PATCH", "/api/profile", data);
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['/api/profile'] });
+      toast({ title: "Success", description: "Profile updated successfully" });
+    },
+    onError: (error: any) => {
+      toast({
+        title: "Error",
+        description: error.message || "Failed to update profile",
+        variant: "destructive",
+      });
+    },
+  });
+
+  // Password change mutation
+  const changePasswordMutation = useMutation({
+    mutationFn: async (data: { currentPassword: string; newPassword: string; confirmPassword: string }) => {
+      return apiRequest("POST", "/api/profile/change-password", data);
+    },
+    onSuccess: () => {
+      setPasswordForm({ currentPassword: '', newPassword: '', confirmPassword: '' });
+      toast({ title: "Success", description: "Password changed successfully" });
+    },
+    onError: (error: any) => {
+      toast({
+        title: "Error",
+        description: error.message || "Failed to change password",
+        variant: "destructive",
+      });
+    },
+  });
+
+  // Create staff mutation
+  const createStaffMutation = useMutation({
+    mutationFn: async (data: { username: string; password: string; email?: string; firstName?: string; lastName?: string }) => {
+      return apiRequest("POST", "/api/staff", data);
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['/api/staff'] });
+      setNewStaffForm({ username: '', password: '', email: '', firstName: '', lastName: '' });
+      setIsAddStaffDialogOpen(false);
+      toast({ title: "Success", description: "Staff member created successfully" });
+    },
+    onError: (error: any) => {
+      toast({
+        title: "Error",
+        description: error.message || "Failed to create staff member",
+        variant: "destructive",
+      });
+    },
+  });
+
+  // Update staff mutation
+  const updateStaffMutation = useMutation({
+    mutationFn: async ({ id, data }: { id: string; data: { username?: string; email?: string | null; firstName?: string | null; lastName?: string | null } }) => {
+      return apiRequest("PATCH", `/api/staff/${id}`, data);
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['/api/staff'] });
+      setIsEditStaffDialogOpen(false);
+      toast({ title: "Success", description: "Staff member updated successfully" });
+    },
+    onError: (error: any) => {
+      toast({
+        title: "Error",
+        description: error.message || "Failed to update staff member",
+        variant: "destructive",
+      });
+    },
+  });
+
+  // Reset staff password mutation
+  const resetStaffPasswordMutation = useMutation({
+    mutationFn: async ({ id, newPassword }: { id: string; newPassword: string }) => {
+      return apiRequest("POST", `/api/staff/${id}/reset-password`, { newPassword });
+    },
+    onSuccess: () => {
+      setResetPasswordForm({ staffId: '', newPassword: '' });
+      setIsResetPasswordDialogOpen(false);
+      toast({ title: "Success", description: "Password reset successfully" });
+    },
+    onError: (error: any) => {
+      toast({
+        title: "Error",
+        description: error.message || "Failed to reset password",
+        variant: "destructive",
+      });
+    },
+  });
+
+  // Delete staff mutation
+  const deleteStaffMutation = useMutation({
+    mutationFn: async (id: string) => {
+      return apiRequest("DELETE", `/api/staff/${id}`);
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['/api/staff'] });
+      setStaffToDelete(null);
+      setIsDeleteDialogOpen(false);
+      toast({ title: "Success", description: "Staff member deleted successfully" });
+    },
+    onError: (error: any) => {
+      toast({
+        title: "Error",
+        description: error.message || "Failed to delete staff member",
+        variant: "destructive",
+      });
+    },
+  });
+
+  // Validation helpers
+  const validateUsername = (username: string): string | null => {
+    if (!username || username.trim().length < 3) {
+      return "Username must be at least 3 characters";
+    }
+    if (username.length > 50) {
+      return "Username must be less than 50 characters";
+    }
+    if (!/^[a-zA-Z0-9_-]+$/.test(username)) {
+      return "Username can only contain letters, numbers, underscores, and hyphens";
+    }
+    return null;
+  };
+
+  const validatePassword = (password: string): string | null => {
+    if (!password || password.length < 8) {
+      return "Password must be at least 8 characters";
+    }
+    return null;
+  };
+
+  const validateEmail = (email: string): string | null => {
+    if (email && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
+      return "Please enter a valid email address";
+    }
+    return null;
+  };
+
+  // Profile handlers
+  const handleUpdateProfile = () => {
+    // Validate username if changed
+    if (profileForm.username && profileForm.username !== profile?.username) {
+      const usernameError = validateUsername(profileForm.username);
+      if (usernameError) {
+        toast({ title: "Error", description: usernameError, variant: "destructive" });
+        return;
+      }
+    }
+
+    // Validate email if provided
+    if (profileForm.email) {
+      const emailError = validateEmail(profileForm.email);
+      if (emailError) {
+        toast({ title: "Error", description: emailError, variant: "destructive" });
+        return;
+      }
+    }
+
+    const updates: any = {};
+    if (profileForm.username && profileForm.username !== profile?.username) {
+      updates.username = profileForm.username;
+    }
+    if (profileForm.email !== (profile?.email || '')) {
+      updates.email = profileForm.email || null;
+    }
+    if (profileForm.firstName !== (profile?.firstName || '')) {
+      updates.firstName = profileForm.firstName || null;
+    }
+    if (profileForm.lastName !== (profile?.lastName || '')) {
+      updates.lastName = profileForm.lastName || null;
+    }
+
+    if (Object.keys(updates).length === 0) {
+      toast({ title: "Info", description: "No changes to save" });
+      return;
+    }
+
+    updateProfileMutation.mutate(updates);
+  };
+
+  const handleChangePassword = () => {
+    // Validate new password
+    const passwordError = validatePassword(passwordForm.newPassword);
+    if (passwordError) {
+      toast({ title: "Error", description: passwordError, variant: "destructive" });
+      return;
+    }
+
+    if (passwordForm.newPassword !== passwordForm.confirmPassword) {
+      toast({
+        title: "Error",
+        description: "New passwords do not match",
+        variant: "destructive",
+      });
+      return;
+    }
+    changePasswordMutation.mutate(passwordForm);
+  };
+
+  // Staff handlers
+  const handleCreateStaff = () => {
+    // Validate username
+    const usernameError = validateUsername(newStaffForm.username);
+    if (usernameError) {
+      toast({ title: "Error", description: usernameError, variant: "destructive" });
+      return;
+    }
+
+    // Validate password
+    const passwordError = validatePassword(newStaffForm.password);
+    if (passwordError) {
+      toast({ title: "Error", description: passwordError, variant: "destructive" });
+      return;
+    }
+
+    // Validate email if provided
+    if (newStaffForm.email) {
+      const emailError = validateEmail(newStaffForm.email);
+      if (emailError) {
+        toast({ title: "Error", description: emailError, variant: "destructive" });
+        return;
+      }
+    }
+
+    createStaffMutation.mutate(newStaffForm);
+  };
+
+  const handleEditStaff = (staff: StaffMember) => {
+    setEditStaffForm({
+      id: staff.id,
+      username: staff.username,
+      email: staff.email || '',
+      firstName: staff.firstName || '',
+      lastName: staff.lastName || '',
+    });
+    setIsEditStaffDialogOpen(true);
+  };
+
+  const handleUpdateStaff = () => {
+    const originalStaff = staffMembers?.find(s => s.id === editStaffForm.id);
+    
+    // Validate username if changed
+    if (editStaffForm.username && editStaffForm.username !== originalStaff?.username) {
+      const usernameError = validateUsername(editStaffForm.username);
+      if (usernameError) {
+        toast({ title: "Error", description: usernameError, variant: "destructive" });
+        return;
+      }
+    }
+
+    // Validate email if provided
+    if (editStaffForm.email) {
+      const emailError = validateEmail(editStaffForm.email);
+      if (emailError) {
+        toast({ title: "Error", description: emailError, variant: "destructive" });
+        return;
+      }
+    }
+
+    const updates: any = {};
+    if (editStaffForm.username && editStaffForm.username !== originalStaff?.username) {
+      updates.username = editStaffForm.username;
+    }
+    if (editStaffForm.email !== (originalStaff?.email || '')) {
+      updates.email = editStaffForm.email || null;
+    }
+    if (editStaffForm.firstName !== (originalStaff?.firstName || '')) {
+      updates.firstName = editStaffForm.firstName || null;
+    }
+    if (editStaffForm.lastName !== (originalStaff?.lastName || '')) {
+      updates.lastName = editStaffForm.lastName || null;
+    }
+
+    if (Object.keys(updates).length === 0) {
+      toast({ title: "Info", description: "No changes to save" });
+      return;
+    }
+
+    updateStaffMutation.mutate({ id: editStaffForm.id, data: updates });
+  };
+
+  const handleResetStaffPassword = (staff: StaffMember) => {
+    setResetPasswordForm({ staffId: staff.id, newPassword: '' });
+    setIsResetPasswordDialogOpen(true);
+  };
+
+  const handleConfirmResetPassword = () => {
+    const passwordError = validatePassword(resetPasswordForm.newPassword);
+    if (passwordError) {
+      toast({ title: "Error", description: passwordError, variant: "destructive" });
+      return;
+    }
+    resetStaffPasswordMutation.mutate({ id: resetPasswordForm.staffId, newPassword: resetPasswordForm.newPassword });
+  };
+
+  const handleDeleteStaff = (staff: StaffMember) => {
+    setStaffToDelete(staff);
+    setIsDeleteDialogOpen(true);
+  };
+
+  const handleConfirmDelete = () => {
+    if (staffToDelete) {
+      deleteStaffMutation.mutate(staffToDelete.id);
+    }
+  };
 
   // Initialize local state from API data
   useEffect(() => {
@@ -511,6 +916,519 @@ export default function Settings() {
           <HappyHoursPricing category="PS5" slots={ps5HappyHoursPricing} onUpdateSlots={setPs5HappyHoursPricing} />
         </div>
       </div>
+
+      <Separator className="my-8" />
+
+      {/* Profile Management */}
+      <div>
+        <h2 className="text-2xl font-bold mb-4 flex items-center gap-2">
+          <User className="h-6 w-6" />
+          Profile Management
+        </h2>
+        <p className="text-sm text-muted-foreground mb-4">
+          Update your profile information and change your password.
+        </p>
+        <div className="grid gap-4 md:grid-cols-2">
+          {/* Profile Information Card */}
+          <Card>
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2">
+                <User className="h-5 w-5" />
+                Profile Information
+              </CardTitle>
+              <CardDescription>Update your account details</CardDescription>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              {profile && (
+                <div className="mb-4">
+                  <Badge variant="secondary" data-testid="badge-user-role">
+                    {profile.role.toUpperCase()}
+                  </Badge>
+                </div>
+              )}
+              <div className="space-y-2">
+                <Label htmlFor="profile-username">Username</Label>
+                <Input
+                  id="profile-username"
+                  value={profileForm.username}
+                  onChange={(e) => setProfileForm({ ...profileForm, username: e.target.value })}
+                  placeholder="Enter username"
+                  data-testid="input-profile-username"
+                />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="profile-email">Email</Label>
+                <Input
+                  id="profile-email"
+                  type="email"
+                  value={profileForm.email}
+                  onChange={(e) => setProfileForm({ ...profileForm, email: e.target.value })}
+                  placeholder="Enter email"
+                  data-testid="input-profile-email"
+                />
+              </div>
+              <div className="grid grid-cols-2 gap-4">
+                <div className="space-y-2">
+                  <Label htmlFor="profile-firstName">First Name</Label>
+                  <Input
+                    id="profile-firstName"
+                    value={profileForm.firstName}
+                    onChange={(e) => setProfileForm({ ...profileForm, firstName: e.target.value })}
+                    placeholder="First name"
+                    data-testid="input-profile-firstName"
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="profile-lastName">Last Name</Label>
+                  <Input
+                    id="profile-lastName"
+                    value={profileForm.lastName}
+                    onChange={(e) => setProfileForm({ ...profileForm, lastName: e.target.value })}
+                    placeholder="Last name"
+                    data-testid="input-profile-lastName"
+                  />
+                </div>
+              </div>
+            </CardContent>
+            <CardFooter>
+              <Button 
+                onClick={handleUpdateProfile} 
+                disabled={updateProfileMutation.isPending}
+                data-testid="button-update-profile"
+              >
+                {updateProfileMutation.isPending ? "Saving..." : "Update Profile"}
+              </Button>
+            </CardFooter>
+          </Card>
+
+          {/* Change Password Card */}
+          <Card>
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2">
+                <Lock className="h-5 w-5" />
+                Change Password
+              </CardTitle>
+              <CardDescription>Update your account password</CardDescription>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              <div className="space-y-2">
+                <Label htmlFor="current-password">Current Password</Label>
+                <div className="relative">
+                  <Input
+                    id="current-password"
+                    type={showCurrentPassword ? "text" : "password"}
+                    value={passwordForm.currentPassword}
+                    onChange={(e) => setPasswordForm({ ...passwordForm, currentPassword: e.target.value })}
+                    placeholder="Enter current password"
+                    data-testid="input-current-password"
+                  />
+                  <Button
+                    type="button"
+                    variant="ghost"
+                    size="icon"
+                    className="absolute right-0 top-0"
+                    onClick={() => setShowCurrentPassword(!showCurrentPassword)}
+                    data-testid="button-toggle-current-password"
+                  >
+                    {showCurrentPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+                  </Button>
+                </div>
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="new-password">New Password</Label>
+                <div className="relative">
+                  <Input
+                    id="new-password"
+                    type={showNewPassword ? "text" : "password"}
+                    value={passwordForm.newPassword}
+                    onChange={(e) => setPasswordForm({ ...passwordForm, newPassword: e.target.value })}
+                    placeholder="Enter new password (min 8 characters)"
+                    data-testid="input-new-password"
+                  />
+                  <Button
+                    type="button"
+                    variant="ghost"
+                    size="icon"
+                    className="absolute right-0 top-0"
+                    onClick={() => setShowNewPassword(!showNewPassword)}
+                    data-testid="button-toggle-new-password"
+                  >
+                    {showNewPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+                  </Button>
+                </div>
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="confirm-password">Confirm New Password</Label>
+                <div className="relative">
+                  <Input
+                    id="confirm-password"
+                    type={showConfirmPassword ? "text" : "password"}
+                    value={passwordForm.confirmPassword}
+                    onChange={(e) => setPasswordForm({ ...passwordForm, confirmPassword: e.target.value })}
+                    placeholder="Confirm new password"
+                    data-testid="input-confirm-password"
+                  />
+                  <Button
+                    type="button"
+                    variant="ghost"
+                    size="icon"
+                    className="absolute right-0 top-0"
+                    onClick={() => setShowConfirmPassword(!showConfirmPassword)}
+                    data-testid="button-toggle-confirm-password"
+                  >
+                    {showConfirmPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+                  </Button>
+                </div>
+              </div>
+            </CardContent>
+            <CardFooter>
+              <Button 
+                onClick={handleChangePassword} 
+                disabled={changePasswordMutation.isPending || !passwordForm.currentPassword || !passwordForm.newPassword || !passwordForm.confirmPassword}
+                data-testid="button-change-password"
+              >
+                {changePasswordMutation.isPending ? "Changing..." : "Change Password"}
+              </Button>
+            </CardFooter>
+          </Card>
+        </div>
+      </div>
+
+      {/* Staff Management (Admin only - only render when auth is loaded and user is confirmed admin) */}
+      {isAuthLoaded && isAdmin && (
+        <>
+          <Separator className="my-8" />
+          <div>
+            <div className="flex items-center justify-between flex-wrap gap-4 mb-4">
+              <div>
+                <h2 className="text-2xl font-bold flex items-center gap-2">
+                  <Users className="h-6 w-6" />
+                  Staff Management
+                </h2>
+                <p className="text-sm text-muted-foreground">
+                  Manage staff accounts - add, edit, or remove staff members.
+                </p>
+              </div>
+              <Dialog open={isAddStaffDialogOpen} onOpenChange={setIsAddStaffDialogOpen}>
+                <DialogTrigger asChild>
+                  <Button data-testid="button-add-staff">
+                    <Plus className="h-4 w-4 mr-2" />
+                    Add Staff Member
+                  </Button>
+                </DialogTrigger>
+                <DialogContent>
+                  <DialogHeader>
+                    <DialogTitle>Add New Staff Member</DialogTitle>
+                    <DialogDescription>
+                      Create a new staff account. Staff members can manage sessions and view reports.
+                    </DialogDescription>
+                  </DialogHeader>
+                  <div className="space-y-4 py-4">
+                    <div className="space-y-2">
+                      <Label htmlFor="new-staff-username">Username *</Label>
+                      <Input
+                        id="new-staff-username"
+                        value={newStaffForm.username}
+                        onChange={(e) => setNewStaffForm({ ...newStaffForm, username: e.target.value })}
+                        placeholder="Enter username"
+                        data-testid="input-new-staff-username"
+                      />
+                    </div>
+                    <div className="space-y-2">
+                      <Label htmlFor="new-staff-password">Password *</Label>
+                      <div className="relative">
+                        <Input
+                          id="new-staff-password"
+                          type={showNewStaffPassword ? "text" : "password"}
+                          value={newStaffForm.password}
+                          onChange={(e) => setNewStaffForm({ ...newStaffForm, password: e.target.value })}
+                          placeholder="Enter password (min 8 characters)"
+                          data-testid="input-new-staff-password"
+                        />
+                        <Button
+                          type="button"
+                          variant="ghost"
+                          size="icon"
+                          className="absolute right-0 top-0"
+                          onClick={() => setShowNewStaffPassword(!showNewStaffPassword)}
+                        >
+                          {showNewStaffPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+                        </Button>
+                      </div>
+                    </div>
+                    <div className="space-y-2">
+                      <Label htmlFor="new-staff-email">Email</Label>
+                      <Input
+                        id="new-staff-email"
+                        type="email"
+                        value={newStaffForm.email}
+                        onChange={(e) => setNewStaffForm({ ...newStaffForm, email: e.target.value })}
+                        placeholder="Enter email (optional)"
+                        data-testid="input-new-staff-email"
+                      />
+                    </div>
+                    <div className="grid grid-cols-2 gap-4">
+                      <div className="space-y-2">
+                        <Label htmlFor="new-staff-firstName">First Name</Label>
+                        <Input
+                          id="new-staff-firstName"
+                          value={newStaffForm.firstName}
+                          onChange={(e) => setNewStaffForm({ ...newStaffForm, firstName: e.target.value })}
+                          placeholder="First name"
+                          data-testid="input-new-staff-firstName"
+                        />
+                      </div>
+                      <div className="space-y-2">
+                        <Label htmlFor="new-staff-lastName">Last Name</Label>
+                        <Input
+                          id="new-staff-lastName"
+                          value={newStaffForm.lastName}
+                          onChange={(e) => setNewStaffForm({ ...newStaffForm, lastName: e.target.value })}
+                          placeholder="Last name"
+                          data-testid="input-new-staff-lastName"
+                        />
+                      </div>
+                    </div>
+                  </div>
+                  <DialogFooter>
+                    <Button variant="outline" onClick={() => setIsAddStaffDialogOpen(false)}>
+                      Cancel
+                    </Button>
+                    <Button 
+                      onClick={handleCreateStaff} 
+                      disabled={createStaffMutation.isPending}
+                      data-testid="button-confirm-add-staff"
+                    >
+                      {createStaffMutation.isPending ? "Creating..." : "Create Staff"}
+                    </Button>
+                  </DialogFooter>
+                </DialogContent>
+              </Dialog>
+            </div>
+
+            {/* Staff List */}
+            <div className="grid gap-4">
+              {staffLoading ? (
+                <Card>
+                  <CardContent className="p-6">
+                    <p className="text-muted-foreground text-center">Loading staff members...</p>
+                  </CardContent>
+                </Card>
+              ) : staffMembers && staffMembers.length > 0 ? (
+                staffMembers.map((staff) => (
+                  <Card key={staff.id} data-testid={`card-staff-${staff.id}`}>
+                    <CardContent className="p-4">
+                      <div className="flex items-center justify-between flex-wrap gap-4">
+                        <div className="flex items-center gap-4">
+                          <div className="h-10 w-10 rounded-full bg-secondary flex items-center justify-center">
+                            <User className="h-5 w-5" />
+                          </div>
+                          <div>
+                            <div className="flex items-center gap-2">
+                              <p className="font-medium" data-testid={`text-staff-username-${staff.id}`}>
+                                {staff.username}
+                              </p>
+                              <Badge variant="outline" className="text-xs">Staff</Badge>
+                            </div>
+                            <p className="text-sm text-muted-foreground">
+                              {staff.email || "No email"}
+                              {staff.firstName || staff.lastName ? ` - ${[staff.firstName, staff.lastName].filter(Boolean).join(' ')}` : ''}
+                            </p>
+                          </div>
+                        </div>
+                        <div className="flex items-center gap-2 flex-wrap">
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            onClick={() => handleEditStaff(staff)}
+                            data-testid={`button-edit-staff-${staff.id}`}
+                          >
+                            <Edit className="h-4 w-4 mr-1" />
+                            Edit
+                          </Button>
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            onClick={() => handleResetStaffPassword(staff)}
+                            data-testid={`button-reset-password-${staff.id}`}
+                          >
+                            <Lock className="h-4 w-4 mr-1" />
+                            Reset Password
+                          </Button>
+                          <Button
+                            variant="destructive"
+                            size="sm"
+                            onClick={() => handleDeleteStaff(staff)}
+                            data-testid={`button-delete-staff-${staff.id}`}
+                          >
+                            <Trash2 className="h-4 w-4 mr-1" />
+                            Delete
+                          </Button>
+                        </div>
+                      </div>
+                    </CardContent>
+                  </Card>
+                ))
+              ) : (
+                <Card>
+                  <CardContent className="p-6">
+                    <p className="text-muted-foreground text-center">No staff members found. Add your first staff member above.</p>
+                  </CardContent>
+                </Card>
+              )}
+            </div>
+          </div>
+
+          {/* Edit Staff Dialog */}
+          <Dialog open={isEditStaffDialogOpen} onOpenChange={setIsEditStaffDialogOpen}>
+            <DialogContent>
+              <DialogHeader>
+                <DialogTitle>Edit Staff Member</DialogTitle>
+                <DialogDescription>
+                  Update staff member information.
+                </DialogDescription>
+              </DialogHeader>
+              <div className="space-y-4 py-4">
+                <div className="space-y-2">
+                  <Label htmlFor="edit-staff-username">Username</Label>
+                  <Input
+                    id="edit-staff-username"
+                    value={editStaffForm.username}
+                    onChange={(e) => setEditStaffForm({ ...editStaffForm, username: e.target.value })}
+                    placeholder="Enter username"
+                    data-testid="input-edit-staff-username"
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="edit-staff-email">Email</Label>
+                  <Input
+                    id="edit-staff-email"
+                    type="email"
+                    value={editStaffForm.email}
+                    onChange={(e) => setEditStaffForm({ ...editStaffForm, email: e.target.value })}
+                    placeholder="Enter email"
+                    data-testid="input-edit-staff-email"
+                  />
+                </div>
+                <div className="grid grid-cols-2 gap-4">
+                  <div className="space-y-2">
+                    <Label htmlFor="edit-staff-firstName">First Name</Label>
+                    <Input
+                      id="edit-staff-firstName"
+                      value={editStaffForm.firstName}
+                      onChange={(e) => setEditStaffForm({ ...editStaffForm, firstName: e.target.value })}
+                      placeholder="First name"
+                      data-testid="input-edit-staff-firstName"
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="edit-staff-lastName">Last Name</Label>
+                    <Input
+                      id="edit-staff-lastName"
+                      value={editStaffForm.lastName}
+                      onChange={(e) => setEditStaffForm({ ...editStaffForm, lastName: e.target.value })}
+                      placeholder="Last name"
+                      data-testid="input-edit-staff-lastName"
+                    />
+                  </div>
+                </div>
+              </div>
+              <DialogFooter>
+                <Button variant="outline" onClick={() => setIsEditStaffDialogOpen(false)}>
+                  Cancel
+                </Button>
+                <Button 
+                  onClick={handleUpdateStaff} 
+                  disabled={updateStaffMutation.isPending}
+                  data-testid="button-confirm-edit-staff"
+                >
+                  {updateStaffMutation.isPending ? "Saving..." : "Save Changes"}
+                </Button>
+              </DialogFooter>
+            </DialogContent>
+          </Dialog>
+
+          {/* Reset Password Dialog */}
+          <Dialog open={isResetPasswordDialogOpen} onOpenChange={setIsResetPasswordDialogOpen}>
+            <DialogContent>
+              <DialogHeader>
+                <DialogTitle>Reset Staff Password</DialogTitle>
+                <DialogDescription>
+                  Enter a new password for this staff member.
+                </DialogDescription>
+              </DialogHeader>
+              <div className="space-y-4 py-4">
+                <div className="space-y-2">
+                  <Label htmlFor="reset-staff-password">New Password</Label>
+                  <div className="relative">
+                    <Input
+                      id="reset-staff-password"
+                      type={showResetStaffPassword ? "text" : "password"}
+                      value={resetPasswordForm.newPassword}
+                      onChange={(e) => setResetPasswordForm({ ...resetPasswordForm, newPassword: e.target.value })}
+                      placeholder="Enter new password (min 8 characters)"
+                      data-testid="input-reset-staff-password"
+                    />
+                    <Button
+                      type="button"
+                      variant="ghost"
+                      size="icon"
+                      className="absolute right-0 top-0"
+                      onClick={() => setShowResetStaffPassword(!showResetStaffPassword)}
+                    >
+                      {showResetStaffPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+                    </Button>
+                  </div>
+                </div>
+              </div>
+              <DialogFooter>
+                <Button variant="outline" onClick={() => setIsResetPasswordDialogOpen(false)}>
+                  Cancel
+                </Button>
+                <Button 
+                  onClick={handleConfirmResetPassword} 
+                  disabled={resetStaffPasswordMutation.isPending}
+                  data-testid="button-confirm-reset-password"
+                >
+                  {resetStaffPasswordMutation.isPending ? "Resetting..." : "Reset Password"}
+                </Button>
+              </DialogFooter>
+            </DialogContent>
+          </Dialog>
+
+          {/* Delete Confirmation Dialog */}
+          <Dialog open={isDeleteDialogOpen} onOpenChange={setIsDeleteDialogOpen}>
+            <DialogContent>
+              <DialogHeader>
+                <DialogTitle>Delete Staff Member</DialogTitle>
+                <DialogDescription>
+                  Are you sure you want to delete this staff member? This action cannot be undone.
+                </DialogDescription>
+              </DialogHeader>
+              {staffToDelete && (
+                <div className="py-4">
+                  <p className="text-sm">
+                    You are about to delete <strong>{staffToDelete.username}</strong>.
+                  </p>
+                </div>
+              )}
+              <DialogFooter>
+                <Button variant="outline" onClick={() => setIsDeleteDialogOpen(false)}>
+                  Cancel
+                </Button>
+                <Button 
+                  variant="destructive"
+                  onClick={handleConfirmDelete} 
+                  disabled={deleteStaffMutation.isPending}
+                  data-testid="button-confirm-delete-staff"
+                >
+                  {deleteStaffMutation.isPending ? "Deleting..." : "Delete Staff"}
+                </Button>
+              </DialogFooter>
+            </DialogContent>
+          </Dialog>
+        </>
+      )}
     </div>
   );
 }
