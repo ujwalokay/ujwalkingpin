@@ -492,27 +492,26 @@ async function initializeDefaultData() {
 }
 
 function getDistPath(): string {
-  const possiblePaths = [
-    path.join(__dirname, '../dist'),
-    path.join(__dirname, '../../dist'),
-    path.join(process.cwd(), 'dist'),
-    path.join(process.cwd(), 'resources', 'app', 'dist-electron', 'dist'),
-  ];
+  const appPath = process.env.APP_PATH;
+  console.log('APP_PATH:', appPath);
   
-  for (const p of possiblePaths) {
-    if (fs.existsSync(p) && fs.existsSync(path.join(p, 'index.html'))) {
-      console.log('Using dist path:', p);
-      return p;
-    }
+  if (appPath) {
+    const distFromApp = path.join(appPath, 'dist');
+    try {
+      if (fs.existsSync(path.join(distFromApp, 'index.html'))) {
+        console.log('Found dist at:', distFromApp);
+        return distFromApp;
+      }
+    } catch (e) {}
   }
   
-  console.log('Falling back to default dist path:', possiblePaths[0]);
-  return possiblePaths[0];
-}
-
-const distPath = getDistPath();
-app.use(express.static(distPath));
-
+  const devPaths = [path.join(__dirname, '../dist'), path.join(__dirname, '../../dist')];
+  for (const p of devPaths) {
+    try { if (fs.existsSync(path.join(p, 'index.html'))) return p; } catch (e) {}
+  }
+  
+  return appPath ? path.join(appPath, 'dist') : path.join(__dirname, '../dist');
+} 
 app.get('*', (req, res) => {
   if (!req.path.startsWith('/api')) {
     const indexPath = path.join(distPath, 'index.html');
