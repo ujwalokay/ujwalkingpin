@@ -13,13 +13,32 @@ const SERVER_PORT = 5000;
 
 async function startServer() {
   process.env.PORT = String(SERVER_PORT);
+  process.env.APP_PATH = app.getAppPath();
   
   try {
-    const serverPath = path.join(__dirname, '../server/index-electron.js');
-    console.log('Loading server from:', serverPath);
-    await import(serverPath);
-    console.log('Express server started on port', SERVER_PORT);
-    serverStarted = true;
+    const possiblePaths = [
+      path.join(__dirname, '../server/index-electron.js'),
+      path.join(__dirname, '../../server/index-electron.js'),
+      path.join(app.getAppPath(), 'dist-electron', 'server', 'index-electron.js'),
+    ];
+    
+    let serverLoaded = false;
+    for (const serverPath of possiblePaths) {
+      console.log('Trying server path:', serverPath);
+      try {
+        await import(serverPath);
+        console.log('Express server started from:', serverPath);
+        serverStarted = true;
+        serverLoaded = true;
+        break;
+      } catch (e) {
+        console.log('Path failed:', serverPath);
+      }
+    }
+    
+    if (!serverLoaded) {
+      throw new Error('Could not find server file');
+    }
   } catch (error) {
     console.error('Failed to start server:', error);
     serverStarted = false;
@@ -44,15 +63,13 @@ async function createWindow() {
     backgroundColor: '#1a1a2e',
   });
 
-  mainWindow.webContents.on('did-fail-load', (event, errorCode, errorDescription) => {
-    console.error('Failed to load:', errorCode, errorDescription);
+  mainWindow.webContents.on('did-fail-load', () => {
     if (mainWindow) {
       mainWindow.loadURL(`data:text/html,
         <html>
           <body style="background:#1a1a2e;color:white;font-family:sans-serif;padding:40px;text-align:center;">
             <h1>Airavoto Gaming POS</h1>
-            <p>Server is starting... Please wait.</p>
-            <p style="color:#888;">If this persists, restart the application.</p>
+            <p>Loading... Please wait.</p>
             <script>setTimeout(() => location.reload(), 3000);</script>
           </body>
         </html>
@@ -62,14 +79,11 @@ async function createWindow() {
 
   mainWindow.webContents.on('did-finish-load', () => {
     console.log('Page loaded successfully');
-    mainWindow?.show();
-    mainWindow?.focus();
   });
 
   const serverUrl = `http://127.0.0.1:${SERVER_PORT}`;
-  console.log('Loading URL:', serverUrl);
-  
   mainWindow.loadURL(serverUrl);
+  mainWindow.webContents.openDevTools();
 
   mainWindow.on('closed', () => {
     mainWindow = null;
@@ -85,58 +99,21 @@ async function createWindow() {
 
 app.whenReady().then(async () => {
   console.log('App ready, starting server...');
+  console.log('App path:', app.getAppPath());
   await startServer();
-  setTimeout(() => {
-    console.log('Creating window...');
-    createWindow();
-  }, 1500);
+  setTimeout(() => createWindow(), 2000);
 });
 
 app.on('window-all-closed', () => {
-  if (process.platform !== 'darwin') {
-    app.quit();
-  }
+  if (process.platform !== 'darwin') app.quit();
 });
 
 app.on('activate', () => {
-  if (BrowserWindow.getAllWindows().length === 0) {
-    createWindow();
-  }
+  if (BrowserWindow.getAllWindows().length === 0) createWindow();
 });
 
-ipcMain.handle('get-app-version', () => {
-  return app.getVersion();
-});
+ipcMain.handle('get-app-version', () => app.getVersion());
+ipcMain.handle('get-app-path', () => app.getPath('userData'));
 
-ipcMain.handle('get-app-path', () => {
-  return app.getPath('userData');
-});
-
-ipcMain.handle('show-message-box', async (_, options) => {
-  if (mainWindow) {
-    return dialog.showMessageBox(mainWindow, options);
-  }
-  return null;
-});
-
-ipcMain.handle('show-open-dialog', async (_, options) => {
-  if (mainWindow) {
-    return dialog.showOpenDialog(mainWindow, options);
-  }
-  return null;
-});
-
-ipcMain.handle('show-save-dialog', async (_, options) => {
-  if (mainWindow) {
-    return dialog.showSaveDialog(mainWindow, options);
-  }
-  return null;
-});
-
-process.on('uncaughtException', (error) => {
-  console.error('Uncaught Exception:', error);
-});
-
-process.on('unhandledRejection', (reason, promise) => {
-  console.error('Unhandled Rejection at:', promise, 'reason:', reason);
-});
+process.on('uncaughtException', (error) => console.error('Uncaught:', error));
+process.on('unhandledRejection', (reason) => console.error('Unhandled:', reason));
