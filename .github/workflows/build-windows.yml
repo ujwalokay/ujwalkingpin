@@ -1,36 +1,84 @@
 ﻿name: Build Windows Installer
+
 on:
   push:
     branches: [main, master]
   workflow_dispatch:
+
 jobs:
   build-windows:
     runs-on: windows-latest
+    
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
+        
       - name: Setup Node.js
         uses: actions/setup-node@v4
         with:
           node-version: '20'
           cache: 'npm'
+          
       - name: Install Python for node-gyp
         uses: actions/setup-python@v5
         with:
           python-version: '3.11'
+          
       - name: Install Visual Studio Build Tools
         uses: ilammy/msvc-dev-cmd@v1
+        
       - name: Install dependencies
         run: npm ci
+        
+      - name: Get Electron version
+        id: electron-version
+        run: |
+          $electronVersion = (Get-Content package.json | ConvertFrom-Json).devDependencies.electron
+          $electronVersion = $electronVersion -replace '\^', ''
+          echo "version=$electronVersion" >> $env:GITHUB_OUTPUT
+        shell: pwsh
+        
       - name: Rebuild better-sqlite3 for Electron
-        run: npx electron-rebuild -f -w better-sqlite3
+        run: |
+          npx electron-rebuild -f -w better-sqlite3 -v ${{ steps.electron-version.outputs.version }}
+        env:
+          npm_config_arch: x64
+          npm_config_target_arch: x64
+          
+      - name: Verify better-sqlite3 build
+        run: |
+          if (Test-Path "node_modules/better-sqlite3/build/Release/better_sqlite3.node") {
+            echo "better-sqlite3 native module built successfully"
+          } else {
+            echo "ERROR: better-sqlite3 native module not found"
+            exit 1
+          }
+        shell: pwsh
+        
       - name: Build Electron app
         run: npm run electron:dist-win
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          
+      - name: List build output
+        run: |
+          echo "=== Release folder contents ==="
+          Get-ChildItem -Path release -Recurse | Format-Table FullName, Length
+        shell: pwsh
+        
       - name: Upload Windows Installer
         uses: actions/upload-artifact@v4
         with:
           name: windows-installer
-          path: release/*.exe
+          path: |
+            release/*.exe
+            release/*.exe.blockmap
           retention-days: 30
+          
+      - name: Upload Portable Version
+        uses: actions/upload-artifact@v4
+        with:
+          name: windows-portable
+          path: release/*portable*.exe
+          retention-days: 30
+          if-no-files-found: ignore
