@@ -4,6 +4,7 @@ import cors from "cors";
 import cookieParser from "cookie-parser";
 import session from "express-session";
 import path from "path";
+import fs from "fs";
 import { fileURLToPath } from "url";
 import passport from "passport";
 import { Strategy as LocalStrategy } from "passport-local";
@@ -490,12 +491,36 @@ async function initializeDefaultData() {
   }
 }
 
-const distPath = path.join(__dirname, '../dist');
+function getDistPath(): string {
+  const possiblePaths = [
+    path.join(__dirname, '../dist'),
+    path.join(__dirname, '../../dist'),
+    path.join(process.cwd(), 'dist'),
+    path.join(process.cwd(), 'resources', 'app', 'dist-electron', 'dist'),
+  ];
+  
+  for (const p of possiblePaths) {
+    if (fs.existsSync(p) && fs.existsSync(path.join(p, 'index.html'))) {
+      console.log('Using dist path:', p);
+      return p;
+    }
+  }
+  
+  console.log('Falling back to default dist path:', possiblePaths[0]);
+  return possiblePaths[0];
+}
+
+const distPath = getDistPath();
 app.use(express.static(distPath));
 
 app.get('*', (req, res) => {
   if (!req.path.startsWith('/api')) {
-    res.sendFile(path.join(distPath, 'index.html'));
+    const indexPath = path.join(distPath, 'index.html');
+    if (fs.existsSync(indexPath)) {
+      res.sendFile(indexPath);
+    } else {
+      res.status(404).send('Frontend not found. Please ensure the app is built correctly.');
+    }
   }
 });
 

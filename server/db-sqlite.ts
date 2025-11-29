@@ -3,16 +3,28 @@ import { drizzle } from 'drizzle-orm/better-sqlite3';
 import * as schema from "../shared/schema-sqlite";
 import path from 'path';
 import fs from 'fs';
+import os from 'os';
 
 function getDbPath(): string {
-  try {
-    const electron = require('electron');
-    if (electron.app && electron.app.isPackaged) {
-      const userDataPath = electron.app.getPath('userData');
-      return path.join(userDataPath, 'airavoto-gaming.db');
+  const isPackaged = process.env.NODE_ENV === 'production' || 
+                     process.execPath.includes('electron') ||
+                     !process.execPath.includes('node');
+  
+  if (isPackaged) {
+    const appName = 'Airavoto Gaming POS';
+    let userDataPath: string;
+    
+    if (process.platform === 'win32') {
+      userDataPath = path.join(os.homedir(), 'AppData', 'Roaming', appName);
+    } else if (process.platform === 'darwin') {
+      userDataPath = path.join(os.homedir(), 'Library', 'Application Support', appName);
+    } else {
+      userDataPath = path.join(os.homedir(), '.config', appName);
     }
-  } catch {
+    
+    return path.join(userDataPath, 'airavoto-gaming.db');
   }
+  
   return path.join(process.cwd(), 'data', 'airavoto-gaming.db');
 }
 
