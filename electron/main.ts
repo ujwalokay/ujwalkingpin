@@ -249,4 +249,3 @@ process.on('unhandledRejection', (reason: any) => {
   logToFile(`Unhandled rejection: ${reason?.message || reason}\n${reason?.stack || ''}`);
   console.error('Unhandled rejection:', reason);
 });
-
