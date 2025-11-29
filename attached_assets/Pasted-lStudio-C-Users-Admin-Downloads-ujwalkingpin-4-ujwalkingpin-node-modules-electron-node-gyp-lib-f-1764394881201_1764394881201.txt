@@ -1,0 +1,77 @@
+lStudio (C:\Users\Admin\Downloads\ujwalkingpin(4)\ujwalkingpin\node_modules\@electron\node-gyp\lib\find-visualstudio.js:74:17)
+    at process.processTicksAndRejections (node:internal/process/task_queues:103:5)
+    at async createBuildDir (C:\Users\Admin\Downloads\ujwalkingpin(4)\ujwalkingpin\node_modules\@electron\node-gyp\lib\configure.js:112:18)
+    at async process.<anonymous> (C:\Users\Admin\Downloads\ujwalkingpin(4)\ujwalkingpin\node_modules\app-builder-lib\node_modules\@electron\rebuild\lib\module-type\node-gyp\worker.js:27:13)
+
+
+  ⨯ node-gyp failed to rebuild 'C:\Users\Admin\Downloads\ujwalkingpin(4)\ujwalkingpin\node_modules\better-sqlite3'  failedTask=installAppDeps stackTrace=Error: node-gyp failed to rebuild 'C:\Users\Admin\Downloads\ujwalkingpin(4)\ujwalkingpin\node_modules\better-sqlite3'
+    at ChildProcess.<anonymous> (C:\Users\Admin\Downloads\ujwalkingpin(4)\ujwalkingpin\node_modules\app-builder-lib\node_modules\@electron\rebuild\lib\module-type\node-gyp\node-gyp.js:121:24)
+    at ChildProcess.emit (node:events:508:28)
+    at ChildProcess._handle.onexit (node:internal/child_process:294:12)
+npm error code 1
+npm error path C:\Users\Admin\Downloads\ujwalkingpin(4)\ujwalkingpin
+npm error command failed
+npm error command C:\WINDOWS\system32\cmd.exe /d /s /c electron-builder install-app-deps
+npm error A complete log of this run can be found in: C:\Users\Admin\AppData\Local\npm-cache\_logs\2025-11-29T05_15_36_470Z-debug-0.log
+PS C:\Users\Admin\Downloads\ujwalkingpin(4)\ujwalkingpin> npm install --global windows-build-tools
+npm warn deprecated inflight@1.0.6: This module is not supported, and leaks memory. Do not use it. Check out lru-cache if you want a good and tested way to coalesce async requests by a key value, which is much more comprehensive and powerful.
+npm warn deprecated glob@7.2.3: Glob versions prior to v9 are no longer supported
+npm warn deprecated har-validator@5.1.5: this library is no longer supported
+npm warn deprecated request@2.88.2: request has been deprecated, see https://github.com/request/request/issues/3142
+npm warn deprecated uuid@3.4.0: Please upgrade  to version 7 or higher.  Older versions may use Math.random() in certain circumstances, which is known to be problematic.  See https://v8.dev/blog/math-random for details.
+npm warn deprecated windows-build-tools@5.2.2: Node.js now includes build tools for Windows. You probably no longer need this tool. See https://github.com/felixrieseberg/windows-build-tools for details.
+npm warn cleanup Failed to remove some directories [
+npm warn cleanup   [
+npm warn cleanup     'C:\\Users\\Admin\\AppData\\Roaming\\npm\\node_modules\\windows-build-tools',
+npm warn cleanup     [Error: EPERM: operation not permitted, rmdir 'C:\Users\Admin\AppData\Roaming\npm\node_modules\windows-build-tools\node_modules\ajv\lib'] {
+npm warn cleanup       errno: -4048,
+npm warn cleanup       code: 'EPERM',
+npm warn cleanup       syscall: 'rmdir',
+npm warn cleanup       path: 'C:\\Users\\Admin\\AppData\\Roaming\\npm\\node_modules\\windows-build-tools\\node_modules\\ajv\\lib'
+npm warn cleanup     }
+npm warn cleanup   ],
+npm warn cleanup   [
+npm warn cleanup     '\\\\?\\C:\\Users\\Admin\\AppData\\Roaming\\npm\\node_modules\\windows-build-tools',
+npm warn cleanup     [Error: EPERM: operation not permitted, rmdir 'C:\Users\Admin\AppData\Roaming\npm\node_modules\windows-build-tools\node_modules\sshpk\man'] {
+npm warn cleanup       errno: -4048,
+npm warn cleanup       code: 'EPERM',
+npm warn cleanup       syscall: 'rmdir',
+npm warn cleanup       path: 'C:\\Users\\Admin\\AppData\\Roaming\\npm\\node_modules\\windows-build-tools\\node_modules\\sshpk\\man'
+npm warn cleanup     }
+npm warn cleanup   ]
+npm warn cleanup ]
+npm error code 1
+npm error path C:\Users\Admin\AppData\Roaming\npm\node_modules\windows-build-tools
+npm error command failed
+npm error command C:\WINDOWS\system32\cmd.exe /d /s /c node ./dist/index.js
+npm error Downloading python-2.7.15.amd64.msi
+npm error [>                                            ] 0.0% (0 B/s)
+npm error ^[[1000D^[[0K^[[1A^[[1000D^[[0K^[[1A^[[1000D^[[0KDownloading python-2.7.15.amd64.msi
+npm error [============================================>] 100.0% (0 B/s)
+npm error ^[[1000D^[[0K^[[1A^[[1000D^[[0K^[[1A^[[1000D^[[0KDownloading python-2.7.15.amd64.msi
+npm error [============================================>] 100.0% (0 B/s)
+npm error Downloaded python-2.7.15.amd64.msi. Saved to C:\Users\Admin\.windows-build-tools\python-2.7.15.amd64.msi.
+npm error
+npm error
+npm error ^[[1000D^[[0K^[[1A^[[1000D^[[0K^[[1A^[[1000D^[[0KDownloading vs_BuildTools.exe
+npm error [>                                            ] 0.0% (0 B/s)
+npm error ^[[1000D^[[0K^[[1A^[[1000D^[[0K^[[1A^[[1000D^[[0KDownloading vs_BuildTools.exe
+npm error [============================================>] 100.0% (0 B/s)
+npm error ^[[1000D^[[0K^[[1A^[[1000D^[[0K^[[1A^[[1000D^[[0KDownloading vs_BuildTools.exe
+npm error [============================================>] 100.0% (0 B/s)
+npm error Downloaded vs_BuildTools.exe. Saved to C:\Users\Admin\.windows-build-tools\vs_BuildTools.exe.
+npm error
+npm error Starting installation...
+npm error Downloading installers failed. Error: TypeError: 'process.env' only accepts a configurable, writable, and enumerable data descriptor
+npm error     at Object.defineProperty (<anonymous>)
+npm error     at Object.removePath (C:\Users\Admin\AppData\Roaming\npm\node_modules\windows-build-tools\dist\utils\remove-path.js:11:12)
+npm error     at Object.install (C:\Users\Admin\AppData\Roaming\npm\node_modules\windows-build-tools\dist\install\index.js:29:19)
+npm error     at C:\Users\Admin\AppData\Roaming\npm\node_modules\windows-build-tools\dist\start.js:17:19
+npm error     at Object.download (C:\Users\Admin\AppData\Roaming\npm\node_modules\windows-build-tools\dist\download.js:35:5)
+npm error     at process.processTicksAndRejections (node:internal/process/task_queues:103:5)
+npm error     at async Object.aquireInstallers (C:\Users\Admin\AppData\Roaming\npm\node_modules\windows-build-tools\dist\aquire-installers.js:32:13) {
+npm error   code: 'ERR_INVALID_OBJECT_DEFINE_PROPERTY'
+npm error }
+npm error windows-build-tools will now exit.
+npm error A complete log of this run can be found in: C:\Users\Admin\AppData\Local\npm-cache\_logs\2025-11-29T05_40_37_551Z-debug-0.log
+PS C:\Users\Admin\Downloads\ujwalkingpin(4)\ujwalkingpin>
