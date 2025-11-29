@@ -7,6 +7,7 @@ const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
 let mainWindow: BrowserWindow | null = null;
+let serverStarted = false;
 
 const SERVER_PORT = 5000;
 
@@ -15,11 +16,13 @@ async function startServer() {
   
   try {
     const serverPath = path.join(__dirname, '../server/index-electron.js');
+    console.log('Loading server from:', serverPath);
     await import(serverPath);
     console.log('Express server started on port', SERVER_PORT);
+    serverStarted = true;
   } catch (error) {
     console.error('Failed to start server:', error);
-    throw error;
+    serverStarted = false;
   }
 }
 
@@ -30,7 +33,6 @@ async function createWindow() {
     minWidth: 1024,
     minHeight: 768,
     title: 'Airavoto Gaming POS',
-    icon: path.join(__dirname, '../client/public/favicon.ico'),
     webPreferences: {
       nodeIntegration: false,
       contextIsolation: true,
@@ -38,19 +40,36 @@ async function createWindow() {
       webSecurity: true,
     },
     autoHideMenuBar: true,
-    show: false,
+    show: true,
+    backgroundColor: '#1a1a2e',
   });
 
-  mainWindow.once('ready-to-show', () => {
+  mainWindow.webContents.on('did-fail-load', (event, errorCode, errorDescription) => {
+    console.error('Failed to load:', errorCode, errorDescription);
+    if (mainWindow) {
+      mainWindow.loadURL(`data:text/html,
+        <html>
+          <body style="background:#1a1a2e;color:white;font-family:sans-serif;padding:40px;text-align:center;">
+            <h1>Airavoto Gaming POS</h1>
+            <p>Server is starting... Please wait.</p>
+            <p style="color:#888;">If this persists, restart the application.</p>
+            <script>setTimeout(() => location.reload(), 3000);</script>
+          </body>
+        </html>
+      `);
+    }
+  });
+
+  mainWindow.webContents.on('did-finish-load', () => {
+    console.log('Page loaded successfully');
     mainWindow?.show();
+    mainWindow?.focus();
   });
 
-  if (isDev) {
-    mainWindow.loadURL(`http://localhost:${SERVER_PORT}`);
-    mainWindow.webContents.openDevTools();
-  } else {
-    mainWindow.loadURL(`http://localhost:${SERVER_PORT}`);
-  }
+  const serverUrl = `http://127.0.0.1:${SERVER_PORT}`;
+  console.log('Loading URL:', serverUrl);
+  
+  mainWindow.loadURL(serverUrl);
 
   mainWindow.on('closed', () => {
     mainWindow = null;
@@ -65,11 +84,12 @@ async function createWindow() {
 }
 
 app.whenReady().then(async () => {
+  console.log('App ready, starting server...');
   await startServer();
-  
   setTimeout(() => {
+    console.log('Creating window...');
     createWindow();
-  }, 2000);
+  }, 1500);
 });
 
 app.on('window-all-closed', () => {
