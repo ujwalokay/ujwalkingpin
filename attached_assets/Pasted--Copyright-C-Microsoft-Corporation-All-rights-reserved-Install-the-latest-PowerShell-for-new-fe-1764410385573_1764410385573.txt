@@ -1,0 +1,144 @@
+
+Copyright (C) Microsoft Corporation. All rights reserved.
+
+Install the latest PowerShell for new features and improvements! https://aka.ms/PSWindows
+
+Warning: PowerShell detected that you might be using a screen reader and has disabled PSReadLine for compatibility purposes. If you want to re-enable it, run 'Import-Module PSReadLine'.
+
+PS C:\Users\Admin> cd "C:\Users\Admin\Downloads\ujwalkingpin(4)\ujwalkingpin"
+PS C:\Users\Admin\Downloads\ujwalkingpin(4)\ujwalkingpin> Remove-Item -Recurse -Force node_modules
+Remove-Item : Cannot remove item C:\Users\Admin\Downloads\ujwalkingpin(4)\ujwalkingpin\node_modules\caniuse-lite\data\features\webcodecs.js:
+Access to the path 'webcodecs.js' is denied.
+At line:1 char:1
++ Remove-Item -Recurse -Force node_modules
++ ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+    + CategoryInfo          : PermissionDenied: (webcodecs.js:FileInfo) [Remove-Item], UnauthorizedAccessException
+    + FullyQualifiedErrorId : RemoveFileSystemItemUnAuthorizedAccess,Microsoft.PowerShell.Commands.RemoveItemCommand
+Remove-Item : Cannot remove item C:\Users\Admin\Downloads\ujwalkingpin(4)\ujwalkingpin\node_modules\caniuse-lite\data\features\webgl.js: Could not
+find a part of the path 'webgl.js'.
+At line:1 char:1
++ Remove-Item -Recurse -Force node_modules
++ ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+    + CategoryInfo          : WriteError: (webgl.js:FileInfo) [Remove-Item], DirectoryNotFoundException
+    + FullyQualifiedErrorId : RemoveFileSystemItemIOError,Microsoft.PowerShell.Commands.RemoveItemCommand
+Remove-Item : Cannot remove item C:\Users\Admin\Downloads\ujwalkingpin(4)\ujwalkingpin\node_modules\caniuse-lite\data\features\webgl2.js: Could
+not find a part of the path 'webgl2.js'.
+At line:1 char:1
++ Remove-Item -Recurse -Force node_modules
++ ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+    + CategoryInfo          : WriteError: (webgl2.js:FileInfo) [Remove-Item], DirectoryNotFoundException
+    + FullyQualifiedErrorId : RemoveFileSystemItemIOError,Microsoft.PowerShell.Commands.RemoveItemCommand
+Remove-Item : Cannot remove item C:\Users\Admin\Downloads\ujwalkingpin(4)\ujwalkingpin\node_modules\caniuse-lite\data\features\webgpu.js: Could
+not find a part of the path 'webgpu.js'.
+At line:1 char:1
++ Remove-Item -Recurse -Force node_modules
++ ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+    + CategoryInfo          : WriteError: (webgpu.js:FileInfo) [Remove-Item], DirectoryNotFoundException
+    + FullyQualifiedErrorId : RemoveFileSystemItemIOError,Microsoft.PowerShell.Commands.RemoveItemCommand
+Remove-Item : Cannot remove item C:\Users\Admin\Downloads\ujwalkingpin(4)\ujwalkingpin\node_modules\caniuse-lite\data\features\webhid.js: Could
+not find a part of the path 'webhid.js'.
+At line:1 char:1
++ Remove-Item -Recurse -Force node_modules
++ ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+    + CategoryInfo          : WriteError: (webhid.js:FileInfo) [Remove-Item], DirectoryNotFoundException
+    + FullyQualifiedErrorId : RemoveFileSystemItemIOError,Microsoft.PowerShell.Commands.RemoveItemCommand
+Remove-Item : Cannot remove item
+C:\Users\Admin\Downloads\ujwalkingpin(4)\ujwalkingpin\node_modules\caniuse-lite\data\features\webkit-user-drag.js: Could not find a part of the
+path 'webkit-user-drag.js'.
+At line:1 char:1
++ Remove-Item -Recurse -Force node_modules
++ ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+    + CategoryInfo          : WriteError: (webkit-user-drag.js:FileInfo) [Remove-Item], DirectoryNotFoundException
+    + FullyQualifiedErrorId : RemoveFileSystemItemIOError,Microsoft.PowerShell.Commands.RemoveItemCommand
+Remove-Item : Cannot remove item C:\Users\Admin\Downloads\ujwalkingpin(4)\ujwalkingpin\node_modules\caniuse-lite\data\features\webm.js: Could not
+find a part of the path 'webm.js'.
+At line:1 char:1
++ Remove-Item -Recurse -Force node_modules
++ ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+    + CategoryInfo          : WriteError: (webm.js:FileInfo) [Remove-Item], DirectoryNotFoundException
+    + FullyQualifiedErrorId : RemoveFileSystemItemIOError,Microsoft.PowerShell.Commands.RemoveItemCommand
+Remove-Item : Cannot remove item C:\Users\Admin\Downloads\ujwalkingpin(4)\ujwalkingpin\node_modules\caniuse-lite\data\features\webnfc.js: Could
+not find a part of the path 'webnfc.js'.
+At line:1 char:1
++ Remove-Item -Recurse -Force node_modules
++ ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+    + CategoryInfo          : WriteError: (webnfc.js:FileInfo) [Remove-Item], DirectoryNotFoundException
+    + FullyQualifiedErrorId : RemoveFileSystemItemIOError,Microsoft.PowerShell.Commands.RemoveItemCommand
+Remove-Item : Cannot remove item C:\Users\Admin\Downloads\ujwalkingpin(4)\ujwalkingpin\node_modules\caniuse-lite\data\features\webp.js: Could not
+find a part of the path 'webp.js'.
+At line:1 char:1
++ Remove-Item -Recurse -Force node_modules
++ ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+    + CategoryInfo          : WriteError: (webp.js:FileInfo) [Remove-Item], DirectoryNotFoundException
+    + FullyQualifiedErrorId : RemoveFileSystemItemIOError,Microsoft.PowerShell.Commands.RemoveItemCommand
+Remove-Item : Cannot remove item C:\Users\Admin\Downloads\ujwalkingpin(4)\ujwalkingpin\node_modules\caniuse-lite\data\features\websockets.js:
+Could not find a part of the path 'websockets.js'.
+At line:1 char:1
++ Remove-Item -Recurse -Force node_modules
++ ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+    + CategoryInfo          : WriteError: (websockets.js:FileInfo) [Remove-Item], DirectoryNotFoundException
+    + FullyQualifiedErrorId : RemoveFileSystemItemIOError,Microsoft.PowerShell.Commands.RemoveItemCommand
+Remove-Item : Cannot remove item C:\Users\Admin\Downloads\ujwalkingpin(4)\ujwalkingpin\node_modules\caniuse-lite\data\features\webtransport.js:
+Could not find a part of the path 'webtransport.js'.
+At line:1 char:1
++ Remove-Item -Recurse -Force node_modules
++ ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+    + CategoryInfo          : WriteError: (webtransport.js:FileInfo) [Remove-Item], DirectoryNotFoundException
+    + FullyQualifiedErrorId : RemoveFileSystemItemIOError,Microsoft.PowerShell.Commands.RemoveItemCommand
+Remove-Item : Cannot remove item C:\Users\Admin\Downloads\ujwalkingpin(4)\ujwalkingpin\node_modules\caniuse-lite\data\features\webusb.js: Could
+not find a part of the path 'webusb.js'.
+At line:1 char:1
++ Remove-Item -Recurse -Force node_modules
++ ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+    + CategoryInfo          : WriteError: (webusb.js:FileInfo) [Remove-Item], DirectoryNotFoundException
+    + FullyQualifiedErrorId : RemoveFileSystemItemIOError,Microsoft.PowerShell.Commands.RemoveItemCommand
+Remove-Item : Cannot remove item C:\Users\Admin\Downloads\ujwalkingpin(4)\ujwalkingpin\node_modules\caniuse-lite\data\features\webvr.js: Could not
+find a part of the path 'webvr.js'.
+At line:1 char:1
++ Remove-Item -Recurse -Force node_modules
++ ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+    + CategoryInfo          : WriteError: (webvr.js:FileInfo) [Remove-Item], DirectoryNotFoundException
+    + FullyQualifiedErrorId : RemoveFileSystemItemIOError,Microsoft.PowerShell.Commands.RemoveItemCommand
+Remove-Item : Cannot remove item C:\Users\Admin\Downloads\ujwalkingpin(4)\ujwalkingpin\node_modules\caniuse-lite\data\features\webvtt.js: Could
+not find a part of the path 'webvtt.js'.
+At line:1 char:1
++ Remove-Item -Recurse -Force node_modules
++ ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+    + CategoryInfo          : WriteError: (webvtt.js:FileInfo) [Remove-Item], DirectoryNotFoundException
+    + FullyQualifiedErrorId : RemoveFileSystemItemIOError,Microsoft.PowerShell.Commands.RemoveItemCommand
+Remove-Item : Cannot remove item C:\Users\Admin\Downloads\ujwalkingpin(4)\ujwalkingpin\node_modules\caniuse-lite\data\features\webworkers.js:
+Could not find a part of the path 'webworkers.js'.
+At line:1 char:1
++ Remove-Item -Recurse -Force node_modules
++ ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+    + CategoryInfo          : WriteError: (webworkers.js:FileInfo) [Remove-Item], DirectoryNotFoundException
+    + FullyQualifiedErrorId : RemoveFileSystemItemIOError,Microsoft.PowerShell.Commands.RemoveItemCommand
+Remove-Item : Cannot remove item C:\Users\Admin\Downloads\ujwalkingpin(4)\ujwalkingpin\node_modules\caniuse-lite\data\features\webxr.js: Could not
+find a part of the path 'webxr.js'.
+At line:1 char:1
++ Remove-Item -Recurse -Force node_modules
++ ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+    + CategoryInfo          : WriteError: (webxr.js:FileInfo) [Remove-Item], DirectoryNotFoundException
+    + FullyQualifiedErrorId : RemoveFileSystemItemIOError,Microsoft.PowerShell.Commands.RemoveItemCommand
+Remove-Item : Cannot remove item C:\Users\Admin\Downloads\ujwalkingpin(4)\ujwalkingpin\node_modules\caniuse-lite\data\features\will-change.js:
+Could not find a part of the path 'will-change.js'.
+At line:1 char:1
++ Remove-Item -Recurse -Force node_modules
++ ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+    + CategoryInfo          : WriteError: (will-change.js:FileInfo) [Remove-Item], DirectoryNotFoundException
+    + FullyQualifiedErrorId : RemoveFileSystemItemIOError,Microsoft.PowerShell.Commands.RemoveItemCommand
+Remove-Item : Cannot remove item C:\Users\Admin\Downloads\ujwalkingpin(4)\ujwalkingpin\node_modules\caniuse-lite\data\features\woff.js: Could not
+find a part of the path 'woff.js'.
+At line:1 char:1
++ Remove-Item -Recurse -Force node_modules
++ ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+    + CategoryInfo          : WriteError: (woff.js:FileInfo) [Remove-Item], DirectoryNotFoundException
+    + FullyQualifiedErrorId : RemoveFileSystemItemIOError,Microsoft.PowerShell.Commands.RemoveItemCommand
+Remove-Item : Could not find a part of the path 'C:\Users\Admin\Downloads\ujwalkingpin(4)\ujwalkingpin\node_modules\caniuse-lite\data\features'.
+At line:1 char:1
++ Remove-Item -Recurse -Force node_modules
++ ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+    + CategoryInfo          : WriteError: (C:\Users\Admin\...in\node_modules:String) [Remove-Item], DirectoryNotFoundException
+    + FullyQualifiedErrorId : RemoveItemIOError,Microsoft.PowerShell.Commands.RemoveItemCommand
+
+PS C:\Users\Admin\Downloads\ujwalkingpin(4)\ujwalkingpin> npm install
