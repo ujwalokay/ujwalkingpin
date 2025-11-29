@@ -322,6 +322,606 @@ app.delete('/api/food-items/:id', isAuthenticated, async (req, res) => {
   }
 });
 
+// Server time for syncing
+app.get('/api/server-time', (req, res) => {
+  res.json({ serverTime: new Date().toISOString() });
+});
+
+// Session Groups API
+const generateUniqueCode = (prefix: string): string => {
+  const timestamp = Date.now().toString(36).toUpperCase();
+  const randomPart = Math.floor(Math.random() * 0xFFFFFF).toString(16).toUpperCase().padStart(6, '0');
+  return `${prefix}-${timestamp.slice(-5)}${randomPart.slice(0, 4)}`;
+};
+
+app.get('/api/session-groups', isAuthenticated, async (req, res) => {
+  try {
+    const groups = await db.select().from(schema.sessionGroups);
+    res.json(groups);
+  } catch (error) {
+    console.error('Error fetching session groups:', error);
+    res.status(500).json({ message: 'Failed to fetch session groups' });
+  }
+});
+
+app.post('/api/session-groups', isAuthenticated, async (req, res) => {
+  try {
+    const groupCode = generateUniqueCode('GRP');
+    const [group] = await db.insert(schema.sessionGroups).values({
+      ...req.body,
+      groupCode,
+    }).returning();
+    res.json(group);
+  } catch (error) {
+    console.error('Error creating session group:', error);
+    res.status(500).json({ message: 'Failed to create session group' });
+  }
+});
+
+app.get('/api/session-groups/:id/bookings', isAuthenticated, async (req, res) => {
+  try {
+    const { id } = req.params;
+    const bookings = await db.select().from(schema.bookings).where(eq(schema.bookings.groupId, id));
+    const parsedBookings = bookings.map(b => ({
+      ...b,
+      bookingType: JSON.parse(b.bookingType || '[]'),
+      foodOrders: JSON.parse(b.foodOrders || '[]'),
+    }));
+    res.json(parsedBookings);
+  } catch (error) {
+    console.error('Error fetching group bookings:', error);
+    res.status(500).json({ message: 'Failed to fetch group bookings' });
+  }
+});
+
+app.delete('/api/session-groups/:id', isAuthenticated, async (req, res) => {
+  try {
+    const { id } = req.params;
+    await db.delete(schema.sessionGroups).where(eq(schema.sessionGroups.id, id));
+    res.json({ success: true });
+  } catch (error) {
+    console.error('Error deleting session group:', error);
+    res.status(500).json({ message: 'Failed to delete session group' });
+  }
+});
+
+// Booking History
+app.get('/api/booking-history', isAuthenticated, async (req, res) => {
+  try {
+    const history = await db.select().from(schema.bookingHistory);
+    const parsedHistory = history.map(b => ({
+      ...b,
+      bookingType: JSON.parse(b.bookingType || '[]'),
+      foodOrders: JSON.parse(b.foodOrders || '[]'),
+    }));
+    res.json(parsedHistory);
+  } catch (error) {
+    console.error('Error fetching booking history:', error);
+    res.status(500).json({ message: 'Failed to fetch booking history' });
+  }
+});
+
+app.post('/api/booking-history', isAuthenticated, async (req, res) => {
+  try {
+    const historyData = {
+      ...req.body,
+      bookingType: JSON.stringify(req.body.bookingType || []),
+      foodOrders: JSON.stringify(req.body.foodOrders || []),
+      archivedAt: new Date(),
+    };
+    const [history] = await db.insert(schema.bookingHistory).values(historyData).returning();
+    res.json(history);
+  } catch (error) {
+    console.error('Error creating booking history:', error);
+    res.status(500).json({ message: 'Failed to create booking history' });
+  }
+});
+
+// Device Config routes
+app.get('/api/device-config', isAuthenticated, async (req, res) => {
+  try {
+    const configs = await db.select().from(schema.deviceConfigs);
+    const parsedConfigs = configs.map(c => ({
+      ...c,
+      seats: JSON.parse(c.seats || '[]'),
+    }));
+    res.json(parsedConfigs);
+  } catch (error) {
+    console.error('Error fetching device configs:', error);
+    res.status(500).json({ message: 'Failed to fetch device configs' });
+  }
+});
+
+app.patch('/api/device-config/:category', isAdmin, async (req, res) => {
+  try {
+    const { category } = req.params;
+    const updateData = {
+      ...req.body,
+      seats: JSON.stringify(req.body.seats || []),
+    };
+    const [existing] = await db.select().from(schema.deviceConfigs).where(eq(schema.deviceConfigs.category, category));
+    if (existing) {
+      const [config] = await db.update(schema.deviceConfigs).set(updateData).where(eq(schema.deviceConfigs.category, category)).returning();
+      res.json({ ...config, seats: JSON.parse(config.seats || '[]') });
+    } else {
+      const [config] = await db.insert(schema.deviceConfigs).values({ category, ...updateData }).returning();
+      res.json({ ...config, seats: JSON.parse(config.seats || '[]') });
+    }
+  } catch (error) {
+    console.error('Error updating device config:', error);
+    res.status(500).json({ message: 'Failed to update device config' });
+  }
+});
+
+// Pricing Config routes
+app.get('/api/pricing-config', isAuthenticated, async (req, res) => {
+  try {
+    const configs = await db.select().from(schema.pricingConfigs);
+    res.json(configs);
+  } catch (error) {
+    console.error('Error fetching pricing configs:', error);
+    res.status(500).json({ message: 'Failed to fetch pricing configs' });
+  }
+});
+
+app.post('/api/pricing-config', isAdmin, async (req, res) => {
+  try {
+    const [config] = await db.insert(schema.pricingConfigs).values(req.body).returning();
+    res.json(config);
+  } catch (error) {
+    console.error('Error creating pricing config:', error);
+    res.status(500).json({ message: 'Failed to create pricing config' });
+  }
+});
+
+app.patch('/api/pricing-config/:id', isAdmin, async (req, res) => {
+  try {
+    const { id } = req.params;
+    const [config] = await db.update(schema.pricingConfigs).set(req.body).where(eq(schema.pricingConfigs.id, id)).returning();
+    res.json(config);
+  } catch (error) {
+    console.error('Error updating pricing config:', error);
+    res.status(500).json({ message: 'Failed to update pricing config' });
+  }
+});
+
+app.delete('/api/pricing-config/:id', isAdmin, async (req, res) => {
+  try {
+    const { id } = req.params;
+    await db.delete(schema.pricingConfigs).where(eq(schema.pricingConfigs.id, id));
+    res.json({ success: true });
+  } catch (error) {
+    console.error('Error deleting pricing config:', error);
+    res.status(500).json({ message: 'Failed to delete pricing config' });
+  }
+});
+
+// Happy Hours Config routes
+app.get('/api/happy-hours-config', isAuthenticated, async (req, res) => {
+  try {
+    const configs = await db.select().from(schema.happyHoursConfigs);
+    res.json(configs);
+  } catch (error) {
+    console.error('Error fetching happy hours configs:', error);
+    res.status(500).json({ message: 'Failed to fetch happy hours configs' });
+  }
+});
+
+app.post('/api/happy-hours-config', isAdmin, async (req, res) => {
+  try {
+    const [config] = await db.insert(schema.happyHoursConfigs).values(req.body).returning();
+    res.json(config);
+  } catch (error) {
+    console.error('Error creating happy hours config:', error);
+    res.status(500).json({ message: 'Failed to create happy hours config' });
+  }
+});
+
+app.patch('/api/happy-hours-config/:id', isAdmin, async (req, res) => {
+  try {
+    const { id } = req.params;
+    const [config] = await db.update(schema.happyHoursConfigs).set(req.body).where(eq(schema.happyHoursConfigs.id, id)).returning();
+    res.json(config);
+  } catch (error) {
+    console.error('Error updating happy hours config:', error);
+    res.status(500).json({ message: 'Failed to update happy hours config' });
+  }
+});
+
+app.delete('/api/happy-hours-config/:id', isAdmin, async (req, res) => {
+  try {
+    const { id } = req.params;
+    await db.delete(schema.happyHoursConfigs).where(eq(schema.happyHoursConfigs.id, id));
+    res.json({ success: true });
+  } catch (error) {
+    console.error('Error deleting happy hours config:', error);
+    res.status(500).json({ message: 'Failed to delete happy hours config' });
+  }
+});
+
+// Happy Hours Pricing routes
+app.get('/api/happy-hours-pricing', isAuthenticated, async (req, res) => {
+  try {
+    const pricing = await db.select().from(schema.happyHoursPricing);
+    res.json(pricing);
+  } catch (error) {
+    console.error('Error fetching happy hours pricing:', error);
+    res.status(500).json({ message: 'Failed to fetch happy hours pricing' });
+  }
+});
+
+app.post('/api/happy-hours-pricing', isAdmin, async (req, res) => {
+  try {
+    const [pricing] = await db.insert(schema.happyHoursPricing).values(req.body).returning();
+    res.json(pricing);
+  } catch (error) {
+    console.error('Error creating happy hours pricing:', error);
+    res.status(500).json({ message: 'Failed to create happy hours pricing' });
+  }
+});
+
+app.patch('/api/happy-hours-pricing/:id', isAdmin, async (req, res) => {
+  try {
+    const { id } = req.params;
+    const [pricing] = await db.update(schema.happyHoursPricing).set(req.body).where(eq(schema.happyHoursPricing.id, id)).returning();
+    res.json(pricing);
+  } catch (error) {
+    console.error('Error updating happy hours pricing:', error);
+    res.status(500).json({ message: 'Failed to update happy hours pricing' });
+  }
+});
+
+app.delete('/api/happy-hours-pricing/:id', isAdmin, async (req, res) => {
+  try {
+    const { id } = req.params;
+    await db.delete(schema.happyHoursPricing).where(eq(schema.happyHoursPricing.id, id));
+    res.json({ success: true });
+  } catch (error) {
+    console.error('Error deleting happy hours pricing:', error);
+    res.status(500).json({ message: 'Failed to delete happy hours pricing' });
+  }
+});
+
+// Activity Logs routes
+app.get('/api/activity-logs', isAuthenticated, async (req, res) => {
+  try {
+    const logs = await db.select().from(schema.activityLogs);
+    res.json(logs);
+  } catch (error) {
+    console.error('Error fetching activity logs:', error);
+    res.status(500).json({ message: 'Failed to fetch activity logs' });
+  }
+});
+
+app.post('/api/activity-logs', isAuthenticated, async (req, res) => {
+  try {
+    const [log] = await db.insert(schema.activityLogs).values(req.body).returning();
+    res.json(log);
+  } catch (error) {
+    console.error('Error creating activity log:', error);
+    res.status(500).json({ message: 'Failed to create activity log' });
+  }
+});
+
+// Profile routes
+app.get('/api/profile', isAuthenticated, async (req, res) => {
+  try {
+    const user = req.user as any;
+    res.json({
+      id: user.id,
+      username: user.username,
+      role: user.role,
+      createdAt: user.createdAt,
+    });
+  } catch (error) {
+    console.error('Error fetching profile:', error);
+    res.status(500).json({ message: 'Failed to fetch profile' });
+  }
+});
+
+app.patch('/api/profile', isAuthenticated, async (req, res) => {
+  try {
+    const user = req.user as any;
+    const [updated] = await db.update(schema.users).set(req.body).where(eq(schema.users.id, user.id)).returning();
+    res.json({
+      id: updated.id,
+      username: updated.username,
+      role: updated.role,
+    });
+  } catch (error) {
+    console.error('Error updating profile:', error);
+    res.status(500).json({ message: 'Failed to update profile' });
+  }
+});
+
+app.post('/api/profile/change-password', isAuthenticated, async (req, res) => {
+  try {
+    const user = req.user as any;
+    const { currentPassword, newPassword } = req.body;
+    
+    const isValid = await bcrypt.compare(currentPassword, user.passwordHash);
+    if (!isValid) {
+      return res.status(400).json({ message: 'Current password is incorrect' });
+    }
+    
+    const newHash = await bcrypt.hash(newPassword, 10);
+    await db.update(schema.users).set({ passwordHash: newHash }).where(eq(schema.users.id, user.id));
+    res.json({ message: 'Password updated successfully' });
+  } catch (error) {
+    console.error('Error changing password:', error);
+    res.status(500).json({ message: 'Failed to change password' });
+  }
+});
+
+// Staff management routes
+app.get('/api/staff', isAdmin, async (req, res) => {
+  try {
+    const staff = await db.select().from(schema.users).where(eq(schema.users.role, 'staff'));
+    const safeStaff = staff.map(u => ({
+      id: u.id,
+      username: u.username,
+      role: u.role,
+      createdAt: u.createdAt,
+    }));
+    res.json(safeStaff);
+  } catch (error) {
+    console.error('Error fetching staff:', error);
+    res.status(500).json({ message: 'Failed to fetch staff' });
+  }
+});
+
+app.post('/api/staff', isAdmin, async (req, res) => {
+  try {
+    const { username, password } = req.body;
+    const passwordHash = await bcrypt.hash(password, 10);
+    const [user] = await db.insert(schema.users).values({
+      username,
+      passwordHash,
+      role: 'staff',
+    }).returning();
+    res.json({
+      id: user.id,
+      username: user.username,
+      role: user.role,
+      createdAt: user.createdAt,
+    });
+  } catch (error) {
+    console.error('Error creating staff:', error);
+    res.status(500).json({ message: 'Failed to create staff' });
+  }
+});
+
+app.delete('/api/staff/:id', isAdmin, async (req, res) => {
+  try {
+    const { id } = req.params;
+    await db.delete(schema.users).where(eq(schema.users.id, id));
+    res.json({ success: true });
+  } catch (error) {
+    console.error('Error deleting staff:', error);
+    res.status(500).json({ message: 'Failed to delete staff' });
+  }
+});
+
+app.post('/api/staff/:id/reset-password', isAdmin, async (req, res) => {
+  try {
+    const { id } = req.params;
+    const { newPassword } = req.body;
+    const passwordHash = await bcrypt.hash(newPassword, 10);
+    await db.update(schema.users).set({ passwordHash }).where(eq(schema.users.id, id));
+    res.json({ message: 'Password reset successfully' });
+  } catch (error) {
+    console.error('Error resetting password:', error);
+    res.status(500).json({ message: 'Failed to reset password' });
+  }
+});
+
+// Analytics routes
+app.get('/api/analytics/usage', isAuthenticated, async (req, res) => {
+  try {
+    const bookings = await db.select().from(schema.bookings);
+    const deviceConfigs = await db.select().from(schema.deviceConfigs);
+    
+    const activeBookings = bookings.filter(b => b.status === 'running' || b.status === 'paused');
+    let totalCapacity = 0;
+    deviceConfigs.forEach(c => {
+      const seats = JSON.parse(c.seats || '[]');
+      totalCapacity += seats.length || c.count;
+    });
+    
+    const categoryUsage = deviceConfigs.map(c => {
+      const seats = JSON.parse(c.seats || '[]');
+      const total = seats.length || c.count;
+      const occupied = activeBookings.filter(b => b.category === c.category).length;
+      return {
+        category: c.category,
+        occupied,
+        total,
+        percentage: total > 0 ? Math.round((occupied / total) * 100) : 0,
+      };
+    });
+    
+    res.json({
+      currentOccupancy: activeBookings.length,
+      totalCapacity,
+      occupancyRate: totalCapacity > 0 ? Math.round((activeBookings.length / totalCapacity) * 100) : 0,
+      activeBookings: activeBookings.length,
+      categoryUsage,
+      hourlyUsage: [],
+      realtimeData: [],
+      uniqueCustomers: new Set(bookings.map(b => b.customerName)).size,
+      avgSessionDuration: 60,
+      totalFoodOrders: 0,
+      foodRevenue: 0,
+    });
+  } catch (error) {
+    console.error('Error fetching analytics:', error);
+    res.status(500).json({ message: 'Failed to fetch analytics' });
+  }
+});
+
+// Reports routes
+app.get('/api/reports/stats', isAuthenticated, async (req, res) => {
+  try {
+    const history = await db.select().from(schema.bookingHistory);
+    
+    let totalRevenue = 0;
+    let totalFoodRevenue = 0;
+    let cashRevenue = 0;
+    let upiRevenue = 0;
+    let totalMinutes = 0;
+    
+    history.forEach(b => {
+      const price = parseFloat(b.price) || 0;
+      totalRevenue += price;
+      
+      const foodOrders = JSON.parse(b.foodOrders || '[]');
+      foodOrders.forEach((order: any) => {
+        totalFoodRevenue += (parseFloat(order.price) || 0) * (order.quantity || 1);
+      });
+      
+      if (b.paymentMethod === 'cash') cashRevenue += price;
+      if (b.paymentMethod === 'upi') upiRevenue += price;
+      
+      const start = new Date(b.startTime);
+      const end = new Date(b.endTime);
+      totalMinutes += (end.getTime() - start.getTime()) / 60000;
+    });
+    
+    res.json({
+      totalRevenue,
+      totalFoodRevenue,
+      totalSessions: history.length,
+      avgSessionMinutes: history.length > 0 ? Math.round(totalMinutes / history.length) : 0,
+      cashRevenue,
+      upiRevenue,
+    });
+  } catch (error) {
+    console.error('Error fetching reports:', error);
+    res.status(500).json({ message: 'Failed to fetch reports' });
+  }
+});
+
+// Stock batches routes
+app.get('/api/stock-batches', isAuthenticated, async (req, res) => {
+  try {
+    const batches = await db.select().from(schema.stockBatches);
+    res.json(batches);
+  } catch (error) {
+    console.error('Error fetching stock batches:', error);
+    res.status(500).json({ message: 'Failed to fetch stock batches' });
+  }
+});
+
+app.post('/api/stock-batches', isAuthenticated, async (req, res) => {
+  try {
+    const [batch] = await db.insert(schema.stockBatches).values(req.body).returning();
+    res.json(batch);
+  } catch (error) {
+    console.error('Error creating stock batch:', error);
+    res.status(500).json({ message: 'Failed to create stock batch' });
+  }
+});
+
+// Gaming center info routes
+app.get('/api/gaming-center-info', async (req, res) => {
+  try {
+    const [info] = await db.select().from(schema.gamingCenterInfo);
+    res.json(info || {
+      name: 'Gaming Center',
+      description: 'Your local gaming destination',
+      address: '',
+      phone: '',
+      email: '',
+      hours: '10:00 AM - 10:00 PM',
+      timezone: 'Asia/Kolkata',
+    });
+  } catch (error) {
+    console.error('Error fetching gaming center info:', error);
+    res.status(500).json({ message: 'Failed to fetch gaming center info' });
+  }
+});
+
+app.patch('/api/gaming-center-info', isAdmin, async (req, res) => {
+  try {
+    const [existing] = await db.select().from(schema.gamingCenterInfo);
+    if (existing) {
+      const [info] = await db.update(schema.gamingCenterInfo).set(req.body).where(eq(schema.gamingCenterInfo.id, existing.id)).returning();
+      res.json(info);
+    } else {
+      const [info] = await db.insert(schema.gamingCenterInfo).values(req.body).returning();
+      res.json(info);
+    }
+  } catch (error) {
+    console.error('Error updating gaming center info:', error);
+    res.status(500).json({ message: 'Failed to update gaming center info' });
+  }
+});
+
+// Payment logs routes
+app.get('/api/payment-logs', isAuthenticated, async (req, res) => {
+  try {
+    const logs = await db.select().from(schema.paymentLogs);
+    res.json(logs);
+  } catch (error) {
+    console.error('Error fetching payment logs:', error);
+    res.status(500).json({ message: 'Failed to fetch payment logs' });
+  }
+});
+
+app.post('/api/payment-logs', isAuthenticated, async (req, res) => {
+  try {
+    const [log] = await db.insert(schema.paymentLogs).values(req.body).returning();
+    res.json(log);
+  } catch (error) {
+    console.error('Error creating payment log:', error);
+    res.status(500).json({ message: 'Failed to create payment log' });
+  }
+});
+
+// Delete expense route
+app.delete('/api/expenses/:id', isAuthenticated, async (req, res) => {
+  try {
+    const { id } = req.params;
+    await db.delete(schema.expenses).where(eq(schema.expenses.id, id));
+    res.json({ success: true });
+  } catch (error) {
+    console.error('Error deleting expense:', error);
+    res.status(500).json({ message: 'Failed to delete expense' });
+  }
+});
+
+// Mark notification as read
+app.patch('/api/notifications/:id/read', isAuthenticated, async (req, res) => {
+  try {
+    const { id } = req.params;
+    const [notification] = await db.update(schema.notifications).set({ isRead: 1 }).where(eq(schema.notifications.id, id)).returning();
+    res.json(notification);
+  } catch (error) {
+    console.error('Error marking notification as read:', error);
+    res.status(500).json({ message: 'Failed to mark notification as read' });
+  }
+});
+
+// AI Traffic predictions (simplified for offline)
+app.get('/api/ai/traffic/predictions', isAuthenticated, async (req, res) => {
+  try {
+    res.json({
+      predictions: [],
+      summary: {
+        peakHour: '18:00',
+        peakVisitors: 20,
+        totalPredictedVisitors: 100,
+        averageVisitors: 10,
+        insights: ['Based on historical data'],
+      },
+      generatedAt: new Date().toISOString(),
+    });
+  } catch (error) {
+    console.error('Error fetching predictions:', error);
+    res.status(500).json({ message: 'Failed to fetch predictions' });
+  }
+});
+
 app.get('/api/users', isAdmin, async (req, res) => {
   try {
     const allUsers = await db.select().from(schema.users);
