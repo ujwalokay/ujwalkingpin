@@ -15,7 +15,7 @@
     "db:push": "npx drizzle-kit push",
     "start": "npx drizzle-kit push --force && NODE_ENV=production node dist/index.js",
     "check": "tsc",
-    "postinstall": "electron-builder install-app-deps",
+    "postinstall:electron": "electron-builder install-app-deps",
     "electron:rebuild": "electron-rebuild -f -w better-sqlite3",
     "electron:build-main": "npx esbuild electron/main.ts electron/preload.ts --platform=node --packages=external --bundle --format=esm --outdir=dist-electron/electron",
     "electron:build-server": "npx esbuild server/index-electron.ts --platform=node --packages=external --bundle --format=esm --outdir=dist-electron/server",
