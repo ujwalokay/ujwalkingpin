@@ -34,20 +34,29 @@ async function startServer() {
   process.env.PORT = String(SERVER_PORT);
   process.env.APP_PATH = app.getAppPath();
   
+  console.log('Starting server...');
+  console.log('APP_PATH:', app.getAppPath());
+  console.log('__dirname:', __dirname);
+  
   const serverPaths = [
     path.join(app.getAppPath(), 'dist-electron', 'server', 'index-electron.js'),
     path.join(__dirname, '../server/index-electron.js'),
   ];
   
   for (const serverPath of serverPaths) {
+    console.log('Trying server path:', serverPath);
     try {
       await import(serverPath);
+      console.log('Server started successfully from:', serverPath);
       return true;
-    } catch (e) {}
+    } catch (e: any) {
+      console.error('Failed to load server from:', serverPath);
+      console.error('Error:', e.message);
+      console.error('Stack:', e.stack);
+    }
   }
   return false;
 }
-
 async function createWindow() {
   mainWindow = new BrowserWindow({
     width: 1400, height: 900, minWidth: 1024, minHeight: 768,
