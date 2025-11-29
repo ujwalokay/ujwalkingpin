@@ -1,0 +1,8 @@
+{
+  "profiles": {
+    "AiravotoGamingPOS": {
+      "commandName": "Project",
+      "workingDirectory": "."
+    }
+  }
+}

@@ -1,0 +1,48 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <OutputType>WinExe</OutputType>
+    <TargetFramework>net8.0-windows</TargetFramework>
+    <UseWindowsForms>true</UseWindowsForms>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <Nullable>enable</Nullable>
+    <!-- Uncomment and add icon.ico to webview2-app folder for custom icon -->
+    <!-- <ApplicationIcon>icon.ico</ApplicationIcon> -->
+    <AssemblyName>AiravotoGamingPOS</AssemblyName>
+    <RootNamespace>AiravotoGamingPOS</RootNamespace>
+    <Title>Airavoto Gaming POS</Title>
+    <Description>Gaming Lounge Management POS - Offline Desktop Application</Description>
+    <Company>Airavoto Gaming</Company>
+    <Product>Airavoto Gaming POS</Product>
+    <Copyright>Copyright 2024 Airavoto Gaming</Copyright>
+    <Version>1.0.0</Version>
+    <FileVersion>1.0.0.0</FileVersion>
+    <AssemblyVersion>1.0.0.0</AssemblyVersion>
+    
+    <!-- Single file executable settings -->
+    <PublishSingleFile>true</PublishSingleFile>
+    <SelfContained>true</SelfContained>
+    <RuntimeIdentifier>win-x64</RuntimeIdentifier>
+    <IncludeNativeLibrariesForSelfExtract>true</IncludeNativeLibrariesForSelfExtract>
+    <EnableCompressionInSingleFile>true</EnableCompressionInSingleFile>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <!-- WebView2 SDK -->
+    <PackageReference Include="Microsoft.Web.WebView2" Version="1.0.3595.46" />
+    <!-- Fixed WebView2 Runtime (fully offline) -->
+    <PackageReference Include="WebView2.Runtime.X64" Version="142.0.3595.94" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <!-- Include all wwwroot files (your built web app) -->
+    <None Update="wwwroot\**\*">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </None>
+    <!-- Include WebView2 runtime folder -->
+    <None Update="WebView2Runtime\**\*">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </None>
+  </ItemGroup>
+
+</Project>
