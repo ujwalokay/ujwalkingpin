@@ -15,6 +15,8 @@
     "db:push": "npx drizzle-kit push",
     "start": "npx drizzle-kit push --force && NODE_ENV=production node dist/index.js",
     "check": "tsc",
+    "postinstall": "electron-builder install-app-deps",
+    "electron:rebuild": "electron-rebuild -f -w better-sqlite3",
     "electron:build-main": "npx esbuild electron/main.ts electron/preload.ts --platform=node --packages=external --bundle --format=esm --outdir=dist-electron/electron",
     "electron:build-server": "npx esbuild server/index-electron.ts --platform=node --packages=external --bundle --format=esm --outdir=dist-electron/server",
     "electron:build-frontend": "npx vite build --outDir dist-electron/dist",
@@ -29,6 +31,7 @@
   },
   "dependencies": {
     "@babel/traverse": "^7.28.5",
+    "@electron/rebuild": "^3.7.2",
     "@hookform/resolvers": "^3.10.0",
     "@jridgewell/trace-mapping": "^0.3.25",
     "@neondatabase/api-client": "^2.2.0",

@@ -19,6 +19,9 @@
       "filter": ["**/*"]
     }
   ],
+  "npmRebuild": true,
+  "buildDependenciesFromSource": true,
+  "nodeGypRebuild": false,
   "win": {
     "target": [
       {
@@ -84,6 +87,7 @@
   },
   "asar": true,
   "asarUnpack": [
+    "**/*.node",
     "node_modules/better-sqlite3/**/*"
   ]
 }
