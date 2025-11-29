@@ -496,22 +496,40 @@ function getDistPath(): string {
   console.log('APP_PATH:', appPath);
   
   if (appPath) {
-    const distFromApp = path.join(appPath, 'dist');
+    const distFromApp = path.join(appPath, 'dist-electron', 'dist');
     try {
       if (fs.existsSync(path.join(distFromApp, 'index.html'))) {
         console.log('Found dist at:', distFromApp);
         return distFromApp;
       }
     } catch (e) {}
+    
+    const distFromAppAlt = path.join(appPath, 'dist');
+    try {
+      if (fs.existsSync(path.join(distFromAppAlt, 'index.html'))) {
+        console.log('Found dist at:', distFromAppAlt);
+        return distFromAppAlt;
+      }
+    } catch (e) {}
   }
   
-  const devPaths = [path.join(__dirname, '../dist'), path.join(__dirname, '../../dist')];
+  const devPaths = [
+    path.join(__dirname, '../dist'),
+    path.join(__dirname, '../../dist'),
+    path.join(__dirname, '../../dist-electron/dist'),
+  ];
   for (const p of devPaths) {
     try { if (fs.existsSync(path.join(p, 'index.html'))) return p; } catch (e) {}
   }
   
-  return appPath ? path.join(appPath, 'dist') : path.join(__dirname, '../dist');
-} 
+  return appPath ? path.join(appPath, 'dist-electron', 'dist') : path.join(__dirname, '../dist');
+}
+
+const distPath = getDistPath();
+console.log('Using dist path:', distPath);
+
+app.use(express.static(distPath));
+
 app.get('*', (req, res) => {
   if (!req.path.startsWith('/api')) {
     const indexPath = path.join(distPath, 'index.html');
