@@ -30,6 +30,8 @@ Current Session (November 30, 2025):
 [x] 24. Restarted workflow and confirmed application is running successfully
 [x] 25. Verified frontend displays correctly with Staff Login page
 [x] 26. All items in progress tracker marked as complete
+[x] 27. Fixed Tauri build scripts to use npx for better compatibility
+[x] 28. Updated TAURI_BUILD_GUIDE.md with Windows troubleshooting instructions
 
 Tauri Features:
 - Complete offline functionality with local SQLite database

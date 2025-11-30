@@ -170,11 +170,52 @@ npm run tauri icon path/to/your-logo.png
 
 ### Build Errors
 
+**"Couldn't recognize the current folder as a Tauri project" Error**:
+
+This error means the Tauri CLI cannot find the configuration file. Solutions:
+
+1. **Verify the src-tauri folder exists**:
+   ```bash
+   # Windows (PowerShell)
+   Test-Path src-tauri/tauri.conf.json
+   
+   # macOS/Linux
+   ls -la src-tauri/tauri.conf.json
+   ```
+
+2. **If src-tauri folder is missing**, re-download the project or create it:
+   ```bash
+   npx tauri init
+   ```
+
+3. **Run from project root** - Make sure you're in the main project folder (where package.json is located):
+   ```bash
+   # Check you're in the right folder
+   dir package.json        # Windows
+   ls package.json         # macOS/Linux
+   ```
+
+4. **Clear npm cache and reinstall**:
+   ```bash
+   npm cache clean --force
+   rm -rf node_modules
+   npm install
+   ```
+
 **Missing Rust toolchain**:
 ```bash
 rustup default stable
 rustup update
 ```
+
+**Windows: Missing Visual Studio Build Tools**:
+1. Download from: https://visualstudio.microsoft.com/visual-cpp-build-tools/
+2. Install with "Desktop development with C++" workload
+3. Restart your terminal
+
+**Windows: WebView2 Missing**:
+WebView2 is required for Tauri on Windows. It's usually pre-installed on Windows 10/11, but if needed:
+- Download from: https://developer.microsoft.com/en-us/microsoft-edge/webview2/
 
 **Missing WebKit2GTK (Linux)**:
 ```bash

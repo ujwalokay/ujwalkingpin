@@ -16,9 +16,9 @@
     "db:push": "npx drizzle-kit push",
     "start": "npx drizzle-kit push --force && NODE_ENV=production node dist/index.js",
     "check": "tsc",
-    "tauri": "tauri",
-    "tauri:dev": "tauri dev",
-    "tauri:build": "tauri build"
+    "tauri": "npx tauri",
+    "tauri:dev": "npx tauri dev",
+    "tauri:build": "npx tauri build"
   },
   "dependencies": {
     "@babel/traverse": "^7.28.5",
