@@ -350,7 +350,7 @@ pub fn run() {
                 CREATE TABLE IF NOT EXISTS staff_visibility_settings (
                     id TEXT PRIMARY KEY DEFAULT (lower(hex(randomblob(16)))),
                     pages TEXT NOT NULL DEFAULT '{}',
-                    dashboard_widgets TEXT NOT NULL DEFAULT '{}',
+                    dashboard TEXT NOT NULL DEFAULT '{}',
                     updated_at TEXT DEFAULT (datetime('now'))
                 )
             "#,
@@ -362,9 +362,9 @@ pub fn run() {
             sql: r#"
                 CREATE TABLE IF NOT EXISTS app_settings (
                     id TEXT PRIMARY KEY DEFAULT (lower(hex(randomblob(16)))),
-                    setting_key TEXT NOT NULL UNIQUE,
-                    setting_value TEXT NOT NULL,
-                    created_at TEXT DEFAULT (datetime('now')),
+                    theme TEXT NOT NULL DEFAULT 'system',
+                    language TEXT NOT NULL DEFAULT 'en',
+                    notifications TEXT NOT NULL DEFAULT '{}',
                     updated_at TEXT DEFAULT (datetime('now'))
                 )
             "#,

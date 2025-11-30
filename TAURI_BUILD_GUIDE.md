@@ -118,26 +118,38 @@ Migrations are automatically applied on first run. The following tables are crea
 
 ### Default Admin Account
 
-A default admin account is created on first run:
+A default admin account is created on first run via SQLite migrations:
 - **Username**: `admin`
 - **Password**: `Admin@123`
+- **Role**: `admin`
 
 **IMPORTANT**: Change this password immediately after first login!
 
+Note: The password hash is pre-generated using bcrypt with 12 rounds. If you need to reset, delete the database file and restart the application.
+
 ## Application Features
 
-All features from the web app work offline in the desktop version:
+The desktop version supports offline mode for core functionality:
 
+### Fully Supported Offline:
 1. **Booking Management** - Create, update, pause, resume, and end sessions
-2. **Food & Inventory** - Track food orders and inventory
-3. **Payment Processing** - Cash and UPI payments
-4. **Reports & Analytics** - View business metrics
-5. **Staff Management** - Create and manage staff accounts
-6. **Device Configuration** - Set up gaming stations
-7. **Pricing Configuration** - Manage pricing tiers
-8. **Happy Hours** - Configure promotional pricing
-9. **Expense Tracking** - Record business expenses
-10. **Activity Logs** - Track all user actions
+2. **Food & Inventory** - Track food items and stock levels
+3. **Device Configuration** - Set up gaming stations and categories
+4. **Pricing Configuration** - Manage pricing tiers and durations
+5. **Happy Hours** - Configure promotional pricing windows
+6. **Expense Tracking** - Record and manage business expenses
+7. **Booking History** - View archived booking records
+8. **Activity Logs** - Track user actions
+9. **Notifications** - System notifications and alerts
+10. **User Management** - Create and manage staff accounts
+11. **Gaming Center Info** - Update business information
+12. **Session Groups** - Manage group bookings
+
+### Web-Only Features (require online connection):
+- Reports & Analytics (complex aggregations)
+- Google OAuth authentication
+- Real-time sync with cloud database
+- Advanced payment integrations
 
 ## Icons
 

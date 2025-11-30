@@ -29,17 +29,212 @@ function generateCode(prefix: string): string {
   return `${prefix}-${timestamp.slice(-5)}${randomPart.slice(0, 4)}`;
 }
 
+function snakeToCamel(str: string): string {
+  return str.replace(/_([a-z])/g, (_, letter) => letter.toUpperCase());
+}
+
+function transformRow(row: any): any {
+  const transformed: any = {};
+  for (const [key, value] of Object.entries(row)) {
+    const camelKey = snakeToCamel(key);
+    transformed[camelKey] = value;
+  }
+  return transformed;
+}
+
+function transformBookingRow(row: any): any {
+  return {
+    id: row.id,
+    bookingCode: row.booking_code,
+    groupId: row.group_id,
+    groupCode: row.group_code,
+    category: row.category,
+    seatNumber: row.seat_number,
+    seatName: row.seat_name,
+    customerName: row.customer_name,
+    whatsappNumber: row.whatsapp_number,
+    startTime: row.start_time,
+    endTime: row.end_time,
+    price: row.price,
+    status: row.status,
+    bookingType: JSON.parse(row.booking_type || '[]'),
+    pausedRemainingTime: row.paused_remaining_time,
+    personCount: row.person_count,
+    paymentMethod: row.payment_method,
+    cashAmount: row.cash_amount,
+    upiAmount: row.upi_amount,
+    paymentStatus: row.payment_status,
+    lastPaymentAction: row.last_payment_action ? JSON.parse(row.last_payment_action) : null,
+    foodOrders: JSON.parse(row.food_orders || '[]'),
+    originalPrice: row.original_price,
+    discountApplied: row.discount_applied,
+    bonusHoursApplied: row.bonus_hours_applied,
+    promotionDetails: row.promotion_details ? JSON.parse(row.promotion_details) : null,
+    isPromotionalDiscount: row.is_promotional_discount,
+    isPromotionalBonus: row.is_promotional_bonus,
+    manualDiscountPercentage: row.manual_discount_percentage,
+    manualFreeHours: row.manual_free_hours,
+    discount: row.discount,
+    bonus: row.bonus,
+    createdAt: row.created_at,
+  };
+}
+
+function transformFoodItemRow(row: any): any {
+  return {
+    id: row.id,
+    name: row.name,
+    price: row.price,
+    costPrice: row.cost_price,
+    currentStock: row.current_stock,
+    minStockLevel: row.min_stock_level,
+    inInventory: row.in_inventory,
+    category: row.category,
+    supplier: row.supplier,
+    expiryDate: row.expiry_date,
+  };
+}
+
+function transformExpenseRow(row: any): any {
+  return {
+    id: row.id,
+    category: row.category,
+    description: row.description,
+    amount: row.amount,
+    date: row.date,
+    createdAt: row.created_at,
+  };
+}
+
+function transformActivityLogRow(row: any): any {
+  return {
+    id: row.id,
+    userId: row.user_id,
+    username: row.username,
+    userRole: row.user_role,
+    action: row.action,
+    entityType: row.entity_type,
+    entityId: row.entity_id,
+    details: row.details,
+    createdAt: row.created_at,
+  };
+}
+
+function transformNotificationRow(row: any): any {
+  return {
+    id: row.id,
+    type: row.type,
+    title: row.title,
+    message: row.message,
+    entityType: row.entity_type,
+    entityId: row.entity_id,
+    activityLogId: row.activity_log_id,
+    isRead: row.is_read,
+    createdAt: row.created_at,
+  };
+}
+
+function transformUserRow(row: any): any {
+  return {
+    id: row.id,
+    username: row.username,
+    role: row.role,
+    onboardingCompleted: row.onboarding_completed,
+    profileImageUrl: row.profile_image_url,
+    createdAt: row.created_at,
+    updatedAt: row.updated_at,
+  };
+}
+
+function transformDeviceConfigRow(row: any): any {
+  return {
+    id: row.id,
+    category: row.category,
+    count: row.count,
+    seats: JSON.parse(row.seats || '[]'),
+  };
+}
+
+function transformPricingConfigRow(row: any): any {
+  return {
+    id: row.id,
+    category: row.category,
+    duration: row.duration,
+    price: row.price,
+    personCount: row.person_count,
+  };
+}
+
+function transformBookingHistoryRow(row: any): any {
+  return {
+    id: row.id,
+    bookingId: row.booking_id,
+    bookingCode: row.booking_code,
+    groupId: row.group_id,
+    groupCode: row.group_code,
+    category: row.category,
+    seatNumber: row.seat_number,
+    seatName: row.seat_name,
+    customerName: row.customer_name,
+    whatsappNumber: row.whatsapp_number,
+    startTime: row.start_time,
+    endTime: row.end_time,
+    price: row.price,
+    status: row.status,
+    bookingType: JSON.parse(row.booking_type || '[]'),
+    pausedRemainingTime: row.paused_remaining_time,
+    personCount: row.person_count,
+    paymentMethod: row.payment_method,
+    cashAmount: row.cash_amount,
+    upiAmount: row.upi_amount,
+    paymentStatus: row.payment_status,
+    lastPaymentAction: row.last_payment_action ? JSON.parse(row.last_payment_action) : null,
+    foodOrders: JSON.parse(row.food_orders || '[]'),
+    originalPrice: row.original_price,
+    discountApplied: row.discount_applied,
+    bonusHoursApplied: row.bonus_hours_applied,
+    promotionDetails: row.promotion_details ? JSON.parse(row.promotion_details) : null,
+    isPromotionalDiscount: row.is_promotional_discount,
+    isPromotionalBonus: row.is_promotional_bonus,
+    manualDiscountPercentage: row.manual_discount_percentage,
+    manualFreeHours: row.manual_free_hours,
+    discount: row.discount,
+    bonus: row.bonus,
+    createdAt: row.created_at,
+    archivedAt: row.archived_at,
+  };
+}
+
+function transformGamingCenterInfoRow(row: any): any {
+  return {
+    id: row.id,
+    name: row.name,
+    description: row.description,
+    address: row.address,
+    phone: row.phone,
+    email: row.email,
+    hours: row.hours,
+    timezone: row.timezone,
+    updatedAt: row.updated_at,
+  };
+}
+
+function transformSessionGroupRow(row: any): any {
+  return {
+    id: row.id,
+    groupCode: row.group_code,
+    groupName: row.group_name,
+    category: row.category,
+    bookingType: JSON.parse(row.booking_type || '[]'),
+    createdAt: row.created_at,
+  };
+}
+
 export const localDb = {
   async getAllBookings() {
     const database = await getDatabase();
     const result = await database.select<any[]>('SELECT * FROM bookings ORDER BY created_at DESC');
-    return result.map(row => ({
-      ...row,
-      bookingType: JSON.parse(row.booking_type || '[]'),
-      foodOrders: JSON.parse(row.food_orders || '[]'),
-      lastPaymentAction: row.last_payment_action ? JSON.parse(row.last_payment_action) : null,
-      promotionDetails: row.promotion_details ? JSON.parse(row.promotion_details) : null,
-    }));
+    return result.map(transformBookingRow);
   },
 
   async getActiveBookings() {
@@ -47,13 +242,13 @@ export const localDb = {
     const result = await database.select<any[]>(
       "SELECT * FROM bookings WHERE status IN ('running', 'paused', 'upcoming') ORDER BY start_time"
     );
-    return result.map(row => ({
-      ...row,
-      bookingType: JSON.parse(row.booking_type || '[]'),
-      foodOrders: JSON.parse(row.food_orders || '[]'),
-      lastPaymentAction: row.last_payment_action ? JSON.parse(row.last_payment_action) : null,
-      promotionDetails: row.promotion_details ? JSON.parse(row.promotion_details) : null,
-    }));
+    return result.map(transformBookingRow);
+  },
+
+  async getBookingById(id: string) {
+    const database = await getDatabase();
+    const result = await database.select<any[]>('SELECT * FROM bookings WHERE id = $1', [id]);
+    return result[0] ? transformBookingRow(result[0]) : null;
   },
 
   async createBooking(booking: any) {
@@ -89,7 +284,41 @@ export const localDb = {
       ]
     );
     
-    return { id, bookingCode, ...booking, createdAt: now };
+    return { 
+      id, 
+      bookingCode,
+      groupId: booking.groupId || null,
+      groupCode: booking.groupCode || null,
+      category: booking.category,
+      seatNumber: booking.seatNumber,
+      seatName: booking.seatName,
+      customerName: booking.customerName,
+      whatsappNumber: booking.whatsappNumber || null,
+      startTime: booking.startTime,
+      endTime: booking.endTime,
+      price: booking.price,
+      status: booking.status,
+      bookingType: booking.bookingType || [],
+      pausedRemainingTime: booking.pausedRemainingTime || null,
+      personCount: booking.personCount || 1,
+      paymentMethod: booking.paymentMethod || null,
+      cashAmount: booking.cashAmount || null,
+      upiAmount: booking.upiAmount || null,
+      paymentStatus: booking.paymentStatus || 'unpaid',
+      lastPaymentAction: booking.lastPaymentAction || null,
+      foodOrders: booking.foodOrders || [],
+      originalPrice: booking.originalPrice || null,
+      discountApplied: booking.discountApplied || null,
+      bonusHoursApplied: booking.bonusHoursApplied || null,
+      promotionDetails: booking.promotionDetails || null,
+      isPromotionalDiscount: booking.isPromotionalDiscount || 0,
+      isPromotionalBonus: booking.isPromotionalBonus || 0,
+      manualDiscountPercentage: booking.manualDiscountPercentage || null,
+      manualFreeHours: booking.manualFreeHours || null,
+      discount: booking.discount || null,
+      bonus: booking.bonus || null,
+      createdAt: now,
+    };
   },
 
   async updateBooking(id: string, updates: any) {
@@ -128,7 +357,8 @@ export const localDb = {
       values
     );
     
-    return { id, ...updates };
+    const updated = await this.getBookingById(id);
+    return updated;
   },
 
   async deleteBooking(id: string) {
@@ -138,7 +368,14 @@ export const localDb = {
 
   async getAllFoodItems() {
     const database = await getDatabase();
-    return database.select<any[]>('SELECT * FROM food_items ORDER BY name');
+    const result = await database.select<any[]>('SELECT * FROM food_items ORDER BY name');
+    return result.map(transformFoodItemRow);
+  },
+
+  async getFoodItemById(id: string) {
+    const database = await getDatabase();
+    const result = await database.select<any[]>('SELECT * FROM food_items WHERE id = $1', [id]);
+    return result[0] ? transformFoodItemRow(result[0]) : null;
   },
 
   async createFoodItem(item: any) {
@@ -151,7 +388,18 @@ export const localDb = {
        item.minStockLevel || 10, item.inInventory || 0, item.category || 'trackable',
        item.supplier || null, item.expiryDate || null]
     );
-    return { id, ...item };
+    return {
+      id,
+      name: item.name,
+      price: item.price,
+      costPrice: item.costPrice || null,
+      currentStock: item.currentStock || 0,
+      minStockLevel: item.minStockLevel || 10,
+      inInventory: item.inInventory || 0,
+      category: item.category || 'trackable',
+      supplier: item.supplier || null,
+      expiryDate: item.expiryDate || null,
+    };
   },
 
   async updateFoodItem(id: string, updates: any) {
@@ -177,7 +425,7 @@ export const localDb = {
       `UPDATE food_items SET ${setClauses.join(', ')} WHERE id = $${paramIndex}`,
       values
     );
-    return { id, ...updates };
+    return await this.getFoodItemById(id);
   },
 
   async deleteFoodItem(id: string) {
@@ -192,15 +440,19 @@ export const localDb = {
       `UPDATE food_items SET current_stock = current_stock ${operator} $1 WHERE id = $2`,
       [quantity, foodId]
     );
+    return await this.getFoodItemById(foodId);
   },
 
   async getAllDeviceConfigs() {
     const database = await getDatabase();
     const result = await database.select<any[]>('SELECT * FROM device_configs ORDER BY category');
-    return result.map(row => ({
-      ...row,
-      seats: JSON.parse(row.seats || '[]')
-    }));
+    return result.map(transformDeviceConfigRow);
+  },
+
+  async getDeviceConfigById(id: string) {
+    const database = await getDatabase();
+    const result = await database.select<any[]>('SELECT * FROM device_configs WHERE id = $1', [id]);
+    return result[0] ? transformDeviceConfigRow(result[0]) : null;
   },
 
   async createDeviceConfig(config: any) {
@@ -210,7 +462,12 @@ export const localDb = {
       'INSERT INTO device_configs (id, category, count, seats) VALUES ($1, $2, $3, $4)',
       [id, config.category, config.count || 0, JSON.stringify(config.seats || [])]
     );
-    return { id, ...config };
+    return {
+      id,
+      category: config.category,
+      count: config.count || 0,
+      seats: config.seats || [],
+    };
   },
 
   async updateDeviceConfig(id: string, updates: any) {
@@ -230,7 +487,7 @@ export const localDb = {
       `UPDATE device_configs SET ${setClauses.join(', ')} WHERE id = $${paramIndex}`,
       values
     );
-    return { id, ...updates };
+    return await this.getDeviceConfigById(id);
   },
 
   async deleteDeviceConfig(id: string) {
@@ -240,7 +497,14 @@ export const localDb = {
 
   async getAllPricingConfigs() {
     const database = await getDatabase();
-    return database.select<any[]>('SELECT * FROM pricing_configs ORDER BY category, duration');
+    const result = await database.select<any[]>('SELECT * FROM pricing_configs ORDER BY category, duration');
+    return result.map(transformPricingConfigRow);
+  },
+
+  async getPricingConfigById(id: string) {
+    const database = await getDatabase();
+    const result = await database.select<any[]>('SELECT * FROM pricing_configs WHERE id = $1', [id]);
+    return result[0] ? transformPricingConfigRow(result[0]) : null;
   },
 
   async createPricingConfig(config: any) {
@@ -250,7 +514,13 @@ export const localDb = {
       'INSERT INTO pricing_configs (id, category, duration, price, person_count) VALUES ($1, $2, $3, $4, $5)',
       [id, config.category, config.duration, config.price, config.personCount || 1]
     );
-    return { id, ...config };
+    return {
+      id,
+      category: config.category,
+      duration: config.duration,
+      price: config.price,
+      personCount: config.personCount || 1,
+    };
   },
 
   async updatePricingConfig(id: string, updates: any) {
@@ -271,7 +541,7 @@ export const localDb = {
       `UPDATE pricing_configs SET ${setClauses.join(', ')} WHERE id = $${paramIndex}`,
       values
     );
-    return { id, ...updates };
+    return await this.getPricingConfigById(id);
   },
 
   async deletePricingConfig(id: string) {
@@ -305,7 +575,14 @@ export const localDb = {
 
   async getAllExpenses() {
     const database = await getDatabase();
-    return database.select<any[]>('SELECT * FROM expenses ORDER BY date DESC');
+    const result = await database.select<any[]>('SELECT * FROM expenses ORDER BY date DESC');
+    return result.map(transformExpenseRow);
+  },
+
+  async getExpenseById(id: string) {
+    const database = await getDatabase();
+    const result = await database.select<any[]>('SELECT * FROM expenses WHERE id = $1', [id]);
+    return result[0] ? transformExpenseRow(result[0]) : null;
   },
 
   async createExpense(expense: any) {
@@ -316,7 +593,14 @@ export const localDb = {
       'INSERT INTO expenses (id, category, description, amount, date, created_at) VALUES ($1, $2, $3, $4, $5, $6)',
       [id, expense.category, expense.description, expense.amount, expense.date, now]
     );
-    return { id, ...expense, createdAt: now };
+    return {
+      id,
+      category: expense.category,
+      description: expense.description,
+      amount: expense.amount,
+      date: expense.date,
+      createdAt: now,
+    };
   },
 
   async updateExpense(id: string, updates: any) {
@@ -336,7 +620,7 @@ export const localDb = {
       `UPDATE expenses SET ${setClauses.join(', ')} WHERE id = $${paramIndex}`,
       values
     );
-    return { id, ...updates };
+    return await this.getExpenseById(id);
   },
 
   async deleteExpense(id: string) {
@@ -347,13 +631,7 @@ export const localDb = {
   async getBookingHistory() {
     const database = await getDatabase();
     const result = await database.select<any[]>('SELECT * FROM booking_history ORDER BY archived_at DESC');
-    return result.map(row => ({
-      ...row,
-      bookingType: JSON.parse(row.booking_type || '[]'),
-      foodOrders: JSON.parse(row.food_orders || '[]'),
-      lastPaymentAction: row.last_payment_action ? JSON.parse(row.last_payment_action) : null,
-      promotionDetails: row.promotion_details ? JSON.parse(row.promotion_details) : null,
-    }));
+    return result.map(transformBookingHistoryRow);
   },
 
   async archiveBooking(booking: any) {
@@ -388,12 +666,19 @@ export const localDb = {
       ]
     );
     
-    return { id, ...booking, archivedAt: now };
+    return { ...booking, id, bookingId: booking.id, archivedAt: now };
   },
 
   async getAllUsers() {
     const database = await getDatabase();
-    return database.select<any[]>('SELECT id, username, role, onboarding_completed, created_at, updated_at FROM users');
+    const result = await database.select<any[]>('SELECT id, username, role, onboarding_completed, profile_image_url, created_at, updated_at FROM users');
+    return result.map(transformUserRow);
+  },
+
+  async getUserById(id: string) {
+    const database = await getDatabase();
+    const result = await database.select<any[]>('SELECT * FROM users WHERE id = $1', [id]);
+    return result[0] ? transformUserRow(result[0]) : null;
   },
 
   async getUserByUsername(username: string) {
@@ -402,21 +687,92 @@ export const localDb = {
       'SELECT * FROM users WHERE username = $1',
       [username]
     );
-    return result[0] || null;
+    if (!result[0]) return null;
+    return {
+      ...transformUserRow(result[0]),
+      passwordHash: result[0].password_hash,
+    };
   },
 
   async validatePassword(username: string, password: string) {
     const user = await this.getUserByUsername(username);
-    if (!user || !user.password_hash) return null;
+    if (!user || !user.passwordHash) return null;
     
     const bcrypt = await import('bcryptjs');
-    const isValid = await bcrypt.compare(password, user.password_hash);
-    return isValid ? user : null;
+    const isValid = await bcrypt.compare(password, user.passwordHash);
+    if (!isValid) return null;
+    
+    const { passwordHash, ...userWithoutPassword } = user;
+    return userWithoutPassword;
+  },
+
+  async createUser(userData: { username: string; password: string; role: string }) {
+    const database = await getDatabase();
+    const id = generateUUID();
+    const now = new Date().toISOString();
+    const bcrypt = await import('bcryptjs');
+    const passwordHash = await bcrypt.hash(userData.password, 10);
+    
+    await database.execute(
+      `INSERT INTO users (id, username, password_hash, role, onboarding_completed, created_at, updated_at)
+       VALUES ($1, $2, $3, $4, $5, $6, $7)`,
+      [id, userData.username, passwordHash, userData.role, 0, now, now]
+    );
+    
+    return {
+      id,
+      username: userData.username,
+      role: userData.role,
+      onboardingCompleted: 0,
+      profileImageUrl: null,
+      createdAt: now,
+      updatedAt: now,
+    };
+  },
+
+  async updateUser(id: string, updates: any) {
+    const database = await getDatabase();
+    const now = new Date().toISOString();
+    const setClauses: string[] = ['updated_at = $1'];
+    const values: any[] = [now];
+    let paramIndex = 2;
+
+    const fieldMappings: Record<string, string> = {
+      onboardingCompleted: 'onboarding_completed',
+      profileImageUrl: 'profile_image_url',
+    };
+
+    for (const [key, value] of Object.entries(updates)) {
+      if (key === 'password') {
+        const bcrypt = await import('bcryptjs');
+        const passwordHash = await bcrypt.hash(value as string, 10);
+        setClauses.push(`password_hash = $${paramIndex}`);
+        values.push(passwordHash);
+      } else {
+        const dbField = fieldMappings[key] || key;
+        setClauses.push(`${dbField} = $${paramIndex}`);
+        values.push(value);
+      }
+      paramIndex++;
+    }
+
+    values.push(id);
+    await database.execute(
+      `UPDATE users SET ${setClauses.join(', ')} WHERE id = $${paramIndex}`,
+      values
+    );
+    return await this.getUserById(id);
+  },
+
+  async deleteUser(id: string) {
+    const database = await getDatabase();
+    await database.execute('DELETE FROM users WHERE id = $1', [id]);
   },
 
   async getActivityLogs() {
     const database = await getDatabase();
-    return database.select<any[]>('SELECT * FROM activity_logs ORDER BY created_at DESC LIMIT 1000');
+    const result = await database.select<any[]>('SELECT * FROM activity_logs ORDER BY created_at DESC LIMIT 1000');
+    return result.map(transformActivityLogRow);
   },
 
   async createActivityLog(log: any) {
@@ -428,17 +784,53 @@ export const localDb = {
        VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)`,
       [id, log.userId, log.username, log.userRole, log.action, log.entityType || null, log.entityId || null, log.details || null, now]
     );
-    return { id, ...log, createdAt: now };
+    return {
+      id,
+      userId: log.userId,
+      username: log.username,
+      userRole: log.userRole,
+      action: log.action,
+      entityType: log.entityType || null,
+      entityId: log.entityId || null,
+      details: log.details || null,
+      createdAt: now,
+    };
   },
 
   async getNotifications() {
     const database = await getDatabase();
-    return database.select<any[]>('SELECT * FROM notifications ORDER BY created_at DESC LIMIT 100');
+    const result = await database.select<any[]>('SELECT * FROM notifications ORDER BY created_at DESC LIMIT 100');
+    return result.map(transformNotificationRow);
   },
 
   async getUnreadNotifications() {
     const database = await getDatabase();
-    return database.select<any[]>('SELECT * FROM notifications WHERE is_read = 0 ORDER BY created_at DESC');
+    const result = await database.select<any[]>('SELECT * FROM notifications WHERE is_read = 0 ORDER BY created_at DESC');
+    return result.map(transformNotificationRow);
+  },
+
+  async createNotification(notification: any) {
+    const database = await getDatabase();
+    const id = generateUUID();
+    const now = new Date().toISOString();
+    await database.execute(
+      `INSERT INTO notifications (id, type, title, message, entity_type, entity_id, activity_log_id, is_read, created_at)
+       VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)`,
+      [id, notification.type, notification.title, notification.message, 
+       notification.entityType || null, notification.entityId || null, 
+       notification.activityLogId || null, 0, now]
+    );
+    return {
+      id,
+      type: notification.type,
+      title: notification.title,
+      message: notification.message,
+      entityType: notification.entityType || null,
+      entityId: notification.entityId || null,
+      activityLogId: notification.activityLogId || null,
+      isRead: 0,
+      createdAt: now,
+    };
   },
 
   async markNotificationAsRead(id: string) {
@@ -454,7 +846,7 @@ export const localDb = {
   async getGamingCenterInfo() {
     const database = await getDatabase();
     const result = await database.select<any[]>('SELECT * FROM gaming_center_info LIMIT 1');
-    return result[0] || null;
+    return result[0] ? transformGamingCenterInfoRow(result[0]) : null;
   },
 
   async updateGamingCenterInfo(info: any) {
@@ -476,6 +868,108 @@ export const localDb = {
         [id, info.name, info.description, info.address, info.phone, info.email || null, info.hours, info.timezone || 'Asia/Kolkata', now]
       );
       return { id, ...info, updatedAt: now };
+    }
+  },
+
+  async getAllSessionGroups() {
+    const database = await getDatabase();
+    const result = await database.select<any[]>('SELECT * FROM session_groups ORDER BY created_at DESC');
+    return result.map(transformSessionGroupRow);
+  },
+
+  async createSessionGroup(group: any) {
+    const database = await getDatabase();
+    const id = generateUUID();
+    const groupCode = generateCode('GRP');
+    const now = new Date().toISOString();
+    
+    await database.execute(
+      `INSERT INTO session_groups (id, group_code, group_name, category, booking_type, created_at)
+       VALUES ($1, $2, $3, $4, $5, $6)`,
+      [id, groupCode, group.groupName, group.category, JSON.stringify(group.bookingType || []), now]
+    );
+    
+    return {
+      id,
+      groupCode,
+      groupName: group.groupName,
+      category: group.category,
+      bookingType: group.bookingType || [],
+      createdAt: now,
+    };
+  },
+
+  async deleteSessionGroup(id: string) {
+    const database = await getDatabase();
+    await database.execute('DELETE FROM session_groups WHERE id = $1', [id]);
+  },
+
+  async getStaffVisibilitySettings() {
+    const database = await getDatabase();
+    const result = await database.select<any[]>('SELECT * FROM staff_visibility_settings LIMIT 1');
+    if (!result[0]) return null;
+    return {
+      id: result[0].id,
+      pages: result[0].pages ? JSON.parse(result[0].pages) : {},
+      dashboard: result[0].dashboard ? JSON.parse(result[0].dashboard) : {},
+      updatedAt: result[0].updated_at,
+    };
+  },
+
+  async updateStaffVisibilitySettings(settings: any) {
+    const database = await getDatabase();
+    const existing = await this.getStaffVisibilitySettings();
+    const now = new Date().toISOString();
+    
+    if (existing) {
+      await database.execute(
+        `UPDATE staff_visibility_settings SET pages = $1, dashboard = $2, updated_at = $3 WHERE id = $4`,
+        [JSON.stringify(settings.pages || {}), JSON.stringify(settings.dashboard || {}), now, existing.id]
+      );
+      return { ...existing, ...settings, updatedAt: now };
+    } else {
+      const id = generateUUID();
+      await database.execute(
+        `INSERT INTO staff_visibility_settings (id, pages, dashboard, updated_at)
+         VALUES ($1, $2, $3, $4)`,
+        [id, JSON.stringify(settings.pages || {}), JSON.stringify(settings.dashboard || {}), now]
+      );
+      return { id, ...settings, updatedAt: now };
+    }
+  },
+
+  async getAppSettings() {
+    const database = await getDatabase();
+    const result = await database.select<any[]>('SELECT * FROM app_settings LIMIT 1');
+    if (!result[0]) return null;
+    return {
+      id: result[0].id,
+      theme: result[0].theme,
+      language: result[0].language,
+      notifications: result[0].notifications ? JSON.parse(result[0].notifications) : {},
+      updatedAt: result[0].updated_at,
+    };
+  },
+
+  async updateAppSettings(settings: any) {
+    const database = await getDatabase();
+    const existing = await this.getAppSettings();
+    const now = new Date().toISOString();
+    
+    if (existing) {
+      await database.execute(
+        `UPDATE app_settings SET theme = $1, language = $2, notifications = $3, updated_at = $4 WHERE id = $5`,
+        [settings.theme || 'system', settings.language || 'en', JSON.stringify(settings.notifications || {}), now, existing.id]
+      );
+      return { ...existing, ...settings, updatedAt: now };
+    } else {
+      const id = generateUUID();
+      await database.execute(
+        `INSERT INTO app_settings (id, theme, language, notifications, updated_at)
+         VALUES ($1, $2, $3, $4, $5)`,
+        [id, settings.theme || 'system', settings.language || 'en', JSON.stringify(settings.notifications || {}), now]
+      );
+      return { id, ...settings, updatedAt: now };
     }
   },
 };
