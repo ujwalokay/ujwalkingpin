@@ -1,4 +1,4 @@
-modules = ["nodejs-20", "web", "dotnet-7.0"]
+modules = ["nodejs-20", "web", "dotnet-7.0", "rust-stable"]
 run = "npm run dev"
 hidden = [".config", ".git", "generated-icon.png", "node_modules", "dist"]
 
@@ -45,10 +45,6 @@ externalPort = 3003
 [[ports]]
 localPort = 45463
 externalPort = 8080
-
-[[ports]]
-localPort = 45951
-externalPort = 9000
 
 [[ports]]
 localPort = 46173
