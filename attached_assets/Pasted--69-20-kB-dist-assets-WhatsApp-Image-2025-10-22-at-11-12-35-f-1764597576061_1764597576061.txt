@@ -1,0 +1,29 @@
+                                     69.20 kB
+../dist/assets/WhatsApp Image 2025-10-22 at 11.12.35_fa6763ad_1761112003243-Co8DSVW_.jpg    121.66 kB
+../dist/assets/Gaming_cafe_night_purple_neon_964a4486-CxaNTigV.png                        1,428.97 kB
+../dist/assets/Luxury_gaming_lounge_purple_pink_98c3a8f3-CQFF2SQk.png                     1,511.27 kB
+../dist/assets/Modern_gaming_cafe_with_purple_lighting_1a0efc51-CnNtopq0.png              1,605.50 kB
+../dist/assets/index-lFijz2Mq.css                                                           128.35 kB │ gzip:  20.04 kB
+../dist/assets/index-Cpz00Ypu.js                                                             20.16 kB │ gzip:   9.01 kB
+../dist/assets/index-Dql6ZOm9.js                                                          1,673.26 kB │ gzip: 445.04 kB
+
+(!) Some chunks are larger than 500 kB after minification. Consider:
+- Using dynamic import() to code-split the application
+- Use build.rollupOptions.output.manualChunks to improve chunking: https://rollupjs.org/configuration-options/#output-manualchunks
+- Adjust chunk size limit for this warning via build.chunkSizeWarningLimit.
+✓ built in 16.79s
+   Compiling airavoto-gaming-pos v1.0.0 (C:\Users\Admin\Downloads\ujwalkingpin(2)\ujwalkingpin\src-tauri)
+    Finished `release` profile [optimized] target(s) in 4m 04s
+       Built application at: C:\Users\Admin\Downloads\ujwalkingpin(2)\ujwalkingpin\src-tauri\target\release\airavoto-gaming-pos.exe
+        Info Patching binary "C:\\Users\\Admin\\Downloads\\ujwalkingpin(2)\\ujwalkingpin\\src-tauri\\target\\release\\airavoto-gaming-pos.exe" for type msi
+        Info Target: x64
+     Running candle for "main.wxs"
+     Running light to produce C:\Users\Admin\Downloads\ujwalkingpin(2)\ujwalkingpin\src-tauri\target\release\bundle\msi\Airavoto Gaming POS_1.0.0_x64_en-US.msi
+        Info Patching binary "C:\\Users\\Admin\\Downloads\\ujwalkingpin(2)\\ujwalkingpin\\src-tauri\\target\\release\\airavoto-gaming-pos.exe" for type nsis
+        Info Target: x64
+     Running makensis to produce C:\Users\Admin\Downloads\ujwalkingpin(2)\ujwalkingpin\src-tauri\target\release\bundle\nsis\Airavoto Gaming POS_1.0.0_x64-setup.exe
+    Finished 2 bundles at:
+        C:\Users\Admin\Downloads\ujwalkingpin(2)\ujwalkingpin\src-tauri\target\release\bundle\msi\Airavoto Gaming POS_1.0.0_x64_en-US.msi
+        C:\Users\Admin\Downloads\ujwalkingpin(2)\ujwalkingpin\src-tauri\target\release\bundle\nsis\Airavoto Gaming POS_1.0.0_x64-setup.exe
+
+PS C:\Users\Admin\Downloads\ujwalkingpin(2)\ujwalkingpin>
