@@ -170,6 +170,16 @@ npm run tauri icon path/to/your-logo.png
 
 ### Build Errors
 
+**SQLite Dependency Conflict (libsqlite3-sys)**:
+
+If you see an error like:
+```
+error: failed to select a version for `libsqlite3-sys`
+... package links to native library `sqlite3`, but it conflicts with a previous package
+```
+
+This means there are conflicting SQLite dependencies. The fix is to ensure only `tauri-plugin-sql` is used for SQLite operations. Check `src-tauri/Cargo.toml` and remove any duplicate SQLite dependencies like `rusqlite`. The `tauri-plugin-sql` plugin already includes everything needed.
+
 **"Couldn't recognize the current folder as a Tauri project" Error**:
 
 This error means the Tauri CLI cannot find the configuration file. Solutions:
