@@ -231,7 +231,11 @@ function App() {
       try {
         // Initialize Tauri auth (creates default admin if needed)
         if (isTauri()) {
-          await initializeTauriAuth();
+          console.log('Running in Tauri desktop mode...');
+          const tauriInitSuccess = await initializeTauriAuth();
+          if (!tauriInitSuccess) {
+            console.error('Tauri initialization failed, continuing with login...');
+          }
         }
         
         const userData = await getCurrentUser();

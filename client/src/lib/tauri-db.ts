@@ -1,18 +1,54 @@
-import Database from '@tauri-apps/plugin-sql';
+let db: any = null;
+let dbInitPromise: Promise<any> | null = null;
+let dbInitialized = false;
 
-let db: Awaited<ReturnType<typeof Database.load>> | null = null;
+function checkIsTauri(): boolean {
+  return typeof window !== 'undefined' && '__TAURI__' in window;
+}
 
 export async function initDatabase() {
-  if (db) return db;
-  db = await Database.load('sqlite:airavoto_pos.db');
-  return db;
+  if (!checkIsTauri()) {
+    throw new Error('Cannot initialize Tauri database in web mode');
+  }
+  
+  if (db && dbInitialized) return db;
+  
+  if (dbInitPromise) {
+    return dbInitPromise;
+  }
+  
+  dbInitPromise = (async () => {
+    try {
+      console.log('Initializing Tauri database...');
+      const sqlModule = await import('@tauri-apps/plugin-sql');
+      const Database = sqlModule.default;
+      db = await Database.load('sqlite:airavoto_pos.db');
+      dbInitialized = true;
+      console.log('Tauri database initialized successfully');
+      return db;
+    } catch (error) {
+      console.error('Failed to initialize Tauri database:', error);
+      dbInitPromise = null;
+      throw error;
+    }
+  })();
+  
+  return dbInitPromise;
 }
 
 export async function getDatabase() {
-  if (!db) {
+  if (!checkIsTauri()) {
+    throw new Error('Cannot get Tauri database in web mode');
+  }
+  
+  if (!db || !dbInitialized) {
     return initDatabase();
   }
   return db;
+}
+
+export function isDatabaseReady(): boolean {
+  return checkIsTauri() && dbInitialized && db !== null;
 }
 
 function generateUUID(): string {
@@ -233,13 +269,13 @@ function transformSessionGroupRow(row: any): any {
 export const localDb = {
   async getAllBookings() {
     const database = await getDatabase();
-    const result = await database.select<any[]>('SELECT * FROM bookings ORDER BY created_at DESC');
+    const result = await database.select('SELECT * FROM bookings ORDER BY created_at DESC');
     return result.map(transformBookingRow);
   },
 
   async getActiveBookings() {
     const database = await getDatabase();
-    const result = await database.select<any[]>(
+    const result = await database.select(
       "SELECT * FROM bookings WHERE status IN ('running', 'paused', 'upcoming') ORDER BY start_time"
     );
     return result.map(transformBookingRow);
@@ -247,7 +283,7 @@ export const localDb = {
 
   async getBookingById(id: string) {
     const database = await getDatabase();
-    const result = await database.select<any[]>('SELECT * FROM bookings WHERE id = $1', [id]);
+    const result = await database.select('SELECT * FROM bookings WHERE id = $1', [id]);
     return result[0] ? transformBookingRow(result[0]) : null;
   },
 
@@ -368,13 +404,13 @@ export const localDb = {
 
   async getAllFoodItems() {
     const database = await getDatabase();
-    const result = await database.select<any[]>('SELECT * FROM food_items ORDER BY name');
+    const result = await database.select('SELECT * FROM food_items ORDER BY name');
     return result.map(transformFoodItemRow);
   },
 
   async getFoodItemById(id: string) {
     const database = await getDatabase();
-    const result = await database.select<any[]>('SELECT * FROM food_items WHERE id = $1', [id]);
+    const result = await database.select('SELECT * FROM food_items WHERE id = $1', [id]);
     return result[0] ? transformFoodItemRow(result[0]) : null;
   },
 
@@ -445,13 +481,13 @@ export const localDb = {
 
   async getAllDeviceConfigs() {
     const database = await getDatabase();
-    const result = await database.select<any[]>('SELECT * FROM device_configs ORDER BY category');
+    const result = await database.select('SELECT * FROM device_configs ORDER BY category');
     return result.map(transformDeviceConfigRow);
   },
 
   async getDeviceConfigById(id: string) {
     const database = await getDatabase();
-    const result = await database.select<any[]>('SELECT * FROM device_configs WHERE id = $1', [id]);
+    const result = await database.select('SELECT * FROM device_configs WHERE id = $1', [id]);
     return result[0] ? transformDeviceConfigRow(result[0]) : null;
   },
 
@@ -497,13 +533,13 @@ export const localDb = {
 
   async getAllPricingConfigs() {
     const database = await getDatabase();
-    const result = await database.select<any[]>('SELECT * FROM pricing_configs ORDER BY category, duration');
+    const result = await database.select('SELECT * FROM pricing_configs ORDER BY category, duration');
     return result.map(transformPricingConfigRow);
   },
 
   async getPricingConfigById(id: string) {
     const database = await getDatabase();
-    const result = await database.select<any[]>('SELECT * FROM pricing_configs WHERE id = $1', [id]);
+    const result = await database.select('SELECT * FROM pricing_configs WHERE id = $1', [id]);
     return result[0] ? transformPricingConfigRow(result[0]) : null;
   },
 
@@ -551,8 +587,8 @@ export const localDb = {
 
   async getAllHappyHoursConfigs() {
     const database = await getDatabase();
-    const result = await database.select<any[]>('SELECT * FROM happy_hours_configs');
-    return result.map(row => ({
+    const result = await database.select('SELECT * FROM happy_hours_configs');
+    return result.map((row: any) => ({
       id: row.id,
       category: row.category,
       startTime: row.start_time,
@@ -563,8 +599,8 @@ export const localDb = {
 
   async getAllHappyHoursPricing() {
     const database = await getDatabase();
-    const result = await database.select<any[]>('SELECT * FROM happy_hours_pricing');
-    return result.map(row => ({
+    const result = await database.select('SELECT * FROM happy_hours_pricing');
+    return result.map((row: any) => ({
       id: row.id,
       category: row.category,
       duration: row.duration,
@@ -575,13 +611,13 @@ export const localDb = {
 
   async getAllExpenses() {
     const database = await getDatabase();
-    const result = await database.select<any[]>('SELECT * FROM expenses ORDER BY date DESC');
+    const result = await database.select('SELECT * FROM expenses ORDER BY date DESC');
     return result.map(transformExpenseRow);
   },
 
   async getExpenseById(id: string) {
     const database = await getDatabase();
-    const result = await database.select<any[]>('SELECT * FROM expenses WHERE id = $1', [id]);
+    const result = await database.select('SELECT * FROM expenses WHERE id = $1', [id]);
     return result[0] ? transformExpenseRow(result[0]) : null;
   },
 
@@ -630,7 +666,7 @@ export const localDb = {
 
   async getBookingHistory() {
     const database = await getDatabase();
-    const result = await database.select<any[]>('SELECT * FROM booking_history ORDER BY archived_at DESC');
+    const result = await database.select('SELECT * FROM booking_history ORDER BY archived_at DESC');
     return result.map(transformBookingHistoryRow);
   },
 
@@ -671,19 +707,19 @@ export const localDb = {
 
   async getAllUsers() {
     const database = await getDatabase();
-    const result = await database.select<any[]>('SELECT id, username, role, onboarding_completed, profile_image_url, created_at, updated_at FROM users');
+    const result = await database.select('SELECT id, username, role, onboarding_completed, profile_image_url, created_at, updated_at FROM users');
     return result.map(transformUserRow);
   },
 
   async getUserById(id: string) {
     const database = await getDatabase();
-    const result = await database.select<any[]>('SELECT * FROM users WHERE id = $1', [id]);
+    const result = await database.select('SELECT * FROM users WHERE id = $1', [id]);
     return result[0] ? transformUserRow(result[0]) : null;
   },
 
   async getUserByUsername(username: string) {
     const database = await getDatabase();
-    const result = await database.select<any[]>(
+    const result = await database.select(
       'SELECT * FROM users WHERE username = $1',
       [username]
     );
@@ -771,7 +807,7 @@ export const localDb = {
 
   async getActivityLogs() {
     const database = await getDatabase();
-    const result = await database.select<any[]>('SELECT * FROM activity_logs ORDER BY created_at DESC LIMIT 1000');
+    const result = await database.select('SELECT * FROM activity_logs ORDER BY created_at DESC LIMIT 1000');
     return result.map(transformActivityLogRow);
   },
 
@@ -799,13 +835,13 @@ export const localDb = {
 
   async getNotifications() {
     const database = await getDatabase();
-    const result = await database.select<any[]>('SELECT * FROM notifications ORDER BY created_at DESC LIMIT 100');
+    const result = await database.select('SELECT * FROM notifications ORDER BY created_at DESC LIMIT 100');
     return result.map(transformNotificationRow);
   },
 
   async getUnreadNotifications() {
     const database = await getDatabase();
-    const result = await database.select<any[]>('SELECT * FROM notifications WHERE is_read = 0 ORDER BY created_at DESC');
+    const result = await database.select('SELECT * FROM notifications WHERE is_read = 0 ORDER BY created_at DESC');
     return result.map(transformNotificationRow);
   },
 
@@ -845,7 +881,7 @@ export const localDb = {
 
   async getGamingCenterInfo() {
     const database = await getDatabase();
-    const result = await database.select<any[]>('SELECT * FROM gaming_center_info LIMIT 1');
+    const result = await database.select('SELECT * FROM gaming_center_info LIMIT 1');
     return result[0] ? transformGamingCenterInfoRow(result[0]) : null;
   },
 
@@ -873,7 +909,7 @@ export const localDb = {
 
   async getAllSessionGroups() {
     const database = await getDatabase();
-    const result = await database.select<any[]>('SELECT * FROM session_groups ORDER BY created_at DESC');
+    const result = await database.select('SELECT * FROM session_groups ORDER BY created_at DESC');
     return result.map(transformSessionGroupRow);
   },
 
@@ -906,7 +942,7 @@ export const localDb = {
 
   async getStaffVisibilitySettings() {
     const database = await getDatabase();
-    const result = await database.select<any[]>('SELECT * FROM staff_visibility_settings LIMIT 1');
+    const result = await database.select('SELECT * FROM staff_visibility_settings LIMIT 1');
     if (!result[0]) return null;
     return {
       id: result[0].id,
@@ -940,7 +976,7 @@ export const localDb = {
 
   async getAppSettings() {
     const database = await getDatabase();
-    const result = await database.select<any[]>('SELECT * FROM app_settings LIMIT 1');
+    const result = await database.select('SELECT * FROM app_settings LIMIT 1');
     if (!result[0]) return null;
     return {
       id: result[0].id,

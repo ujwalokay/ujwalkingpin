@@ -1,4 +1,4 @@
-import { isTauri, localDb } from './tauri-db';
+import { isTauri, localDb, initDatabase } from './tauri-db';
 
 interface User {
   id: string;
@@ -40,9 +40,25 @@ function clearTauriSession(): void {
   localStorage.removeItem(TAURI_SESSION_KEY);
 }
 
+async function ensureDatabaseReady(): Promise<boolean> {
+  if (!isTauri()) return true;
+  try {
+    await initDatabase();
+    return true;
+  } catch (error) {
+    console.error('Database not ready:', error);
+    return false;
+  }
+}
+
 export async function login(username: string, password: string): Promise<AuthResult> {
   if (isTauri()) {
     try {
+      const dbReady = await ensureDatabaseReady();
+      if (!dbReady) {
+        return { success: false, error: 'Database not ready. Please restart the app.' };
+      }
+      
       const user = await localDb.validatePassword(username, password);
       if (user) {
         const authUser: User = {
@@ -125,10 +141,17 @@ export async function logout(): Promise<boolean> {
   }
 }
 
-export async function initializeTauriAuth(): Promise<void> {
-  if (!isTauri()) return;
+export async function initializeTauriAuth(): Promise<boolean> {
+  if (!isTauri()) return true;
   
   try {
+    console.log('Initializing Tauri authentication...');
+    const dbReady = await ensureDatabaseReady();
+    if (!dbReady) {
+      console.error('Failed to initialize database');
+      return false;
+    }
+    
     const users = await localDb.getAllUsers();
     if (users.length === 0) {
       console.log('No users found, creating default admin user...');
@@ -139,7 +162,10 @@ export async function initializeTauriAuth(): Promise<void> {
       });
       console.log('Default admin user created');
     }
+    console.log('Tauri authentication initialized successfully');
+    return true;
   } catch (error) {
     console.error('Failed to initialize Tauri auth:', error);
+    return false;
   }
 }

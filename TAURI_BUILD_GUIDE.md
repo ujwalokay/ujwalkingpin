@@ -227,6 +227,42 @@ rustup update
 WebView2 is required for Tauri on Windows. It's usually pre-installed on Windows 10/11, but if needed:
 - Download from: https://developer.microsoft.com/en-us/microsoft-edge/webview2/
 
+**App Doesn't Open After Installation (Windows)**:
+
+If you double-click the app and nothing happens (no window appears), try these solutions:
+
+1. **Install WebView2 Runtime** (Most Common Fix):
+   - Download from: https://developer.microsoft.com/en-us/microsoft-edge/webview2/
+   - Install the "Evergreen Bootstrapper" or "Evergreen Standalone Installer"
+   - Restart your computer after installation
+   - Try launching the app again
+
+2. **Run as Administrator**:
+   - Right-click on the app shortcut or .exe file
+   - Select "Run as administrator"
+   - If this works, you may need to run it as admin each time
+
+3. **Check Windows Defender / Antivirus**:
+   - Windows Defender may block unknown apps
+   - Go to Windows Security > Virus & threat protection > Protection history
+   - Look for any blocked items related to "Airavoto Gaming POS"
+   - Click "Allow on device" if found
+
+4. **Check the Application Logs**:
+   - Open Command Prompt as Administrator
+   - Navigate to the app installation folder (usually `C:\Program Files\Airavoto Gaming POS\`)
+   - Run the executable directly: `"Airavoto Gaming POS.exe"`
+   - Check for any error messages in the console
+
+5. **Reinstall the Application**:
+   - Uninstall via Control Panel > Programs and Features
+   - Delete any remaining files in `%APPDATA%/com.airavoto.gaming.pos/`
+   - Reinstall using the installer
+
+6. **Install Visual C++ Redistributable**:
+   - Download from: https://aka.ms/vs/17/release/vc_redist.x64.exe
+   - Install and restart your computer
+
 **Missing WebKit2GTK (Linux)**:
 ```bash
 sudo apt install libwebkit2gtk-4.1-dev
