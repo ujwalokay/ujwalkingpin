@@ -18,12 +18,16 @@
         "resizable": true,
         "fullscreen": false,
         "center": true,
+        "visible": true,
+        "decorations": true,
+        "focus": true,
         "minWidth": 1024,
         "minHeight": 768
       }
     ],
     "security": {
-      "csp": null
+      "csp": null,
+      "dangerousDisableAssetCspModification": true
     }
   },
   "bundle": {

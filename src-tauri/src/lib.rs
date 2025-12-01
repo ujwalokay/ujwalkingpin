@@ -2,6 +2,9 @@ use tauri_plugin_sql::{Migration, MigrationKind};
 
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
 pub fn run() {
+    env_logger::init();
+    log::info!("Starting Airavoto Gaming POS...");
+
     let migrations = vec![
         Migration {
             version: 1,
