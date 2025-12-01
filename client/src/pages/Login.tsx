@@ -7,6 +7,7 @@ import { Checkbox } from "@/components/ui/checkbox";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { useToast } from "@/hooks/use-toast";
+import { login as authLogin } from "@/lib/auth-client";
 import logoDark from "@assets/airavoto_logo.png";
 import img1 from "@assets/generated_images/Modern_gaming_cafe_with_purple_lighting_1a0efc51.png";
 import img2 from "@assets/generated_images/Luxury_gaming_lounge_purple_pink_98c3a8f3.png";
@@ -183,26 +184,17 @@ export default function Login({ onLoginSuccess }: LoginProps) {
 
     setIsLoggingIn(true);
     try {
-      const response = await fetch("/api/auth/login", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({ username, password }),
-        credentials: "include"
-      });
+      const result = await authLogin(username, password);
 
-      if (response.ok) {
-        const userData = await response.json();
+      if (result.success && result.user) {
         setFailedAttempts(0);
         setLockoutTime(null);
-        onLoginSuccess(userData);
+        onLoginSuccess(result.user);
         toast({
           title: "Login successful",
-          description: `Welcome ${userData.username} (${userData.role})`,
+          description: `Welcome ${result.user.username} (${result.user.role})`,
         });
       } else {
-        const data = await response.json();
         const newFailedAttempts = failedAttempts + 1;
         setFailedAttempts(newFailedAttempts);
 
@@ -218,7 +210,7 @@ export default function Login({ onLoginSuccess }: LoginProps) {
         } else {
           toast({
             title: "Login failed",
-            description: `${data.message || "Invalid username or password"}. ${3 - newFailedAttempts} attempts remaining.`,
+            description: `${result.error || "Invalid username or password"}. ${3 - newFailedAttempts} attempts remaining.`,
             variant: "destructive",
           });
         }

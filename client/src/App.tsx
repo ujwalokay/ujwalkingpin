@@ -15,6 +15,8 @@ import { useLocation } from "wouter";
 import { KeyboardShortcutsDialog } from "@/components/KeyboardShortcutsDialog";
 import { useKeyboardShortcuts, type KeyboardShortcut } from "@/hooks/useKeyboardShortcuts";
 import { ShortcutsProvider } from "@/contexts/ShortcutsContext";
+import { getCurrentUser, logout as authLogout, initializeTauriAuth } from "@/lib/auth-client";
+import { isTauri } from "@/lib/tauri-db";
 import Dashboard from "@/pages/Dashboard";
 import Settings from "@/pages/Settings";
 import Reports from "@/pages/Reports";
@@ -94,7 +96,7 @@ function App() {
 
   const handleLock = async () => {
     try {
-      await fetch("/api/auth/logout", { method: "POST" });
+      await authLogout();
       setUser(null);
       setIsAuthenticated(false);
       setShowLogin(true);
@@ -227,24 +229,20 @@ function App() {
     // Check if user is already authenticated via session
     const checkAuth = async () => {
       try {
-        const response = await fetch("/api/auth/me", {
-          credentials: "include"
-        });
-        if (response.ok) {
-          const userData = await response.json();
-          
-          // Only grant full access if BOTH Google and staff/admin login are complete
-          if (userData.twoStepComplete && userData.id) {
-            setUser(userData);
-            setIsAuthenticated(true);
-          } else {
-            // Google verified but needs staff/admin login, or not authenticated
-            setShowLogin(true);
-          }
+        // Initialize Tauri auth (creates default admin if needed)
+        if (isTauri()) {
+          await initializeTauriAuth();
+        }
+        
+        const userData = await getCurrentUser();
+        if (userData && userData.id) {
+          setUser(userData as User);
+          setIsAuthenticated(true);
         } else {
           setShowLogin(true);
         }
       } catch (error) {
+        console.error('Auth check error:', error);
         setShowLogin(true);
       }
     };
