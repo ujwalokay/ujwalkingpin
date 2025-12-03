@@ -1,46 +1,70 @@
+/* src/lib/tauri-db.ts
+   Consolidated Tauri local DB adapter for Airavoto Gaming POS.
+   This file provides complete offline functionality using local SQLite database.
+*/
+
+type AnyObject = Record<string, any>;
+
 let db: any = null;
 let dbInitPromise: Promise<any> | null = null;
 let dbInitialized = false;
 
-function checkIsTauri(): boolean {
-  return typeof window !== 'undefined' && '__TAURI__' in window;
+/**
+ * Robust Tauri v2 detection.
+ * - Prefer internal bridge existence if available.
+ * - Fall back to userAgent check for "tauri".
+ */
+export function isTauri(): boolean {
+  try {
+    if (typeof window === 'undefined') return false;
+    if ('__TAURI_INTERNALS__' in (window as any)) return true;
+    if ('__TAURI__' in (window as any)) return true;
+    if (typeof navigator !== 'undefined' && navigator.userAgent) {
+      return navigator.userAgent.toLowerCase().includes('tauri');
+    }
+    return false;
+  } catch {
+    return false;
+  }
 }
 
+/**
+ * Initialize the Tauri SQL database (singleton).
+ */
 export async function initDatabase() {
-  if (!checkIsTauri()) {
+  if (!isTauri()) {
     throw new Error('Cannot initialize Tauri database in web mode');
   }
-  
+
   if (db && dbInitialized) return db;
-  
-  if (dbInitPromise) {
-    return dbInitPromise;
-  }
-  
+  if (dbInitPromise) return dbInitPromise;
+
   dbInitPromise = (async () => {
     try {
-      console.log('Initializing Tauri database...');
+      console.log('[DB] Initializing Tauri database...');
       const sqlModule = await import('@tauri-apps/plugin-sql');
-      const Database = sqlModule.default;
+      const Database = sqlModule.default || (sqlModule as any).Database || sqlModule;
       db = await Database.load('sqlite:airavoto_pos.db');
       dbInitialized = true;
-      console.log('Tauri database initialized successfully');
+      console.log('[DB] Tauri database initialized successfully');
       return db;
     } catch (error) {
-      console.error('Failed to initialize Tauri database:', error);
+      console.error('[DB] Failed to initialize Tauri database:', error);
       dbInitPromise = null;
       throw error;
     }
   })();
-  
+
   return dbInitPromise;
 }
 
+/**
+ * Get the initialized database instance.
+ */
 export async function getDatabase() {
-  if (!checkIsTauri()) {
+  if (!isTauri()) {
     throw new Error('Cannot get Tauri database in web mode');
   }
-  
   if (!db || !dbInitialized) {
     return initDatabase();
   }
@@ -48,20 +72,24 @@ export async function getDatabase() {
 }
 
 export function isDatabaseReady(): boolean {
-  return checkIsTauri() && dbInitialized && db !== null;
+  return isTauri() && dbInitialized && db !== null;
 }
 
+/* Utility helpers */
 function generateUUID(): string {
   return 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, (c) => {
-    const r = Math.random() * 16 | 0;
-    const v = c === 'x' ? r : (r & 0x3 | 0x8);
+    const r = (Math.random() * 16) | 0;
+    const v = c === 'x' ? r : (r & 0x3) | 0x8;
     return v.toString(16);
   });
 }
 
 function generateCode(prefix: string): string {
   const timestamp = Date.now().toString(36).toUpperCase();
-  const randomPart = Math.floor(Math.random() * 0xFFFFFF).toString(16).toUpperCase().padStart(6, '0');
+  const randomPart = Math.floor(Math.random() * 0xFFFFFF)
+    .toString(16)
+    .toUpperCase()
+    .padStart(6, '0');
   return `${prefix}-${timestamp.slice(-5)}${randomPart.slice(0, 4)}`;
 }
 
@@ -69,8 +97,8 @@ function snakeToCamel(str: string): string {
   return str.replace(/_([a-z])/g, (_, letter) => letter.toUpperCase());
 }
 
-function transformRow(row: any): any {
-  const transformed: any = {};
+function transformRow(row: AnyObject): AnyObject {
+  const transformed: AnyObject = {};
   for (const [key, value] of Object.entries(row)) {
     const camelKey = snakeToCamel(key);
     transformed[camelKey] = value;
@@ -78,7 +106,17 @@ function transformRow(row: any): any {
   return transformed;
 }
 
+function safeJsonParse<T = any>(s: any, fallback: T): T {
+  if (s === null || s === undefined) return fallback;
+  try {
+    return JSON.parse(s);
+  } catch {
+    return fallback;
+  }
+}
+
 function transformBookingRow(row: any): any {
+  if (!row) return null;
   return {
     id: row.id,
     bookingCode: row.booking_code,
@@ -93,19 +131,19 @@ function transformBookingRow(row: any): any {
     endTime: row.end_time,
     price: row.price,
     status: row.status,
-    bookingType: JSON.parse(row.booking_type || '[]'),
+    bookingType: safeJsonParse(row.booking_type, []),
     pausedRemainingTime: row.paused_remaining_time,
     personCount: row.person_count,
     paymentMethod: row.payment_method,
     cashAmount: row.cash_amount,
     upiAmount: row.upi_amount,
     paymentStatus: row.payment_status,
-    lastPaymentAction: row.last_payment_action ? JSON.parse(row.last_payment_action) : null,
-    foodOrders: JSON.parse(row.food_orders || '[]'),
+    lastPaymentAction: safeJsonParse(row.last_payment_action, null),
+    foodOrders: safeJsonParse(row.food_orders, []),
     originalPrice: row.original_price,
     discountApplied: row.discount_applied,
     bonusHoursApplied: row.bonus_hours_applied,
-    promotionDetails: row.promotion_details ? JSON.parse(row.promotion_details) : null,
+    promotionDetails: safeJsonParse(row.promotion_details, null),
     isPromotionalDiscount: row.is_promotional_discount,
     isPromotionalBonus: row.is_promotional_bonus,
     manualDiscountPercentage: row.manual_discount_percentage,
@@ -117,6 +155,7 @@ function transformBookingRow(row: any): any {
 }
 
 function transformFoodItemRow(row: any): any {
+  if (!row) return null;
   return {
     id: row.id,
     name: row.name,
@@ -132,6 +171,7 @@ function transformFoodItemRow(row: any): any {
 }
 
 function transformExpenseRow(row: any): any {
+  if (!row) return null;
   return {
     id: row.id,
     category: row.category,
@@ -143,6 +183,7 @@ function transformExpenseRow(row: any): any {
 }
 
 function transformActivityLogRow(row: any): any {
+  if (!row) return null;
   return {
     id: row.id,
     userId: row.user_id,
@@ -157,6 +198,7 @@ function transformActivityLogRow(row: any): any {
 }
 
 function transformNotificationRow(row: any): any {
+  if (!row) return null;
   return {
     id: row.id,
     type: row.type,
@@ -171,6 +213,7 @@ function transformNotificationRow(row: any): any {
 }
 
 function transformUserRow(row: any): any {
+  if (!row) return null;
   return {
     id: row.id,
     username: row.username,
@@ -183,15 +226,17 @@ function transformUserRow(row: any): any {
 }
 
 function transformDeviceConfigRow(row: any): any {
+  if (!row) return null;
   return {
     id: row.id,
     category: row.category,
     count: row.count,
-    seats: JSON.parse(row.seats || '[]'),
+    seats: safeJsonParse(row.seats, []),
   };
 }
 
 function transformPricingConfigRow(row: any): any {
+  if (!row) return null;
   return {
     id: row.id,
     category: row.category,
@@ -202,6 +247,7 @@ function transformPricingConfigRow(row: any): any {
 }
 
 function transformBookingHistoryRow(row: any): any {
+  if (!row) return null;
   return {
     id: row.id,
     bookingId: row.booking_id,
@@ -217,19 +263,19 @@ function transformBookingHistoryRow(row: any): any {
     endTime: row.end_time,
     price: row.price,
     status: row.status,
-    bookingType: JSON.parse(row.booking_type || '[]'),
+    bookingType: safeJsonParse(row.booking_type, []),
     pausedRemainingTime: row.paused_remaining_time,
     personCount: row.person_count,
     paymentMethod: row.payment_method,
     cashAmount: row.cash_amount,
     upiAmount: row.upi_amount,
     paymentStatus: row.payment_status,
-    lastPaymentAction: row.last_payment_action ? JSON.parse(row.last_payment_action) : null,
-    foodOrders: JSON.parse(row.food_orders || '[]'),
+    lastPaymentAction: safeJsonParse(row.last_payment_action, null),
+    foodOrders: safeJsonParse(row.food_orders, []),
     originalPrice: row.original_price,
     discountApplied: row.discount_applied,
     bonusHoursApplied: row.bonus_hours_applied,
-    promotionDetails: row.promotion_details ? JSON.parse(row.promotion_details) : null,
+    promotionDetails: safeJsonParse(row.promotion_details, null),
     isPromotionalDiscount: row.is_promotional_discount,
     isPromotionalBonus: row.is_promotional_bonus,
     manualDiscountPercentage: row.manual_discount_percentage,
@@ -242,6 +288,7 @@ function transformBookingHistoryRow(row: any): any {
 }
 
 function transformGamingCenterInfoRow(row: any): any {
+  if (!row) return null;
   return {
     id: row.id,
     name: row.name,
@@ -256,21 +303,26 @@ function transformGamingCenterInfoRow(row: any): any {
 }
 
 function transformSessionGroupRow(row: any): any {
+  if (!row) return null;
   return {
     id: row.id,
     groupCode: row.group_code,
     groupName: row.group_name,
     category: row.category,
-    bookingType: JSON.parse(row.booking_type || '[]'),
+    bookingType: safeJsonParse(row.booking_type, []),
     createdAt: row.created_at,
   };
 }
 
+/* -------------------------
+   localDb API (all functions)
+   ------------------------- */
 export const localDb = {
+  /* BOOKINGS */
   async getAllBookings() {
     const database = await getDatabase();
     const result = await database.select('SELECT * FROM bookings ORDER BY created_at DESC');
-    return result.map(transformBookingRow);
+    return (result || []).map(transformBookingRow);
   },
 
   async getActiveBookings() {
@@ -278,7 +330,7 @@ export const localDb = {
     const result = await database.select(
       "SELECT * FROM bookings WHERE status IN ('running', 'paused', 'upcoming') ORDER BY start_time"
     );
-    return result.map(transformBookingRow);
+    return (result || []).map(transformBookingRow);
   },
 
   async getBookingById(id: string) {
@@ -292,7 +344,7 @@ export const localDb = {
     const id = generateUUID();
     const bookingCode = generateCode('BK');
     const now = new Date().toISOString();
-    
+
     await database.execute(
       `INSERT INTO bookings (
         id, booking_code, group_id, group_code, category, seat_number, seat_name,
@@ -314,14 +366,14 @@ export const localDb = {
         booking.paymentStatus || 'unpaid', JSON.stringify(booking.lastPaymentAction || null),
         JSON.stringify(booking.foodOrders || []), booking.originalPrice || null,
         booking.discountApplied || null, booking.bonusHoursApplied || null,
-        JSON.stringify(booking.promotionDetails || null), booking.isPromotionalDiscount || 0,
-        booking.isPromotionalBonus || 0, booking.manualDiscountPercentage || null,
+        JSON.stringify(booking.promotionDetails || null), booking.isPromotionalDiscount ? 1 : 0,
+        booking.isPromotionalBonus ? 1 : 0, booking.manualDiscountPercentage || null,
         booking.manualFreeHours || null, booking.discount || null, booking.bonus || null, now
       ]
     );
-    
-    return { 
-      id, 
+
+    return {
+      id,
       bookingCode,
       groupId: booking.groupId || null,
       groupCode: booking.groupCode || null,
@@ -347,8 +399,8 @@ export const localDb = {
       discountApplied: booking.discountApplied || null,
       bonusHoursApplied: booking.bonusHoursApplied || null,
       promotionDetails: booking.promotionDetails || null,
-      isPromotionalDiscount: booking.isPromotionalDiscount || 0,
-      isPromotionalBonus: booking.isPromotionalBonus || 0,
+      isPromotionalDiscount: booking.isPromotionalDiscount ? 1 : 0,
+      isPromotionalBonus: booking.isPromotionalBonus ? 1 : 0,
       manualDiscountPercentage: booking.manualDiscountPercentage || null,
       manualFreeHours: booking.manualFreeHours || null,
       discount: booking.discount || null,
@@ -402,10 +454,11 @@ export const localDb = {
     await database.execute('DELETE FROM bookings WHERE id = $1', [id]);
   },
 
+  /* FOOD ITEMS */
   async getAllFoodItems() {
     const database = await getDatabase();
     const result = await database.select('SELECT * FROM food_items ORDER BY name');
-    return result.map(transformFoodItemRow);
+    return (result || []).map(transformFoodItemRow);
   },
 
   async getFoodItemById(id: string) {
@@ -479,10 +532,11 @@ export const localDb = {
     return await this.getFoodItemById(foodId);
   },
 
+  /* DEVICE CONFIGS */
   async getAllDeviceConfigs() {
     const database = await getDatabase();
     const result = await database.select('SELECT * FROM device_configs ORDER BY category');
-    return result.map(transformDeviceConfigRow);
+    return (result || []).map(transformDeviceConfigRow);
   },
 
   async getDeviceConfigById(id: string) {
@@ -531,10 +585,11 @@ export const localDb = {
     await database.execute('DELETE FROM device_configs WHERE id = $1', [id]);
   },
 
+  /* PRICING CONFIGS */
   async getAllPricingConfigs() {
     const database = await getDatabase();
     const result = await database.select('SELECT * FROM pricing_configs ORDER BY category, duration');
-    return result.map(transformPricingConfigRow);
+    return (result || []).map(transformPricingConfigRow);
   },
 
   async getPricingConfigById(id: string) {
@@ -585,10 +640,11 @@ export const localDb = {
     await database.execute('DELETE FROM pricing_configs WHERE id = $1', [id]);
   },
 
+  /* HAPPY HOURS */
   async getAllHappyHoursConfigs() {
     const database = await getDatabase();
     const result = await database.select('SELECT * FROM happy_hours_configs');
-    return result.map((row: any) => ({
+    return (result || []).map((row: any) => ({
       id: row.id,
       category: row.category,
       startTime: row.start_time,
@@ -600,7 +656,7 @@ export const localDb = {
   async getAllHappyHoursPricing() {
     const database = await getDatabase();
     const result = await database.select('SELECT * FROM happy_hours_pricing');
-    return result.map((row: any) => ({
+    return (result || []).map((row: any) => ({
       id: row.id,
       category: row.category,
       duration: row.duration,
@@ -609,10 +665,11 @@ export const localDb = {
     }));
   },
 
+  /* EXPENSES */
   async getAllExpenses() {
     const database = await getDatabase();
     const result = await database.select('SELECT * FROM expenses ORDER BY date DESC');
-    return result.map(transformExpenseRow);
+    return (result || []).map(transformExpenseRow);
   },
 
   async getExpenseById(id: string) {
@@ -664,10 +721,11 @@ export const localDb = {
     await database.execute('DELETE FROM expenses WHERE id = $1', [id]);
   },
 
+  /* BOOKING HISTORY */
   async getBookingHistory() {
     const database = await getDatabase();
     const result = await database.select('SELECT * FROM booking_history ORDER BY archived_at DESC');
-    return result.map(transformBookingHistoryRow);
+    return (result || []).map(transformBookingHistoryRow);
   },
 
   async archiveBooking(booking: any) {
@@ -705,10 +763,11 @@ export const localDb = {
     return { ...booking, id, bookingId: booking.id, archivedAt: now };
   },
 
+  /* USERS */
   async getAllUsers() {
     const database = await getDatabase();
     const result = await database.select('SELECT id, username, role, onboarding_completed, profile_image_url, created_at, updated_at FROM users');
-    return result.map(transformUserRow);
+    return (result || []).map(transformUserRow);
   },
 
   async getUserById(id: string) {
@@ -805,10 +864,11 @@ export const localDb = {
     await database.execute('DELETE FROM users WHERE id = $1', [id]);
   },
 
+  /* ACTIVITY LOGS */
   async getActivityLogs() {
     const database = await getDatabase();
     const result = await database.select('SELECT * FROM activity_logs ORDER BY created_at DESC LIMIT 1000');
-    return result.map(transformActivityLogRow);
+    return (result || []).map(transformActivityLogRow);
   },
 
   async createActivityLog(log: any) {
@@ -833,16 +893,17 @@ export const localDb = {
     };
   },
 
+  /* NOTIFICATIONS */
   async getNotifications() {
     const database = await getDatabase();
     const result = await database.select('SELECT * FROM notifications ORDER BY created_at DESC LIMIT 100');
-    return result.map(transformNotificationRow);
+    return (result || []).map(transformNotificationRow);
   },
 
   async getUnreadNotifications() {
     const database = await getDatabase();
     const result = await database.select('SELECT * FROM notifications WHERE is_read = 0 ORDER BY created_at DESC');
-    return result.map(transformNotificationRow);
+    return (result || []).map(transformNotificationRow);
   },
 
   async createNotification(notification: any) {
@@ -879,6 +940,7 @@ export const localDb = {
     await database.execute('UPDATE notifications SET is_read = 1 WHERE is_read = 0');
   },
 
+  /* GAMING CENTER INFO */
   async getGamingCenterInfo() {
     const database = await getDatabase();
     const result = await database.select('SELECT * FROM gaming_center_info LIMIT 1');
@@ -907,10 +969,11 @@ export const localDb = {
     }
   },
 
+  /* SESSION GROUPS */
   async getAllSessionGroups() {
     const database = await getDatabase();
     const result = await database.select('SELECT * FROM session_groups ORDER BY created_at DESC');
-    return result.map(transformSessionGroupRow);
+    return (result || []).map(transformSessionGroupRow);
   },
 
   async createSessionGroup(group: any) {
@@ -940,14 +1003,15 @@ export const localDb = {
     await database.execute('DELETE FROM session_groups WHERE id = $1', [id]);
   },
 
+  /* STAFF VISIBILITY SETTINGS */
   async getStaffVisibilitySettings() {
     const database = await getDatabase();
     const result = await database.select('SELECT * FROM staff_visibility_settings LIMIT 1');
     if (!result[0]) return null;
     return {
       id: result[0].id,
-      pages: result[0].pages ? JSON.parse(result[0].pages) : {},
-      dashboard: result[0].dashboard ? JSON.parse(result[0].dashboard) : {},
+      pages: safeJsonParse(result[0].pages, {}),
+      dashboard: safeJsonParse(result[0].dashboard, {}),
       updatedAt: result[0].updated_at,
     };
   },
@@ -974,6 +1038,7 @@ export const localDb = {
     }
   },
 
+  /* APP SETTINGS */
   async getAppSettings() {
     const database = await getDatabase();
     const result = await database.select('SELECT * FROM app_settings LIMIT 1');
@@ -982,7 +1047,7 @@ export const localDb = {
       id: result[0].id,
       theme: result[0].theme,
       language: result[0].language,
-      notifications: result[0].notifications ? JSON.parse(result[0].notifications) : {},
+      notifications: safeJsonParse(result[0].notifications, {}),
       updatedAt: result[0].updated_at,
     };
   },
@@ -1009,7 +1074,3 @@ export const localDb = {
     }
   },
 };
-
-export function isTauri(): boolean {
-  return typeof window !== 'undefined' && '__TAURI__' in window;
-}

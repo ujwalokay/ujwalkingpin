@@ -1,4 +1,6 @@
-import { isTauri, localDb, initDatabase } from './tauri-db';
+/* auth-client.ts - Offline-only authentication using local SQLite database */
+
+import { localDb, initDatabase, isTauri } from './tauri-db';
 
 interface User {
   id: string;
@@ -41,7 +43,6 @@ function clearTauriSession(): void {
 }
 
 async function ensureDatabaseReady(): Promise<boolean> {
-  if (!isTauri()) return true;
   try {
     await initDatabase();
     return true;
@@ -52,100 +53,48 @@ async function ensureDatabaseReady(): Promise<boolean> {
 }
 
 export async function login(username: string, password: string): Promise<AuthResult> {
-  if (isTauri()) {
-    try {
-      const dbReady = await ensureDatabaseReady();
-      if (!dbReady) {
-        return { success: false, error: 'Database not ready. Please restart the app.' };
-      }
-      
-      const user = await localDb.validatePassword(username, password);
-      if (user) {
-        const authUser: User = {
-          id: user.id,
-          username: user.username,
-          role: user.role as 'admin' | 'staff',
-          onboardingCompleted: user.onboardingCompleted,
-          profileImageUrl: user.profileImageUrl,
-          twoStepComplete: true,
-        };
-        setTauriSession(authUser);
-        return { success: true, user: authUser };
-      }
-      return { success: false, error: 'Invalid username or password' };
-    } catch (error) {
-      console.error('Tauri login error:', error);
-      return { success: false, error: 'Login failed. Please try again.' };
-    }
-  }
-
   try {
-    const response = await fetch('/api/auth/login', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ username, password }),
-      credentials: 'include',
-    });
-
-    if (response.ok) {
-      const userData = await response.json();
-      return { success: true, user: userData };
-    } else {
-      const data = await response.json();
-      return { success: false, error: data.message || 'Invalid username or password' };
+    const dbReady = await ensureDatabaseReady();
+    if (!dbReady) {
+      return { success: false, error: 'Database not ready. Please restart the app.' };
     }
+    
+    const user = await localDb.validatePassword(username, password);
+    if (user) {
+      const authUser: User = {
+        id: user.id,
+        username: user.username,
+        role: user.role as 'admin' | 'staff',
+        onboardingCompleted: user.onboardingCompleted,
+        profileImageUrl: user.profileImageUrl,
+        twoStepComplete: true,
+      };
+      setTauriSession(authUser);
+      return { success: true, user: authUser };
+    }
+    return { success: false, error: 'Invalid username or password' };
   } catch (error) {
-    console.error('Web login error:', error);
+    console.error('Login error:', error);
     return { success: false, error: 'Login failed. Please try again.' };
   }
 }
 
 export async function getCurrentUser(): Promise<User | null> {
-  if (isTauri()) {
-    const session = getTauriSession();
-    if (session) {
-      return { ...session, twoStepComplete: true };
-    }
-    return null;
-  }
-
-  try {
-    const response = await fetch('/api/auth/me', { credentials: 'include' });
-    if (response.ok) {
-      const userData = await response.json();
-      if (userData.twoStepComplete && userData.id) {
-        return userData;
-      }
-    }
-  } catch (error) {
-    console.error('Check auth error:', error);
+  const session = getTauriSession();
+  if (session) {
+    return { ...session, twoStepComplete: true };
   }
   return null;
 }
 
 export async function logout(): Promise<boolean> {
-  if (isTauri()) {
-    clearTauriSession();
-    return true;
-  }
-
-  try {
-    const response = await fetch('/api/auth/logout', {
-      method: 'POST',
-      credentials: 'include',
-    });
-    return response.ok;
-  } catch (error) {
-    console.error('Logout error:', error);
-    return false;
-  }
+  clearTauriSession();
+  return true;
 }
 
 export async function initializeTauriAuth(): Promise<boolean> {
-  if (!isTauri()) return true;
-  
   try {
-    console.log('Initializing Tauri authentication...');
+    console.log('Initializing offline authentication...');
     const dbReady = await ensureDatabaseReady();
     if (!dbReady) {
       console.error('Failed to initialize database');
@@ -162,10 +111,10 @@ export async function initializeTauriAuth(): Promise<boolean> {
       });
       console.log('Default admin user created');
     }
-    console.log('Tauri authentication initialized successfully');
+    console.log('Offline authentication initialized successfully');
     return true;
   } catch (error) {
-    console.error('Failed to initialize Tauri auth:', error);
+    console.error('Failed to initialize authentication:', error);
     return false;
   }
 }
