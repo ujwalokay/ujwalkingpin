@@ -102,17 +102,56 @@ Preferred communication style: Simple, everyday language.
 - **Booking & Group Code System**: Unique booking codes (BK-XXXXX) for each booking and group codes (GRP-XXXXX) for linking multiple related bookings (e.g., PC 1, 2, 3 for the same table/session). Codes persist through booking creation to history archival.
 - **Simplified User Authentication**: Users authenticate with username and password only (no email, firstName, lastName fields).
 
-## WebView2 Desktop Application (Windows Offline Mode)
+## Tauri Desktop Application (Primary - Offline Only)
 
-The application can be packaged as a standalone Windows desktop executable using Microsoft WebView2 for offline use in gaming cafes.
+**IMPORTANT: This application is now designed to run exclusively as a Tauri desktop application with local SQLite database. Web API functionality has been completely removed.**
+
+The application runs as a cross-platform desktop executable using Tauri v2 with a local SQLite database for complete offline operation in gaming cafes.
 
 ### Desktop App Architecture
+- **Frontend**: React + Vite with Tauri-specific API layer
+- **Database**: Local SQLite via `@tauri-apps/plugin-sql`
+- **Runtime**: Tauri v2 with Rust backend
+- **Distribution**: Cross-platform installers (Windows, macOS, Linux)
+
+### Key Files (Tauri)
+- `src-tauri/Cargo.toml` - Rust dependencies and app configuration
+- `src-tauri/src/lib.rs` - Tauri plugin initialization
+- `src-tauri/tauri.conf.json` - Tauri configuration
+- `client/src/lib/tauri-db.ts` - SQLite database layer (all 20+ tables)
+- `client/src/lib/api.ts` - Offline-only API functions (no web fallback)
+- `client/src/lib/auth-client.ts` - Local SQLite authentication
+- `client/src/lib/queryClient.ts` - Offline query routing
+- `TAURI_BUILD_GUIDE.md` - Comprehensive build instructions
+
+### Offline-Only Design
+- All data operations use local SQLite database
+- No web API calls or fetch requests
+- Authentication uses local user table with bcrypt
+- Date fields properly converted from SQLite strings to JavaScript Date objects
+
+### Build Requirements
+- Rust toolchain (rustup)
+- Node.js 18+
+- Platform-specific dependencies (see TAURI_BUILD_GUIDE.md)
+
+### Build Commands
+```bash
+npm run tauri:build     # Build production app
+npm run tauri:dev       # Development mode
+```
+
+## WebView2 Desktop Application (Legacy - Windows Only)
+
+The legacy WebView2 implementation is still available for Windows-only deployment.
+
+### Desktop App Architecture (WebView2)
 - **Frontend**: Built React app served from local files via WebView2
 - **Wrapper**: C# WinForms application with WebView2 control
 - **Runtime**: Microsoft Edge WebView2 (Chromium-based)
 - **Distribution**: Single .exe with bundled web app files
 
-### Key Files
+### Key Files (WebView2)
 - `webview2-app/AiravotoGamingPOS.csproj` - .NET 8 project file
 - `webview2-app/Program.cs` - Application entry point
 - `webview2-app/MainForm.cs` - WebView2 window implementation
@@ -143,7 +182,8 @@ build-portable.bat  # Build portable package
 ## External Dependencies
 
 ### Database
-- **Neon PostgreSQL**: Serverless PostgreSQL database (web version).
+- **SQLite**: Local SQLite database via `@tauri-apps/plugin-sql` (Tauri desktop version - primary)
+- **Neon PostgreSQL**: Serverless PostgreSQL database (web version - legacy, no longer used)
 
 ### UI Component Libraries
 - **Radix UI**: Accessible React primitives.
