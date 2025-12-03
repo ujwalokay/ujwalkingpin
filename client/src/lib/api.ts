@@ -8,19 +8,19 @@ export function getApiMode(): 'tauri' {
 }
 
 export async function fetchBookings(): Promise<Booking[]> {
-  return localDb.getAllBookings() as unknown as Promise<Booking[]>;
+  return localDb.getAllBookings();
 }
 
 export async function fetchActiveBookings(): Promise<Booking[]> {
-  return localDb.getActiveBookings() as unknown as Promise<Booking[]>;
+  return localDb.getActiveBookings();
 }
 
 export async function createBooking(booking: InsertBooking): Promise<Booking> {
-  return localDb.createBooking(booking) as unknown as Promise<Booking>;
+  return localDb.createBooking(booking);
 }
 
 export async function updateBooking(id: string, data: Partial<InsertBooking>): Promise<Booking> {
-  return localDb.updateBooking(id, data) as unknown as Promise<Booking>;
+  return localDb.updateBooking(id, data);
 }
 
 export async function deleteBooking(id: string): Promise<void> {
@@ -28,11 +28,11 @@ export async function deleteBooking(id: string): Promise<void> {
 }
 
 export async function fetchDeviceConfigs(): Promise<DeviceConfig[]> {
-  return localDb.getAllDeviceConfigs() as unknown as Promise<DeviceConfig[]>;
+  return localDb.getAllDeviceConfigs();
 }
 
 export async function fetchPricingConfigs(): Promise<PricingConfig[]> {
-  return localDb.getAllPricingConfigs() as unknown as Promise<PricingConfig[]>;
+  return localDb.getAllPricingConfigs();
 }
 
 export async function getServerTime(): Promise<Date> {

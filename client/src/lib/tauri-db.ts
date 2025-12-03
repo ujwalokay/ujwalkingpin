@@ -115,6 +115,20 @@ function safeJsonParse<T = any>(s: any, fallback: T): T {
   }
 }
 
+function parseDate(value: any): Date | null {
+  if (!value) return null;
+  if (value instanceof Date) return value;
+  const parsed = new Date(value);
+  return isNaN(parsed.getTime()) ? null : parsed;
+}
+
+function parseDateRequired(value: any): Date {
+  if (!value) return new Date();
+  if (value instanceof Date) return value;
+  const parsed = new Date(value);
+  return isNaN(parsed.getTime()) ? new Date() : parsed;
+}
+
 function transformBookingRow(row: any): any {
   if (!row) return null;
   return {
@@ -127,8 +141,8 @@ function transformBookingRow(row: any): any {
     seatName: row.seat_name,
     customerName: row.customer_name,
     whatsappNumber: row.whatsapp_number,
-    startTime: row.start_time,
-    endTime: row.end_time,
+    startTime: parseDateRequired(row.start_time),
+    endTime: parseDateRequired(row.end_time),
     price: row.price,
     status: row.status,
     bookingType: safeJsonParse(row.booking_type, []),
@@ -150,7 +164,7 @@ function transformBookingRow(row: any): any {
     manualFreeHours: row.manual_free_hours,
     discount: row.discount,
     bonus: row.bonus,
-    createdAt: row.created_at,
+    createdAt: parseDateRequired(row.created_at),
   };
 }
 
@@ -166,7 +180,7 @@ function transformFoodItemRow(row: any): any {
     inInventory: row.in_inventory,
     category: row.category,
     supplier: row.supplier,
-    expiryDate: row.expiry_date,
+    expiryDate: parseDate(row.expiry_date),
   };
 }
 
@@ -177,8 +191,8 @@ function transformExpenseRow(row: any): any {
     category: row.category,
     description: row.description,
     amount: row.amount,
-    date: row.date,
-    createdAt: row.created_at,
+    date: parseDateRequired(row.date),
+    createdAt: parseDateRequired(row.created_at),
   };
 }
 
@@ -193,7 +207,7 @@ function transformActivityLogRow(row: any): any {
     entityType: row.entity_type,
     entityId: row.entity_id,
     details: row.details,
-    createdAt: row.created_at,
+    createdAt: parseDateRequired(row.created_at),
   };
 }
 
@@ -208,7 +222,7 @@ function transformNotificationRow(row: any): any {
     entityId: row.entity_id,
     activityLogId: row.activity_log_id,
     isRead: row.is_read,
-    createdAt: row.created_at,
+    createdAt: parseDateRequired(row.created_at),
   };
 }
 
@@ -220,8 +234,8 @@ function transformUserRow(row: any): any {
     role: row.role,
     onboardingCompleted: row.onboarding_completed,
     profileImageUrl: row.profile_image_url,
-    createdAt: row.created_at,
-    updatedAt: row.updated_at,
+    createdAt: parseDateRequired(row.created_at),
+    updatedAt: parseDate(row.updated_at),
   };
 }
 
@@ -259,8 +273,8 @@ function transformBookingHistoryRow(row: any): any {
     seatName: row.seat_name,
     customerName: row.customer_name,
     whatsappNumber: row.whatsapp_number,
-    startTime: row.start_time,
-    endTime: row.end_time,
+    startTime: parseDateRequired(row.start_time),
+    endTime: parseDateRequired(row.end_time),
     price: row.price,
     status: row.status,
     bookingType: safeJsonParse(row.booking_type, []),
@@ -282,8 +296,8 @@ function transformBookingHistoryRow(row: any): any {
     manualFreeHours: row.manual_free_hours,
     discount: row.discount,
     bonus: row.bonus,
-    createdAt: row.created_at,
-    archivedAt: row.archived_at,
+    createdAt: parseDateRequired(row.created_at),
+    archivedAt: parseDate(row.archived_at),
   };
 }
 
@@ -298,7 +312,7 @@ function transformGamingCenterInfoRow(row: any): any {
     email: row.email,
     hours: row.hours,
     timezone: row.timezone,
-    updatedAt: row.updated_at,
+    updatedAt: parseDate(row.updated_at),
   };
 }
 
@@ -310,7 +324,7 @@ function transformSessionGroupRow(row: any): any {
     groupName: row.group_name,
     category: row.category,
     bookingType: safeJsonParse(row.booking_type, []),
-    createdAt: row.created_at,
+    createdAt: parseDateRequired(row.created_at),
   };
 }
 
