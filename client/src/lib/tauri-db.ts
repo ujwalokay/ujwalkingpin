@@ -424,6 +424,9 @@ export const localDb = {
   },
 
   async updateBooking(id: string, updates: any) {
+    if (!updates || Object.keys(updates).length === 0) {
+      return await this.getBookingById(id);
+    }
     const database = await getDatabase();
     const setClauses: string[] = [];
     const values: any[] = [];
@@ -506,6 +509,9 @@ export const localDb = {
   },
 
   async updateFoodItem(id: string, updates: any) {
+    if (!updates || Object.keys(updates).length === 0) {
+      return await this.getFoodItemById(id);
+    }
     const database = await getDatabase();
     const setClauses: string[] = [];
     const values: any[] = [];
@@ -575,6 +581,9 @@ export const localDb = {
   },
 
   async updateDeviceConfig(id: string, updates: any) {
+    if (!updates || Object.keys(updates).length === 0) {
+      return await this.getDeviceConfigById(id);
+    }
     const database = await getDatabase();
     const setClauses: string[] = [];
     const values: any[] = [];
@@ -629,6 +638,9 @@ export const localDb = {
   },
 
   async updatePricingConfig(id: string, updates: any) {
+    if (!updates || Object.keys(updates).length === 0) {
+      return await this.getPricingConfigById(id);
+    }
     const database = await getDatabase();
     const setClauses: string[] = [];
     const values: any[] = [];
@@ -711,6 +723,9 @@ export const localDb = {
   },
 
   async updateExpense(id: string, updates: any) {
+    if (!updates || Object.keys(updates).length === 0) {
+      return await this.getExpenseById(id);
+    }
     const database = await getDatabase();
     const setClauses: string[] = [];
     const values: any[] = [];
@@ -840,6 +855,9 @@ export const localDb = {
   },
 
   async updateUser(id: string, updates: any) {
+    if (!updates || Object.keys(updates).length === 0) {
+      return await this.getUserById(id);
+    }
     const database = await getDatabase();
     const now = new Date().toISOString();
     const setClauses: string[] = ['updated_at = $1'];
@@ -1086,5 +1104,852 @@ export const localDb = {
       );
       return { id, ...settings, updatedAt: now };
     }
+  },
+
+  /* GALLERY IMAGES */
+  async getAllGalleryImages() {
+    const database = await getDatabase();
+    const result = await database.select('SELECT * FROM gallery_images ORDER BY created_at DESC');
+    return (result || []).map((row: any) => ({
+      id: row.id,
+      title: row.title,
+      imageUrl: row.image_url,
+      description: row.description,
+      createdAt: parseDateRequired(row.created_at),
+    }));
+  },
+
+  async createGalleryImage(image: any) {
+    const database = await getDatabase();
+    const id = generateUUID();
+    const now = new Date().toISOString();
+    await database.execute(
+      `INSERT INTO gallery_images (id, title, image_url, description, created_at)
+       VALUES ($1, $2, $3, $4, $5)`,
+      [id, image.title, image.imageUrl, image.description || null, now]
+    );
+    return {
+      id,
+      title: image.title,
+      imageUrl: image.imageUrl,
+      description: image.description || null,
+      createdAt: now,
+    };
+  },
+
+  async deleteGalleryImage(id: string) {
+    const database = await getDatabase();
+    await database.execute('DELETE FROM gallery_images WHERE id = $1', [id]);
+  },
+
+  /* FACILITIES */
+  async getAllFacilities() {
+    const database = await getDatabase();
+    const result = await database.select('SELECT * FROM facilities ORDER BY name');
+    return (result || []).map((row: any) => ({
+      id: row.id,
+      name: row.name,
+      description: row.description,
+      icon: row.icon,
+    }));
+  },
+
+  async createFacility(facility: any) {
+    const database = await getDatabase();
+    const id = generateUUID();
+    await database.execute(
+      `INSERT INTO facilities (id, name, description, icon) VALUES ($1, $2, $3, $4)`,
+      [id, facility.name, facility.description, facility.icon]
+    );
+    return {
+      id,
+      name: facility.name,
+      description: facility.description,
+      icon: facility.icon,
+    };
+  },
+
+  async updateFacility(id: string, updates: any) {
+    if (!updates || Object.keys(updates).length === 0) {
+      const result = await (await getDatabase()).select('SELECT * FROM facilities WHERE id = $1', [id]);
+      return result[0] ? {
+        id: result[0].id,
+        name: result[0].name,
+        description: result[0].description,
+        icon: result[0].icon,
+      } : null;
+    }
+    const database = await getDatabase();
+    const setClauses: string[] = [];
+    const values: any[] = [];
+    let paramIndex = 1;
+
+    for (const [key, value] of Object.entries(updates)) {
+      setClauses.push(`${key} = $${paramIndex}`);
+      values.push(value);
+      paramIndex++;
+    }
+
+    values.push(id);
+    await database.execute(
+      `UPDATE facilities SET ${setClauses.join(', ')} WHERE id = $${paramIndex}`,
+      values
+    );
+    const result = await database.select('SELECT * FROM facilities WHERE id = $1', [id]);
+    return result[0] ? {
+      id: result[0].id,
+      name: result[0].name,
+      description: result[0].description,
+      icon: result[0].icon,
+    } : null;
+  },
+
+  async deleteFacility(id: string) {
+    const database = await getDatabase();
+    await database.execute('DELETE FROM facilities WHERE id = $1', [id]);
+  },
+
+  /* GAMES */
+  async getAllGames() {
+    const database = await getDatabase();
+    const result = await database.select('SELECT * FROM games ORDER BY name');
+    return (result || []).map((row: any) => ({
+      id: row.id,
+      name: row.name,
+      description: row.description,
+      imageUrl: row.image_url,
+      category: row.category,
+    }));
+  },
+
+  async createGame(game: any) {
+    const database = await getDatabase();
+    const id = generateUUID();
+    await database.execute(
+      `INSERT INTO games (id, name, description, image_url, category) VALUES ($1, $2, $3, $4, $5)`,
+      [id, game.name, game.description || null, game.imageUrl || null, game.category]
+    );
+    return {
+      id,
+      name: game.name,
+      description: game.description || null,
+      imageUrl: game.imageUrl || null,
+      category: game.category,
+    };
+  },
+
+  async updateGame(id: string, updates: any) {
+    if (!updates || Object.keys(updates).length === 0) {
+      const result = await (await getDatabase()).select('SELECT * FROM games WHERE id = $1', [id]);
+      return result[0] ? {
+        id: result[0].id,
+        name: result[0].name,
+        description: result[0].description,
+        imageUrl: result[0].image_url,
+        category: result[0].category,
+      } : null;
+    }
+    const database = await getDatabase();
+    const setClauses: string[] = [];
+    const values: any[] = [];
+    let paramIndex = 1;
+
+    const fieldMappings: Record<string, string> = {
+      imageUrl: 'image_url',
+    };
+
+    for (const [key, value] of Object.entries(updates)) {
+      const dbField = fieldMappings[key] || key;
+      setClauses.push(`${dbField} = $${paramIndex}`);
+      values.push(value);
+      paramIndex++;
+    }
+
+    values.push(id);
+    await database.execute(
+      `UPDATE games SET ${setClauses.join(', ')} WHERE id = $${paramIndex}`,
+      values
+    );
+    const result = await database.select('SELECT * FROM games WHERE id = $1', [id]);
+    return result[0] ? {
+      id: result[0].id,
+      name: result[0].name,
+      description: result[0].description,
+      imageUrl: result[0].image_url,
+      category: result[0].category,
+    } : null;
+  },
+
+  async deleteGame(id: string) {
+    const database = await getDatabase();
+    await database.execute('DELETE FROM games WHERE id = $1', [id]);
+  },
+
+  /* DEVICE MAINTENANCE */
+  async getAllDeviceMaintenance() {
+    const database = await getDatabase();
+    const result = await database.select('SELECT * FROM device_maintenance ORDER BY category, seat_name');
+    return (result || []).map((row: any) => ({
+      id: row.id,
+      category: row.category,
+      seatName: row.seat_name,
+      lastMaintenanceDate: parseDate(row.last_maintenance_date),
+      totalUsageHours: row.total_usage_hours,
+      totalSessions: row.total_sessions,
+      issuesReported: row.issues_reported,
+      maintenanceNotes: row.maintenance_notes,
+      status: row.status,
+      createdAt: parseDateRequired(row.created_at),
+      updatedAt: parseDate(row.updated_at),
+    }));
+  },
+
+  async getDeviceMaintenanceById(id: string) {
+    const database = await getDatabase();
+    const result = await database.select('SELECT * FROM device_maintenance WHERE id = $1', [id]);
+    if (!result[0]) return null;
+    return {
+      id: result[0].id,
+      category: result[0].category,
+      seatName: result[0].seat_name,
+      lastMaintenanceDate: parseDate(result[0].last_maintenance_date),
+      totalUsageHours: result[0].total_usage_hours,
+      totalSessions: result[0].total_sessions,
+      issuesReported: result[0].issues_reported,
+      maintenanceNotes: result[0].maintenance_notes,
+      status: result[0].status,
+      createdAt: parseDateRequired(result[0].created_at),
+      updatedAt: parseDate(result[0].updated_at),
+    };
+  },
+
+  async getDeviceMaintenanceBySeat(category: string, seatName: string) {
+    const database = await getDatabase();
+    const result = await database.select(
+      'SELECT * FROM device_maintenance WHERE category = $1 AND seat_name = $2',
+      [category, seatName]
+    );
+    if (!result[0]) return null;
+    return {
+      id: result[0].id,
+      category: result[0].category,
+      seatName: result[0].seat_name,
+      lastMaintenanceDate: parseDate(result[0].last_maintenance_date),
+      totalUsageHours: result[0].total_usage_hours,
+      totalSessions: result[0].total_sessions,
+      issuesReported: result[0].issues_reported,
+      maintenanceNotes: result[0].maintenance_notes,
+      status: result[0].status,
+      createdAt: parseDateRequired(result[0].created_at),
+      updatedAt: parseDate(result[0].updated_at),
+    };
+  },
+
+  async upsertDeviceMaintenance(maintenance: any) {
+    const database = await getDatabase();
+    const now = new Date().toISOString();
+    const existing = await this.getDeviceMaintenanceBySeat(maintenance.category, maintenance.seatName);
+    
+    if (existing) {
+      await database.execute(
+        `UPDATE device_maintenance SET 
+          last_maintenance_date = $1, total_usage_hours = $2, total_sessions = $3,
+          issues_reported = $4, maintenance_notes = $5, status = $6, updated_at = $7
+         WHERE id = $8`,
+        [
+          maintenance.lastMaintenanceDate || null,
+          maintenance.totalUsageHours || 0,
+          maintenance.totalSessions || 0,
+          maintenance.issuesReported || 0,
+          maintenance.maintenanceNotes || null,
+          maintenance.status || 'healthy',
+          now,
+          existing.id
+        ]
+      );
+      return { ...existing, ...maintenance, updatedAt: now };
+    } else {
+      const id = generateUUID();
+      await database.execute(
+        `INSERT INTO device_maintenance (id, category, seat_name, last_maintenance_date, total_usage_hours, total_sessions, issues_reported, maintenance_notes, status, created_at, updated_at)
+         VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11)`,
+        [
+          id,
+          maintenance.category,
+          maintenance.seatName,
+          maintenance.lastMaintenanceDate || null,
+          maintenance.totalUsageHours || 0,
+          maintenance.totalSessions || 0,
+          maintenance.issuesReported || 0,
+          maintenance.maintenanceNotes || null,
+          maintenance.status || 'healthy',
+          now,
+          now
+        ]
+      );
+      return { id, ...maintenance, createdAt: now, updatedAt: now };
+    }
+  },
+
+  async updateDeviceMaintenanceStatus(id: string, status: string, notes?: string) {
+    const database = await getDatabase();
+    const now = new Date().toISOString();
+    if (notes !== undefined) {
+      await database.execute(
+        `UPDATE device_maintenance SET status = $1, maintenance_notes = $2, updated_at = $3 WHERE id = $4`,
+        [status, notes, now, id]
+      );
+    } else {
+      await database.execute(
+        `UPDATE device_maintenance SET status = $1, updated_at = $2 WHERE id = $3`,
+        [status, now, id]
+      );
+    }
+    return await this.getDeviceMaintenanceById(id);
+  },
+
+  async recordMaintenanceCompleted(id: string, notes?: string) {
+    const database = await getDatabase();
+    const now = new Date().toISOString();
+    await database.execute(
+      `UPDATE device_maintenance SET last_maintenance_date = $1, status = 'healthy', maintenance_notes = $2, updated_at = $3 WHERE id = $4`,
+      [now, notes || null, now, id]
+    );
+    return await this.getDeviceMaintenanceById(id);
+  },
+
+  /* STOCK BATCHES */
+  async getAllStockBatches() {
+    const database = await getDatabase();
+    const result = await database.select('SELECT * FROM stock_batches ORDER BY purchase_date DESC');
+    return (result || []).map((row: any) => ({
+      id: row.id,
+      foodItemId: row.food_item_id,
+      quantity: row.quantity,
+      costPrice: row.cost_price,
+      supplier: row.supplier,
+      purchaseDate: parseDateRequired(row.purchase_date),
+      expiryDate: parseDate(row.expiry_date),
+      notes: row.notes,
+      createdAt: parseDateRequired(row.created_at),
+    }));
+  },
+
+  async getStockBatchesByFoodItem(foodItemId: string) {
+    const database = await getDatabase();
+    const result = await database.select(
+      'SELECT * FROM stock_batches WHERE food_item_id = $1 ORDER BY purchase_date DESC',
+      [foodItemId]
+    );
+    return (result || []).map((row: any) => ({
+      id: row.id,
+      foodItemId: row.food_item_id,
+      quantity: row.quantity,
+      costPrice: row.cost_price,
+      supplier: row.supplier,
+      purchaseDate: parseDateRequired(row.purchase_date),
+      expiryDate: parseDate(row.expiry_date),
+      notes: row.notes,
+      createdAt: parseDateRequired(row.created_at),
+    }));
+  },
+
+  async createStockBatch(batch: any) {
+    const database = await getDatabase();
+    const id = generateUUID();
+    const now = new Date().toISOString();
+    await database.execute(
+      `INSERT INTO stock_batches (id, food_item_id, quantity, cost_price, supplier, purchase_date, expiry_date, notes, created_at)
+       VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)`,
+      [
+        id,
+        batch.foodItemId,
+        batch.quantity,
+        batch.costPrice,
+        batch.supplier || null,
+        batch.purchaseDate || now,
+        batch.expiryDate || null,
+        batch.notes || null,
+        now
+      ]
+    );
+    await this.adjustStock(batch.foodItemId, batch.quantity, 'add');
+    return {
+      id,
+      foodItemId: batch.foodItemId,
+      quantity: batch.quantity,
+      costPrice: batch.costPrice,
+      supplier: batch.supplier || null,
+      purchaseDate: batch.purchaseDate || now,
+      expiryDate: batch.expiryDate || null,
+      notes: batch.notes || null,
+      createdAt: now,
+    };
+  },
+
+  /* UPSERT FUNCTIONS */
+  async upsertDeviceConfig(config: any) {
+    const database = await getDatabase();
+    const result = await database.select('SELECT * FROM device_configs WHERE category = $1', [config.category]);
+    
+    if (result[0]) {
+      return await this.updateDeviceConfig(result[0].id, {
+        count: config.count,
+        seats: config.seats,
+      });
+    } else {
+      return await this.createDeviceConfig(config);
+    }
+  },
+
+  async upsertPricingConfigs(configs: any[]) {
+    const results = [];
+    for (const config of configs) {
+      const database = await getDatabase();
+      const result = await database.select(
+        'SELECT * FROM pricing_configs WHERE category = $1 AND duration = $2 AND person_count = $3',
+        [config.category, config.duration, config.personCount || 1]
+      );
+      
+      if (result[0]) {
+        const updated = await this.updatePricingConfig(result[0].id, { price: config.price });
+        results.push(updated);
+      } else {
+        const created = await this.createPricingConfig(config);
+        results.push(created);
+      }
+    }
+    return results;
+  },
+
+  async upsertHappyHoursConfigs(configs: any[]) {
+    const database = await getDatabase();
+    const existingConfigs = await database.select('SELECT * FROM happy_hours_configs');
+    
+    try {
+      await database.execute('DELETE FROM happy_hours_configs');
+      
+      const results = [];
+      for (const config of configs) {
+        const id = generateUUID();
+        await database.execute(
+          `INSERT INTO happy_hours_configs (id, category, start_time, end_time, enabled)
+           VALUES ($1, $2, $3, $4, $5)`,
+          [id, config.category, config.startTime, config.endTime, config.enabled ? 1 : 0]
+        );
+        results.push({ id, ...config });
+      }
+      return results;
+    } catch (error) {
+      console.error('[DB] upsertHappyHoursConfigs failed, attempting to restore previous data:', error);
+      try {
+        for (const existing of existingConfigs || []) {
+          await database.execute(
+            `INSERT INTO happy_hours_configs (id, category, start_time, end_time, enabled)
+             VALUES ($1, $2, $3, $4, $5)`,
+            [existing.id, existing.category, existing.start_time, existing.end_time, existing.enabled]
+          );
+        }
+      } catch (restoreError) {
+        console.error('[DB] Failed to restore happy hours configs:', restoreError);
+      }
+      throw error;
+    }
+  },
+
+  async upsertHappyHoursPricing(pricings: any[]) {
+    const database = await getDatabase();
+    const existingPricings = await database.select('SELECT * FROM happy_hours_pricing');
+    
+    try {
+      await database.execute('DELETE FROM happy_hours_pricing');
+      
+      const results = [];
+      for (const pricing of pricings) {
+        const id = generateUUID();
+        await database.execute(
+          `INSERT INTO happy_hours_pricing (id, category, duration, price, person_count)
+           VALUES ($1, $2, $3, $4, $5)`,
+          [id, pricing.category, pricing.duration, pricing.price, pricing.personCount || 1]
+        );
+        results.push({ id, ...pricing });
+      }
+      return results;
+    } catch (error) {
+      console.error('[DB] upsertHappyHoursPricing failed, attempting to restore previous data:', error);
+      try {
+        for (const existing of existingPricings || []) {
+          await database.execute(
+            `INSERT INTO happy_hours_pricing (id, category, duration, price, person_count)
+             VALUES ($1, $2, $3, $4, $5)`,
+            [existing.id, existing.category, existing.duration, existing.price, existing.person_count]
+          );
+        }
+      } catch (restoreError) {
+        console.error('[DB] Failed to restore happy hours pricing:', restoreError);
+      }
+      throw error;
+    }
+  },
+
+  async deleteAllPricingConfigsByCategory(category: string) {
+    const database = await getDatabase();
+    await database.execute('DELETE FROM pricing_configs WHERE category = $1', [category]);
+  },
+
+  async deleteAllHappyHoursPricingByCategory(category: string) {
+    const database = await getDatabase();
+    await database.execute('DELETE FROM happy_hours_pricing WHERE category = $1', [category]);
+  },
+
+  /* HAPPY HOURS STATUS */
+  async isHappyHoursActive(category?: string) {
+    const configs = await this.getAllHappyHoursConfigs();
+    const now = new Date();
+    const currentTime = now.toTimeString().slice(0, 5);
+    
+    const activeConfigs = configs.filter((config: any) => {
+      if (!config.enabled) return false;
+      if (category && config.category !== category) return false;
+      return currentTime >= config.startTime && currentTime <= config.endTime;
+    });
+    
+    return activeConfigs.length > 0;
+  },
+
+  async isHappyHoursActiveForTime(time: Date, category?: string) {
+    const configs = await this.getAllHappyHoursConfigs();
+    const checkTime = time.toTimeString().slice(0, 5);
+    
+    const activeConfigs = configs.filter((config: any) => {
+      if (!config.enabled) return false;
+      if (category && config.category !== category) return false;
+      return checkTime >= config.startTime && checkTime <= config.endTime;
+    });
+    
+    return activeConfigs.length > 0;
+  },
+
+  /* INVENTORY FUNCTIONS */
+  async getLowStockItems() {
+    const database = await getDatabase();
+    const result = await database.select(
+      'SELECT * FROM food_items WHERE current_stock <= min_stock_level AND in_inventory = 1 ORDER BY current_stock'
+    );
+    return (result || []).map(transformFoodItemRow);
+  },
+
+  async getInventoryItems() {
+    const database = await getDatabase();
+    const result = await database.select(
+      'SELECT * FROM food_items WHERE in_inventory = 1 ORDER BY name'
+    );
+    return (result || []).map(transformFoodItemRow);
+  },
+
+  async getReorderList() {
+    const database = await getDatabase();
+    const result = await database.select(
+      'SELECT * FROM food_items WHERE current_stock <= min_stock_level AND in_inventory = 1 ORDER BY (min_stock_level - current_stock) DESC'
+    );
+    return (result || []).map(transformFoodItemRow);
+  },
+
+  async getExpiringItems(daysAhead: number = 7) {
+    const database = await getDatabase();
+    const futureDate = new Date();
+    futureDate.setDate(futureDate.getDate() + daysAhead);
+    const result = await database.select(
+      `SELECT * FROM food_items WHERE expiry_date IS NOT NULL AND expiry_date <= $1 AND in_inventory = 1 ORDER BY expiry_date`,
+      [futureDate.toISOString()]
+    );
+    return (result || []).map(transformFoodItemRow);
+  },
+
+  async addToInventory(foodItemId: string) {
+    const database = await getDatabase();
+    await database.execute('UPDATE food_items SET in_inventory = 1 WHERE id = $1', [foodItemId]);
+    return await this.getFoodItemById(foodItemId);
+  },
+
+  async removeFromInventory(foodItemId: string) {
+    const database = await getDatabase();
+    await database.execute('UPDATE food_items SET in_inventory = 0 WHERE id = $1', [foodItemId]);
+    return await this.getFoodItemById(foodItemId);
+  },
+
+  /* NOTIFICATION FUNCTIONS */
+  async deleteNotification(id: string) {
+    const database = await getDatabase();
+    await database.execute('DELETE FROM notifications WHERE id = $1', [id]);
+  },
+
+  async getUnreadNotificationCount() {
+    const database = await getDatabase();
+    const result = await database.select('SELECT COUNT(*) as count FROM notifications WHERE is_read = 0');
+    return result[0]?.count || 0;
+  },
+
+  async clearAllNotifications() {
+    const database = await getDatabase();
+    await database.execute('DELETE FROM notifications');
+  },
+
+  /* BOOKING STATISTICS */
+  async getBookingStats(startDate?: string, endDate?: string) {
+    const database = await getDatabase();
+    let query = 'SELECT * FROM booking_history';
+    const params: any[] = [];
+    
+    if (startDate && endDate) {
+      query += ' WHERE created_at >= $1 AND created_at <= $2';
+      params.push(startDate, endDate);
+    } else if (startDate) {
+      query += ' WHERE created_at >= $1';
+      params.push(startDate);
+    } else if (endDate) {
+      query += ' WHERE created_at <= $1';
+      params.push(endDate);
+    }
+    
+    const result = await database.select(query, params);
+    const history = (result || []).map(transformBookingHistoryRow);
+    
+    const totalBookings = history.length;
+    const totalRevenue = history.reduce((sum: number, b: any) => sum + (parseFloat(b.price) || 0), 0);
+    const avgDuration = history.length > 0
+      ? history.reduce((sum: number, b: any) => {
+          const start = new Date(b.startTime).getTime();
+          const end = new Date(b.endTime).getTime();
+          return sum + (end - start) / (1000 * 60);
+        }, 0) / history.length
+      : 0;
+    
+    const categoryStats: Record<string, { count: number; revenue: number }> = {};
+    for (const booking of history) {
+      if (!categoryStats[booking.category]) {
+        categoryStats[booking.category] = { count: 0, revenue: 0 };
+      }
+      categoryStats[booking.category].count++;
+      categoryStats[booking.category].revenue += parseFloat(booking.price) || 0;
+    }
+    
+    return {
+      totalBookings,
+      totalRevenue,
+      avgDuration: Math.round(avgDuration),
+      categoryStats,
+      bookings: history,
+    };
+  },
+
+  async getRetentionMetrics() {
+    const database = await getDatabase();
+    const result = await database.select('SELECT customer_name, whatsapp_number, COUNT(*) as visit_count FROM booking_history GROUP BY customer_name, whatsapp_number');
+    
+    const customers = result || [];
+    const totalCustomers = customers.length;
+    const repeatCustomers = customers.filter((c: any) => c.visit_count > 1).length;
+    const retentionRate = totalCustomers > 0 ? (repeatCustomers / totalCustomers) * 100 : 0;
+    
+    return {
+      totalCustomers,
+      repeatCustomers,
+      retentionRate: Math.round(retentionRate * 100) / 100,
+      customerVisits: customers.map((c: any) => ({
+        customerName: c.customer_name,
+        whatsappNumber: c.whatsapp_number,
+        visitCount: c.visit_count,
+      })),
+    };
+  },
+
+  /* REPORTS */
+  async getFilteredBookingHistory(filters: { startDate?: string; endDate?: string; category?: string; status?: string }) {
+    const database = await getDatabase();
+    let query = 'SELECT * FROM booking_history WHERE 1=1';
+    const params: any[] = [];
+    let paramIndex = 1;
+    
+    if (filters.startDate) {
+      query += ` AND created_at >= $${paramIndex}`;
+      params.push(filters.startDate);
+      paramIndex++;
+    }
+    if (filters.endDate) {
+      query += ` AND created_at <= $${paramIndex}`;
+      params.push(filters.endDate);
+      paramIndex++;
+    }
+    if (filters.category) {
+      query += ` AND category = $${paramIndex}`;
+      params.push(filters.category);
+      paramIndex++;
+    }
+    if (filters.status) {
+      query += ` AND status = $${paramIndex}`;
+      params.push(filters.status);
+      paramIndex++;
+    }
+    
+    query += ' ORDER BY archived_at DESC';
+    
+    const result = await database.select(query, params);
+    return (result || []).map(transformBookingHistoryRow);
+  },
+
+  async getDailyRevenue(date: string) {
+    const database = await getDatabase();
+    const startOfDay = date + 'T00:00:00.000Z';
+    const endOfDay = date + 'T23:59:59.999Z';
+    
+    const result = await database.select(
+      `SELECT SUM(CAST(price AS REAL)) as total FROM booking_history WHERE archived_at >= $1 AND archived_at <= $2`,
+      [startOfDay, endOfDay]
+    );
+    
+    return result[0]?.total || 0;
+  },
+
+  async getMonthlyRevenue(year: number, month: number) {
+    const database = await getDatabase();
+    const startOfMonth = `${year}-${String(month).padStart(2, '0')}-01T00:00:00.000Z`;
+    const nextMonth = month === 12 ? 1 : month + 1;
+    const nextYear = month === 12 ? year + 1 : year;
+    const endOfMonth = `${nextYear}-${String(nextMonth).padStart(2, '0')}-01T00:00:00.000Z`;
+    
+    const result = await database.select(
+      `SELECT SUM(CAST(price AS REAL)) as total FROM booking_history WHERE archived_at >= $1 AND archived_at < $2`,
+      [startOfMonth, endOfMonth]
+    );
+    
+    return result[0]?.total || 0;
+  },
+
+  /* HAPPY HOURS CONFIG CRUD */
+  async createHappyHoursConfig(config: any) {
+    const database = await getDatabase();
+    const id = generateUUID();
+    await database.execute(
+      `INSERT INTO happy_hours_configs (id, category, start_time, end_time, enabled)
+       VALUES ($1, $2, $3, $4, $5)`,
+      [id, config.category, config.startTime, config.endTime, config.enabled ? 1 : 0]
+    );
+    return { id, ...config };
+  },
+
+  async updateHappyHoursConfig(id: string, updates: any) {
+    if (!updates || Object.keys(updates).length === 0) {
+      const result = await (await getDatabase()).select('SELECT * FROM happy_hours_configs WHERE id = $1', [id]);
+      return result[0] ? {
+        id: result[0].id,
+        category: result[0].category,
+        startTime: result[0].start_time,
+        endTime: result[0].end_time,
+        enabled: result[0].enabled,
+      } : null;
+    }
+    const database = await getDatabase();
+    const setClauses: string[] = [];
+    const values: any[] = [];
+    let paramIndex = 1;
+
+    const fieldMappings: Record<string, string> = {
+      startTime: 'start_time',
+      endTime: 'end_time',
+    };
+
+    for (const [key, value] of Object.entries(updates)) {
+      const dbField = fieldMappings[key] || key;
+      setClauses.push(`${dbField} = $${paramIndex}`);
+      values.push(key === 'enabled' ? (value ? 1 : 0) : value);
+      paramIndex++;
+    }
+
+    values.push(id);
+    await database.execute(
+      `UPDATE happy_hours_configs SET ${setClauses.join(', ')} WHERE id = $${paramIndex}`,
+      values
+    );
+    
+    const result = await database.select('SELECT * FROM happy_hours_configs WHERE id = $1', [id]);
+    return result[0] ? {
+      id: result[0].id,
+      category: result[0].category,
+      startTime: result[0].start_time,
+      endTime: result[0].end_time,
+      enabled: result[0].enabled,
+    } : null;
+  },
+
+  async deleteHappyHoursConfig(id: string) {
+    const database = await getDatabase();
+    await database.execute('DELETE FROM happy_hours_configs WHERE id = $1', [id]);
+  },
+
+  /* HAPPY HOURS PRICING CRUD */
+  async createHappyHoursPricing(pricing: any) {
+    const database = await getDatabase();
+    const id = generateUUID();
+    await database.execute(
+      `INSERT INTO happy_hours_pricing (id, category, duration, price, person_count)
+       VALUES ($1, $2, $3, $4, $5)`,
+      [id, pricing.category, pricing.duration, pricing.price, pricing.personCount || 1]
+    );
+    return {
+      id,
+      category: pricing.category,
+      duration: pricing.duration,
+      price: pricing.price,
+      personCount: pricing.personCount || 1,
+    };
+  },
+
+  async updateHappyHoursPricing(id: string, updates: any) {
+    if (!updates || Object.keys(updates).length === 0) {
+      const result = await (await getDatabase()).select('SELECT * FROM happy_hours_pricing WHERE id = $1', [id]);
+      return result[0] ? {
+        id: result[0].id,
+        category: result[0].category,
+        duration: result[0].duration,
+        price: result[0].price,
+        personCount: result[0].person_count,
+      } : null;
+    }
+    const database = await getDatabase();
+    const setClauses: string[] = [];
+    const values: any[] = [];
+    let paramIndex = 1;
+
+    const fieldMappings: Record<string, string> = {
+      personCount: 'person_count',
+    };
+
+    for (const [key, value] of Object.entries(updates)) {
+      const dbField = fieldMappings[key] || key;
+      setClauses.push(`${dbField} = $${paramIndex}`);
+      values.push(value);
+      paramIndex++;
+    }
+
+    values.push(id);
+    await database.execute(
+      `UPDATE happy_hours_pricing SET ${setClauses.join(', ')} WHERE id = $${paramIndex}`,
+      values
+    );
+    
+    const result = await database.select('SELECT * FROM happy_hours_pricing WHERE id = $1', [id]);
+    return result[0] ? {
+      id: result[0].id,
+      category: result[0].category,
+      duration: result[0].duration,
+      price: result[0].price,
+      personCount: result[0].person_count,
+    } : null;
+  },
+
+  async deleteHappyHoursPricing(id: string) {
+    const database = await getDatabase();
+    await database.execute('DELETE FROM happy_hours_pricing WHERE id = $1', [id]);
   },
 };
