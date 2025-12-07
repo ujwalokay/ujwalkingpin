@@ -18,6 +18,7 @@ import { Plus, Monitor, Gamepad2, Glasses, Car, Cpu, Tv, Radio, Box, RefreshCw, 
 import { useToast } from "@/hooks/use-toast";
 import { useSoundAlert } from "@/hooks/useSoundAlert";
 import { fetchBookings, createBooking, updateBooking, deleteBooking, fetchDeviceConfigs, getServerTime } from "@/lib/api";
+import { apiRequest } from "@/lib/queryClient";
 import type { Booking as DBBooking, DeviceConfig } from "@shared/schema";
 import { useServerTime } from "@/hooks/useServerTime";
 import { useAuth } from "@/contexts/AuthContext";
@@ -710,21 +711,11 @@ export default function Dashboard() {
     }
 
     try {
-      const response = await fetch('/api/bookings/payment-status', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          bookingIds: Array.from(selectedBookings),
-          paymentStatus: 'paid',
-          paymentMethod: method
-        }),
+      const data = await apiRequest<{ success: boolean; count: number }>('POST', '/api/bookings/payment-status', {
+        bookingIds: Array.from(selectedBookings),
+        paymentStatus: 'paid',
+        paymentMethod: method
       });
-
-      if (!response.ok) {
-        throw new Error('Failed to update payment status');
-      }
-
-      const data = await response.json();
       
       queryClient.invalidateQueries({ queryKey: ['bookings'] });
       setShowPaymentDialog(false);
@@ -758,10 +749,7 @@ export default function Dashboard() {
 
   const handleCompleteTour = async () => {
     try {
-      await fetch('/api/auth/complete-onboarding', {
-        method: 'POST',
-        credentials: 'include',
-      });
+      await apiRequest('POST', '/api/auth/complete-onboarding', {});
       setShowTour(false);
       window.location.reload();
     } catch (error) {

@@ -10,7 +10,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Calendar } from "@/components/ui/calendar";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Textarea } from "@/components/ui/textarea";
-import { queryClient } from "@/lib/queryClient";
+import { queryClient, apiRequest } from "@/lib/queryClient";
 import type { Expense } from "@shared/schema";
 import { format } from "date-fns";
 import { useAuth } from "@/contexts/AuthContext";
@@ -58,13 +58,7 @@ export default function Expenses() {
 
   const createMutation = useMutation({
     mutationFn: async (data: { category: string; description: string; amount: string; date: Date }) => {
-      const response = await fetch("/api/expenses", {
-        method: "POST",
-        body: JSON.stringify(data),
-        headers: { "Content-Type": "application/json" },
-      });
-      if (!response.ok) throw new Error("Failed to create expense");
-      return response.json();
+      return apiRequest("POST", "/api/expenses", data);
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["/api/expenses"] });
@@ -76,13 +70,7 @@ export default function Expenses() {
 
   const updateMutation = useMutation({
     mutationFn: async ({ id, data }: { id: string; data: { category: string; description: string; amount: string; date: Date } }) => {
-      const response = await fetch(`/api/expenses/${id}`, {
-        method: "PATCH",
-        body: JSON.stringify(data),
-        headers: { "Content-Type": "application/json" },
-      });
-      if (!response.ok) throw new Error("Failed to update expense");
-      return response.json();
+      return apiRequest("PATCH", `/api/expenses/${id}`, data);
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["/api/expenses"] });
@@ -93,9 +81,7 @@ export default function Expenses() {
 
   const deleteMutation = useMutation({
     mutationFn: async (id: string) => {
-      const response = await fetch(`/api/expenses/${id}`, { method: "DELETE" });
-      if (!response.ok) throw new Error("Failed to delete expense");
-      return response.json();
+      return apiRequest("DELETE", `/api/expenses/${id}`);
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["/api/expenses"] });

@@ -42,6 +42,7 @@ async function handleGetRequest(endpoint: string): Promise<any> {
   }
   if (endpoint === 'expenses') return localDb.getAllExpenses();
   if (endpoint === 'history') return localDb.getBookingHistory();
+  if (endpoint === 'booking-history') return localDb.getBookingHistory();
   if (endpoint === 'activity-logs') return localDb.getActivityLogs();
   if (endpoint === 'notifications') return localDb.getNotifications();
   if (endpoint === 'notifications/unread') return localDb.getUnreadNotifications();
@@ -144,7 +145,19 @@ async function handlePostRequest(endpoint: string, body: any): Promise<any> {
   if (endpoint === 'session-groups') return localDb.createSessionGroup(body);
   if (endpoint === 'users') return localDb.createUser(body);
   if (endpoint === 'bookings/archive') return localDb.archiveBooking(body);
+  if (endpoint === 'bookings/payment-status') {
+    const { bookingIds, paymentStatus, paymentMethod } = body;
+    let count = 0;
+    for (const id of bookingIds) {
+      await localDb.updateBooking(id, { paymentStatus, paymentMethod });
+      count++;
+    }
+    return { success: true, count };
+  }
   if (endpoint === 'stock-batches') return localDb.createStockBatch(body);
+  if (endpoint === 'auth/complete-onboarding') {
+    return { success: true };
+  }
   
   console.warn(`Unhandled POST endpoint: ${endpoint}`);
   return null;

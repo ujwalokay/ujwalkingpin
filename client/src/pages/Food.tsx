@@ -7,7 +7,7 @@ import { useToast } from "@/hooks/use-toast";
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { queryClient } from "@/lib/queryClient";
+import { queryClient, apiRequest } from "@/lib/queryClient";
 import type { FoodItem } from "@shared/schema";
 import { useAuth } from "@/contexts/AuthContext";
 
@@ -63,13 +63,7 @@ export default function Food() {
         currentStock: 0,
         inInventory: 0,
       };
-      const response = await fetch("/api/food-items", {
-        method: "POST",
-        body: JSON.stringify(payload),
-        headers: { "Content-Type": "application/json" },
-      });
-      if (!response.ok) throw new Error("Failed to create food item");
-      return response.json();
+      return apiRequest("POST", "/api/food-items", payload);
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["/api/food-items"] });
@@ -90,13 +84,7 @@ export default function Food() {
         expiryDate: data.expiryDate || undefined,
         minStockLevel: parseInt(data.minStockLevel) || 10,
       };
-      const response = await fetch(`/api/food-items/${id}`, {
-        method: "PATCH",
-        body: JSON.stringify(payload),
-        headers: { "Content-Type": "application/json" },
-      });
-      if (!response.ok) throw new Error("Failed to update food item");
-      return response.json();
+      return apiRequest("PATCH", `/api/food-items/${id}`, payload);
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["/api/food-items"] });
@@ -107,9 +95,7 @@ export default function Food() {
 
   const deleteMutation = useMutation({
     mutationFn: async (id: string) => {
-      const response = await fetch(`/api/food-items/${id}`, { method: "DELETE" });
-      if (!response.ok) throw new Error("Failed to delete food item");
-      return response.json();
+      return apiRequest("DELETE", `/api/food-items/${id}`);
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["/api/food-items"] });
