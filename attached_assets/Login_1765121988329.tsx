@@ -1,0 +1,769 @@
+import { useState, useEffect } from "react";
+import { Eye, EyeOff } from "lucide-react";
+import { Input } from "@/components/ui/input";
+import { Button } from "@/components/ui/button";
+import { Label } from "@/components/ui/label";
+import { Checkbox } from "@/components/ui/checkbox";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
+import { ScrollArea } from "@/components/ui/scroll-area";
+import { useToast } from "@/hooks/use-toast";
+import logoDark from "@assets/airavoto_logo.png";
+import img1 from "@assets/generated_images/Modern_gaming_cafe_with_purple_lighting_1a0efc51.png";
+import img2 from "@assets/generated_images/Luxury_gaming_lounge_purple_pink_98c3a8f3.png";
+import img3 from "@assets/generated_images/Gaming_cafe_night_purple_neon_964a4486.png";
+import { Separator } from "@/components/ui/separator";
+
+interface LoginProps {
+  onLoginSuccess: (userData: any) => void;
+}
+
+const carouselImages = [
+  { src: img1, caption: "India's First Gaming Lounge Management POS" },
+  { src: img2, caption: "Complete Software Solution for Gaming Centers" },
+  { src: img3, caption: "Advanced Booking & Billing Management System" }
+];
+
+function TermsContent() {
+  return (
+    <div className="space-y-6">
+      <section>
+        <h2 className="text-xl font-semibold mb-3">1. Introduction and Acceptance</h2>
+        <p className="text-muted-foreground leading-relaxed">
+          Welcome to Airavoto Gaming Center. By using our gaming facilities, booking services, or participating in any activities at our center, you agree to comply with and be bound by these Terms and Conditions.
+        </p>
+      </section>
+
+      <Separator />
+
+      <section>
+        <h2 className="text-xl font-semibold mb-3">2. Service Description</h2>
+        <p className="text-muted-foreground leading-relaxed mb-3">
+          Airavoto Gaming Center provides the following services:
+        </p>
+        <ul className="list-disc list-inside space-y-2 text-muted-foreground ml-4">
+          <li><strong>Gaming Stations:</strong> Access to various gaming devices including PCs, PlayStation 5 consoles, VR headsets, and car racing simulators</li>
+          <li><strong>Booking System:</strong> Walk-in and advance booking options with flexible session durations</li>
+          <li><strong>Food & Beverage:</strong> In-house food and drink ordering during gaming sessions</li>
+          <li><strong>Loyalty Program:</strong> Earn 1 point for every ₹1 spent and redeem rewards</li>
+          <li><strong>Tournament Participation:</strong> Organized gaming competitions with prize pools</li>
+        </ul>
+      </section>
+
+      <Separator />
+
+      <section>
+        <h2 className="text-xl font-semibold mb-3">3. Booking and Reservations</h2>
+        <p className="text-muted-foreground leading-relaxed mb-3">
+          <strong>3.1 Walk-in Bookings:</strong> Available on a first-come, first-served basis subject to availability.
+        </p>
+        <p className="text-muted-foreground leading-relaxed mb-3">
+          <strong>3.2 Advance Bookings:</strong> Customers may book gaming sessions in advance. Advanced bookings are confirmed upon availability verification.
+        </p>
+        <p className="text-muted-foreground leading-relaxed">
+          <strong>3.3 No-Shows:</strong> Customers who fail to arrive within 15 minutes of their scheduled booking time may forfeit their reservation without refund.
+        </p>
+      </section>
+
+      <Separator />
+
+      <section>
+        <h2 className="text-xl font-semibold mb-3">4. Pricing and Payment</h2>
+        <p className="text-muted-foreground leading-relaxed mb-3">
+          <strong>4.1 Pricing Structure:</strong> Gaming sessions are priced based on device type, duration, and number of persons. Prices are displayed in Indian Rupees (₹).
+        </p>
+        <p className="text-muted-foreground leading-relaxed mb-3">
+          <strong>4.2 Payment Methods:</strong> We accept Cash, UPI, Card, and Online payment methods.
+        </p>
+        <p className="text-muted-foreground leading-relaxed">
+          <strong>4.3 Refund Policy:</strong> Refunds are not provided for partially used sessions. In case of technical issues, appropriate credits will be issued at management's discretion.
+        </p>
+      </section>
+
+      <Separator />
+
+      <section>
+        <h2 className="text-xl font-semibold mb-3">5. Equipment Usage and Conduct</h2>
+        <p className="text-muted-foreground leading-relaxed mb-3">
+          <strong>5.1 Responsible Use:</strong> Customers must use all gaming equipment with care. Any damage caused by misuse will be charged to the customer.
+        </p>
+        <p className="text-muted-foreground leading-relaxed">
+          <strong>5.2 Code of Conduct:</strong> Customers must maintain respectful behavior. We reserve the right to terminate sessions for misconduct without refund.
+        </p>
+      </section>
+
+      <Separator />
+
+      <section>
+        <h2 className="text-xl font-semibold mb-3">6. Data Privacy</h2>
+        <p className="text-muted-foreground leading-relaxed">
+          We collect customer information for service delivery and implement reasonable security measures to protect customer data.
+        </p>
+      </section>
+
+      <Separator />
+
+      <section>
+        <h2 className="text-xl font-semibold mb-3">7. Liability and Disclaimers</h2>
+        <p className="text-muted-foreground leading-relaxed mb-3">
+          <strong>7.1 Personal Property:</strong> We are not responsible for loss, theft, or damage to personal belongings.
+        </p>
+        <p className="text-muted-foreground leading-relaxed">
+          <strong>7.2 Limitation of Liability:</strong> Our total liability shall not exceed the amount paid by the customer for the specific session.
+        </p>
+      </section>
+
+      <div className="mt-8 p-4 bg-muted rounded-lg">
+        <p className="text-sm text-muted-foreground text-center">
+          By using Airavoto Gaming Center services, you acknowledge that you have read, understood, and agree to be bound by these Terms and Conditions.
+        </p>
+      </div>
+    </div>
+  );
+}
+
+export default function Login({ onLoginSuccess }: LoginProps) {
+  const [mode, setMode] = useState<'staff' | 'admin'>('staff');
+  const [username, setUsername] = useState("");
+  const [password, setPassword] = useState("");
+  const [isLoggingIn, setIsLoggingIn] = useState(false);
+  const [showPassword, setShowPassword] = useState(false);
+  const [failedAttempts, setFailedAttempts] = useState(0);
+  const [lockoutTime, setLockoutTime] = useState<number | null>(null);
+  const [remainingTime, setRemainingTime] = useState(0);
+  const [currentImageIndex, setCurrentImageIndex] = useState(0);
+  const [agreedToTerms, setAgreedToTerms] = useState(false);
+  const { toast } = useToast();
+
+  useEffect(() => {
+    const interval = setInterval(() => {
+      setCurrentImageIndex((prev) => (prev + 1) % carouselImages.length);
+    }, 5000);
+
+    return () => clearInterval(interval);
+  }, []);
+
+
+  useEffect(() => {
+    if (lockoutTime) {
+      const interval = setInterval(() => {
+        const now = Date.now();
+        const timeLeft = Math.ceil((lockoutTime - now) / 1000);
+        
+        if (timeLeft <= 0) {
+          setLockoutTime(null);
+          setFailedAttempts(0);
+          setRemainingTime(0);
+        } else {
+          setRemainingTime(timeLeft);
+        }
+      }, 1000);
+
+      return () => clearInterval(interval);
+    }
+  }, [lockoutTime]);
+
+  // Hardcoded credentials for offline desktop mode
+  const OFFLINE_CREDENTIALS = {
+    admin: { username: "admin", password: "admin123", role: "admin" },
+    staff: { username: "staff", password: "staff123", role: "staff" }
+  };
+
+  const handleLogin = async () => {
+    if (!agreedToTerms) {
+      toast({
+        title: "Terms Required",
+        description: "Please agree to the Terms & Conditions to continue",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    if (lockoutTime && Date.now() < lockoutTime) {
+      toast({
+        title: "Too many attempts",
+        description: `Please wait ${remainingTime} seconds before trying again`,
+        variant: "destructive",
+      });
+      return;
+    }
+
+    setIsLoggingIn(true);
+    
+    // Try offline/frontend login first (for desktop mode)
+    const isDesktopMode = typeof window !== 'undefined' && (window as any).nw;
+    
+    if (isDesktopMode) {
+      // Desktop mode - use hardcoded credentials
+      setTimeout(() => {
+        const adminCreds = OFFLINE_CREDENTIALS.admin;
+        const staffCreds = OFFLINE_CREDENTIALS.staff;
+        
+        if ((username === adminCreds.username && password === adminCreds.password) ||
+            (username === staffCreds.username && password === staffCreds.password)) {
+          const isAdmin = username === adminCreds.username;
+          const userData = isAdmin ? adminCreds : staffCreds;
+          setFailedAttempts(0);
+          setLockoutTime(null);
+          onLoginSuccess({ id: 1, ...userData });
+          toast({
+            title: "Login successful",
+            description: `Welcome ${userData.username} (${userData.role})`,
+          });
+        } else {
+          const newFailedAttempts = failedAttempts + 1;
+          setFailedAttempts(newFailedAttempts);
+
+          if (newFailedAttempts >= 3) {
+            const lockTime = Date.now() + 30000;
+            setLockoutTime(lockTime);
+            setRemainingTime(30);
+            toast({
+              title: "Login failed",
+              description: "Too many failed attempts. Please wait 30 seconds.",
+              variant: "destructive",
+            });
+          } else {
+            toast({
+              title: "Login failed",
+              description: `Invalid username or password. ${3 - newFailedAttempts} attempts remaining.`,
+              variant: "destructive",
+            });
+          }
+        }
+        setIsLoggingIn(false);
+      }, 500);
+      return;
+    }
+
+    // Web mode - try server API
+    try {
+      const response = await fetch("/api/auth/login", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({ username, password }),
+        credentials: "include"
+      });
+
+      if (response.ok) {
+        const userData = await response.json();
+        setFailedAttempts(0);
+        setLockoutTime(null);
+        onLoginSuccess(userData);
+        toast({
+          title: "Login successful",
+          description: `Welcome ${userData.username} (${userData.role})`,
+        });
+      } else {
+        const data = await response.json();
+        const newFailedAttempts = failedAttempts + 1;
+        setFailedAttempts(newFailedAttempts);
+
+        if (newFailedAttempts >= 3) {
+          const lockTime = Date.now() + 30000;
+          setLockoutTime(lockTime);
+          setRemainingTime(30);
+          toast({
+            title: "Login failed",
+            description: "Too many failed attempts. Please wait 30 seconds.",
+            variant: "destructive",
+          });
+        } else {
+          toast({
+            title: "Login failed",
+            description: `${data.message || "Invalid username or password"}. ${3 - newFailedAttempts} attempts remaining.`,
+            variant: "destructive",
+          });
+        }
+      }
+    } catch (error) {
+      // If server fails, try offline credentials
+      const adminCreds = OFFLINE_CREDENTIALS.admin;
+      const staffCreds = OFFLINE_CREDENTIALS.staff;
+      
+      if ((username === adminCreds.username && password === adminCreds.password) ||
+          (username === staffCreds.username && password === staffCreds.password)) {
+        const isAdmin = username === adminCreds.username;
+        const userData = isAdmin ? adminCreds : staffCreds;
+        setFailedAttempts(0);
+        setLockoutTime(null);
+        onLoginSuccess({ id: 1, ...userData });
+        toast({
+          title: "Login successful (Offline Mode)",
+          description: `Welcome ${userData.username} (${userData.role})`,
+        });
+      } else {
+        toast({
+          title: "Login failed",
+          description: "Server unavailable. Use offline credentials: admin/admin123 or staff/staff123",
+          variant: "destructive",
+        });
+      }
+    } finally {
+      setIsLoggingIn(false);
+    }
+  };
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    handleLogin();
+  };
+
+  const isLockedOut = !!(lockoutTime && Date.now() < lockoutTime);
+
+  return (
+    <>
+      {/* Mobile Layout with Curved Wave */}
+      <div className="md:hidden min-h-screen flex flex-col bg-[#1e1a24] relative overflow-hidden">
+        {/* Top Section - Carousel Images with Gradient */}
+        <div className="flex-1 relative min-h-[45vh]">
+          {carouselImages.map((image, index) => (
+            <div
+              key={index}
+              className={`absolute inset-0 transition-opacity duration-1000 ${
+                index === currentImageIndex ? 'opacity-100' : 'opacity-0'
+              }`}
+            >
+              <img
+                src={image.src}
+                alt={image.caption}
+                className="w-full h-full object-cover"
+              />
+              <div className="absolute inset-0 bg-gradient-to-b from-purple-900/50 via-purple-900/40 to-purple-900/60"></div>
+            </div>
+          ))}
+          
+          {/* Logo and Text Overlay */}
+          <div className="absolute inset-0 flex flex-col items-center justify-center px-6 text-center z-10">
+            <img 
+              src={logoDark} 
+              alt="Airavoto Gaming"
+              className="h-20 w-20 object-contain mb-4"
+            />
+            <h1 className="text-2xl font-bold text-white mb-2">Airavoto Gaming</h1>
+            
+            {currentImageIndex === 0 && (
+              <>
+                <div className="flex items-center gap-3 mb-3">
+                  <p className="text-2xl font-bold text-white">India's First</p>
+                  <div className="relative">
+                    <div className="absolute -top-2 -right-2 w-3 h-3 bg-orange-500 rounded-full animate-ping"></div>
+                    <div className="w-10 h-7 rounded-md overflow-hidden shadow-lg border-2 border-white/30 animate-pulse">
+                      <div className="h-1/3 bg-gradient-to-r from-orange-500 to-orange-400"></div>
+                      <div className="h-1/3 bg-white flex items-center justify-center">
+                        <div className="w-2.5 h-2.5 rounded-full bg-blue-600 border border-blue-700"></div>
+                      </div>
+                      <div className="h-1/3 bg-gradient-to-r from-green-600 to-green-500"></div>
+                    </div>
+                  </div>
+                </div>
+                <p className="text-base font-semibold text-purple-200">Gaming Lounge Management POS</p>
+              </>
+            )}
+            {currentImageIndex === 1 && (
+              <>
+                <p className="text-2xl font-bold text-white mb-2">Complete Software</p>
+                <p className="text-base font-semibold text-purple-200">Solution for Gaming Centers</p>
+              </>
+            )}
+            {currentImageIndex === 2 && (
+              <>
+                <p className="text-2xl font-bold text-white mb-2">Advanced Booking</p>
+                <p className="text-base font-semibold text-purple-200">& Billing Management System</p>
+              </>
+            )}
+          </div>
+        </div>
+
+        {/* Curved Wave Separator */}
+        <div className="relative -mt-1">
+          <svg className="w-full h-24" viewBox="0 0 1440 320" preserveAspectRatio="none">
+            <path 
+              d="M0,224 C240,96 480,96 720,224 C960,352 1200,352 1440,224 L1440,320 L0,320 Z" 
+              fill="#1e1a24"
+            />
+          </svg>
+        </div>
+        
+        {/* Bottom Section - Login Form */}
+        <div className="bg-[#1e1a24] px-6 pb-8 -mt-1">
+          <div className="max-w-md mx-auto">
+            <h2 className="text-2xl font-bold text-white mb-1 text-center">
+              {mode === 'staff' ? 'Staff Login' : 'Admin Login'}
+            </h2>
+            <p className="text-gray-400 text-sm text-center mb-6">
+              {mode === 'staff' 
+                ? 'Please sign in with your staff credentials' 
+                : 'Please sign in with your admin credentials'}
+            </p>
+            
+            <form onSubmit={handleSubmit} className="space-y-4">
+              <div className="space-y-2">
+                <Label htmlFor="username-mobile" className="text-gray-300 text-sm font-medium">
+                  Username
+                </Label>
+                <Input
+                  id="username-mobile"
+                  data-testid="input-username"
+                  type="text"
+                  placeholder="Enter your username"
+                  value={username}
+                  onChange={(e) => setUsername(e.target.value)}
+                  disabled={isLockedOut}
+                  className="bg-[#2d2937] border-gray-700 text-white placeholder:text-gray-500 h-11 rounded-lg focus:border-purple-500 focus:ring-purple-500/20"
+                />
+              </div>
+
+              <div className="space-y-2">
+                <Label htmlFor="password-mobile" className="text-gray-300 text-sm font-medium">
+                  Password
+                </Label>
+                <div className="relative">
+                  <Input
+                    id="password-mobile"
+                    data-testid="input-password"
+                    type={showPassword ? "text" : "password"}
+                    placeholder="Enter your password"
+                    value={password}
+                    onChange={(e) => setPassword(e.target.value)}
+                    className="bg-[#2d2937] border-gray-700 text-white placeholder:text-gray-500 h-11 pr-12 rounded-lg focus:border-purple-500 focus:ring-purple-500/20"
+                    disabled={isLockedOut}
+                  />
+                  <button
+                    type="button"
+                    onClick={() => setShowPassword(!showPassword)}
+                    className="absolute right-4 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-300 transition-colors"
+                    data-testid="button-toggle-password-mobile"
+                    aria-label={showPassword ? "Hide password" : "Show password"}
+                    disabled={isLockedOut}
+                  >
+                    {showPassword ? (
+                      <EyeOff className="h-5 w-5" />
+                    ) : (
+                      <Eye className="h-5 w-5" />
+                    )}
+                  </button>
+                </div>
+              </div>
+
+              <div className="flex items-center gap-2">
+                <Checkbox
+                  id="terms-mobile"
+                  checked={agreedToTerms}
+                  onCheckedChange={(checked) => setAgreedToTerms(checked === true)}
+                  data-testid="checkbox-terms"
+                  className="border-gray-700 data-[state=checked]:bg-purple-600 data-[state=checked]:border-purple-600"
+                />
+                <label htmlFor="terms-mobile" className="text-sm text-gray-400">
+                  I agree to the{" "}
+                  <Dialog>
+                    <DialogTrigger asChild>
+                      <button
+                        type="button"
+                        className="text-purple-400 hover:text-purple-300 underline"
+                        data-testid="button-view-terms"
+                      >
+                        Terms & Conditions
+                      </button>
+                    </DialogTrigger>
+                    <DialogContent className="max-w-4xl max-h-[80vh]">
+                      <DialogHeader>
+                        <DialogTitle className="text-2xl font-bold">Terms and Conditions</DialogTitle>
+                      </DialogHeader>
+                      <ScrollArea className="h-[60vh] pr-4">
+                        <TermsContent />
+                      </ScrollArea>
+                    </DialogContent>
+                  </Dialog>
+                </label>
+              </div>
+
+              <Button
+                type="submit"
+                className="w-full h-11 text-base font-semibold bg-gradient-to-r from-purple-600 to-purple-500 hover:from-purple-700 hover:to-purple-600 text-white rounded-lg shadow-lg transition-all duration-200"
+                data-testid="button-login"
+                disabled={isLoggingIn || isLockedOut || !agreedToTerms}
+              >
+                {isLoggingIn ? "Signing in..." : isLockedOut ? `Wait ${remainingTime}s` : "Login"}
+              </Button>
+              
+              <div className="text-center mt-4">
+                <p className="text-sm text-gray-400">
+                  {mode === 'staff' ? (
+                    <span 
+                      className="text-purple-400 font-medium cursor-pointer hover:text-purple-300 transition-colors" 
+                      data-testid="link-admin-login"
+                      onClick={() => setMode('admin')}
+                    >
+                      Click here to login as admin
+                    </span>
+                  ) : (
+                    <span 
+                      className="text-purple-400 font-medium cursor-pointer hover:text-purple-300 transition-colors" 
+                      data-testid="link-staff-login"
+                      onClick={() => setMode('staff')}
+                    >
+                      Click here to login as staff
+                    </span>
+                  )}
+                </p>
+              </div>
+            </form>
+
+            {/* Carousel Indicators */}
+            <div className="flex justify-center gap-2 mt-6">
+              {carouselImages.map((_, index) => (
+                <div
+                  key={index}
+                  className={`h-1 rounded-full transition-all duration-300 ${
+                    index === currentImageIndex 
+                      ? 'w-8 bg-purple-400' 
+                      : 'w-1 bg-purple-400/30'
+                  }`}
+                />
+              ))}
+            </div>
+          </div>
+        </div>
+      </div>
+
+      {/* Desktop Layout - Full Page Split */}
+      <div className="hidden md:flex min-h-screen bg-[#1e1a24]">
+        {/* Left Side - Image Carousel */}
+        <div className="md:w-1/2 relative overflow-hidden">
+          <div className="absolute top-6 left-6 z-20">
+            <div className="flex items-center gap-3">
+              <img 
+                src={logoDark} 
+              alt="Airavoto Gaming"
+              className="h-12 w-12 object-contain"
+            />
+            <div>
+              <h1 className="text-lg font-bold text-white">Airavoto Gaming</h1>
+            </div>
+          </div>
+        </div>
+
+        {carouselImages.map((image, index) => (
+          <div
+            key={index}
+            className={`absolute inset-0 transition-opacity duration-1000 ${
+              index === currentImageIndex ? 'opacity-100' : 'opacity-0'
+            }`}
+          >
+            <img
+              src={image.src}
+              alt={image.caption}
+              className="w-full h-full object-cover"
+            />
+            <div className="absolute inset-0 bg-gradient-to-b from-purple-900/40 via-transparent to-black/60"></div>
+          </div>
+        ))}
+
+        <div className="absolute bottom-8 left-8 right-8 z-20 text-white">
+          {currentImageIndex === 0 && (
+            <>
+              <div className="flex items-center gap-3 mb-1">
+                <p className="text-3xl font-bold">India's First</p>
+                <div className="relative">
+                  <div className="absolute -top-2 -right-2 w-3 h-3 bg-orange-500 rounded-full animate-ping"></div>
+                  <div className="w-12 h-8 rounded-md overflow-hidden shadow-lg border-2 border-white/30 animate-pulse">
+                    <div className="h-1/3 bg-gradient-to-r from-orange-500 to-orange-400"></div>
+                    <div className="h-1/3 bg-white flex items-center justify-center">
+                      <div className="w-3 h-3 rounded-full bg-blue-600 border border-blue-700"></div>
+                    </div>
+                    <div className="h-1/3 bg-gradient-to-r from-green-600 to-green-500"></div>
+                  </div>
+                </div>
+              </div>
+              <p className="text-lg font-semibold text-purple-200">Gaming Lounge Management POS</p>
+            </>
+          )}
+          {currentImageIndex === 1 && (
+            <>
+              <p className="text-3xl font-bold mb-1">Complete Software</p>
+              <p className="text-lg font-semibold text-purple-200">Solution for Gaming Centers</p>
+            </>
+          )}
+          {currentImageIndex === 2 && (
+            <>
+              <p className="text-3xl font-bold mb-1">Advanced Booking</p>
+              <p className="text-lg font-semibold text-purple-200">& Billing Management System</p>
+            </>
+          )}
+          <p className="text-purple-200 text-sm mt-2">
+            Streamline your gaming center operations
+          </p>
+          
+          <div className="flex gap-2 mt-4">
+            {carouselImages.map((_, index) => (
+              <div
+                key={index}
+                className={`h-1 rounded-full transition-all duration-300 ${
+                  index === currentImageIndex 
+                    ? 'w-8 bg-purple-400' 
+                    : 'w-1 bg-purple-400/30'
+                }`}
+              />
+            ))}
+          </div>
+        </div>
+      </div>
+
+      {/* Right Side - Login Form */}
+      <div className="w-full md:w-1/2 flex items-center justify-center p-8">
+        <div className="w-full max-w-md">
+          {/* Mobile Logo */}
+          <div className="md:hidden flex flex-col items-center mb-8">
+            <img 
+              src={logoDark} 
+              alt="Airavoto Gaming"
+              className="h-16 w-16 object-contain mb-3"
+            />
+            <h1 className="text-xl font-bold text-white">Airavoto Gaming</h1>
+          </div>
+
+          <div className="mb-8">
+            <h2 className="text-3xl font-bold text-white mb-2">
+              {mode === 'staff' ? 'Staff Login' : 'Admin Login'}
+            </h2>
+            <p className="text-gray-400 text-sm">
+              {mode === 'staff' 
+                ? 'Please sign in with your staff credentials' 
+                : 'Please sign in with your admin credentials'}
+            </p>
+          </div>
+
+          <form onSubmit={handleSubmit} className="space-y-5">
+            <div className="space-y-2">
+              <Label htmlFor="username" className="text-gray-300 text-sm font-medium">
+                Username
+              </Label>
+              <Input
+                id="username"
+                data-testid="input-username"
+                type="text"
+                placeholder="Enter your username"
+                value={username}
+                onChange={(e) => setUsername(e.target.value)}
+                disabled={isLockedOut}
+                className="bg-[#2d2937] border-gray-700 text-white placeholder:text-gray-500 h-11 rounded-lg focus:border-purple-500 focus:ring-purple-500/20"
+              />
+            </div>
+
+            <div className="space-y-2">
+              <Label htmlFor="password" className="text-gray-300 text-sm font-medium">
+                Password
+              </Label>
+              <div className="relative">
+                <Input
+                  id="password"
+                  data-testid="input-password"
+                  type={showPassword ? "text" : "password"}
+                  placeholder="Enter your password"
+                  value={password}
+                  onChange={(e) => setPassword(e.target.value)}
+                  className="bg-[#2d2937] border-gray-700 text-white placeholder:text-gray-500 h-11 pr-12 rounded-lg focus:border-purple-500 focus:ring-purple-500/20"
+                  disabled={isLockedOut}
+                />
+                <button
+                  type="button"
+                  onClick={() => setShowPassword(!showPassword)}
+                  className="absolute right-4 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-300 transition-colors"
+                  data-testid="button-toggle-password"
+                  aria-label={showPassword ? "Hide password" : "Show password"}
+                  disabled={isLockedOut}
+                >
+                  {showPassword ? (
+                    <EyeOff className="h-5 w-5" />
+                  ) : (
+                    <Eye className="h-5 w-5" />
+                  )}
+                </button>
+              </div>
+            </div>
+
+            <div className="flex items-center gap-2">
+              <Checkbox
+                id="terms"
+                checked={agreedToTerms}
+                onCheckedChange={(checked) => setAgreedToTerms(checked === true)}
+                data-testid="checkbox-terms"
+                className="border-gray-700 data-[state=checked]:bg-purple-600 data-[state=checked]:border-purple-600"
+              />
+              <label htmlFor="terms" className="text-sm text-gray-400">
+                I agree to the{" "}
+                <Dialog>
+                  <DialogTrigger asChild>
+                    <button
+                      type="button"
+                      className="text-purple-400 hover:text-purple-300 underline"
+                      data-testid="button-view-terms"
+                    >
+                      Terms & Conditions
+                    </button>
+                  </DialogTrigger>
+                  <DialogContent className="max-w-4xl max-h-[80vh]">
+                    <DialogHeader>
+                      <DialogTitle className="text-2xl font-bold">Terms and Conditions</DialogTitle>
+                    </DialogHeader>
+                    <ScrollArea className="h-[60vh] pr-4">
+                      <TermsContent />
+                    </ScrollArea>
+                  </DialogContent>
+                </Dialog>
+              </label>
+            </div>
+
+            <Button
+              type="submit"
+              className="w-full h-11 text-base font-semibold bg-gradient-to-r from-purple-600 to-purple-500 hover:from-purple-700 hover:to-purple-600 text-white rounded-lg shadow-lg transition-all duration-200"
+              data-testid="button-login"
+              disabled={isLoggingIn || isLockedOut || !agreedToTerms}
+            >
+              {isLoggingIn ? "Signing in..." : isLockedOut ? `Wait ${remainingTime}s` : "Login"}
+            </Button>
+            
+            <div className="text-center mt-4">
+              <p className="text-sm text-gray-400">
+                {mode === 'staff' ? (
+                  <span 
+                    className="text-purple-400 font-medium cursor-pointer hover:text-purple-300 transition-colors" 
+                    data-testid="link-admin-login"
+                    onClick={() => setMode('admin')}
+                  >
+                    Click here to login as admin
+                  </span>
+                ) : (
+                  <span 
+                    className="text-purple-400 font-medium cursor-pointer hover:text-purple-300 transition-colors" 
+                    data-testid="link-staff-login"
+                    onClick={() => setMode('staff')}
+                  >
+                    Click here to login as staff
+                  </span>
+                )}
+              </p>
+            </div>
+          </form>
+
+          {/* Mobile Carousel Indicators */}
+          <div className="md:hidden flex justify-center gap-2 mt-8">
+            {carouselImages.map((_, index) => (
+              <div
+                key={index}
+                className={`h-1 rounded-full transition-all duration-300 ${
+                  index === currentImageIndex 
+                    ? 'w-8 bg-purple-400' 
+                    : 'w-1 bg-purple-400/30'
+                }`}
+              />
+            ))}
+          </div>
+        </div>
+      </div>
+      </div>
+    </>
+  );
+}

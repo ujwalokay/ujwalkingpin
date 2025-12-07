@@ -70,6 +70,22 @@ export async function login(username: string, password: string): Promise<AuthRes
         twoStepComplete: true,
       };
       setTauriSession(authUser);
+      
+      // Log login activity
+      try {
+        await localDb.createActivityLog({
+          userId: user.id,
+          username: user.username,
+          userRole: user.role,
+          action: 'login',
+          entityType: null,
+          entityId: null,
+          details: `${user.role} logged in (desktop app)`
+        });
+      } catch (logError) {
+        console.error('Failed to log login activity:', logError);
+      }
+      
       return { success: true, user: authUser };
     }
     return { success: false, error: 'Invalid username or password' };
@@ -88,6 +104,24 @@ export async function getCurrentUser(): Promise<User | null> {
 }
 
 export async function logout(): Promise<boolean> {
+  // Log logout activity before clearing session
+  try {
+    const session = getTauriSession();
+    if (session) {
+      await localDb.createActivityLog({
+        userId: session.id,
+        username: session.username,
+        userRole: session.role,
+        action: 'logout',
+        entityType: null,
+        entityId: null,
+        details: `${session.role} logged out (desktop app)`
+      });
+    }
+  } catch (logError) {
+    console.error('Failed to log logout activity:', logError);
+  }
+  
   clearTauriSession();
   return true;
 }
