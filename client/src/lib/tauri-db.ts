@@ -359,6 +359,28 @@ export const localDb = {
     const bookingCode = generateCode('BK');
     const now = new Date().toISOString();
 
+    // Apply manual free hours if set (extend endTime like server does)
+    let finalEndTime = booking.endTime;
+    let bonusHoursApplied = booking.bonusHoursApplied || null;
+    let originalPrice = booking.originalPrice || null;
+    let isPromotionalBonus = booking.isPromotionalBonus ? 1 : 0;
+    
+    if (booking.manualFreeHours) {
+      const freeHoursStr = String(booking.manualFreeHours);
+      if (freeHoursStr.includes(':')) {
+        const [hours, minutes] = freeHoursStr.split(':').map((v: string) => parseInt(v) || 0);
+        const freeHoursValue = hours + (minutes / 60);
+        if (freeHoursValue > 0) {
+          const originalEndTime = new Date(booking.endTime);
+          finalEndTime = new Date(originalEndTime.getTime() + (freeHoursValue * 60 * 60 * 1000)).toISOString();
+          originalPrice = booking.price;
+          const displayFormat = minutes > 0 ? `${hours}h ${minutes}min` : `${hours}h`;
+          bonusHoursApplied = `+${displayFormat} (manual)`;
+          isPromotionalBonus = 0;
+        }
+      }
+    }
+
     await database.execute(
       `INSERT INTO bookings (
         id, booking_code, group_id, group_code, category, seat_number, seat_name,
@@ -373,15 +395,15 @@ export const localDb = {
         id, bookingCode, booking.groupId || null, booking.groupCode || null,
         booking.category, booking.seatNumber, booking.seatName,
         booking.customerName, booking.whatsappNumber || null,
-        booking.startTime, booking.endTime, booking.price, booking.status,
+        booking.startTime, finalEndTime, booking.price, booking.status,
         JSON.stringify(booking.bookingType || []), booking.pausedRemainingTime || null,
         booking.personCount || 1, booking.paymentMethod || null,
         booking.cashAmount || null, booking.upiAmount || null,
         booking.paymentStatus || 'unpaid', JSON.stringify(booking.lastPaymentAction || null),
-        JSON.stringify(booking.foodOrders || []), booking.originalPrice || null,
-        booking.discountApplied || null, booking.bonusHoursApplied || null,
+        JSON.stringify(booking.foodOrders || []), originalPrice,
+        booking.discountApplied || null, bonusHoursApplied,
         JSON.stringify(booking.promotionDetails || null), booking.isPromotionalDiscount ? 1 : 0,
-        booking.isPromotionalBonus ? 1 : 0, booking.manualDiscountPercentage || null,
+        isPromotionalBonus, booking.manualDiscountPercentage || null,
         booking.manualFreeHours || null, booking.discount || null, booking.bonus || null, now
       ]
     );
@@ -397,7 +419,7 @@ export const localDb = {
       customerName: booking.customerName,
       whatsappNumber: booking.whatsappNumber || null,
       startTime: booking.startTime,
-      endTime: booking.endTime,
+      endTime: finalEndTime,
       price: booking.price,
       status: booking.status,
       bookingType: booking.bookingType || [],
@@ -409,12 +431,12 @@ export const localDb = {
       paymentStatus: booking.paymentStatus || 'unpaid',
       lastPaymentAction: booking.lastPaymentAction || null,
       foodOrders: booking.foodOrders || [],
-      originalPrice: booking.originalPrice || null,
+      originalPrice: originalPrice,
       discountApplied: booking.discountApplied || null,
-      bonusHoursApplied: booking.bonusHoursApplied || null,
+      bonusHoursApplied: bonusHoursApplied,
       promotionDetails: booking.promotionDetails || null,
       isPromotionalDiscount: booking.isPromotionalDiscount ? 1 : 0,
-      isPromotionalBonus: booking.isPromotionalBonus ? 1 : 0,
+      isPromotionalBonus: isPromotionalBonus,
       manualDiscountPercentage: booking.manualDiscountPercentage || null,
       manualFreeHours: booking.manualFreeHours || null,
       discount: booking.discount || null,

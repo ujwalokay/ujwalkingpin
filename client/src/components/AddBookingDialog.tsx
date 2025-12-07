@@ -1,5 +1,6 @@
 import { useState, useMemo, useEffect } from "react";
 import { useQuery } from "@tanstack/react-query";
+import { isTauri, localDb } from "@/lib/tauri-db";
 import {
   Dialog,
   DialogContent,
@@ -167,6 +168,16 @@ export function AddBookingDialog({ open, onOpenChange, onConfirm, availableSeats
     }],
     queryFn: async ({ queryKey }) => {
       const [url, params] = queryKey as [string, { date?: string; timeSlot?: string; durationMinutes?: number }];
+      
+      // Use local database in Tauri mode
+      if (isTauri()) {
+        // Extract start time from slot format "HH:MM-HH:MM" (24-hour format stored in value)
+        // The timeSlot value is already in 24-hour format like "10:00-11:00"
+        const startTime = params.timeSlot?.split('-')[0]?.trim();
+        return localDb.getAvailableSeats(params.date, startTime, params.durationMinutes);
+      }
+      
+      // Web mode - use fetch
       const searchParams = new URLSearchParams();
       if (params.date) searchParams.append('date', params.date);
       if (params.timeSlot) searchParams.append('timeSlot', params.timeSlot);
