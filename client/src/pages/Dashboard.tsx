@@ -655,10 +655,7 @@ export default function Dashboard() {
 
   const handleRefresh = async () => {
     try {
-      const response = await fetch('/api/bookings/archive', {
-        method: 'POST',
-      });
-      const data = await response.json();
+      const data = await apiRequest<{ count: number }>('POST', '/api/bookings/archive-expired', {});
       
       queryClient.invalidateQueries({ queryKey: ['bookings'] });
       queryClient.invalidateQueries({ queryKey: ['/api/booking-history'] });

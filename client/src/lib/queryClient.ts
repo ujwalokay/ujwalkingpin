@@ -58,6 +58,13 @@ async function handleGetRequest(endpoint: string): Promise<any> {
   if (endpoint === 'inventory/low-stock') return localDb.getLowStockItems();
   if (endpoint === 'inventory/reorder-list') return localDb.getReorderList();
   if (endpoint === 'stock-batches') return localDb.getAllStockBatches();
+  if (endpoint === 'food-items/inventory') return localDb.getInventoryItems();
+  if (endpoint === 'food-items/expiring') return localDb.getExpiringItems();
+  if (endpoint.startsWith('analytics/usage')) {
+    const params = new URLSearchParams(endpoint.split('?')[1] || '');
+    return localDb.getAnalyticsUsage(params.get('timeRange') || 'today');
+  }
+  if (endpoint === 'ai/traffic/predictions') return localDb.getTrafficPredictions();
   
   console.warn(`Unhandled GET endpoint: ${endpoint}`);
   return null;
@@ -145,6 +152,7 @@ async function handlePostRequest(endpoint: string, body: any): Promise<any> {
   if (endpoint === 'session-groups') return localDb.createSessionGroup(body);
   if (endpoint === 'users') return localDb.createUser(body);
   if (endpoint === 'bookings/archive') return localDb.archiveBooking(body);
+  if (endpoint === 'bookings/archive-expired') return localDb.archiveExpiredBookings();
   if (endpoint === 'bookings/payment-status') {
     const { bookingIds, paymentStatus, paymentMethod } = body;
     let count = 0;
