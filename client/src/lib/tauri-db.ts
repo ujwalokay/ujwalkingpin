@@ -2482,4 +2482,70 @@ export const localDb = {
     
     return { success: true, category, seatName, issueType, aiSuggestion };
   },
+
+  async getAvailableSeats(date?: string, timeSlot?: string, durationMinutes?: number) {
+    // Get all device configs
+    const deviceConfigs = await this.getAllDeviceConfigs();
+    
+    // Helper function to extract seat numbers from config.seats array
+    // Seats can be: number, { number: N }, { seatNumber: N }, or { name: "Seat 1" }
+    const extractSeatNumbers = (seats: any[]): number[] => {
+      if (!Array.isArray(seats)) return [];
+      return seats.map((s: any) => {
+        if (typeof s === 'number') return s;
+        if (typeof s === 'object' && s !== null) {
+          if (typeof s.number === 'number') return s.number;
+          if (typeof s.seatNumber === 'number') return s.seatNumber;
+          // Try to extract number from seat name like "Seat 1"
+          if (typeof s.name === 'string') {
+            const match = s.name.match(/(\d+)/);
+            if (match) return parseInt(match[1], 10);
+          }
+        }
+        return null;
+      }).filter((n): n is number => n !== null);
+    };
+    
+    // If no date/time specified, return all seats from device configs
+    if (!date || !timeSlot || !durationMinutes) {
+      return deviceConfigs.map((config: any) => ({
+        category: config.category,
+        seats: extractSeatNumbers(config.seats || [])
+      }));
+    }
+    
+    // Calculate start and end times for the booking
+    const [hours, minutes] = timeSlot.split(':').map(Number);
+    const startTime = new Date(date);
+    startTime.setHours(hours, minutes, 0, 0);
+    const endTime = new Date(startTime.getTime() + durationMinutes * 60000);
+    
+    // Get existing bookings that overlap with this time slot
+    const bookings = await this.getAllBookings();
+    const conflictingBookings = bookings.filter((b: any) => {
+      if (b.status === 'completed' || b.status === 'cancelled') return false;
+      // Ensure we're comparing Date objects
+      const bStart = b.startTime instanceof Date ? b.startTime : new Date(b.startTime);
+      const bEnd = b.endTime instanceof Date ? b.endTime : new Date(b.endTime);
+      // Check for valid dates
+      if (isNaN(bStart.getTime()) || isNaN(bEnd.getTime())) return false;
+      // Overlap check: booking starts before our end AND booking ends after our start
+      return bStart.getTime() < endTime.getTime() && bEnd.getTime() > startTime.getTime();
+    });
+    
+    // Calculate available seats per category
+    return deviceConfigs.map((config: any) => {
+      const allSeats = extractSeatNumbers(config.seats || []);
+      const occupiedSeats = conflictingBookings
+        .filter((b: any) => b.category === config.category)
+        .map((b: any) => b.seatNumber);
+      const availableSeats = allSeats.filter((s: number) => !occupiedSeats.includes(s));
+      return { category: config.category, seats: availableSeats };
+    });
+  },
+
+  async checkPromotions(category: string, duration: string, personCount: number) {
+    // For now return null - promotions not critical for basic booking
+    return { discount: null, bonus: null };
+  },
 };

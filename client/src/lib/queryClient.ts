@@ -48,6 +48,46 @@ async function handleGetRequest(endpoint: string): Promise<any> {
   if (endpoint === 'notifications/unread') return localDb.getUnreadNotifications();
   if (endpoint === 'happy-hours-config') return localDb.getAllHappyHoursConfigs();
   if (endpoint === 'happy-hours-pricing') return localDb.getAllHappyHoursPricing();
+  
+  // Happy hours active check endpoints
+  if (endpoint.startsWith('happy-hours-active/')) {
+    const category = endpoint.split('/')[1];
+    const isActive = await localDb.isHappyHoursActive(category);
+    return { active: isActive };
+  }
+  if (endpoint.startsWith('happy-hours-active-for-time/')) {
+    const parts = endpoint.split('?');
+    const category = parts[0].split('/')[1];
+    const params = new URLSearchParams(parts[1] || '');
+    const timeSlot = params.get('timeSlot');
+    if (timeSlot) {
+      const time = new Date();
+      const [hours, minutes] = timeSlot.split(':').map(Number);
+      time.setHours(hours, minutes, 0, 0);
+      const isActive = await localDb.isHappyHoursActiveForTime(time, category);
+      return { active: isActive };
+    }
+    return { active: false };
+  }
+  
+  // Available seats for upcoming bookings
+  if (endpoint.startsWith('bookings/available-seats')) {
+    const params = new URLSearchParams(endpoint.split('?')[1] || '');
+    const date = params.get('date');
+    const timeSlot = params.get('timeSlot');
+    const durationMinutes = params.get('durationMinutes');
+    return localDb.getAvailableSeats(date || undefined, timeSlot || undefined, durationMinutes ? parseInt(durationMinutes) : undefined);
+  }
+  
+  // Check promotions
+  if (endpoint.startsWith('bookings/check-promotions')) {
+    const params = new URLSearchParams(endpoint.split('?')[1] || '');
+    const category = params.get('category') || '';
+    const duration = params.get('duration') || '';
+    const personCount = parseInt(params.get('personCount') || '1');
+    return localDb.checkPromotions(category, duration, personCount);
+  }
+  
   if (endpoint === 'gaming-center-info') return localDb.getGamingCenterInfo();
   if (endpoint === 'session-groups') return localDb.getAllSessionGroups();
   if (endpoint === 'users') return localDb.getAllUsers();
