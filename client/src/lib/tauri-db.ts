@@ -2586,4 +2586,164 @@ export const localDb = {
     // For now return null - promotions not critical for basic booking
     return { discount: null, bonus: null };
   },
+
+  // Report aggregation functions for offline mode
+  async getReportStats(period: string, startDate?: string, endDate?: string) {
+    const history = await this.getBookingHistory();
+    
+    // Determine date range based on period
+    const now = new Date();
+    let filterStartDate: Date;
+    let filterEndDate: Date = new Date(now);
+    filterEndDate.setHours(23, 59, 59, 999);
+    
+    if (period === 'daily') {
+      filterStartDate = new Date(now);
+      filterStartDate.setHours(0, 0, 0, 0);
+    } else if (period === 'weekly' && startDate && endDate) {
+      filterStartDate = new Date(startDate);
+      filterStartDate.setHours(0, 0, 0, 0);
+      filterEndDate = new Date(endDate);
+      filterEndDate.setHours(23, 59, 59, 999);
+    } else if (period === 'monthly' && startDate && endDate) {
+      filterStartDate = new Date(startDate);
+      filterStartDate.setHours(0, 0, 0, 0);
+      filterEndDate = new Date(endDate);
+      filterEndDate.setHours(23, 59, 59, 999);
+    } else {
+      // Default to today
+      filterStartDate = new Date(now);
+      filterStartDate.setHours(0, 0, 0, 0);
+    }
+    
+    // Filter history by date range
+    const filteredHistory = history.filter((record: any) => {
+      const recordDate = new Date(record.startTime || record.createdAt);
+      return recordDate >= filterStartDate && recordDate <= filterEndDate;
+    });
+    
+    // Calculate stats
+    let totalRevenue = 0;
+    let totalFoodRevenue = 0;
+    let totalSessions = filteredHistory.length;
+    let totalMinutes = 0;
+    let cashRevenue = 0;
+    let upiRevenue = 0;
+    
+    filteredHistory.forEach((record: any) => {
+      const price = parseFloat(record.price) || 0;
+      totalRevenue += price;
+      
+      // Calculate food revenue from foodOrders
+      const foodOrders = record.foodOrders || [];
+      const foodAmount = foodOrders.reduce((sum: number, order: any) => {
+        return sum + (parseFloat(order.price) || 0) * (order.quantity || 1);
+      }, 0);
+      totalFoodRevenue += foodAmount;
+      
+      // Calculate session duration
+      if (record.startTime && record.endTime) {
+        const start = new Date(record.startTime);
+        const end = new Date(record.endTime);
+        const minutes = Math.max(0, (end.getTime() - start.getTime()) / 60000);
+        totalMinutes += minutes;
+      }
+      
+      // Cash and UPI amounts
+      if (record.cashAmount) {
+        cashRevenue += parseFloat(record.cashAmount) || 0;
+      } else if (record.paymentMethod === 'cash') {
+        cashRevenue += price + foodAmount;
+      }
+      
+      if (record.upiAmount) {
+        upiRevenue += parseFloat(record.upiAmount) || 0;
+      } else if (record.paymentMethod === 'upi_online') {
+        upiRevenue += price + foodAmount;
+      }
+    });
+    
+    const avgSessionMinutes = totalSessions > 0 ? Math.round(totalMinutes / totalSessions) : 0;
+    
+    return {
+      totalRevenue: Math.round(totalRevenue),
+      totalFoodRevenue: Math.round(totalFoodRevenue),
+      totalSessions,
+      avgSessionMinutes,
+      cashRevenue: Math.round(cashRevenue),
+      upiRevenue: Math.round(upiRevenue),
+    };
+  },
+
+  async getReportHistory(period: string, startDate?: string, endDate?: string) {
+    const history = await this.getBookingHistory();
+    
+    // Determine date range based on period
+    const now = new Date();
+    let filterStartDate: Date;
+    let filterEndDate: Date = new Date(now);
+    filterEndDate.setHours(23, 59, 59, 999);
+    
+    if (period === 'daily') {
+      filterStartDate = new Date(now);
+      filterStartDate.setHours(0, 0, 0, 0);
+    } else if ((period === 'weekly' || period === 'monthly') && startDate && endDate) {
+      filterStartDate = new Date(startDate);
+      filterStartDate.setHours(0, 0, 0, 0);
+      filterEndDate = new Date(endDate);
+      filterEndDate.setHours(23, 59, 59, 999);
+    } else {
+      filterStartDate = new Date(now);
+      filterStartDate.setHours(0, 0, 0, 0);
+    }
+    
+    // Filter and transform history
+    const filteredHistory = history.filter((record: any) => {
+      const recordDate = new Date(record.startTime || record.createdAt);
+      return recordDate >= filterStartDate && recordDate <= filterEndDate;
+    });
+    
+    return filteredHistory.map((record: any) => {
+      const foodOrders = record.foodOrders || [];
+      const foodAmount = foodOrders.reduce((sum: number, order: any) => {
+        return sum + (parseFloat(order.price) || 0) * (order.quantity || 1);
+      }, 0);
+      
+      // Calculate duration string
+      let duration = '';
+      if (record.startTime && record.endTime) {
+        const start = new Date(record.startTime);
+        const end = new Date(record.endTime);
+        const minutes = Math.round((end.getTime() - start.getTime()) / 60000);
+        if (minutes < 60) {
+          duration = `${minutes} mins`;
+        } else {
+          const hours = Math.floor(minutes / 60);
+          const remainingMins = minutes % 60;
+          duration = remainingMins > 0 ? `${hours}h ${remainingMins}m` : `${hours}h`;
+        }
+      }
+      
+      const price = parseFloat(record.price) || 0;
+      
+      return {
+        id: record.id,
+        date: record.startTime || record.createdAt,
+        seatName: record.seatName || `${record.category}-${record.seatNumber}`,
+        customerName: record.customerName || 'Unknown',
+        duration,
+        price: price.toString(),
+        foodAmount,
+        totalAmount: price + foodAmount,
+        paymentMethod: record.paymentMethod,
+        paymentStatus: record.paymentStatus || 'paid',
+        cashAmount: record.cashAmount?.toString() || null,
+        upiAmount: record.upiAmount?.toString() || null,
+        discount: record.discount?.toString() || null,
+        bonus: record.bonus?.toString() || null,
+        discountApplied: record.discountApplied,
+        bonusHoursApplied: record.bonusHoursApplied,
+      };
+    });
+  },
 };
