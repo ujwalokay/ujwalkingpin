@@ -243,13 +243,19 @@ export function AddBookingDialog({ open, onOpenChange, onConfirm, availableSeats
     ? happyHoursSlots.find(s => s.duration === duration && s.personCount === personCount)
     : happyHoursSlots.find(s => s.duration === duration);
 
-  // Calculate final price
+  // Calculate final price (applies manual discount if set)
   const calculateFinalPrice = () => {
     const shouldUseHappyHoursPricing = (bookingType === "walk-in" && useHappyHoursPricing) || (bookingType === "upcoming" && useHappyHoursPricing);
     const slot = shouldUseHappyHoursPricing ? selectedHappyHoursSlot : selectedSlot;
     if (!slot) return null;
 
     let basePrice = parseFloat(slot.price.toString());
+    
+    // Apply manual discount if set
+    if (manualDiscountPercentage && parseFloat(manualDiscountPercentage) > 0) {
+      const discountAmount = (basePrice * parseFloat(manualDiscountPercentage)) / 100;
+      basePrice = basePrice - discountAmount;
+    }
 
     return Math.round(basePrice).toString();
   };

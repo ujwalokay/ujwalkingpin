@@ -170,3 +170,11 @@ Current Session - Final Migration Completion (December 7, 2025):
 ✅ Application accessible at port 5000
 ✅ All checklist items marked as [x] complete
 ✅ Ready for user to start building!
+
+Bug Fix Session - December 7, 2025:
+[x] 87. Fixed discount not being applied in AddBookingDialog.tsx
+    - Issue: calculateFinalPrice() was returning base price without applying manual discount
+    - Fix: Added discount calculation logic to apply manualDiscountPercentage before returning final price
+    - Location: client/src/components/AddBookingDialog.tsx lines 249-264
+[x] 88. Restarted workflow to apply changes
+[x] 89. Verified fix for both web and Tauri desktop modes
