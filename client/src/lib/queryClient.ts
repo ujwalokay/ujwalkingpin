@@ -35,6 +35,11 @@ async function handleGetRequest(endpoint: string): Promise<any> {
   if (endpoint === 'device-config') return localDb.getAllDeviceConfigs();
   if (endpoint === 'pricing-config') return localDb.getAllPricingConfigs();
   if (endpoint === 'food') return localDb.getAllFoodItems();
+  if (endpoint === 'food-items') return localDb.getAllFoodItems();
+  if (endpoint.startsWith('food-items/')) {
+    const id = endpoint.split('/')[1];
+    return localDb.getFoodItemById(id);
+  }
   if (endpoint === 'expenses') return localDb.getAllExpenses();
   if (endpoint === 'history') return localDb.getBookingHistory();
   if (endpoint === 'activity-logs') return localDb.getActivityLogs();
@@ -48,6 +53,10 @@ async function handleGetRequest(endpoint: string): Promise<any> {
   if (endpoint === 'staff-visibility') return localDb.getStaffVisibilitySettings();
   if (endpoint === 'app-settings') return localDb.getAppSettings();
   if (endpoint === 'server-time') return { serverTime: new Date().toISOString() };
+  if (endpoint === 'inventory') return localDb.getInventoryItems();
+  if (endpoint === 'inventory/low-stock') return localDb.getLowStockItems();
+  if (endpoint === 'inventory/reorder-list') return localDb.getReorderList();
+  if (endpoint === 'stock-batches') return localDb.getAllStockBatches();
   
   console.warn(`Unhandled GET endpoint: ${endpoint}`);
   return null;
@@ -55,9 +64,76 @@ async function handleGetRequest(endpoint: string): Promise<any> {
 
 async function handlePostRequest(endpoint: string, body: any): Promise<any> {
   if (endpoint === 'bookings') return localDb.createBooking(body);
-  if (endpoint === 'device-config') return localDb.createDeviceConfig(body);
-  if (endpoint === 'pricing-config') return localDb.createPricingConfig(body);
+  
+  // Device config: if has category/count/seats, upsert; otherwise create single
+  if (endpoint === 'device-config') {
+    if (body.category && (body.count !== undefined || body.seats)) {
+      return localDb.upsertDeviceConfig(body);
+    }
+    return localDb.createDeviceConfig(body);
+  }
+  
+  // Pricing config: if has category and configs array, do bulk upsert
+  if (endpoint === 'pricing-config') {
+    if (body.category && Array.isArray(body.configs)) {
+      // Delete existing configs for this category first, then upsert new ones
+      await localDb.deleteAllPricingConfigsByCategory(body.category);
+      const configsWithCategory = body.configs.map((c: any) => ({
+        ...c,
+        category: body.category,
+      }));
+      return localDb.upsertPricingConfigs(configsWithCategory);
+    }
+    return localDb.createPricingConfig(body);
+  }
+  
+  // Happy hours config: if has category and configs array, do bulk upsert
+  if (endpoint === 'happy-hours-config') {
+    if (body.category && Array.isArray(body.configs)) {
+      const configsWithCategory = body.configs.map((c: any) => ({
+        ...c,
+        category: body.category,
+      }));
+      return localDb.upsertHappyHoursConfigs(configsWithCategory);
+    }
+    return localDb.createHappyHoursConfig(body);
+  }
+  
+  // Happy hours pricing: if has category and configs array, do bulk upsert
+  if (endpoint === 'happy-hours-pricing') {
+    if (body.category && Array.isArray(body.configs)) {
+      await localDb.deleteAllHappyHoursPricingByCategory(body.category);
+      const configsWithCategory = body.configs.map((c: any) => ({
+        ...c,
+        category: body.category,
+      }));
+      return localDb.upsertHappyHoursPricing(configsWithCategory);
+    }
+    return localDb.createHappyHoursPricing(body);
+  }
+  
   if (endpoint === 'food') return localDb.createFoodItem(body);
+  if (endpoint === 'food-items') return localDb.createFoodItem(body);
+  
+  // Food items inventory operations
+  const foodItemsInventoryMatch = endpoint.match(/^food-items\/([^/]+)\/add-to-inventory$/);
+  if (foodItemsInventoryMatch) {
+    const id = foodItemsInventoryMatch[1];
+    return localDb.addToInventory(id);
+  }
+  
+  const foodItemsRemoveInventoryMatch = endpoint.match(/^food-items\/([^/]+)\/remove-from-inventory$/);
+  if (foodItemsRemoveInventoryMatch) {
+    const id = foodItemsRemoveInventoryMatch[1];
+    return localDb.removeFromInventory(id);
+  }
+  
+  const foodItemsAdjustStockMatch = endpoint.match(/^food-items\/([^/]+)\/adjust-stock$/);
+  if (foodItemsAdjustStockMatch) {
+    const id = foodItemsAdjustStockMatch[1];
+    return localDb.adjustStock(id, body.quantity, body.type);
+  }
+  
   if (endpoint === 'expenses') return localDb.createExpense(body);
   if (endpoint === 'activity-logs') return localDb.createActivityLog(body);
   if (endpoint === 'notifications') return localDb.createNotification(body);
@@ -68,6 +144,7 @@ async function handlePostRequest(endpoint: string, body: any): Promise<any> {
   if (endpoint === 'session-groups') return localDb.createSessionGroup(body);
   if (endpoint === 'users') return localDb.createUser(body);
   if (endpoint === 'bookings/archive') return localDb.archiveBooking(body);
+  if (endpoint === 'stock-batches') return localDb.createStockBatch(body);
   
   console.warn(`Unhandled POST endpoint: ${endpoint}`);
   return null;
@@ -90,6 +167,10 @@ async function handlePatchRequest(endpoint: string, body: any): Promise<any> {
     const id = endpoint.split('/')[1];
     return localDb.updateFoodItem(id, body);
   }
+  if (endpoint.startsWith('food-items/')) {
+    const id = endpoint.split('/')[1];
+    return localDb.updateFoodItem(id, body);
+  }
   if (endpoint.startsWith('expenses/')) {
     const id = endpoint.split('/')[1];
     return localDb.updateExpense(id, body);
@@ -102,6 +183,14 @@ async function handlePatchRequest(endpoint: string, body: any): Promise<any> {
     const id = endpoint.split('/')[1];
     await localDb.markNotificationAsRead(id);
     return { success: true };
+  }
+  if (endpoint.startsWith('happy-hours-config/')) {
+    const id = endpoint.split('/')[1];
+    return localDb.updateHappyHoursConfig(id, body);
+  }
+  if (endpoint.startsWith('happy-hours-pricing/')) {
+    const id = endpoint.split('/')[1];
+    return localDb.updateHappyHoursPricing(id, body);
   }
   if (endpoint === 'gaming-center-info') return localDb.updateGamingCenterInfo(body);
   if (endpoint === 'staff-visibility') return localDb.updateStaffVisibilitySettings(body);
@@ -132,6 +221,11 @@ async function handleDeleteRequest(endpoint: string): Promise<any> {
     await localDb.deleteFoodItem(id);
     return { success: true };
   }
+  if (endpoint.startsWith('food-items/')) {
+    const id = endpoint.split('/')[1];
+    await localDb.deleteFoodItem(id);
+    return { success: true };
+  }
   if (endpoint.startsWith('expenses/')) {
     const id = endpoint.split('/')[1];
     await localDb.deleteExpense(id);
@@ -145,6 +239,21 @@ async function handleDeleteRequest(endpoint: string): Promise<any> {
   if (endpoint.startsWith('session-groups/')) {
     const id = endpoint.split('/')[1];
     await localDb.deleteSessionGroup(id);
+    return { success: true };
+  }
+  if (endpoint.startsWith('notifications/')) {
+    const id = endpoint.split('/')[1];
+    await localDb.deleteNotification(id);
+    return { success: true };
+  }
+  if (endpoint.startsWith('happy-hours-config/')) {
+    const id = endpoint.split('/')[1];
+    await localDb.deleteHappyHoursConfig(id);
+    return { success: true };
+  }
+  if (endpoint.startsWith('happy-hours-pricing/')) {
+    const id = endpoint.split('/')[1];
+    await localDb.deleteHappyHoursPricing(id);
     return { success: true };
   }
   
