@@ -1,6 +1,6 @@
 import { useState, useMemo, useCallback } from "react";
 import { useQuery } from "@tanstack/react-query";
-import { isTauri, localDb } from "@/lib/tauri-db";
+import { localDb } from "@/lib/tauri-db";
 import { RevenueCard } from "@/components/RevenueCard";
 import { Button } from "@/components/ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
@@ -164,38 +164,24 @@ export default function Reports() {
   const { data: stats, isLoading: statsLoading } = useQuery<BookingStats>({
     queryKey: ["/api/reports/stats", selectedPeriod, startDate, endDate, selectedMonth],
     queryFn: async () => {
-      // Use local database in Tauri mode
-      if (isTauri()) {
-        const params = new URLSearchParams(buildQueryParams());
-        return localDb.getReportStats(
-          params.get('period') || 'daily',
-          params.get('startDate') || undefined,
-          params.get('endDate') || undefined
-        );
-      }
-      
-      const response = await fetch(`/api/reports/stats?${buildQueryParams()}`);
-      if (!response.ok) throw new Error("Failed to fetch stats");
-      return response.json();
+      const params = new URLSearchParams(buildQueryParams());
+      return localDb.getReportsStats(
+        params.get('period') || 'daily',
+        params.get('startDate') || undefined,
+        params.get('endDate') || undefined
+      );
     },
   });
 
   const { data: history, isLoading: historyLoading } = useQuery<BookingHistoryItem[]>({
     queryKey: ["/api/reports/history", selectedPeriod, startDate, endDate, selectedMonth],
     queryFn: async () => {
-      // Use local database in Tauri mode
-      if (isTauri()) {
-        const params = new URLSearchParams(buildQueryParams());
-        return localDb.getReportHistory(
-          params.get('period') || 'daily',
-          params.get('startDate') || undefined,
-          params.get('endDate') || undefined
-        );
-      }
-      
-      const response = await fetch(`/api/reports/history?${buildQueryParams()}`);
-      if (!response.ok) throw new Error("Failed to fetch history");
-      return response.json();
+      const params = new URLSearchParams(buildQueryParams());
+      return localDb.getReportsHistory(
+        params.get('period') || 'daily',
+        params.get('startDate') || undefined,
+        params.get('endDate') || undefined
+      );
     },
   });
 
