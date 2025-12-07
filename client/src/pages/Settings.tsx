@@ -17,6 +17,7 @@ import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, D
 import { Badge } from "@/components/ui/badge";
 import { Separator } from "@/components/ui/separator";
 import type { DeviceConfig, PricingConfig, HappyHoursConfig, HappyHoursPricing as HappyHoursPricingType } from "@shared/schema";
+import { localDb, isTauri } from "@/lib/tauri-db";
 
 interface UserProfile {
   id: string;
@@ -158,6 +159,13 @@ export default function Settings() {
   // Password change mutation
   const changePasswordMutation = useMutation({
     mutationFn: async (data: { currentPassword: string; newPassword: string; confirmPassword: string }) => {
+      if (isTauri()) {
+        if (!profile?.id) throw new Error("User not found");
+        const user = await localDb.validatePassword(profile.username, data.currentPassword);
+        if (!user) throw new Error("Current password is incorrect");
+        await localDb.updateUser(profile.id, { password: data.newPassword });
+        return { success: true };
+      }
       return apiRequest("POST", "/api/profile/change-password", data);
     },
     onSuccess: () => {
@@ -176,6 +184,11 @@ export default function Settings() {
   // Create staff mutation
   const createStaffMutation = useMutation({
     mutationFn: async (data: { username: string; password: string }) => {
+      if (isTauri()) {
+        const existingUser = await localDb.getUserByUsername(data.username);
+        if (existingUser) throw new Error("Username already exists");
+        return localDb.createUser({ username: data.username, password: data.password, role: 'staff' });
+      }
       return apiRequest("POST", "/api/staff", data);
     },
     onSuccess: () => {
@@ -215,6 +228,9 @@ export default function Settings() {
   // Reset staff password mutation
   const resetStaffPasswordMutation = useMutation({
     mutationFn: async ({ id, newPassword }: { id: string; newPassword: string }) => {
+      if (isTauri()) {
+        return localDb.updateUser(id, { password: newPassword });
+      }
       return apiRequest("POST", `/api/staff/${id}/reset-password`, { newPassword });
     },
     onSuccess: () => {

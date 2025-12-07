@@ -10,10 +10,19 @@ import { format } from "date-fns";
 import { Search, Filter, X, Calendar, ChevronDown, ChevronUp, Percent, Gift } from "lucide-react";
 import type { ActivityLog } from "@shared/schema";
 import { ScrollArea } from "@/components/ui/scroll-area";
+import { localDb, isTauri } from "@/lib/tauri-db";
 
 export default function ActivityLogs() {
   const { data: logs, isLoading } = useQuery<ActivityLog[]>({
     queryKey: ["/api/activity-logs"],
+    queryFn: async () => {
+      if (isTauri()) {
+        return localDb.getActivityLogs();
+      }
+      const response = await fetch("/api/activity-logs");
+      if (!response.ok) throw new Error("Failed to fetch activity logs");
+      return response.json();
+    },
   });
 
   const [searchQuery, setSearchQuery] = useState("");
