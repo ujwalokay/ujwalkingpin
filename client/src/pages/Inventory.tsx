@@ -14,6 +14,7 @@ import { useAuth } from "@/contexts/AuthContext";
 import { Card, CardContent } from "@/components/ui/card";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Alert, AlertDescription } from "@/components/ui/alert";
+import { localDb, isTauri } from "@/lib/tauri-db";
 
 interface StockFormData {
   quantity: string;
@@ -53,20 +54,47 @@ export default function Inventory() {
 
   const { data: allFoodItems = [], isLoading: loadingAll } = useQuery<FoodItem[]>({
     queryKey: ["/api/food-items"],
+    queryFn: async () => {
+      if (isTauri()) {
+        return localDb.getAllFoodItems();
+      }
+      const response = await fetch("/api/food-items");
+      if (!response.ok) throw new Error("Failed to fetch food items");
+      return response.json();
+    },
   });
 
   const { data: inventoryItems = [], isLoading: loadingInventory } = useQuery<FoodItem[]>({
     queryKey: ["/api/food-items/inventory"],
+    queryFn: async () => {
+      if (isTauri()) {
+        return localDb.getInventoryItems();
+      }
+      const response = await fetch("/api/food-items/inventory");
+      if (!response.ok) throw new Error("Failed to fetch inventory items");
+      return response.json();
+    },
   });
 
   const { data: expiringItems = [] } = useQuery<FoodItem[]>({
     queryKey: ["/api/food-items/expiring"],
+    queryFn: async () => {
+      if (isTauri()) {
+        return localDb.getExpiringItems(7);
+      }
+      const response = await fetch("/api/food-items/expiring");
+      if (!response.ok) throw new Error("Failed to fetch expiring items");
+      return response.json();
+    },
   });
 
   const availableItems = allFoodItems.filter(item => item.inInventory === 0);
 
   const addToInventoryMutation = useMutation({
     mutationFn: async (id: string) => {
+      if (isTauri()) {
+        return localDb.addToInventory(id);
+      }
       return await apiRequest("POST", `/api/food-items/${id}/add-to-inventory`);
     },
     onSuccess: (data) => {
@@ -88,6 +116,9 @@ export default function Inventory() {
 
   const removeFromInventoryMutation = useMutation({
     mutationFn: async (id: string) => {
+      if (isTauri()) {
+        return localDb.removeFromInventory(id);
+      }
       return await apiRequest("POST", `/api/food-items/${id}/remove-from-inventory`);
     },
     onSuccess: (data) => {
@@ -110,8 +141,12 @@ export default function Inventory() {
 
   const adjustStockMutation = useMutation({
     mutationFn: async ({ id, data }: { id: string; data: StockFormData & { type: 'add' | 'remove' } }) => {
+      const quantity = parseInt(data.quantity);
+      if (isTauri()) {
+        return localDb.adjustStock(id, quantity, data.type);
+      }
       const payload = {
-        quantity: parseInt(data.quantity),
+        quantity,
         type: data.type,
         costPrice: data.costPrice || undefined,
         supplier: data.supplier || undefined,
