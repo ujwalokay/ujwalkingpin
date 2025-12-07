@@ -2509,30 +2509,46 @@ export const localDb = {
     // Get all device configs
     const deviceConfigs = await this.getAllDeviceConfigs();
     
-    // Helper function to extract seat numbers from config.seats array
+    // Helper function to extract seat numbers from config.seats array OR generate from count
     // Seats can be: number, { number: N }, { seatNumber: N }, or { name: "Seat 1" }
-    const extractSeatNumbers = (seats: any[]): number[] => {
-      if (!Array.isArray(seats)) return [];
-      return seats.map((s: any) => {
-        if (typeof s === 'number') return s;
-        if (typeof s === 'object' && s !== null) {
-          if (typeof s.number === 'number') return s.number;
-          if (typeof s.seatNumber === 'number') return s.seatNumber;
-          // Try to extract number from seat name like "Seat 1"
-          if (typeof s.name === 'string') {
-            const match = s.name.match(/(\d+)/);
-            if (match) return parseInt(match[1], 10);
+    const extractSeatNumbers = (config: any): number[] => {
+      const seats = config.seats;
+      const count = config.count || 0;
+      
+      // If seats array exists and has items, extract from it
+      if (Array.isArray(seats) && seats.length > 0) {
+        const extracted = seats.map((s: any) => {
+          if (typeof s === 'number') return s;
+          if (typeof s === 'object' && s !== null) {
+            if (typeof s.number === 'number') return s.number;
+            if (typeof s.seatNumber === 'number') return s.seatNumber;
+            // Try to extract number from seat name like "Seat 1"
+            if (typeof s.name === 'string') {
+              const match = s.name.match(/(\d+)/);
+              if (match) return parseInt(match[1], 10);
+            }
           }
+          return null;
+        }).filter((n): n is number => n !== null);
+        
+        if (extracted.length > 0) {
+          return extracted;
         }
-        return null;
-      }).filter((n): n is number => n !== null);
+      }
+      
+      // If no seats in array but count is set, generate seat numbers 1 to count
+      if (count > 0) {
+        return Array.from({ length: count }, (_, i) => i + 1);
+      }
+      
+      return [];
     };
     
     // If no date/time specified, return all seats from device configs
     if (!date || !timeSlot || !durationMinutes) {
       return deviceConfigs.map((config: any) => ({
         category: config.category,
-        seats: extractSeatNumbers(config.seats || [])
+        seats: extractSeatNumbers(config)
       }));
     }
     
@@ -2557,7 +2573,7 @@ export const localDb = {
     
     // Calculate available seats per category
     return deviceConfigs.map((config: any) => {
-      const allSeats = extractSeatNumbers(config.seats || []);
+      const allSeats = extractSeatNumbers(config);
       const occupiedSeats = conflictingBookings
         .filter((b: any) => b.category === config.category)
         .map((b: any) => b.seatNumber);
