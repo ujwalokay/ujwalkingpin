@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useState, useRef } from "react";
 import splashLogo from "@assets/airavoto_logo.png";
 import iconPattern from "@assets/WhatsApp Image 2025-10-22 at 11.12.35_fa6763ad_1761112003243.jpg";
 
@@ -9,6 +9,12 @@ interface SplashScreenProps {
 export function SplashScreen({ onComplete }: SplashScreenProps) {
   const [progress, setProgress] = useState(0);
   const [showLogo, setShowLogo] = useState(false);
+  const onCompleteRef = useRef(onComplete);
+  
+  // Keep the ref updated
+  useEffect(() => {
+    onCompleteRef.current = onComplete;
+  }, [onComplete]);
 
   useEffect(() => {
     setTimeout(() => setShowLogo(true), 300);
@@ -17,7 +23,7 @@ export function SplashScreen({ onComplete }: SplashScreenProps) {
       setProgress((prev) => {
         if (prev >= 100) {
           clearInterval(progressInterval);
-          setTimeout(onComplete, 500);
+          setTimeout(() => onCompleteRef.current(), 500);
           return 100;
         }
         return prev + 2;
@@ -25,7 +31,7 @@ export function SplashScreen({ onComplete }: SplashScreenProps) {
     }, 25);
 
     return () => clearInterval(progressInterval);
-  }, [onComplete]);
+  }, []);
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center overflow-hidden bg-white dark:bg-gray-100">
