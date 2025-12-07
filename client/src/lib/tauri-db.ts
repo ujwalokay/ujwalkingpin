@@ -1391,23 +1391,6 @@ export const localDb = {
     }
   },
 
-  async updateDeviceMaintenanceStatus(id: string, status: string, notes?: string) {
-    const database = await getDatabase();
-    const now = new Date().toISOString();
-    if (notes !== undefined) {
-      await database.execute(
-        `UPDATE device_maintenance SET status = $1, maintenance_notes = $2, updated_at = $3 WHERE id = $4`,
-        [status, notes, now, id]
-      );
-    } else {
-      await database.execute(
-        `UPDATE device_maintenance SET status = $1, updated_at = $2 WHERE id = $3`,
-        [status, now, id]
-      );
-    }
-    return await this.getDeviceMaintenanceById(id);
-  },
-
   async recordMaintenanceCompleted(id: string, notes?: string) {
     const database = await getDatabase();
     const now = new Date().toISOString();
@@ -2118,5 +2101,385 @@ export const localDb = {
       },
       generatedAt: new Date().toISOString()
     };
+  },
+
+  /* REPORTS PAGE FUNCTIONS */
+  async getReportsStats(period: string, startDate?: string, endDate?: string) {
+    const database = await getDatabase();
+    
+    // Determine date range based on period
+    const now = new Date();
+    let queryStartDate: string;
+    let queryEndDate: string = now.toISOString();
+    
+    if (period === 'daily') {
+      const todayStart = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+      queryStartDate = todayStart.toISOString();
+    } else if (period === 'weekly' && startDate && endDate) {
+      queryStartDate = new Date(startDate).toISOString();
+      queryEndDate = new Date(endDate + 'T23:59:59.999Z').toISOString();
+    } else if (period === 'monthly' && startDate && endDate) {
+      queryStartDate = new Date(startDate).toISOString();
+      queryEndDate = new Date(endDate + 'T23:59:59.999Z').toISOString();
+    } else {
+      // Default to today
+      const todayStart = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+      queryStartDate = todayStart.toISOString();
+    }
+    
+    // Query booking history for the period
+    const result = await database.select(
+      `SELECT * FROM booking_history WHERE archived_at >= $1 AND archived_at <= $2`,
+      [queryStartDate, queryEndDate]
+    );
+    
+    const history = (result || []).map(transformBookingHistoryRow);
+    
+    let totalRevenue = 0;
+    let totalFoodRevenue = 0;
+    let cashRevenue = 0;
+    let upiRevenue = 0;
+    let totalDurationMinutes = 0;
+    
+    for (const booking of history) {
+      const price = parseFloat(booking.price) || 0;
+      totalRevenue += price;
+      
+      // Calculate food revenue from food orders
+      const foodOrders = booking.foodOrders || [];
+      for (const order of foodOrders) {
+        totalFoodRevenue += (parseFloat(order.price) || 0) * (order.quantity || 1);
+      }
+      
+      // Calculate payment method breakdown
+      if (booking.cashAmount) {
+        cashRevenue += parseFloat(booking.cashAmount) || 0;
+      } else if (booking.paymentMethod === 'cash') {
+        cashRevenue += price;
+      }
+      
+      if (booking.upiAmount) {
+        upiRevenue += parseFloat(booking.upiAmount) || 0;
+      } else if (booking.paymentMethod === 'upi_online') {
+        upiRevenue += price;
+      }
+      
+      // Calculate session duration
+      const start = new Date(booking.startTime).getTime();
+      const end = new Date(booking.endTime).getTime();
+      totalDurationMinutes += (end - start) / (1000 * 60);
+    }
+    
+    const avgSessionMinutes = history.length > 0 ? totalDurationMinutes / history.length : 0;
+    
+    return {
+      totalRevenue,
+      totalFoodRevenue,
+      totalSessions: history.length,
+      avgSessionMinutes: Math.round(avgSessionMinutes),
+      cashRevenue,
+      upiRevenue
+    };
+  },
+
+  async getReportsHistory(period: string, startDate?: string, endDate?: string) {
+    const database = await getDatabase();
+    
+    // Determine date range based on period
+    const now = new Date();
+    let queryStartDate: string;
+    let queryEndDate: string = now.toISOString();
+    
+    if (period === 'daily') {
+      const todayStart = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+      queryStartDate = todayStart.toISOString();
+    } else if ((period === 'weekly' || period === 'monthly') && startDate && endDate) {
+      queryStartDate = new Date(startDate).toISOString();
+      queryEndDate = new Date(endDate + 'T23:59:59.999Z').toISOString();
+    } else {
+      const todayStart = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+      queryStartDate = todayStart.toISOString();
+    }
+    
+    const result = await database.select(
+      `SELECT * FROM booking_history WHERE archived_at >= $1 AND archived_at <= $2 ORDER BY archived_at DESC`,
+      [queryStartDate, queryEndDate]
+    );
+    
+    const history = (result || []).map(transformBookingHistoryRow);
+    
+    // Transform to the format expected by Reports.tsx
+    return history.map((booking: any) => {
+      const foodOrders = booking.foodOrders || [];
+      const foodAmount = foodOrders.reduce((sum: number, order: any) => 
+        sum + (parseFloat(order.price) || 0) * (order.quantity || 1), 0
+      );
+      
+      const start = new Date(booking.startTime);
+      const end = new Date(booking.endTime);
+      const durationMs = end.getTime() - start.getTime();
+      const hours = Math.floor(durationMs / (1000 * 60 * 60));
+      const minutes = Math.floor((durationMs % (1000 * 60 * 60)) / (1000 * 60));
+      const duration = hours > 0 ? `${hours}h ${minutes}m` : `${minutes}m`;
+      
+      return {
+        id: booking.id,
+        date: booking.archivedAt || booking.createdAt,
+        seatName: booking.seatName,
+        customerName: booking.customerName,
+        duration,
+        price: String(booking.price || 0),
+        foodAmount,
+        totalAmount: (parseFloat(booking.price) || 0) + foodAmount,
+        paymentMethod: booking.paymentMethod,
+        paymentStatus: booking.paymentStatus || 'unpaid',
+        cashAmount: booking.cashAmount ? String(booking.cashAmount) : null,
+        upiAmount: booking.upiAmount ? String(booking.upiAmount) : null,
+        discount: booking.discount ? String(booking.discount) : null,
+        bonus: booking.bonus ? String(booking.bonus) : null,
+        discountApplied: booking.discountApplied ? String(booking.discountApplied) : null,
+        bonusHoursApplied: booking.bonusHoursApplied ? String(booking.bonusHoursApplied) : null
+      };
+    });
+  },
+
+  /* AI MAINTENANCE FUNCTIONS */
+  async getMaintenancePredictions() {
+    const database = await getDatabase();
+    
+    // Get device configs
+    const deviceConfigs = await database.select('SELECT * FROM device_configs ORDER BY category');
+    const configs = (deviceConfigs || []).map(transformDeviceConfigRow);
+    
+    // Get booking history for usage metrics
+    const bookingHistory = await database.select('SELECT * FROM booking_history');
+    const history = (bookingHistory || []).map(transformBookingHistoryRow);
+    
+    // Get device maintenance records if table exists
+    let maintenanceRecords: any[] = [];
+    try {
+      const maintenanceResult = await database.select('SELECT * FROM device_maintenance');
+      maintenanceRecords = maintenanceResult || [];
+    } catch {
+      // Table might not exist yet
+    }
+    
+    const predictions: any[] = [];
+    
+    for (const config of configs) {
+      const seats = config.seats || [];
+      
+      for (const seat of seats) {
+        const seatName = typeof seat === 'string' ? seat : seat.name || seat;
+        
+        // Calculate metrics for this device
+        const deviceBookings = history.filter((b: any) => 
+          b.category === config.category && b.seatName === seatName
+        );
+        
+        const totalSessions = deviceBookings.length;
+        let usageHours = 0;
+        
+        for (const booking of deviceBookings) {
+          const start = new Date(booking.startTime).getTime();
+          const end = new Date(booking.endTime).getTime();
+          usageHours += (end - start) / (1000 * 60 * 60);
+        }
+        
+        // Find maintenance record for this device
+        const maintenanceRecord = maintenanceRecords.find((m: any) => 
+          m.category === config.category && m.seat_name === seatName
+        );
+        
+        const issuesReported = maintenanceRecord?.issues_count || 0;
+        let daysSinceLastMaintenance: number | null = null;
+        
+        if (maintenanceRecord?.last_maintenance_date) {
+          const lastMaintenance = new Date(maintenanceRecord.last_maintenance_date);
+          const now = new Date();
+          daysSinceLastMaintenance = Math.floor((now.getTime() - lastMaintenance.getTime()) / (1000 * 60 * 60 * 24));
+        }
+        
+        // Calculate risk level based on metrics
+        let riskLevel: 'low' | 'medium' | 'high' = 'low';
+        let reasoning = 'Device is operating within normal parameters.';
+        let recommendedAction = 'Continue regular monitoring.';
+        let estimatedDaysUntilMaintenance = 90;
+        
+        // Risk scoring
+        const usageScore = usageHours > 500 ? 3 : usageHours > 200 ? 2 : 1;
+        const sessionScore = totalSessions > 100 ? 3 : totalSessions > 50 ? 2 : 1;
+        const issueScore = issuesReported > 3 ? 3 : issuesReported > 1 ? 2 : 1;
+        const maintenanceScore = daysSinceLastMaintenance === null ? 2 :
+          daysSinceLastMaintenance > 60 ? 3 : daysSinceLastMaintenance > 30 ? 2 : 1;
+        
+        const totalScore = usageScore + sessionScore + issueScore + maintenanceScore;
+        
+        if (totalScore >= 10) {
+          riskLevel = 'high';
+          reasoning = `High usage (${usageHours.toFixed(0)}h) with ${issuesReported} reported issues. ${daysSinceLastMaintenance ? `Last serviced ${daysSinceLastMaintenance} days ago.` : 'No maintenance history.'}`;
+          recommendedAction = 'Schedule immediate maintenance check.';
+          estimatedDaysUntilMaintenance = 7;
+        } else if (totalScore >= 7) {
+          riskLevel = 'medium';
+          reasoning = `Moderate usage (${usageHours.toFixed(0)}h) with ${totalSessions} sessions. Consider preventive maintenance.`;
+          recommendedAction = 'Plan maintenance within next 2-4 weeks.';
+          estimatedDaysUntilMaintenance = 21;
+        } else {
+          reasoning = `Normal usage (${usageHours.toFixed(0)}h). Device health appears stable.`;
+          recommendedAction = 'Continue regular monitoring.';
+          estimatedDaysUntilMaintenance = 60;
+        }
+        
+        predictions.push({
+          category: config.category,
+          seatName,
+          riskLevel,
+          recommendedAction,
+          estimatedDaysUntilMaintenance,
+          reasoning,
+          metrics: {
+            usageHours: Math.round(usageHours * 10) / 10,
+            totalSessions,
+            issuesReported,
+            daysSinceLastMaintenance
+          }
+        });
+      }
+    }
+    
+    // Sort predictions by risk level (high first)
+    predictions.sort((a, b) => {
+      const riskOrder = { high: 0, medium: 1, low: 2 };
+      return riskOrder[a.riskLevel as keyof typeof riskOrder] - riskOrder[b.riskLevel as keyof typeof riskOrder];
+    });
+    
+    const highRiskDevices = predictions.filter(p => p.riskLevel === 'high').length;
+    const mediumRiskDevices = predictions.filter(p => p.riskLevel === 'medium').length;
+    const lowRiskDevices = predictions.filter(p => p.riskLevel === 'low').length;
+    
+    const recommendedActions: string[] = [];
+    if (highRiskDevices > 0) {
+      recommendedActions.push(`${highRiskDevices} device(s) require immediate attention`);
+    }
+    if (mediumRiskDevices > 0) {
+      recommendedActions.push(`Schedule preventive maintenance for ${mediumRiskDevices} device(s)`);
+    }
+    
+    return {
+      predictions,
+      summary: {
+        highRiskDevices,
+        mediumRiskDevices,
+        lowRiskDevices,
+        totalDevices: predictions.length,
+        recommendedActions
+      },
+      generatedAt: new Date().toISOString()
+    };
+  },
+
+  async updateDeviceMaintenanceStatus(category: string, seatName: string, status: string, notes?: string) {
+    const database = await getDatabase();
+    const now = new Date().toISOString();
+    
+    // Check if device_maintenance table exists, create if not
+    try {
+      await database.execute(`
+        CREATE TABLE IF NOT EXISTS device_maintenance (
+          id TEXT PRIMARY KEY,
+          category TEXT NOT NULL,
+          seat_name TEXT NOT NULL,
+          status TEXT DEFAULT 'healthy',
+          last_maintenance_date TEXT,
+          issues_count INTEGER DEFAULT 0,
+          notes TEXT,
+          updated_at TEXT
+        )
+      `);
+    } catch {
+      // Table might already exist
+    }
+    
+    // Check if record exists
+    const existing = await database.select(
+      'SELECT * FROM device_maintenance WHERE category = $1 AND seat_name = $2',
+      [category, seatName]
+    );
+    
+    if (existing && existing.length > 0) {
+      // Update existing record
+      await database.execute(
+        `UPDATE device_maintenance SET status = $1, last_maintenance_date = $2, notes = $3, updated_at = $4 
+         WHERE category = $5 AND seat_name = $6`,
+        [status, now, notes || null, now, category, seatName]
+      );
+    } else {
+      // Create new record
+      const id = generateUUID();
+      await database.execute(
+        `INSERT INTO device_maintenance (id, category, seat_name, status, last_maintenance_date, notes, updated_at)
+         VALUES ($1, $2, $3, $4, $5, $6, $7)`,
+        [id, category, seatName, status, now, notes || null, now]
+      );
+    }
+    
+    return { success: true, category, seatName, status };
+  },
+
+  async reportDeviceIssue(category: string, seatName: string, issueType: string) {
+    const database = await getDatabase();
+    const now = new Date().toISOString();
+    
+    // Ensure table exists
+    try {
+      await database.execute(`
+        CREATE TABLE IF NOT EXISTS device_maintenance (
+          id TEXT PRIMARY KEY,
+          category TEXT NOT NULL,
+          seat_name TEXT NOT NULL,
+          status TEXT DEFAULT 'healthy',
+          last_maintenance_date TEXT,
+          issues_count INTEGER DEFAULT 0,
+          notes TEXT,
+          updated_at TEXT
+        )
+      `);
+    } catch {
+      // Table might already exist
+    }
+    
+    // Check if record exists
+    const existing = await database.select(
+      'SELECT * FROM device_maintenance WHERE category = $1 AND seat_name = $2',
+      [category, seatName]
+    );
+    
+    if (existing && existing.length > 0) {
+      // Increment issues count
+      await database.execute(
+        `UPDATE device_maintenance SET issues_count = issues_count + 1, status = $1, updated_at = $2 
+         WHERE category = $3 AND seat_name = $4`,
+        [issueType === 'repair' ? 'needs_repair' : 'has_glitch', now, category, seatName]
+      );
+    } else {
+      // Create new record with issue
+      const id = generateUUID();
+      await database.execute(
+        `INSERT INTO device_maintenance (id, category, seat_name, status, issues_count, updated_at)
+         VALUES ($1, $2, $3, $4, 1, $5)`,
+        [id, category, seatName, issueType === 'repair' ? 'needs_repair' : 'has_glitch', now]
+      );
+    }
+    
+    // Generate AI suggestion based on issue type
+    let aiSuggestion = 'Issue has been recorded. The device will be flagged for attention.';
+    if (issueType === 'repair') {
+      aiSuggestion = 'Repair issue logged. Consider scheduling a technician visit soon.';
+    } else if (issueType === 'glitch') {
+      aiSuggestion = 'Glitch reported. Try restarting the device. If issue persists, schedule maintenance.';
+    }
+    
+    return { success: true, category, seatName, issueType, aiSuggestion };
   },
 };

@@ -65,6 +65,23 @@ async function handleGetRequest(endpoint: string): Promise<any> {
     return localDb.getAnalyticsUsage(params.get('timeRange') || 'today');
   }
   if (endpoint === 'ai/traffic/predictions') return localDb.getTrafficPredictions();
+  if (endpoint === 'ai/maintenance/predictions') return localDb.getMaintenancePredictions();
+  
+  // Reports endpoints with query params
+  if (endpoint.startsWith('reports/stats')) {
+    const params = new URLSearchParams(endpoint.split('?')[1] || '');
+    const period = params.get('period') || 'daily';
+    const startDate = params.get('startDate') || undefined;
+    const endDate = params.get('endDate') || undefined;
+    return localDb.getReportsStats(period, startDate, endDate);
+  }
+  if (endpoint.startsWith('reports/history')) {
+    const params = new URLSearchParams(endpoint.split('?')[1] || '');
+    const period = params.get('period') || 'daily';
+    const startDate = params.get('startDate') || undefined;
+    const endDate = params.get('endDate') || undefined;
+    return localDb.getReportsHistory(period, startDate, endDate);
+  }
   
   console.warn(`Unhandled GET endpoint: ${endpoint}`);
   return null;
@@ -167,6 +184,14 @@ async function handlePostRequest(endpoint: string, body: any): Promise<any> {
     return { success: true };
   }
   
+  // Maintenance issue reporting
+  const maintenanceReportMatch = endpoint.match(/^maintenance\/([^/]+)\/([^/]+)\/report-issue$/);
+  if (maintenanceReportMatch) {
+    const category = maintenanceReportMatch[1];
+    const seatName = decodeURIComponent(maintenanceReportMatch[2]);
+    return localDb.reportDeviceIssue(category, seatName, body.issueType);
+  }
+  
   console.warn(`Unhandled POST endpoint: ${endpoint}`);
   return null;
 }
@@ -216,6 +241,14 @@ async function handlePatchRequest(endpoint: string, body: any): Promise<any> {
   if (endpoint === 'gaming-center-info') return localDb.updateGamingCenterInfo(body);
   if (endpoint === 'staff-visibility') return localDb.updateStaffVisibilitySettings(body);
   if (endpoint === 'app-settings') return localDb.updateAppSettings(body);
+  
+  // Maintenance status update (PUT request comes through PATCH handler)
+  const maintenanceStatusMatch = endpoint.match(/^maintenance\/([^/]+)\/([^/]+)\/status$/);
+  if (maintenanceStatusMatch) {
+    const category = maintenanceStatusMatch[1];
+    const seatName = decodeURIComponent(maintenanceStatusMatch[2]);
+    return localDb.updateDeviceMaintenanceStatus(category, seatName, body.status, body.notes);
+  }
   
   console.warn(`Unhandled PATCH endpoint: ${endpoint}`);
   return null;
