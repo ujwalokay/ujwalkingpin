@@ -182,10 +182,8 @@ export default function Dashboard() {
     if (tourParam === 'true') {
       setShowTour(true);
       window.history.replaceState({}, '', window.location.pathname);
-    } else if (!onboardingCompleted && user) {
-      setShowTour(true);
     }
-  }, [onboardingCompleted, user]);
+  }, [user]);
 
   const bookings: Booking[] = useMemo(() => {
     return dbBookings
