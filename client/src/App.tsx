@@ -232,9 +232,14 @@ function App() {
         // Initialize Tauri auth (creates default admin if needed)
         if (isTauri()) {
           console.log('Running in Tauri desktop mode...');
-          const tauriInitSuccess = await initializeTauriAuth();
-          if (!tauriInitSuccess) {
-            console.error('Tauri initialization failed, continuing with login...');
+          try {
+            const tauriInitSuccess = await initializeTauriAuth();
+            if (!tauriInitSuccess) {
+              console.error('Tauri initialization failed, continuing with login...');
+            }
+          } catch (tauriError) {
+            console.error('Tauri init error:', tauriError);
+            // Still continue to show login even if Tauri init fails
           }
         }
         
@@ -250,7 +255,18 @@ function App() {
         setShowLogin(true);
       }
     };
+    
+    // Add a safety timeout to ensure login page shows
+    const safetyTimeout = setTimeout(() => {
+      if (!isAuthenticated && !showLogin) {
+        console.log('Safety timeout: showing login page');
+        setShowLogin(true);
+      }
+    }, 12000); // 12 second safety net
+    
     checkAuth();
+    
+    return () => clearTimeout(safetyTimeout);
   }, []);
 
   if (showSplash) {

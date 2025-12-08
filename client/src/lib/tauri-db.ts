@@ -33,7 +33,8 @@ export function isTauri(): boolean {
  */
 export async function initDatabase() {
   if (!isTauri()) {
-    throw new Error('Cannot initialize Tauri database in web mode');
+    console.warn('[DB] Not in Tauri environment, skipping database init');
+    return null;
   }
 
   if (db && dbInitialized) return db;
@@ -42,8 +43,35 @@ export async function initDatabase() {
   dbInitPromise = (async () => {
     try {
       console.log('[DB] Initializing Tauri database...');
-      const sqlModule = await import('@tauri-apps/plugin-sql');
+      
+      // Dynamic import with timeout to prevent hanging
+      const importWithTimeout = async () => {
+        return new Promise<any>((resolve, reject) => {
+          const timeout = setTimeout(() => {
+            reject(new Error('Plugin import timeout after 5 seconds'));
+          }, 5000);
+          
+          import('@tauri-apps/plugin-sql')
+            .then((module) => {
+              clearTimeout(timeout);
+              resolve(module);
+            })
+            .catch((err) => {
+              clearTimeout(timeout);
+              reject(err);
+            });
+        });
+      };
+      
+      const sqlModule = await importWithTimeout();
+      console.log('[DB] SQL module loaded:', Object.keys(sqlModule));
+      
       const Database = sqlModule.default || (sqlModule as any).Database || sqlModule;
+      
+      if (typeof Database.load !== 'function') {
+        throw new Error('Database.load is not a function - invalid SQL module');
+      }
+      
       db = await Database.load('sqlite:airavoto_pos.db');
       dbInitialized = true;
       console.log('[DB] Tauri database initialized successfully');
@@ -51,6 +79,7 @@ export async function initDatabase() {
     } catch (error) {
       console.error('[DB] Failed to initialize Tauri database:', error);
       dbInitPromise = null;
+      dbInitialized = false;
       throw error;
     }
   })();

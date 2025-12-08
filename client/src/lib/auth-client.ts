@@ -44,10 +44,18 @@ function clearTauriSession(): void {
 
 async function ensureDatabaseReady(): Promise<boolean> {
   try {
-    await initDatabase();
+    if (!isTauri()) {
+      console.log('[Auth] Not in Tauri mode, database not needed');
+      return false;
+    }
+    const result = await initDatabase();
+    if (!result) {
+      console.error('[Auth] Database initialization returned null');
+      return false;
+    }
     return true;
   } catch (error) {
-    console.error('Database not ready:', error);
+    console.error('[Auth] Database not ready:', error);
     return false;
   }
 }
@@ -134,24 +142,34 @@ export async function logout(): Promise<boolean> {
 export async function initializeTauriAuth(): Promise<boolean> {
   try {
     console.log('Initializing offline authentication...');
-    const dbReady = await ensureDatabaseReady();
-    if (!dbReady) {
-      console.error('Failed to initialize database');
-      return false;
-    }
     
-    const users = await localDb.getAllUsers();
-    if (users.length === 0) {
-      console.log('No users found, creating default admin user...');
-      await localDb.createUser({
-        username: 'admin',
-        password: 'Admin@123',
-        role: 'admin',
-      });
-      console.log('Default admin user created');
-    }
-    console.log('Offline authentication initialized successfully');
-    return true;
+    // Add timeout to prevent hanging forever
+    const timeoutPromise = new Promise<boolean>((_, reject) => {
+      setTimeout(() => reject(new Error('Database initialization timeout after 10 seconds')), 10000);
+    });
+    
+    const initPromise = (async () => {
+      const dbReady = await ensureDatabaseReady();
+      if (!dbReady) {
+        console.error('Failed to initialize database');
+        return false;
+      }
+      
+      const users = await localDb.getAllUsers();
+      if (users.length === 0) {
+        console.log('No users found, creating default admin user...');
+        await localDb.createUser({
+          username: 'admin',
+          password: 'Admin@123',
+          role: 'admin',
+        });
+        console.log('Default admin user created');
+      }
+      console.log('Offline authentication initialized successfully');
+      return true;
+    })();
+    
+    return await Promise.race([initPromise, timeoutPromise]);
   } catch (error) {
     console.error('Failed to initialize authentication:', error);
     return false;
