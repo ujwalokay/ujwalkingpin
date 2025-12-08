@@ -2045,6 +2045,35 @@ export const localDb = {
     return { count };
   },
 
+  async updateBookingsPaymentStatus(bookingIds: string[], paymentStatus: string, paymentMethod: string) {
+    const database = await getDatabase();
+    let count = 0;
+    
+    for (const bookingId of bookingIds) {
+      const booking = await this.getBookingById(bookingId);
+      if (!booking) continue;
+      
+      const price = parseFloat(booking.price) || 0;
+      const updates: any = {
+        paymentStatus,
+        paymentMethod,
+      };
+      
+      if (paymentMethod === 'cash') {
+        updates.cashAmount = price;
+        updates.upiAmount = null;
+      } else if (paymentMethod === 'upi_online') {
+        updates.upiAmount = price;
+        updates.cashAmount = null;
+      }
+      
+      await this.updateBooking(bookingId, updates);
+      count++;
+    }
+    
+    return { success: true, count };
+  },
+
   /* ANALYTICS */
   async getAnalyticsUsage(timeRange: string) {
     const database = await getDatabase();

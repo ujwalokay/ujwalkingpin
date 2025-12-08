@@ -1,6 +1,6 @@
 import { useState, useMemo, useCallback } from "react";
 import { useQuery } from "@tanstack/react-query";
-import { localDb } from "@/lib/tauri-db";
+import { localDb, isTauri } from "@/lib/tauri-db";
 import { RevenueCard } from "@/components/RevenueCard";
 import { Button } from "@/components/ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
@@ -165,11 +165,16 @@ export default function Reports() {
     queryKey: ["/api/reports/stats", selectedPeriod, startDate, endDate, selectedMonth],
     queryFn: async () => {
       const params = new URLSearchParams(buildQueryParams());
-      return localDb.getReportsStats(
-        params.get('period') || 'daily',
-        params.get('startDate') || undefined,
-        params.get('endDate') || undefined
-      );
+      if (isTauri()) {
+        return localDb.getReportsStats(
+          params.get('period') || 'daily',
+          params.get('startDate') || undefined,
+          params.get('endDate') || undefined
+        );
+      }
+      const response = await fetch(`/api/reports/stats?${params.toString()}`, { credentials: 'include' });
+      if (!response.ok) throw new Error('Failed to fetch stats');
+      return response.json();
     },
   });
 
@@ -177,11 +182,16 @@ export default function Reports() {
     queryKey: ["/api/reports/history", selectedPeriod, startDate, endDate, selectedMonth],
     queryFn: async () => {
       const params = new URLSearchParams(buildQueryParams());
-      return localDb.getReportsHistory(
-        params.get('period') || 'daily',
-        params.get('startDate') || undefined,
-        params.get('endDate') || undefined
-      );
+      if (isTauri()) {
+        return localDb.getReportsHistory(
+          params.get('period') || 'daily',
+          params.get('startDate') || undefined,
+          params.get('endDate') || undefined
+        );
+      }
+      const response = await fetch(`/api/reports/history?${params.toString()}`, { credentials: 'include' });
+      if (!response.ok) throw new Error('Failed to fetch history');
+      return response.json();
     },
   });
 

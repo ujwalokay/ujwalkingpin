@@ -19,6 +19,7 @@ import { useToast } from "@/hooks/use-toast";
 import { useSoundAlert } from "@/hooks/useSoundAlert";
 import { fetchBookings, createBooking, updateBooking, deleteBooking, fetchDeviceConfigs, getServerTime } from "@/lib/api";
 import { apiRequest } from "@/lib/queryClient";
+import { isTauri, localDb } from "@/lib/tauri-db";
 import type { Booking as DBBooking, DeviceConfig } from "@shared/schema";
 import { useServerTime } from "@/hooks/useServerTime";
 import { useAuth } from "@/contexts/AuthContext";
@@ -653,7 +654,13 @@ export default function Dashboard() {
 
   const handleRefresh = async () => {
     try {
-      const data = await apiRequest<{ count: number }>('POST', '/api/bookings/archive-expired', {});
+      let data: { count: number };
+      
+      if (isTauri()) {
+        data = await localDb.archiveExpiredBookings();
+      } else {
+        data = await apiRequest<{ count: number }>('POST', '/api/bookings/archive-expired', {});
+      }
       
       queryClient.invalidateQueries({ queryKey: ['bookings'] });
       queryClient.invalidateQueries({ queryKey: ['/api/booking-history'] });
@@ -706,11 +713,21 @@ export default function Dashboard() {
     }
 
     try {
-      const data = await apiRequest<{ success: boolean; count: number }>('POST', '/api/bookings/payment-status', {
-        bookingIds: Array.from(selectedBookings),
-        paymentStatus: 'paid',
-        paymentMethod: method
-      });
+      let data: { success: boolean; count: number };
+      
+      if (isTauri()) {
+        data = await localDb.updateBookingsPaymentStatus(
+          Array.from(selectedBookings),
+          'paid',
+          method
+        );
+      } else {
+        data = await apiRequest<{ success: boolean; count: number }>('POST', '/api/bookings/payment-status', {
+          bookingIds: Array.from(selectedBookings),
+          paymentStatus: 'paid',
+          paymentMethod: method
+        });
+      }
       
       queryClient.invalidateQueries({ queryKey: ['bookings'] });
       setShowPaymentDialog(false);

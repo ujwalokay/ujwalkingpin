@@ -10,6 +10,7 @@ import { format, isValid, isSameDay } from "date-fns";
 import type { BookingHistory } from "@shared/schema";
 import { getAdjustedTime } from "@/hooks/useServerTime";
 import { useAuth } from "@/contexts/AuthContext";
+import { isTauri, localDb } from "@/lib/tauri-db";
 import {
   Accordion,
   AccordionContent,
@@ -45,6 +46,21 @@ export default function History() {
 
   const { data: bookings = [], isLoading } = useQuery<BookingHistory[]>({
     queryKey: ["/api/booking-history"],
+    queryFn: async () => {
+      if (isTauri()) {
+        const history = await localDb.getBookingHistory();
+        return history.map((h: any) => ({
+          ...h,
+          startTime: new Date(h.startTime),
+          endTime: new Date(h.endTime),
+          createdAt: new Date(h.createdAt),
+          archivedAt: h.archivedAt ? new Date(h.archivedAt) : null,
+        }));
+      }
+      const response = await fetch('/api/booking-history', { credentials: 'include' });
+      if (!response.ok) throw new Error('Failed to fetch booking history');
+      return response.json();
+    },
   });
 
   const filteredBookings = bookings.filter(booking => {
