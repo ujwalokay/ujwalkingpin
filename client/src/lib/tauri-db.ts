@@ -2308,9 +2308,22 @@ export const localDb = {
       const minutes = Math.floor((durationMs % (1000 * 60 * 60)) / (1000 * 60));
       const duration = hours > 0 ? `${hours}h ${minutes}m` : `${minutes}m`;
       
+      // Format date as a string for display
+      const dateValue = booking.archivedAt || booking.createdAt;
+      const formattedDate = dateValue instanceof Date 
+        ? dateValue.toLocaleString('en-IN', { 
+            day: '2-digit', 
+            month: 'short', 
+            year: 'numeric',
+            hour: '2-digit',
+            minute: '2-digit',
+            hour12: true
+          })
+        : String(dateValue);
+      
       return {
         id: booking.id,
-        date: booking.archivedAt || booking.createdAt,
+        date: formattedDate,
         seatName: booking.seatName,
         customerName: booking.customerName,
         duration,
