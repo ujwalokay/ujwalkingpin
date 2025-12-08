@@ -264,6 +264,10 @@ export default function Settings() {
   // Delete staff mutation
   const deleteStaffMutation = useMutation({
     mutationFn: async (id: string) => {
+      if (isTauri()) {
+        await localDb.deleteUser(id);
+        return { success: true };
+      }
       return apiRequest("DELETE", `/api/staff/${id}`);
     },
     onSuccess: () => {
