@@ -438,11 +438,27 @@ export default function Reports() {
     }
 
     try {
-      const printWindow = window.open('', '_blank');
-      if (!printWindow) {
+      // Use iframe approach instead of popup (works in Tauri desktop)
+      const existingFrame = document.getElementById('print-frame');
+      if (existingFrame) {
+        existingFrame.remove();
+      }
+      
+      const printFrame = document.createElement('iframe');
+      printFrame.id = 'print-frame';
+      printFrame.style.position = 'fixed';
+      printFrame.style.right = '0';
+      printFrame.style.bottom = '0';
+      printFrame.style.width = '0';
+      printFrame.style.height = '0';
+      printFrame.style.border = 'none';
+      document.body.appendChild(printFrame);
+      
+      const frameDoc = printFrame.contentWindow?.document;
+      if (!frameDoc) {
         toast({
-          title: "Popup blocked",
-          description: "Please allow popups for this site to export PDF.",
+          title: "Export failed",
+          description: "Could not create print frame. Please try again.",
           variant: "destructive",
         });
         return;
@@ -786,35 +802,39 @@ export default function Reports() {
             </div>
           </div>
 
-          <script>
-            window.onload = () => {
-              setTimeout(() => {
-                window.print();
-                setTimeout(() => {
-                  window.close();
-                }, 1000);
-              }, 500);
-            };
-            window.onafterprint = () => {
-              window.close();
-            };
-            window.onbeforeunload = null;
           </script>
         </body>
         </html>
       `;
 
-      printWindow.document.write(htmlContent);
-      printWindow.document.close();
+      frameDoc.open();
+      frameDoc.write(htmlContent);
+      frameDoc.close();
       
-      printWindow.onload = () => {
-        printWindow.print();
-      };
-      
-      toast({
-        title: "Print dialog opened",
-        description: "Use the print dialog to save as PDF.",
-      });
+      // Wait for content to load, then print
+      setTimeout(() => {
+        try {
+          printFrame.contentWindow?.focus();
+          printFrame.contentWindow?.print();
+          
+          // Remove iframe after printing
+          setTimeout(() => {
+            printFrame.remove();
+          }, 2000);
+          
+          toast({
+            title: "Print dialog opened",
+            description: "Use the print dialog to save as PDF.",
+          });
+        } catch (printError) {
+          printFrame.remove();
+          toast({
+            title: "Print failed",
+            description: "Could not open print dialog. Please try again.",
+            variant: "destructive",
+          });
+        }
+      }, 500);
     } catch (error) {
       toast({
         title: "Export failed",
