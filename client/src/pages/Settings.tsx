@@ -18,6 +18,7 @@ import { Badge } from "@/components/ui/badge";
 import { Separator } from "@/components/ui/separator";
 import type { DeviceConfig, PricingConfig, HappyHoursConfig, HappyHoursPricing as HappyHoursPricingType } from "@shared/schema";
 import { localDb, isTauri } from "@/lib/tauri-db";
+import { getCurrentUser } from "@/lib/auth-client";
 
 interface UserProfile {
   id: string;
@@ -84,9 +85,38 @@ export default function Settings() {
   const isAdmin = authUser?.role === 'admin';
   const isAuthLoaded = authUser !== null && authUser !== undefined;
 
-  // Fetch user profile
+  // Fetch user profile (with Tauri offline support)
   const { data: profile, isLoading: profileLoading } = useQuery<UserProfile>({
     queryKey: ['/api/profile'],
+    queryFn: async () => {
+      if (isTauri()) {
+        // In Tauri mode, get the profile from local session
+        const currentUser = await getCurrentUser();
+        if (currentUser) {
+          // Fetch full user details from local database
+          const userDetails = await localDb.getUserById(currentUser.id);
+          if (userDetails) {
+            return {
+              id: userDetails.id,
+              username: userDetails.username,
+              role: userDetails.role,
+              createdAt: userDetails.createdAt || new Date().toISOString(),
+            };
+          }
+          // Fallback to session data
+          return {
+            id: currentUser.id,
+            username: currentUser.username,
+            role: currentUser.role,
+            createdAt: new Date().toISOString(),
+          };
+        }
+        throw new Error('No user session found');
+      }
+      const response = await fetch('/api/profile', { credentials: 'include' });
+      if (!response.ok) throw new Error('Failed to fetch profile');
+      return response.json();
+    },
   });
 
   // Fetch staff members (admin only - only enabled when auth is loaded AND user is admin)
