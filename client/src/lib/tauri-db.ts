@@ -850,6 +850,12 @@ export const localDb = {
     return (result || []).map(transformUserRow);
   },
 
+  async getAllStaff() {
+    const database = await getDatabase();
+    const result = await database.select('SELECT id, username, role, onboarding_completed, profile_image_url, created_at, updated_at FROM users WHERE role = $1 ORDER BY created_at ASC', ['staff']);
+    return (result || []).map(transformUserRow);
+  },
+
   async getUserById(id: string) {
     const database = await getDatabase();
     const result = await database.select('SELECT * FROM users WHERE id = $1', [id]);

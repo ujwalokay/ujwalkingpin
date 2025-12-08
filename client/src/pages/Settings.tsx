@@ -92,6 +92,20 @@ export default function Settings() {
   // Fetch staff members (admin only - only enabled when auth is loaded AND user is admin)
   const { data: staffMembers, isLoading: staffLoading } = useQuery<StaffMember[]>({
     queryKey: ['/api/staff'],
+    queryFn: async () => {
+      if (isTauri()) {
+        const staff = await localDb.getAllStaff();
+        return staff.map((s: { id: string; username: string; role: string; createdAt: string }) => ({
+          id: s.id,
+          username: s.username,
+          role: s.role,
+          createdAt: s.createdAt,
+        }));
+      }
+      const response = await fetch('/api/staff', { credentials: 'include' });
+      if (!response.ok) throw new Error('Failed to fetch staff');
+      return response.json();
+    },
     enabled: isAuthLoaded && isAdmin === true,
   });
 
