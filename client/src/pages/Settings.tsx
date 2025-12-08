@@ -908,19 +908,21 @@ export default function Settings() {
         </div>
       </div>
 
-      <Separator className="my-8" />
+      {/* Profile Management - hidden from staff in Tauri desktop mode */}
+      {!(isTauri() && !isAdmin) && (
+        <>
+          <Separator className="my-8" />
 
-      {/* Profile Management */}
-      <div>
-        <h2 className="text-2xl font-bold mb-4 flex items-center gap-2">
-          <User className="h-6 w-6" />
-          Profile Management
-        </h2>
-        <p className="text-sm text-muted-foreground mb-4">
-          Update your profile information and change your password.
-        </p>
-        <div className="grid gap-4 md:grid-cols-2">
-          {/* Profile Information Card */}
+          <div>
+            <h2 className="text-2xl font-bold mb-4 flex items-center gap-2">
+              <User className="h-6 w-6" />
+              Profile Management
+            </h2>
+            <p className="text-sm text-muted-foreground mb-4">
+              Update your profile information and change your password.
+            </p>
+            <div className="grid gap-4 md:grid-cols-2">
+              {/* Profile Information Card */}
           <Card>
             <CardHeader>
               <CardTitle className="flex items-center gap-2">
@@ -1049,8 +1051,10 @@ export default function Settings() {
               </Button>
             </CardFooter>
           </Card>
-        </div>
-      </div>
+            </div>
+          </div>
+        </>
+      )}
 
       {/* Staff Management (Admin only - hidden in Tauri desktop mode) */}
       {isAuthLoaded && isAdmin && !isTauri() && (
