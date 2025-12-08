@@ -809,6 +809,11 @@ export const localDb = {
   },
 
   async archiveBooking(booking: any) {
+    // Prevent archiving if payment method is not set
+    if (!booking.paymentMethod) {
+      throw new Error('Cannot archive booking: Payment method must be selected first');
+    }
+    
     const database = await getDatabase();
     const id = generateUUID();
     const now = new Date().toISOString();
