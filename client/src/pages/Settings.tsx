@@ -1052,8 +1052,8 @@ export default function Settings() {
         </div>
       </div>
 
-      {/* Staff Management (Admin only - only render when auth is loaded and user is confirmed admin) */}
-      {isAuthLoaded && isAdmin && (
+      {/* Staff Management (Admin only - hidden in Tauri desktop mode) */}
+      {isAuthLoaded && isAdmin && !isTauri() && (
         <>
           <Separator className="my-8" />
           <div>
