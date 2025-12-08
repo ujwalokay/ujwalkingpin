@@ -399,7 +399,7 @@ pub fn run() {
                 VALUES (
                     'default-admin-id',
                     'admin',
-                    '$2a$12$LQv3c1yqBWVHxkd0LHAkCOYz6TtxMQJqhN8/LewdBPj/9.5C5RdFi',
+                    '$2b$12$Rg0DNLjezKttIpvMWqYyQO.8ZY3QC6sQAzXEQ1IDKRyAVo9Dza8eW',
                     'admin',
                     0
                 )
