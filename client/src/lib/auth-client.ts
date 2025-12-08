@@ -164,6 +164,14 @@ export async function initializeTauriAuth(): Promise<boolean> {
           role: 'admin',
         });
         console.log('Default admin user created');
+      } else {
+        // Check if admin user exists and reset password to ensure it works
+        const adminUser = users.find((u: any) => u.username === 'admin');
+        if (adminUser) {
+          console.log('Admin user found, resetting password to default...');
+          await localDb.updateUser(adminUser.id, { password: 'Admin@123' });
+          console.log('Admin password reset to Admin@123');
+        }
       }
       console.log('Offline authentication initialized successfully');
       return true;
