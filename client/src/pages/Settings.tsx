@@ -766,15 +766,17 @@ export default function Settings() {
       <div>
         <h2 className="text-2xl font-bold mb-4">Device Configuration</h2>
         <div className="grid gap-4 md:grid-cols-2">
-          <DeviceConfigCard
-            title="PC"
-            description={`Configure PC devices`}
-            count={pcConfig.count}
-            onCountChange={handlePcCountChange}
-            seats={pcConfig.seats}
-            onToggleVisibility={handlePcToggleVisibility}
-            onDelete={() => handleDeleteDeviceConfig("PC")}
-          />
+          {!isTauri() && (
+            <DeviceConfigCard
+              title="PC"
+              description={`Configure PC devices`}
+              count={pcConfig.count}
+              onCountChange={handlePcCountChange}
+              seats={pcConfig.seats}
+              onToggleVisibility={handlePcToggleVisibility}
+              onDelete={() => handleDeleteDeviceConfig("PC")}
+            />
+          )}
           <DeviceConfigCard
             title="PS5"
             description={`Configure PS5 devices`}
@@ -791,7 +793,9 @@ export default function Settings() {
       <div>
         <h2 className="text-2xl font-bold mb-4">Pricing Configuration</h2>
         <div className="grid gap-4 md:grid-cols-2">
-          <PricingTable category="PC" slots={pcPricing} onUpdateSlots={setPcPricing} />
+          {!isTauri() && (
+            <PricingTable category="PC" slots={pcPricing} onUpdateSlots={setPcPricing} />
+          )}
           <PricingTable category="PS5" slots={ps5Pricing} onUpdateSlots={setPs5Pricing} />
         </div>
       </div>
@@ -803,68 +807,70 @@ export default function Settings() {
           Define when happy hours are active. Enable/disable and set time periods for special pricing.
         </p>
         <div className="grid gap-4 md:grid-cols-2">
-          <Card>
-            <CardHeader>
-              <div className="flex items-center justify-between">
-                <div>
-                  <CardTitle>PC</CardTitle>
-                  <CardDescription>Configure happy hours time slots and pricing</CardDescription>
-                </div>
-                <div className="flex items-center gap-2">
-                  <Label htmlFor="pc-enabled">Enabled</Label>
-                  <Switch id="pc-enabled" checked={pcHappyHoursEnabled} onCheckedChange={setPcHappyHoursEnabled} />
-                </div>
-              </div>
-            </CardHeader>
-            <CardContent className="space-y-4">
-              {pcTimeSlots.map((slot, index) => (
-                <div key={index} className="space-y-2 p-3 rounded-md border">
-                  <div className="flex items-start justify-between gap-2">
-                    <div className="grid grid-cols-2 gap-2 flex-1">
-                      <div>
-                        <Label className="text-xs">Start Time</Label>
-                        <Input
-                          type="time"
-                          value={slot.startTime}
-                          onChange={(e) => {
-                            const newSlots = [...pcTimeSlots];
-                            newSlots[index].startTime = e.target.value;
-                            setPcTimeSlots(newSlots);
-                          }}
-                          data-testid={`input-pc-start-${index}`}
-                        />
-                      </div>
-                      <div>
-                        <Label className="text-xs">End Time</Label>
-                        <Input
-                          type="time"
-                          value={slot.endTime}
-                          onChange={(e) => {
-                            const newSlots = [...pcTimeSlots];
-                            newSlots[index].endTime = e.target.value;
-                            setPcTimeSlots(newSlots);
-                          }}
-                          data-testid={`input-pc-end-${index}`}
-                        />
-                      </div>
-                    </div>
-                    <Button
-                      size="icon"
-                      variant="ghost"
-                      onClick={() => removePcTimeSlot(index)}
-                      className="mt-5"
-                      data-testid={`button-remove-pc-timeslot-${index}`}
-                    >
-                      <X className="h-4 w-4" />
-                    </Button>
+          {!isTauri() && (
+            <Card>
+              <CardHeader>
+                <div className="flex items-center justify-between">
+                  <div>
+                    <CardTitle>PC</CardTitle>
+                    <CardDescription>Configure happy hours time slots and pricing</CardDescription>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <Label htmlFor="pc-enabled">Enabled</Label>
+                    <Switch id="pc-enabled" checked={pcHappyHoursEnabled} onCheckedChange={setPcHappyHoursEnabled} />
                   </div>
                 </div>
-              ))}
-              <Button variant="outline" className="w-full" onClick={addPcTimeSlot} data-testid="button-add-pc-timeslot">
-                + Add Time Slot
-              </Button>
-            </CardContent>
-          </Card>
+              </CardHeader>
+              <CardContent className="space-y-4">
+                {pcTimeSlots.map((slot, index) => (
+                  <div key={index} className="space-y-2 p-3 rounded-md border">
+                    <div className="flex items-start justify-between gap-2">
+                      <div className="grid grid-cols-2 gap-2 flex-1">
+                        <div>
+                          <Label className="text-xs">Start Time</Label>
+                          <Input
+                            type="time"
+                            value={slot.startTime}
+                            onChange={(e) => {
+                              const newSlots = [...pcTimeSlots];
+                              newSlots[index].startTime = e.target.value;
+                              setPcTimeSlots(newSlots);
+                            }}
+                            data-testid={`input-pc-start-${index}`}
+                          />
+                        </div>
+                        <div>
+                          <Label className="text-xs">End Time</Label>
+                          <Input
+                            type="time"
+                            value={slot.endTime}
+                            onChange={(e) => {
+                              const newSlots = [...pcTimeSlots];
+                              newSlots[index].endTime = e.target.value;
+                              setPcTimeSlots(newSlots);
+                            }}
+                            data-testid={`input-pc-end-${index}`}
+                          />
+                        </div>
+                      </div>
+                      <Button
+                        size="icon"
+                        variant="ghost"
+                        onClick={() => removePcTimeSlot(index)}
+                        className="mt-5"
+                        data-testid={`button-remove-pc-timeslot-${index}`}
+                      >
+                        <X className="h-4 w-4" />
+                      </Button>
+                    </div>
+                  </div>
+                ))}
+                <Button variant="outline" className="w-full" onClick={addPcTimeSlot} data-testid="button-add-pc-timeslot">
+                  + Add Time Slot
+                </Button>
+              </CardContent>
+            </Card>
+          )}
 
           <Card>
             <CardHeader>
@@ -938,7 +944,9 @@ export default function Settings() {
           Set pricing tiers that apply during happy hours time slots. These prices are active only when happy hours are enabled and within the configured time periods.
         </p>
         <div className="grid gap-4 md:grid-cols-2">
-          <HappyHoursPricing category="PC" slots={pcHappyHoursPricing} onUpdateSlots={setPcHappyHoursPricing} />
+          {!isTauri() && (
+            <HappyHoursPricing category="PC" slots={pcHappyHoursPricing} onUpdateSlots={setPcHappyHoursPricing} />
+          )}
           <HappyHoursPricing category="PS5" slots={ps5HappyHoursPricing} onUpdateSlots={setPs5HappyHoursPricing} />
         </div>
       </div>

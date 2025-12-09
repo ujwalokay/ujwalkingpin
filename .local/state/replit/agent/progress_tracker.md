@@ -210,6 +210,13 @@ Current Session - Migration Verification (December 9, 2025):
 [x] 117. Took screenshot - verified Airavoto Gaming POS loading screen displays correctly
 [x] 118. All migration tasks completed and verified
 
+Feature Update - Hide PC Configuration in Tauri Desktop App (December 9, 2025):
+[x] 119. Hidden PC DeviceConfigCard in Settings.tsx when running in Tauri mode
+[x] 120. Hidden PC PricingTable in Settings.tsx when running in Tauri mode
+[x] 121. Hidden PC Happy Hours Time Slots card in Settings.tsx when running in Tauri mode
+[x] 122. Hidden PC Happy Hours Pricing in Settings.tsx when running in Tauri mode
+[x] 123. Restarted workflow - changes applied successfully
+
 Bug Fix - Staff Management Not Showing Added Staff (December 8, 2025):
 [x] 108. Identified issue: Staff list query in Settings.tsx was not using Tauri mode properly
 [x] 109. Added getAllStaff() function to tauri-db.ts to fetch staff users from local SQLite
