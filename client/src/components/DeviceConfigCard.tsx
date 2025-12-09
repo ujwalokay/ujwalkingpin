@@ -2,7 +2,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Button } from "@/components/ui/button";
 import { Switch } from "@/components/ui/switch";
 import { Label } from "@/components/ui/label";
-import { Minus, Plus } from "lucide-react";
+import { Minus, Plus, Trash2 } from "lucide-react";
 
 interface DeviceConfigCardProps {
   title: string;
@@ -11,6 +11,7 @@ interface DeviceConfigCardProps {
   onCountChange: (newCount: number) => void;
   seats?: { name: string; visible: boolean }[];
   onToggleVisibility?: (seatName: string) => void;
+  onDelete?: () => void;
 }
 
 export function DeviceConfigCard({
@@ -20,12 +21,25 @@ export function DeviceConfigCard({
   onCountChange,
   seats = [],
   onToggleVisibility,
+  onDelete,
 }: DeviceConfigCardProps) {
   return (
     <Card className="glass-card" data-testid={`card-${title.toLowerCase().replace(/\s/g, '-')}`}>
-      <CardHeader>
-        <CardTitle>{title}</CardTitle>
-        <CardDescription>{description}</CardDescription>
+      <CardHeader className="flex flex-row items-start justify-between gap-2">
+        <div>
+          <CardTitle>{title}</CardTitle>
+          <CardDescription>{description}</CardDescription>
+        </div>
+        {onDelete && (
+          <Button
+            size="icon"
+            variant="destructive"
+            onClick={onDelete}
+            data-testid={`button-delete-${title.toLowerCase()}`}
+          >
+            <Trash2 className="h-4 w-4" />
+          </Button>
+        )}
       </CardHeader>
       <CardContent className="space-y-4">
         <div className="flex items-center gap-4">

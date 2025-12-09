@@ -530,6 +530,39 @@ export default function Settings() {
     },
   });
 
+  const deleteDeviceConfigMutation = useMutation({
+    mutationFn: async (category: string) => {
+      if (isTauri()) {
+        await localDb.deleteDeviceConfig(category);
+        return { success: true };
+      }
+      return apiRequest("DELETE", `/api/device-config/${category}`);
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['/api/device-config'] });
+      queryClient.invalidateQueries({ queryKey: ['device-configs'] });
+      toast({ title: "Success", description: "Device category deleted" });
+    },
+    onError: (error: any) => {
+      toast({ 
+        title: "Error", 
+        description: error.message || "Failed to delete device category",
+        variant: "destructive" 
+      });
+    },
+  });
+
+  const handleDeleteDeviceConfig = (category: string) => {
+    if (confirm(`Are you sure you want to delete the ${category} category? This will remove all ${category} devices.`)) {
+      deleteDeviceConfigMutation.mutate(category);
+      if (category === "PC") {
+        setPcConfig({ count: 0, seats: [] });
+      } else if (category === "PS5") {
+        setPs5Config({ count: 0, seats: [] });
+      }
+    }
+  };
+
   const savePricingMutation = useMutation({
     mutationFn: async ({ category, configs }: { category: string; configs: { duration: string; price: number; personCount?: number }[] }) => {
       return apiRequest("POST", "/api/pricing-config", {
@@ -740,6 +773,7 @@ export default function Settings() {
             onCountChange={handlePcCountChange}
             seats={pcConfig.seats}
             onToggleVisibility={handlePcToggleVisibility}
+            onDelete={() => handleDeleteDeviceConfig("PC")}
           />
           <DeviceConfigCard
             title="PS5"
@@ -748,6 +782,7 @@ export default function Settings() {
             onCountChange={handlePs5CountChange}
             seats={ps5Config.seats}
             onToggleVisibility={handlePs5ToggleVisibility}
+            onDelete={() => handleDeleteDeviceConfig("PS5")}
           />
         </div>
       </div>

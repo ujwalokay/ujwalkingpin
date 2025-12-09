@@ -654,9 +654,13 @@ export const localDb = {
     return await this.getDeviceConfigById(id);
   },
 
-  async deleteDeviceConfig(id: string) {
+  async deleteDeviceConfig(idOrCategory: string) {
     const database = await getDatabase();
-    await database.execute('DELETE FROM device_configs WHERE id = $1', [id]);
+    // Try to delete by category first (for Settings page), then by id
+    const byCategory = await database.execute('DELETE FROM device_configs WHERE category = $1', [idOrCategory]);
+    if (!byCategory) {
+      await database.execute('DELETE FROM device_configs WHERE id = $1', [idOrCategory]);
+    }
   },
 
   /* PRICING CONFIGS */
