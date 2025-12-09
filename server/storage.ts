@@ -1173,12 +1173,15 @@ export class DatabaseStorage implements IStorage {
   }
 
   async moveBookingsToHistory(): Promise<number> {
+    // Only archive sessions that have BOTH paid status AND a payment method marked (cash/upi/split)
+    // Sessions without payment method should stay active until payment method is specified
     const expiredBookings = await db
       .select()
       .from(bookings)
       .where(and(
         eq(bookings.status, "expired"),
-        eq(bookings.paymentStatus, "paid")
+        eq(bookings.paymentStatus, "paid"),
+        isNotNull(bookings.paymentMethod)
       ));
 
     const completedBookings = await db
@@ -1186,7 +1189,8 @@ export class DatabaseStorage implements IStorage {
       .from(bookings)
       .where(and(
         eq(bookings.status, "completed"),
-        eq(bookings.paymentStatus, "paid")
+        eq(bookings.paymentStatus, "paid"),
+        isNotNull(bookings.paymentMethod)
       ));
 
     const bookingsToArchive = [...expiredBookings, ...completedBookings];
