@@ -2003,9 +2003,10 @@ export const localDb = {
     const database = await getDatabase();
     const now = new Date().toISOString();
     
-    // Get all expired bookings (end_time has passed and status is 'running' or 'expired')
+    // Get all expired bookings that have BOTH paid status AND payment method specified
+    // Sessions without payment method should stay active until payment method is selected
     const expiredBookings = await database.select(
-      `SELECT * FROM bookings WHERE end_time < $1 AND status IN ('running', 'expired', 'completed')`,
+      `SELECT * FROM bookings WHERE end_time < $1 AND status IN ('running', 'expired', 'completed') AND payment_status = 'paid' AND payment_method IS NOT NULL AND payment_method != ''`,
       [now]
     );
     
